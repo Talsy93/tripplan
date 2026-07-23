@@ -1,21 +1,37 @@
 @import "tailwindcss";
 
+/* Beige & Mocha palette — warm, light, single theme. Semantic tokens are
+   mapped to Tailwind utilities in the @theme block, so components use
+   bg-surface / text-muted / bg-primary / shadow-soft etc. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #faf7f2;
+  --surface: #fffdfc;
+  --surface-2: #f3ebdd;
+  --border: #ded3c8;
+  --foreground: #3b2f2a;
+  --muted: #6f625a;
+  --primary: #9a7658;
+  --primary-hover: #76563e;
+  --primary-foreground: #ffffff;
+  --accent: #c9785c;
+  --ring: #9a7658;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-ring: var(--ring);
   --font-sans: var(--font-heebo);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --shadow-soft: 0 8px 24px rgba(59, 47, 42, 0.08);
+  --shadow-card: 0 12px 36px rgba(59, 47, 42, 0.1);
 }
 
 body {

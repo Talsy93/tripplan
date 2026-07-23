@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
+import { Button } from "@/components/ui";
+import { Input } from "@/components/ui";
 import type { AuthFormState } from "../domain/schemas";
 
 type CredentialsFormProps = {
@@ -17,39 +19,39 @@ export function CredentialsForm({
   const [state, formAction, pending] = useActionState(action, undefined);
 
   return (
-    <form action={formAction} className="flex w-full max-w-sm flex-col gap-4">
+    <form action={formAction} className="flex w-full flex-col gap-4">
       <h1 className="text-2xl font-bold">{title}</h1>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className="text-sm font-medium">
           אימייל
         </label>
-        <input
+        <Input
           id="email"
           name="email"
           type="email"
           autoComplete="email"
           required
           dir="ltr"
-          className="rounded border border-gray-300 px-3 py-2 text-left"
+          className="text-left"
         />
         {state?.errors?.email && (
           <p className="text-sm text-red-600">{state.errors.email.join(" ")}</p>
         )}
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         <label htmlFor="password" className="text-sm font-medium">
           סיסמה
         </label>
-        <input
+        <Input
           id="password"
           name="password"
           type="password"
           autoComplete="current-password"
           required
           dir="ltr"
-          className="rounded border border-gray-300 px-3 py-2 text-left"
+          className="text-left"
         />
         {state?.errors?.password && (
           <p className="text-sm text-red-600">
@@ -59,16 +61,12 @@ export function CredentialsForm({
       </div>
 
       {state?.message && (
-        <p className="text-sm text-gray-700">{state.message}</p>
+        <p className="text-sm text-muted">{state.message}</p>
       )}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded bg-black px-4 py-2 text-white disabled:opacity-50"
-      >
+      <Button type="submit" disabled={pending} className="w-full">
         {pending ? "רגע…" : submitLabel}
-      </button>
+      </Button>
     </form>
   );
 }

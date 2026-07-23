@@ -188,6 +188,8 @@ src/
 | 2026-07-23 | הושלם שלב 5: הוגדר branch protection על `main` (ruleset "main-protection"): חובה PR + מעבר status check `Type-check & Lint` לפני merge. מעתה אין push ישיר ל-main — כל שינוי דרך branch + PR. |
 | 2026-07-23 | הושלם שלב 6 (פרוסה דקה מקצה לקצה): פיצ'ר `trips` קיבל שכבות infrastructure/application/components — יצירת טיול (שם בלבד) ושמירה ב-Supabase, והצגת רשימת הטיולים בעמוד `/profile` המוגן. נבנה על branch `feature/trips-slice` (זרימת PR ראשונה). |
 | 2026-07-23 | הושלם שלב 7 (תשתית AI): שכבת הפשטה `src/lib/ai` מעל `@google/genai` (מודל `gemini-flash-latest`), Structured Output דרך `z.toJSONSchema` + ולידציית Zod, route `POST /api/ai/suggest` עם אימות ו-rate limiting בסיסי (`src/lib/rate-limit.ts`). תוקן ה-proxy כך שנתיבי `/api` מחזירים 401 במקום הפניה ל-login. סכמות AI ב-`src/features/trips/domain`. |
+| 2026-07-23 | שלב 8 (חלק): נבנתה חוויית גלישה דו-שכבתית — הצעות ערים (שכבה 1) ומדריך עיר מקוטלג (מלונות/מסעדות/אטרקציות/חוויות) עם "עוד תוצאות" לכל קטגוריה (שכבה 2). routes: `/api/ai/city-guide`, `/api/ai/recommendations`. מוזג ב-PR #3. |
+| 2026-07-23 | פאס עיצוב: מערכת עיצוב עם פלטת כחול-טורקיז (משתני CSS + מצב כהה), רכיבי UI גנריים ב-`src/components/ui` (Button/Card/Input/Textarea/Badge), והלבשה מחדש רספונסיבית של כל המסכים. ההעדפה נשמרה בזיכרון. |
 
 ---
 

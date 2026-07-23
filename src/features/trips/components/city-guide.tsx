@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Button, Card } from "@/components/ui";
 import type {
   AiCategoryKey,
   AiCityGuide,
@@ -16,11 +17,11 @@ const SECTIONS: { key: AiCategoryKey; label: string; icon: string }[] = [
 
 function RecommendationCard({ item }: { item: AiRecommendation }) {
   return (
-    <li className="flex flex-col gap-2 rounded-lg border border-gray-200 p-4">
+    <Card className="flex h-full flex-col gap-2 p-4">
       <span className="font-semibold">{item.name}</span>
-      <p className="text-sm text-gray-600">{item.description}</p>
-      <p className="text-xs text-gray-500">💡 {item.tip}</p>
-    </li>
+      <p className="text-sm text-muted">{item.description}</p>
+      <p className="mt-auto text-xs text-muted">💡 {item.tip}</p>
+    </Card>
   );
 }
 
@@ -107,7 +108,7 @@ export function CityGuide({ city }: { city: string }) {
   }
 
   if (loading) {
-    return <p className="text-sm text-gray-500">בונה מדריך לעיר…</p>;
+    return <p className="text-sm text-muted">בונה מדריך לעיר…</p>;
   }
   if (error) {
     return <p className="text-sm text-red-600">{error}</p>;
@@ -117,29 +118,33 @@ export function CityGuide({ city }: { city: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-10">
       {SECTIONS.map(({ key, label, icon }) => {
         const items = guide[key] ?? [];
         if (items.length === 0) return null;
         const isLoadingMore = loadingMore.includes(key);
         return (
-          <section key={key} className="flex flex-col gap-3">
+          <section key={key} className="flex flex-col gap-4">
             <h2 className="text-lg font-bold">
               {icon} {label}
             </h2>
-            <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
               {items.map((item, index) => (
-                <RecommendationCard key={`${item.name}-${index}`} item={item} />
+                <li key={`${item.name}-${index}`}>
+                  <RecommendationCard item={item} />
+                </li>
               ))}
             </ul>
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => loadMore(key)}
               disabled={isLoadingMore}
-              className="self-start rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50"
+              className="self-start"
             >
               {isLoadingMore ? "מוסיף…" : "עוד תוצאות"}
-            </button>
+            </Button>
           </section>
         );
       })}
