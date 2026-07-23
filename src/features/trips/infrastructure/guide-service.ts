@@ -4,50 +4,114 @@ import type {
   AiCitySuggestion,
   AiCityGuide,
   AiRecommendation,
+  CityGuideData,
+  SavedCityGuide,
+  SelectedItem,
 } from "../domain/ai-suggestion";
 
 const CATEGORY_KEYS: AiCategoryKey[] = [
-  "hotels",
+  "areas",
   "restaurants",
   "attractions",
   "experiences",
 ];
 
-function emptyGuide(): AiCityGuide {
-  return { hotels: [], restaurants: [], attractions: [], experiences: [] };
-}
+// Sentinel category used to store the city's overview (intro + getting there)
+// as a single row alongside the categorised items.
+const OVERVIEW_CATEGORY = "overview";
 
 // Loads a previously saved AI guide for (trip, city), grouped by category.
 // Returns null when nothing is stored yet, so callers know to generate.
 export async function getSavedCityGuide(
   tripId: string,
   city: string,
-): Promise<AiCityGuide | null> {
+): Promise<CityGuideData | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("suggested_destinations")
-    .select("category, name, description, tip")
+    .select("category, name, description, tip, selected")
     .eq("trip_id", tripId)
     .eq("city", city)
     .eq("source", "ai")
+    .not("category", "is", null)
     .order("created_at", { ascending: true });
 
   if (error || !data || data.length === 0) {
     return null;
   }
 
-  const guide = emptyGuide();
+  const sections: SavedCityGuide = {
+    areas: [],
+    restaurants: [],
+    attractions: [],
+    experiences: [],
+  };
+  let intro = "";
+  let gettingThere = "";
+
   for (const row of data) {
+    if (row.category === OVERVIEW_CATEGORY) {
+      intro = row.description ?? "";
+      gettingThere = row.tip ?? "";
+      continue;
+    }
     const key = row.category as AiCategoryKey;
-    if (guide[key]) {
-      guide[key].push({
+    if (sections[key]) {
+      sections[key].push({
         name: row.name,
         description: row.description ?? "",
         tip: row.tip ?? "",
+        selected: row.selected,
       });
     }
   }
-  return guide;
+  return { intro, gettingThere, sections };
+}
+
+// Toggle whether a guide item is added to the trip. Identified by its natural
+// key (the unique index guarantees one row per trip/city/category/name).
+export async function setDestinationSelected(
+  tripId: string,
+  city: string,
+  category: string,
+  name: string,
+  selected: boolean,
+) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("suggested_destinations")
+    .update({ selected })
+    .eq("trip_id", tripId)
+    .eq("city", city)
+    .eq("category", category)
+    .eq("name", name)
+    .eq("source", "ai");
+  if (error) {
+    console.error("setDestinationSelected failed:", error.message);
+  }
+}
+
+// Items the user added to the trip, across all cities.
+export async function getSelectedDestinations(
+  tripId: string,
+): Promise<SelectedItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("suggested_destinations")
+    .select("city, category, name, description")
+    .eq("trip_id", tripId)
+    .eq("source", "ai")
+    .eq("selected", true)
+    .not("category", "is", null)
+    .order("city", { ascending: true });
+
+  if (error || !data) return [];
+  return data.map((row) => ({
+    city: row.city ?? "",
+    category: row.category ?? "",
+    name: row.name,
+    description: row.description ?? "",
+  }));
 }
 
 function toRows(
@@ -76,7 +140,18 @@ export async function saveCityGuide(
   const rows = CATEGORY_KEYS.flatMap((key) =>
     toRows(tripId, city, key, guide[key] ?? []),
   );
-  if (rows.length === 0) return;
+
+  // Store the city overview (intro + getting-there) as one sentinel row.
+  rows.push({
+    trip_id: tripId,
+    city,
+    category: OVERVIEW_CATEGORY as AiCategoryKey,
+    name: city,
+    description: guide.intro,
+    tip: guide.getting_there,
+    source: "ai" as const,
+    selected: false,
+  });
 
   const supabase = await createClient();
   const { error } = await supabase

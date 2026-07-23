@@ -13,7 +13,7 @@ const RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 60_000;
 
 const CATEGORY_LABELS: Record<AiCategoryKey, string> = {
-  hotels: "מלונות",
+  areas: "אזורי לינה (שכונות לפי אופי)",
   restaurants: "מסעדות",
   attractions: "אטרקציות ואתרים",
   experiences: "חוויות ודברים לעשות",
