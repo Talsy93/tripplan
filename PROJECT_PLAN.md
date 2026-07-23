@@ -73,7 +73,7 @@ src/
 
 ## 📋 שלבי הפרויקט
 
-**השלב הנוכחי:שלב 3**
+**השלב הנוכחי: שלב 5**
 
 ### שלב 0 — הרשמות והכנת סביבה ✅ הושלם
 
@@ -85,7 +85,7 @@ src/
 - [x] מפתח API של Gemini (דרך Google AI Studio)
 - [x] שמירת כל המפתחות במקום בטוח (לא בקוד!)
 
-### שלב 1 — שלד הפרויקט ⬅️ אנחנו כאן
+### שלב 1 — שלד הפרויקט ✅ הושלם
 
 - [x] יצירת פרויקט Next.js + TypeScript (דרך create-next-app)
 - [x] הרצה מקומית מוצלחת (localhost:3000)
@@ -93,28 +93,28 @@ src/
 - [x] הפעלת strict mode ב-tsconfig (בדיקה שקיים)
 - [x] ריפו ב-GitHub + push ראשון
 
-### שלב 2 — דיפלוי ראשון
+### שלב 2 — דיפלוי ראשון ✅ הושלם
 
 - [x] חיבור הריפו ל-Vercel
 - [x] עמוד "Hello TripPlan" עולה לאוויר
 - [x] וידוא: push ל-main ⟵ דיפלוי אוטומטי
 
-### שלב 3 — Supabase ו-Auth
+### שלב 3 — Supabase ו-Auth ✅ הושלם
 
-- [ ] יצירת פרויקט Supabase (אזור: eu-central)
-- [ ] משתני סביבה (מקומית + ב-Vercel)
-- [ ] הרשמה / התחברות / התנתקות (אימייל+סיסמה)
-- [ ] middleware להגנה על עמודים
-- [ ] טבלת profiles + יצירה אוטומטית בהרשמה
+- [x] יצירת פרויקט Supabase (אזור: eu-central)
+- [x] משתני סביבה (מקומית + ב-Vercel)
+- [x] הרשמה / התחברות / התנתקות (אימייל+סיסמה + Google OAuth)
+- [x] middleware להגנה על עמודים (`src/proxy.ts` — שם ה-middleware ב-Next.js 16)
+- [x] טבלת profiles + יצירה אוטומטית בהרשמה (RLS + trigger, ב-`src/db/migrations/0001_profiles.sql`)
 
-### שלב 4 — Database Design
+### שלב 4 — Database Design ✅ הושלם
 
-- [ ] טבלת trips עם שדה status
-- [ ] טבלאות suggested_destinations + itinerary_items
-- [ ] RLS policies — כל משתמש רואה רק את שלו
-- [ ] סכמות Zod תואמות לכל ישות
+- [x] טבלת trips עם שדה status
+- [x] טבלאות suggested_destinations + itinerary_items
+- [x] RLS policies — כל משתמש רואה רק את שלו
+- [x] סכמות Zod תואמות לכל ישות
 
-### שלב 5 — CI
+### שלב 5 — CI ⬅️ אנחנו כאן
 
 - [ ] GitHub Actions: type-check + lint על כל push
 - [ ] בדיקה שה-CI חוסם merge כשיש שגיאות
@@ -151,6 +151,12 @@ src/
 | 2026-07-14 | הוגדרה הפרדת זהויות גיט במחשב העבודה: config מקומי לריפו (אימייל אישי) + credential.useHttpPath לניהול הרשאות לפי ריפו.            |
 | 2026-07-14 | תוקן: תיקיית app הועברה לתוך src (git mv) + עדכון paths ב-tsconfig, בהתאם ל-ARCHITECTURE.md.                                       |
 | 2026-07-14 | הושלם שלב 2: הריפו חובר ל-Vercel, האתר חי בכתובת tripplan-ten.vercel.app, אומת דיפלוי אוטומטי על push.                             |
+| 2026-07-23 | נוצר CLAUDE.md (תמצות תוכנית + ארכיטקטורה + אופן עבודה). סומנו שני הסעיפים הראשונים של שלב 3 שבוצעו ידנית: פרויקט Supabase נוצר ומשתני הסביבה הוגדרו מקומית וב-Vercel. |
+| 2026-07-23 | נבנה פיצ'ר auth (`src/features/auth`) לפי שכבות הארכיטקטורה: סכמת Zod, שכבת infrastructure מול Supabase (`@supabase/ssr`), Server Actions, טפסים, ועמודי login/signup. נוספה גם התחברות עם Google (OAuth/PKCE) עם Route Handler ב-`/auth/callback`. תוקן ערך שגוי ב-`.env.local` (הוסרה סיומת `/rest/v1/` מכתובת ה-Supabase). |
+| 2026-07-23 | נוסף `src/proxy.ts` (ה-middleware בשמו החדש ב-Next.js 16) עם עוזר `src/lib/supabase/middleware.ts`: רענון session בכל בקשה + הפניית משתמש לא-מחובר ל-`/login`. עמודים ציבוריים: `/`, `/login`, `/signup`, `/auth/*`. |
+| 2026-07-23 | הושלם שלב 3: נוצרה טבלת `public.profiles` עם RLS (כל משתמש רק את שלו) ו-trigger `on_auth_user_created` ליצירה אוטומטית בהרשמה (כולל שאיבת שם/תמונה מ-Google). ה-SQL תועד ב-`src/db/migrations/0001_profiles.sql` ונוצרה סכמת Zod ב-`src/features/profile`. |
+| 2026-07-23 | האפליקציה הותאמה לעברית ו-RTL: `lang="he" dir="rtl"`, גופן Heebo (עברית+לטינית), תרגום כל הטקסטים, הודעות Zod ושגיאות Supabase בעברית. שדות אימייל/סיסמה נשארים LTR. |
+| 2026-07-23 | הושלם שלב 4: נוצרו טבלאות `trips` (status כ-enum, תאריכים אופציונליים), `suggested_destinations`, `itinerary_items`, עם RLS (כל משתמש רק את שלו, תת-ישויות דרך הטיול). ה-SQL ב-`src/db/migrations/0002_trips.sql`, סכמות Zod ב-`src/features/trips` (שלוש הישויות כאגרגט טיול). |
 
 ---
 
