@@ -43,7 +43,17 @@ export type {
   AiRecommendations,
 } from "./domain/ai-suggestion";
 export { createTrip } from "./application/actions";
+export {
+  saveGuide,
+  saveMore,
+  refreshGuide,
+  saveCities,
+} from "./application/guide-actions";
 export { getTrip, listTrips } from "./infrastructure/trips-service";
+export {
+  getSavedCityGuide,
+  getSavedCities,
+} from "./infrastructure/guide-service";
 export { CreateTripForm } from "./components/create-trip-form";
 export { TripList } from "./components/trip-list";
 export { PlanningPanel } from "./components/planning-panel";

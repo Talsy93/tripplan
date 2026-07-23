@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CityGuide, getTrip } from "@/features/trips";
+import { CityGuide, getSavedCityGuide, getTrip } from "@/features/trips";
 
 export default async function CityPage({
   params,
@@ -14,6 +14,9 @@ export default async function CityPage({
   if (!trip) {
     notFound();
   }
+
+  // Load a previously saved guide so we skip the AI call on revisits.
+  const initialGuide = await getSavedCityGuide(id, cityName);
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-10">
@@ -31,7 +34,7 @@ export default async function CityPage({
         </p>
       </header>
 
-      <CityGuide city={cityName} />
+      <CityGuide tripId={id} city={cityName} initialGuide={initialGuide} />
     </main>
   );
 }
