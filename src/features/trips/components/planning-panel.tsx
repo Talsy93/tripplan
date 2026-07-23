@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Button, Card, Textarea } from "@/components/ui";
 import type { AiCitySuggestion } from "../domain/ai-suggestion";
 
 export function PlanningPanel({ tripId }: { tripId: string }) {
@@ -46,35 +47,36 @@ export function PlanningPanel({ tripId }: { tripId: string }) {
         <label htmlFor="prompt" className="text-sm font-medium">
           מה בא לכם לעשות בטיול?
         </label>
-        <textarea
+        <Textarea
           id="prompt"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="לדוגמה: שבוע באיטליה, דגש על אוכל, אמנות ואתרים היסטוריים"
           rows={3}
-          className="rounded border border-gray-300 px-3 py-2"
         />
-        <button
+        <Button
           type="submit"
           disabled={loading || prompt.trim().length < 3}
-          className="self-start rounded bg-black px-4 py-2 text-white disabled:opacity-50"
+          className="self-start"
         >
           {loading ? "חושב…" : "קבל הצעות מ-AI"}
-        </button>
+        </Button>
       </form>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {cities.length > 0 && (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {cities.map((city, index) => (
             <Link
               key={`${city.name}-${index}`}
               href={`/trips/${tripId}/city/${encodeURIComponent(city.name)}`}
-              className="flex flex-col gap-1 rounded border border-gray-200 px-4 py-3 hover:bg-gray-50"
+              className="block"
             >
-              <span className="font-medium">{city.name} ←</span>
-              <span className="text-sm text-gray-600">{city.description}</span>
+              <Card className="flex h-full flex-col gap-1 p-4 transition-colors hover:border-primary">
+                <span className="font-medium text-primary">{city.name} ←</span>
+                <span className="text-sm text-muted">{city.description}</span>
+              </Card>
             </Link>
           ))}
         </div>

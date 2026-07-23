@@ -1,12 +1,10 @@
+import { buttonClasses } from "@/components/ui";
 import { loginWithGoogle } from "../application/actions";
 
 export function GoogleButton() {
   return (
-    <form action={loginWithGoogle} className="w-full max-w-sm">
-      <button
-        type="submit"
-        className="flex w-full items-center justify-center gap-2 rounded border border-gray-300 px-4 py-2 font-medium hover:bg-gray-50"
-      >
+    <form action={loginWithGoogle} className="w-full">
+      <button type="submit" className={buttonClasses("outline", "md", "w-full")}>
         <svg aria-hidden="true" viewBox="0 0 18 18" className="h-4 w-4">
           <path
             fill="#4285F4"
