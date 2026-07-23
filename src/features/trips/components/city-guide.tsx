@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card } from "@/components/ui";
+import { googleMapsSearchUrl } from "@/lib/maps";
 import {
   refreshGuide,
   saveGuide,
@@ -44,9 +45,11 @@ function toGuideData(guide: AiCityGuide): CityGuideData {
 
 function GuideCard({
   item,
+  city,
   onToggle,
 }: {
   item: GuideItem;
+  city: string;
   onToggle: () => void;
 }) {
   return (
@@ -65,6 +68,14 @@ function GuideCard({
       </div>
       <p className="text-sm leading-relaxed text-muted">{item.description}</p>
       <p className="text-xs text-muted">💡 {item.tip}</p>
+      <a
+        href={googleMapsSearchUrl(`${item.name} ${city}`)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="self-start text-xs text-primary hover:underline"
+      >
+        🗺️ פתח ב-Google Maps
+      </a>
     </Card>
   );
 }
@@ -241,6 +252,7 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
                 <GuideCard
                   key={`${item.name}-${index}`}
                   item={item}
+                  city={city}
                   onToggle={() => toggle(key, item)}
                 />
               ))}

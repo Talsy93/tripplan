@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Card } from "@/components/ui";
+import { googleMapsSearchUrl } from "@/lib/maps";
 import { setSelected } from "../application/guide-actions";
 import type { SelectedItem } from "../domain/ai-suggestion";
 
@@ -59,6 +60,15 @@ export function SelectedList({
                     <span className="text-xs text-muted">
                       {CATEGORY_LABELS[item.category] ?? item.category}
                     </span>
+                    <a
+                      href={googleMapsSearchUrl(`${item.name} ${item.city}`)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="פתח ב-Google Maps"
+                      className="text-muted transition-colors hover:text-foreground"
+                    >
+                      🗺️
+                    </a>
                     <button
                       type="button"
                       onClick={() => remove(item)}

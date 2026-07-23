@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button, Card } from "@/components/ui";
+import { googleMapsSearchUrl } from "@/lib/maps";
 import { deleteItineraryEntry } from "../application/itinerary-actions";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 
@@ -109,6 +110,14 @@ export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
                 {item.note && (
                   <p className="text-sm text-muted">{item.note}</p>
                 )}
+                <a
+                  href={googleMapsSearchUrl(item.title)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="self-start text-xs text-primary hover:underline"
+                >
+                  🗺️ פתח ב-Google Maps
+                </a>
               </Card>
             ))}
           </div>
