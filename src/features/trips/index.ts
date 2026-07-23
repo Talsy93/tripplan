@@ -31,6 +31,6 @@ export type {
   AiSuggestions,
 } from "./domain/ai-suggestion";
 export { createTrip } from "./application/actions";
-export { listTrips } from "./infrastructure/trips-service";
+export { getTrip, listTrips } from "./infrastructure/trips-service";
 export { CreateTripForm } from "./components/create-trip-form";
 export { TripList } from "./components/trip-list";
