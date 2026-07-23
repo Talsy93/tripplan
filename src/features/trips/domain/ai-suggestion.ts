@@ -90,3 +90,38 @@ export const aiRecommendationsSchema = z.object({
   recommendations: z.array(aiRecommendationSchema),
 });
 export type AiRecommendations = z.infer<typeof aiRecommendationsSchema>;
+
+// ---- Itinerary: an AI-built day-by-day schedule ----------------------------
+
+export const aiItineraryRequestSchema = z.object({
+  tripId: z.uuid(),
+});
+export type AiItineraryRequest = z.infer<typeof aiItineraryRequestSchema>;
+
+export const aiItineraryEntrySchema = z.object({
+  name: z.string(),
+  start_time: z.string(),
+  end_time: z.string(),
+  note: z.string(),
+});
+export const aiItineraryDaySchema = z.object({
+  day: z.number().int(),
+  items: z.array(aiItineraryEntrySchema),
+});
+export const aiItinerarySchema = z.object({
+  days: z.array(aiItineraryDaySchema),
+});
+export type AiItinerary = z.infer<typeof aiItinerarySchema>;
+
+// The itinerary as loaded from the DB, for display on the trip page.
+export type ItineraryEntry = {
+  id: string;
+  title: string;
+  startLabel: string;
+  endLabel: string;
+  note: string;
+};
+export type ItineraryDay = {
+  day: number;
+  items: ItineraryEntry[];
+};
