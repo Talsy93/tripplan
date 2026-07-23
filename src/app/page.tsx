@@ -10,7 +10,9 @@ export default async function HomePage() {
       <p className="text-lg text-gray-500">לתכנן חכם. לטייל טוב יותר.</p>
       {user ? (
         <div className="flex items-center gap-3 text-sm text-gray-600">
-          <span>מחובר כ-{user.email}</span>
+          <Link href="/profile" className="underline">
+            הטיולים שלי
+          </Link>
           <LogoutButton />
         </div>
       ) : (

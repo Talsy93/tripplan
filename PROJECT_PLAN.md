@@ -73,7 +73,7 @@ src/
 
 ## 📋 שלבי הפרויקט
 
-**השלב הנוכחי: שלב 5**
+**השלב הנוכחי: שלב 7**
 
 ### שלב 0 — הרשמות והכנת סביבה ✅ הושלם
 
@@ -114,18 +114,18 @@ src/
 - [x] RLS policies — כל משתמש רואה רק את שלו
 - [x] סכמות Zod תואמות לכל ישות
 
-### שלב 5 — CI ⬅️ אנחנו כאן
+### שלב 5 — CI ✅ הושלם
 
-- [ ] GitHub Actions: type-check + lint על כל push
-- [ ] בדיקה שה-CI חוסם merge כשיש שגיאות
+- [x] GitHub Actions: type-check + lint על כל push
+- [x] בדיקה שה-CI חוסם merge כשיש שגיאות (branch protection על main: PR + status check `Type-check & Lint`)
 
-### שלב 6 — פרוסה דקה מקצה לקצה
+### שלב 6 — פרוסה דקה מקצה לקצה ✅ הושלם
 
-- [ ] יצירת טיול ריק מה-UI
-- [ ] שמירה בדאטהבייס
-- [ ] הצגת רשימת הטיולים בפרופיל
+- [x] יצירת טיול ריק מה-UI
+- [x] שמירה בדאטהבייס
+- [x] הצגת רשימת הטיולים בפרופיל
 
-### שלב 7 — תשתית AI
+### שלב 7 — תשתית AI ⬅️ אנחנו כאן
 
 - [ ] שכבת הפשטה לספק AI
 - [ ] route בשם /api/ai/suggest
@@ -157,6 +157,9 @@ src/
 | 2026-07-23 | הושלם שלב 3: נוצרה טבלת `public.profiles` עם RLS (כל משתמש רק את שלו) ו-trigger `on_auth_user_created` ליצירה אוטומטית בהרשמה (כולל שאיבת שם/תמונה מ-Google). ה-SQL תועד ב-`src/db/migrations/0001_profiles.sql` ונוצרה סכמת Zod ב-`src/features/profile`. |
 | 2026-07-23 | האפליקציה הותאמה לעברית ו-RTL: `lang="he" dir="rtl"`, גופן Heebo (עברית+לטינית), תרגום כל הטקסטים, הודעות Zod ושגיאות Supabase בעברית. שדות אימייל/סיסמה נשארים LTR. |
 | 2026-07-23 | הושלם שלב 4: נוצרו טבלאות `trips` (status כ-enum, תאריכים אופציונליים), `suggested_destinations`, `itinerary_items`, עם RLS (כל משתמש רק את שלו, תת-ישויות דרך הטיול). ה-SQL ב-`src/db/migrations/0002_trips.sql`, סכמות Zod ב-`src/features/trips` (שלוש הישויות כאגרגט טיול). |
+| 2026-07-23 | נוסף CI ב-GitHub Actions (`.github/workflows/ci.yml`): type-check + lint על כל push/PR (Node 20). נוסף סקריפט `type-check`. אומת: ה-run הראשון על main הסתיים בהצלחה. |
+| 2026-07-23 | הושלם שלב 5: הוגדר branch protection על `main` (ruleset "main-protection"): חובה PR + מעבר status check `Type-check & Lint` לפני merge. מעתה אין push ישיר ל-main — כל שינוי דרך branch + PR. |
+| 2026-07-23 | הושלם שלב 6 (פרוסה דקה מקצה לקצה): פיצ'ר `trips` קיבל שכבות infrastructure/application/components — יצירת טיול (שם בלבד) ושמירה ב-Supabase, והצגת רשימת הטיולים בעמוד `/profile` המוגן. נבנה על branch `feature/trips-slice` (זרימת PR ראשונה). |
 
 ---
 
