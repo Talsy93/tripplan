@@ -19,6 +19,22 @@ export async function createTrip(name: string) {
   return { error: error?.message ?? null };
 }
 
+export async function getTrip(id: string): Promise<Trip | null> {
+  const supabase = await createClient();
+  // RLS ensures only the owner's trip is returned; anything else yields null.
+  const { data, error } = await supabase
+    .from("trips")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !data) {
+    return null;
+  }
+
+  return tripSchema.parse(data);
+}
+
 export async function listTrips(): Promise<Trip[]> {
   const supabase = await createClient();
   // RLS limits rows to the current user's trips.
