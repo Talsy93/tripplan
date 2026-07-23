@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card } from "@/components/ui";
+import { refreshGuide, saveGuide, saveMore } from "../application/guide-actions";
 import type {
   AiCategoryKey,
   AiCityGuide,
@@ -25,50 +26,62 @@ function RecommendationCard({ item }: { item: AiRecommendation }) {
   );
 }
 
-export function CityGuide({ city }: { city: string }) {
-  const [loading, setLoading] = useState(true);
+type CityGuideProps = {
+  tripId: string;
+  city: string;
+  initialGuide: AiCityGuide | null;
+};
+
+export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
+  const [guide, setGuide] = useState<AiCityGuide | null>(initialGuide);
+  const [loading, setLoading] = useState(!initialGuide);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [guide, setGuide] = useState<AiCityGuide | null>(null);
   const [loadingMore, setLoadingMore] = useState<AiCategoryKey[]>([]);
 
-  useEffect(() => {
-    let active = true;
+  // Generate a guide from the AI and persist it. Used on first visit and refresh.
+  const generate = useCallback(async () => {
+    setError(null);
+    try {
+      const res = await fetch("/api/ai/city-guide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ city }),
+      });
 
-    async function load() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch("/api/ai/city-guide", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ city }),
-        });
-
-        if (!active) return;
-
-        if (res.status === 429) {
-          setError("יותר מדי בקשות. נסו שוב בעוד רגע.");
-          return;
-        }
-        if (!res.ok) {
-          setError("טעינת המדריך נכשלה. נסו שוב.");
-          return;
-        }
-
-        const data = await res.json();
-        if (active) setGuide(data);
-      } catch {
-        if (active) setError("שגיאת רשת. נסו שוב.");
-      } finally {
-        if (active) setLoading(false);
+      if (res.status === 429) {
+        setError("יותר מדי בקשות. נסו שוב בעוד רגע.");
+        return;
       }
-    }
+      if (!res.ok) {
+        setError("טעינת המדריך נכשלה. נסו שוב.");
+        return;
+      }
 
-    load();
-    return () => {
-      active = false;
-    };
-  }, [city]);
+      const data: AiCityGuide = await res.json();
+      setGuide(data);
+      await saveGuide(tripId, city, data);
+    } catch {
+      setError("שגיאת רשת. נסו שוב.");
+    }
+  }, [tripId, city]);
+
+  // Only generate when there is nothing saved yet.
+  const hasGenerated = useRef(Boolean(initialGuide));
+  useEffect(() => {
+    if (hasGenerated.current) return;
+    hasGenerated.current = true;
+    setLoading(true);
+    generate().finally(() => setLoading(false));
+  }, [generate]);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    await refreshGuide(tripId, city);
+    setGuide(null);
+    await generate();
+    setRefreshing(false);
+  }
 
   async function loadMore(key: AiCategoryKey) {
     if (!guide || loadingMore.includes(key)) return;
@@ -90,16 +103,21 @@ export function CityGuide({ city }: { city: string }) {
       const data = await res.json();
       const incoming: AiRecommendation[] = data.recommendations ?? [];
 
+      let added: AiRecommendation[] = [];
       setGuide((prev) => {
         if (!prev) return prev;
         const existing = new Set(
           prev[key].map((item) => item.name.trim().toLowerCase()),
         );
-        const fresh = incoming.filter(
+        added = incoming.filter(
           (item) => !existing.has(item.name.trim().toLowerCase()),
         );
-        return { ...prev, [key]: [...prev[key], ...fresh] };
+        return { ...prev, [key]: [...prev[key], ...added] };
       });
+
+      if (added.length > 0) {
+        await saveMore(tripId, city, key, added);
+      }
     } catch {
       // Silent: the existing list stays intact on failure.
     } finally {
@@ -110,7 +128,7 @@ export function CityGuide({ city }: { city: string }) {
   if (loading) {
     return <p className="text-sm text-muted">בונה מדריך לעיר…</p>;
   }
-  if (error) {
+  if (error && !guide) {
     return <p className="text-sm text-red-600">{error}</p>;
   }
   if (!guide) {
@@ -119,6 +137,20 @@ export function CityGuide({ city }: { city: string }) {
 
   return (
     <div className="flex flex-col gap-10">
+      <div className="flex items-center justify-between gap-3">
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="ms-auto"
+        >
+          {refreshing ? "מרענן…" : "רענן הצעות"}
+        </Button>
+      </div>
+
       {SECTIONS.map(({ key, label, icon }) => {
         const items = guide[key] ?? [];
         if (items.length === 0) return null;

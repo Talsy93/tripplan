@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui";
-import { getTrip, PlanningPanel, tripStatusLabels } from "@/features/trips";
+import {
+  getSavedCities,
+  getTrip,
+  PlanningPanel,
+  tripStatusLabels,
+} from "@/features/trips";
 
 export default async function TripPage({
   params,
@@ -14,6 +19,8 @@ export default async function TripPage({
   if (!trip) {
     notFound();
   }
+
+  const savedCities = await getSavedCities(id);
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
@@ -29,7 +36,7 @@ export default async function TripPage({
         <Badge>{tripStatusLabels[trip.status]}</Badge>
       </header>
 
-      <PlanningPanel tripId={trip.id} />
+      <PlanningPanel tripId={trip.id} initialCities={savedCities} />
     </main>
   );
 }

@@ -3,13 +3,19 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Button, Card, Textarea } from "@/components/ui";
+import { saveCities } from "../application/guide-actions";
 import type { AiCitySuggestion } from "../domain/ai-suggestion";
 
-export function PlanningPanel({ tripId }: { tripId: string }) {
+type PlanningPanelProps = {
+  tripId: string;
+  initialCities: AiCitySuggestion[];
+};
+
+export function PlanningPanel({ tripId, initialCities }: PlanningPanelProps) {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cities, setCities] = useState<AiCitySuggestion[]>([]);
+  const [cities, setCities] = useState<AiCitySuggestion[]>(initialCities);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -33,7 +39,9 @@ export function PlanningPanel({ tripId }: { tripId: string }) {
       }
 
       const data = await res.json();
-      setCities(data.cities ?? []);
+      const newCities: AiCitySuggestion[] = data.cities ?? [];
+      setCities(newCities);
+      await saveCities(tripId, newCities);
     } catch {
       setError("שגיאת רשת. נסו שוב.");
     } finally {
@@ -59,7 +67,7 @@ export function PlanningPanel({ tripId }: { tripId: string }) {
           disabled={loading || prompt.trim().length < 3}
           className="self-start"
         >
-          {loading ? "חושב…" : "קבל הצעות מ-AI"}
+          {loading ? "חושב…" : cities.length > 0 ? "הצעות חדשות" : "קבל הצעות מ-AI"}
         </Button>
       </form>
 
