@@ -12,6 +12,7 @@ import {
   saveCities as saveCitiesToDb,
   saveCityGuide,
   saveRecommendations,
+  setDestinationSelected,
 } from "../infrastructure/guide-service";
 
 // Persist a freshly generated guide. Validated so a client can't write junk;
@@ -42,4 +43,22 @@ export async function saveCities(tripId: string, cities: unknown) {
   const parsed = z.array(aiCitySuggestionSchema).safeParse(cities);
   if (!parsed.success) return;
   await saveCitiesToDb(tripId, parsed.data);
+}
+
+export async function setSelected(
+  tripId: string,
+  city: string,
+  category: string,
+  name: string,
+  selected: boolean,
+) {
+  const parsedCategory = aiCategoryKeySchema.safeParse(category);
+  if (!parsedCategory.success) return;
+  await setDestinationSelected(
+    tripId,
+    city,
+    parsedCategory.data,
+    name,
+    Boolean(selected),
+  );
 }

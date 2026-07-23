@@ -2,26 +2,69 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card } from "@/components/ui";
-import { refreshGuide, saveGuide, saveMore } from "../application/guide-actions";
+import {
+  refreshGuide,
+  saveGuide,
+  saveMore,
+  setSelected,
+} from "../application/guide-actions";
 import type {
   AiCategoryKey,
   AiCityGuide,
   AiRecommendation,
+  CityGuideData,
+  GuideItem,
+  SavedCityGuide,
 } from "../domain/ai-suggestion";
 
 const SECTIONS: { key: AiCategoryKey; label: string; icon: string }[] = [
-  { key: "hotels", label: "מלונות", icon: "🏨" },
+  { key: "areas", label: "אזורי לינה", icon: "🏘️" },
   { key: "restaurants", label: "מסעדות", icon: "🍽️" },
   { key: "attractions", label: "אטרקציות ואתרים", icon: "📍" },
   { key: "experiences", label: "חוויות ודברים לעשות", icon: "✨" },
 ];
 
-function RecommendationCard({ item }: { item: AiRecommendation }) {
+function withSelected(items: AiRecommendation[]): GuideItem[] {
+  return items.map((item) => ({ ...item, selected: false }));
+}
+
+function toGuideData(guide: AiCityGuide): CityGuideData {
+  const sections: SavedCityGuide = {
+    areas: withSelected(guide.areas),
+    restaurants: withSelected(guide.restaurants),
+    attractions: withSelected(guide.attractions),
+    experiences: withSelected(guide.experiences),
+  };
+  return {
+    intro: guide.intro,
+    gettingThere: guide.getting_there,
+    sections,
+  };
+}
+
+function GuideCard({
+  item,
+  onToggle,
+}: {
+  item: GuideItem;
+  onToggle: () => void;
+}) {
   return (
-    <Card className="flex h-full flex-col gap-2 p-4">
-      <span className="font-semibold">{item.name}</span>
-      <p className="text-sm text-muted">{item.description}</p>
-      <p className="mt-auto text-xs text-muted">💡 {item.tip}</p>
+    <Card className="flex flex-col gap-2 p-5">
+      <div className="flex items-start justify-between gap-3">
+        <span className="text-base font-semibold">{item.name}</span>
+        <Button
+          type="button"
+          variant={item.selected ? "primary" : "outline"}
+          size="sm"
+          onClick={onToggle}
+          className="shrink-0"
+        >
+          {item.selected ? "✓ נוסף" : "הוסף לטיול"}
+        </Button>
+      </div>
+      <p className="text-sm leading-relaxed text-muted">{item.description}</p>
+      <p className="text-xs text-muted">💡 {item.tip}</p>
     </Card>
   );
 }
@@ -29,17 +72,16 @@ function RecommendationCard({ item }: { item: AiRecommendation }) {
 type CityGuideProps = {
   tripId: string;
   city: string;
-  initialGuide: AiCityGuide | null;
+  initialGuide: CityGuideData | null;
 };
 
 export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
-  const [guide, setGuide] = useState<AiCityGuide | null>(initialGuide);
+  const [guide, setGuide] = useState<CityGuideData | null>(initialGuide);
   const [loading, setLoading] = useState(!initialGuide);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState<AiCategoryKey[]>([]);
 
-  // Generate a guide from the AI and persist it. Used on first visit and refresh.
   const generate = useCallback(async () => {
     setError(null);
     try {
@@ -59,14 +101,13 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
       }
 
       const data: AiCityGuide = await res.json();
-      setGuide(data);
       await saveGuide(tripId, city, data);
+      setGuide(toGuideData(data));
     } catch {
       setError("שגיאת רשת. נסו שוב.");
     }
   }, [tripId, city]);
 
-  // Only generate when there is nothing saved yet.
   const hasGenerated = useRef(Boolean(initialGuide));
   useEffect(() => {
     if (hasGenerated.current) return;
@@ -94,7 +135,7 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
         body: JSON.stringify({
           city,
           category: key,
-          exclude: guide[key].map((item) => item.name),
+          exclude: guide.sections[key].map((item) => item.name),
         }),
       });
 
@@ -107,12 +148,18 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
       setGuide((prev) => {
         if (!prev) return prev;
         const existing = new Set(
-          prev[key].map((item) => item.name.trim().toLowerCase()),
+          prev.sections[key].map((item) => item.name.trim().toLowerCase()),
         );
         added = incoming.filter(
           (item) => !existing.has(item.name.trim().toLowerCase()),
         );
-        return { ...prev, [key]: [...prev[key], ...added] };
+        return {
+          ...prev,
+          sections: {
+            ...prev.sections,
+            [key]: [...prev.sections[key], ...withSelected(added)],
+          },
+        };
       });
 
       if (added.length > 0) {
@@ -123,6 +170,23 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
     } finally {
       setLoadingMore((prev) => prev.filter((k) => k !== key));
     }
+  }
+
+  function toggle(key: AiCategoryKey, item: GuideItem) {
+    const next = !item.selected;
+    setGuide((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        sections: {
+          ...prev.sections,
+          [key]: prev.sections[key].map((it) =>
+            it.name === item.name ? { ...it, selected: next } : it,
+          ),
+        },
+      };
+    });
+    void setSelected(tripId, city, key, item.name, next);
   }
 
   if (loading) {
@@ -136,8 +200,20 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
   }
 
   return (
-    <div className="flex flex-col gap-10">
-      <div className="flex items-center justify-between gap-3">
+    <div className="flex flex-col gap-8">
+      {(guide.intro || guide.gettingThere) && (
+        <section className="flex flex-col gap-3 rounded-2xl border border-border bg-surface-2 p-5">
+          {guide.intro && <p className="leading-relaxed">{guide.intro}</p>}
+          {guide.gettingThere && (
+            <p className="flex items-start gap-2 text-sm text-muted">
+              <span aria-hidden="true">🧭</span>
+              <span>{guide.gettingThere}</span>
+            </p>
+          )}
+        </section>
+      )}
+
+      <div className="flex items-center gap-3">
         {error && <p className="text-sm text-red-600">{error}</p>}
         <Button
           type="button"
@@ -152,21 +228,23 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
       </div>
 
       {SECTIONS.map(({ key, label, icon }) => {
-        const items = guide[key] ?? [];
+        const items = guide.sections[key] ?? [];
         if (items.length === 0) return null;
         const isLoadingMore = loadingMore.includes(key);
         return (
-          <section key={key} className="flex flex-col gap-4">
+          <section key={key} className="flex flex-col gap-3">
             <h2 className="text-lg font-bold">
               {icon} {label}
             </h2>
-            <ul className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            <div className="flex flex-col gap-3">
               {items.map((item, index) => (
-                <li key={`${item.name}-${index}`}>
-                  <RecommendationCard item={item} />
-                </li>
+                <GuideCard
+                  key={`${item.name}-${index}`}
+                  item={item}
+                  onToggle={() => toggle(key, item)}
+                />
               ))}
-            </ul>
+            </div>
             <Button
               type="button"
               variant="outline"

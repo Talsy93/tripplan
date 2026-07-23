@@ -35,16 +35,39 @@ export const aiRecommendationSchema = z.object({
 export type AiRecommendation = z.infer<typeof aiRecommendationSchema>;
 
 export const aiCityGuideSchema = z.object({
-  hotels: z.array(aiRecommendationSchema),
+  // A few sentences of background on the city + how to get there.
+  intro: z.string(),
+  getting_there: z.string(),
+  // "areas" = neighbourhoods to stay in, characterised by their vibe.
+  areas: z.array(aiRecommendationSchema),
   restaurants: z.array(aiRecommendationSchema),
   attractions: z.array(aiRecommendationSchema),
   experiences: z.array(aiRecommendationSchema),
 });
 export type AiCityGuide = z.infer<typeof aiCityGuideSchema>;
 
+// A guide item as loaded from the DB, carrying whether it was added to the trip.
+export type GuideItem = AiRecommendation & { selected: boolean };
+export type SavedCityGuide = Record<AiCategoryKey, GuideItem[]>;
+
+// The full saved guide for a city: overview text + categorised sections.
+export type CityGuideData = {
+  intro: string;
+  gettingThere: string;
+  sections: SavedCityGuide;
+};
+
+// An item the user added to the trip (for the trip page).
+export type SelectedItem = {
+  city: string;
+  category: string;
+  name: string;
+  description: string;
+};
+
 // The four guide categories; also used to request more of a single one.
 export const aiCategoryKeySchema = z.enum([
-  "hotels",
+  "areas",
   "restaurants",
   "attractions",
   "experiences",

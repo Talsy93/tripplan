@@ -48,12 +48,15 @@ export {
   saveMore,
   refreshGuide,
   saveCities,
+  setSelected,
 } from "./application/guide-actions";
 export { getTrip, listTrips } from "./infrastructure/trips-service";
 export {
   getSavedCityGuide,
   getSavedCities,
+  getSelectedDestinations,
 } from "./infrastructure/guide-service";
+export { SelectedList } from "./components/selected-list";
 export { CreateTripForm } from "./components/create-trip-form";
 export { TripList } from "./components/trip-list";
 export { PlanningPanel } from "./components/planning-panel";
