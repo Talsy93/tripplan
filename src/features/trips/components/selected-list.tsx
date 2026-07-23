@@ -1,4 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import { Card } from "@/components/ui";
+import { setSelected } from "../application/guide-actions";
 import type { SelectedItem } from "../domain/ai-suggestion";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -8,7 +12,24 @@ const CATEGORY_LABELS: Record<string, string> = {
   experiences: "חוויה",
 };
 
-export function SelectedList({ items }: { items: SelectedItem[] }) {
+function keyOf(item: SelectedItem) {
+  return `${item.city}|${item.category}|${item.name}`;
+}
+
+export function SelectedList({
+  tripId,
+  items: initialItems,
+}: {
+  tripId: string;
+  items: SelectedItem[];
+}) {
+  const [items, setItems] = useState<SelectedItem[]>(initialItems);
+
+  function remove(item: SelectedItem) {
+    setItems((prev) => prev.filter((it) => keyOf(it) !== keyOf(item)));
+    void setSelected(tripId, item.city, item.category, item.name, false);
+  }
+
   if (items.length === 0) {
     return (
       <p className="text-sm text-muted">
@@ -30,13 +51,23 @@ export function SelectedList({ items }: { items: SelectedItem[] }) {
         <div key={city} className="flex flex-col gap-2">
           <h3 className="font-semibold">{city}</h3>
           <ul className="flex flex-col gap-2">
-            {list.map((item, index) => (
-              <li key={`${item.name}-${index}`}>
+            {list.map((item) => (
+              <li key={keyOf(item)}>
                 <Card className="flex items-center justify-between gap-3 p-3">
                   <span>{item.name}</span>
-                  <span className="shrink-0 text-xs text-muted">
-                    {CATEGORY_LABELS[item.category] ?? item.category}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span className="text-xs text-muted">
+                      {CATEGORY_LABELS[item.category] ?? item.category}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => remove(item)}
+                      aria-label="הסר מהטיול"
+                      className="text-muted transition-colors hover:text-foreground"
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </Card>
               </li>
             ))}

@@ -2,9 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui";
 import {
+  getItinerary,
   getSavedCities,
   getSelectedDestinations,
   getTrip,
+  Itinerary,
   PlanningPanel,
   SelectedList,
   tripStatusLabels,
@@ -22,9 +24,10 @@ export default async function TripPage({
     notFound();
   }
 
-  const [savedCities, selected] = await Promise.all([
+  const [savedCities, selected, itinerary] = await Promise.all([
     getSavedCities(id),
     getSelectedDestinations(id),
+    getItinerary(id),
   ]);
 
   return (
@@ -41,9 +44,11 @@ export default async function TripPage({
         <Badge>{tripStatusLabels[trip.status]}</Badge>
       </header>
 
+      <Itinerary tripId={trip.id} initialItinerary={itinerary} />
+
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-bold">מה שבחרתם לטיול</h2>
-        <SelectedList items={selected} />
+        <SelectedList tripId={trip.id} items={selected} />
       </section>
 
       <section className="flex flex-col gap-4">
