@@ -42,7 +42,11 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user && !isPublicRoute(request.nextUrl.pathname)) {
+  const pathname = request.nextUrl.pathname;
+
+  // API routes enforce their own auth and return JSON status codes — never
+  // redirect them to the HTML login page. Session refresh above still applies.
+  if (!user && !isPublicRoute(pathname) && !pathname.startsWith("/api")) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     return NextResponse.redirect(loginUrl);
