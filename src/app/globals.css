@@ -1,36 +1,20 @@
 @import "tailwindcss";
 
-/* Calm blue-teal palette. Light values on :root, dark overrides via
-   prefers-color-scheme. Semantic tokens are mapped to Tailwind utilities
-   in the @theme block, so components use bg-surface / text-muted / etc. */
+/* Beige & Mocha palette — warm, light, single theme. Semantic tokens are
+   mapped to Tailwind utilities in the @theme block, so components use
+   bg-surface / text-muted / bg-primary / shadow-soft etc. */
 :root {
-  --background: #f5f8f9;
-  --surface: #ffffff;
-  --surface-2: #eef3f5;
-  --border: #d9e2e6;
-  --foreground: #0f2a31;
-  --muted: #5c7681;
-  --primary: #0d9488;
-  --primary-hover: #0f766e;
+  --background: #faf7f2;
+  --surface: #fffdfc;
+  --surface-2: #f3ebdd;
+  --border: #ded3c8;
+  --foreground: #3b2f2a;
+  --muted: #6f625a;
+  --primary: #9a7658;
+  --primary-hover: #76563e;
   --primary-foreground: #ffffff;
-  --accent: #db8a3e;
-  --ring: #14b8a6;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #071417;
-    --surface: #0e2126;
-    --surface-2: #142d33;
-    --border: #1f3d45;
-    --foreground: #e7f1f3;
-    --muted: #8aa6ae;
-    --primary: #2dd4bf;
-    --primary-hover: #5eead4;
-    --primary-foreground: #04201d;
-    --accent: #eda45c;
-    --ring: #2dd4bf;
-  }
+  --accent: #c9785c;
+  --ring: #9a7658;
 }
 
 @theme inline {
@@ -46,6 +30,8 @@
   --color-accent: var(--accent);
   --color-ring: var(--ring);
   --font-sans: var(--font-heebo);
+  --shadow-soft: 0 8px 24px rgba(59, 47, 42, 0.08);
+  --shadow-card: 0 12px 36px rgba(59, 47, 42, 0.1);
 }
 
 body {
