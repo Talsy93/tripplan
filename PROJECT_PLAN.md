@@ -73,7 +73,7 @@ src/
 
 ## 📋 שלבי הפרויקט
 
-**השלב הנוכחי: שלב 7**
+**השלב הנוכחי: שלב 8**
 
 ### שלב 0 — הרשמות והכנת סביבה ✅ הושלם
 
@@ -125,14 +125,14 @@ src/
 - [x] שמירה בדאטהבייס
 - [x] הצגת רשימת הטיולים בפרופיל
 
-### שלב 7 — תשתית AI ⬅️ אנחנו כאן
+### שלב 7 — תשתית AI ✅ הושלם
 
-- [ ] שכבת הפשטה לספק AI
-- [ ] route בשם /api/ai/suggest
-- [ ] Structured Output + ולידציית Zod
-- [ ] Rate limiting בסיסי
+- [x] שכבת הפשטה לספק AI
+- [x] route בשם /api/ai/suggest
+- [x] Structured Output + ולידציית Zod
+- [x] Rate limiting בסיסי
 
-### שלב 8 ואילך — פיצ'רים (יפורט בהמשך)
+### שלב 8 ואילך — פיצ'רים (יפורט בהמשך) ⬅️ אנחנו כאן
 
 - [ ] מסך תכנון: הצעות יעדים ובחירה
 - [ ] מסך ביצוע: לו"ז לפי זמנים
@@ -160,6 +160,7 @@ src/
 | 2026-07-23 | נוסף CI ב-GitHub Actions (`.github/workflows/ci.yml`): type-check + lint על כל push/PR (Node 20). נוסף סקריפט `type-check`. אומת: ה-run הראשון על main הסתיים בהצלחה. |
 | 2026-07-23 | הושלם שלב 5: הוגדר branch protection על `main` (ruleset "main-protection"): חובה PR + מעבר status check `Type-check & Lint` לפני merge. מעתה אין push ישיר ל-main — כל שינוי דרך branch + PR. |
 | 2026-07-23 | הושלם שלב 6 (פרוסה דקה מקצה לקצה): פיצ'ר `trips` קיבל שכבות infrastructure/application/components — יצירת טיול (שם בלבד) ושמירה ב-Supabase, והצגת רשימת הטיולים בעמוד `/profile` המוגן. נבנה על branch `feature/trips-slice` (זרימת PR ראשונה). |
+| 2026-07-23 | הושלם שלב 7 (תשתית AI): שכבת הפשטה `src/lib/ai` מעל `@google/genai` (מודל `gemini-flash-latest`), Structured Output דרך `z.toJSONSchema` + ולידציית Zod, route `POST /api/ai/suggest` עם אימות ו-rate limiting בסיסי (`src/lib/rate-limit.ts`). תוקן ה-proxy כך שנתיבי `/api` מחזירים 401 במקום הפניה ל-login. סכמות AI ב-`src/features/trips/domain`. |
 
 ---
 

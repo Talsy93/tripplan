@@ -20,6 +20,16 @@ export type {
 } from "./domain/suggested-destination";
 export { itineraryItemSchema } from "./domain/itinerary-item";
 export type { ItineraryItem } from "./domain/itinerary-item";
+export {
+  aiSuggestRequestSchema,
+  aiDestinationSuggestionSchema,
+  aiSuggestionsSchema,
+} from "./domain/ai-suggestion";
+export type {
+  AiSuggestRequest,
+  AiDestinationSuggestion,
+  AiSuggestions,
+} from "./domain/ai-suggestion";
 export { createTrip } from "./application/actions";
 export { listTrips } from "./infrastructure/trips-service";
 export { CreateTripForm } from "./components/create-trip-form";
