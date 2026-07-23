@@ -1,5 +1,15 @@
-export { tripSchema, tripStatusSchema } from "./domain/trip";
-export type { Trip, TripStatus } from "./domain/trip";
+export {
+  tripSchema,
+  tripStatusSchema,
+  createTripSchema,
+  tripStatusLabels,
+} from "./domain/trip";
+export type {
+  Trip,
+  TripStatus,
+  CreateTripInput,
+  TripFormState,
+} from "./domain/trip";
 export {
   destinationSourceSchema,
   suggestedDestinationSchema,
@@ -10,3 +20,7 @@ export type {
 } from "./domain/suggested-destination";
 export { itineraryItemSchema } from "./domain/itinerary-item";
 export type { ItineraryItem } from "./domain/itinerary-item";
+export { createTrip } from "./application/actions";
+export { listTrips } from "./infrastructure/trips-service";
+export { CreateTripForm } from "./components/create-trip-form";
+export { TripList } from "./components/trip-list";

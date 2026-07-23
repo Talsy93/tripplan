@@ -19,3 +19,23 @@ export const tripSchema = z.object({
   created_at: z.string(),
 });
 export type Trip = z.infer<typeof tripSchema>;
+
+// Input schema for creating a trip (thin slice — name only for now).
+export const createTripSchema = z.object({
+  name: z.string().trim().min(1, { error: "יש להזין שם לטיול." }),
+});
+export type CreateTripInput = z.infer<typeof createTripSchema>;
+
+export type TripFormState =
+  | {
+      errors?: { name?: string[] };
+      message?: string;
+    }
+  | undefined;
+
+// Hebrew labels for the trip state machine.
+export const tripStatusLabels: Record<TripStatus, string> = {
+  planning: "בתכנון",
+  executing: "בביצוע",
+  completed: "הושלם",
+};
