@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getTrip, tripStatusLabels } from "@/features/trips";
+import { getTrip, PlanningPanel, tripStatusLabels } from "@/features/trips";
 
 export default async function TripPage({
   params,
@@ -27,9 +27,7 @@ export default async function TripPage({
         </span>
       </header>
 
-      <p className="text-sm text-gray-500">
-        תכנון היעדים יתווסף כאן בצעד הבא.
-      </p>
+      <PlanningPanel tripId={trip.id} />
     </main>
   );
 }

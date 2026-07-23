@@ -1,22 +1,26 @@
 import { NextResponse } from "next/server";
 import * as z from "zod";
-import { aiSuggestRequestSchema, aiCitySuggestionsSchema } from "@/features/trips";
+import { aiCityGuideRequestSchema, aiCityGuideSchema } from "@/features/trips";
 import { generateStructured } from "@/lib/ai";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
-import type { AiSuggestRequest } from "@/features/trips";
+import type { AiCityGuideRequest } from "@/features/trips";
 
 const RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 60_000;
 
-function buildPrompt({ prompt, count = 5 }: AiSuggestRequest) {
+function buildPrompt({ city, context }: AiCityGuideRequest) {
   return [
-    "אתה מתכנן טיולים מקצועי.",
-    `הצע ${count} ערים או אזורים מתאימים לבקשה הבאה:`,
-    `"${prompt}"`,
-    "לכל עיר ספק שם ומשפט קצר שמסביר למה היא מתאימה.",
+    "אתה מדריך טיולים מקצועי.",
+    `הכן מדריך לעיר ${city} עם המלצות בארבע קטגוריות:`,
+    "מלונות, מסעדות, אטרקציות ואתרים, וחוויות ודברים לעשות.",
+    context ? `הקשר הטיול: "${context}".` : "",
+    "לכל קטגוריה ספק 4 המלצות.",
+    "לכל המלצה: שם, תיאור מפורט של 2-3 משפטים, וטיפ פרקטי אחד.",
     "השב בעברית.",
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 export async function POST(request: Request) {
@@ -29,7 +33,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const limit = checkRateLimit(`ai:suggest:${user.id}`, RATE_LIMIT, RATE_WINDOW_MS);
+  const limit = checkRateLimit(
+    `ai:city-guide:${user.id}`,
+    RATE_LIMIT,
+    RATE_WINDOW_MS,
+  );
   if (!limit.allowed) {
     return NextResponse.json(
       { error: "rate_limited", retryAfterMs: limit.retryAfterMs },
@@ -44,20 +52,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const parsed = aiSuggestRequestSchema.safeParse(body);
+  const parsed = aiCityGuideRequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "invalid_request", details: z.flattenError(parsed.error).fieldErrors },
+      {
+        error: "invalid_request",
+        details: z.flattenError(parsed.error).fieldErrors,
+      },
       { status: 400 },
     );
   }
 
   try {
-    const suggestions = await generateStructured({
+    const guide = await generateStructured({
       prompt: buildPrompt(parsed.data),
-      schema: aiCitySuggestionsSchema,
+      schema: aiCityGuideSchema,
     });
-    return NextResponse.json(suggestions);
+    return NextResponse.json(guide);
   } catch {
     return NextResponse.json({ error: "ai_failed" }, { status: 502 });
   }

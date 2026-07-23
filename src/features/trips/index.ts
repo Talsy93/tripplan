@@ -22,15 +22,29 @@ export { itineraryItemSchema } from "./domain/itinerary-item";
 export type { ItineraryItem } from "./domain/itinerary-item";
 export {
   aiSuggestRequestSchema,
-  aiDestinationSuggestionSchema,
-  aiSuggestionsSchema,
+  aiCitySuggestionSchema,
+  aiCitySuggestionsSchema,
+  aiCityGuideRequestSchema,
+  aiRecommendationSchema,
+  aiCityGuideSchema,
+  aiCategoryKeySchema,
+  aiMoreRecommendationsRequestSchema,
+  aiRecommendationsSchema,
 } from "./domain/ai-suggestion";
 export type {
   AiSuggestRequest,
-  AiDestinationSuggestion,
-  AiSuggestions,
+  AiCitySuggestion,
+  AiCitySuggestions,
+  AiCityGuideRequest,
+  AiRecommendation,
+  AiCityGuide,
+  AiCategoryKey,
+  AiMoreRecommendationsRequest,
+  AiRecommendations,
 } from "./domain/ai-suggestion";
 export { createTrip } from "./application/actions";
 export { getTrip, listTrips } from "./infrastructure/trips-service";
 export { CreateTripForm } from "./components/create-trip-form";
 export { TripList } from "./components/trip-list";
+export { PlanningPanel } from "./components/planning-panel";
+export { CityGuide } from "./components/city-guide";
