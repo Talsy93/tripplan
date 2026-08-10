@@ -2,13 +2,19 @@ export {
   tripSchema,
   tripStatusSchema,
   createTripSchema,
+  setTripDatesSchema,
   tripStatusLabels,
+  daysUntil,
+  formatCountdown,
+  pickUpcomingTrip,
 } from "./domain/trip";
 export type {
   Trip,
   TripStatus,
   CreateTripInput,
   TripFormState,
+  SetTripDatesInput,
+  TripDatesFormState,
 } from "./domain/trip";
 export {
   destinationSourceSchema,
@@ -53,6 +59,7 @@ export type {
   ItineraryEntry,
 } from "./domain/ai-suggestion";
 export { createTrip } from "./application/actions";
+export { setTripDates } from "./application/date-actions";
 export {
   saveGuide,
   saveMore,
@@ -61,11 +68,16 @@ export {
   setSelected,
 } from "./application/guide-actions";
 export { deleteItineraryEntry } from "./application/itinerary-actions";
-export { getTrip, listTrips } from "./infrastructure/trips-service";
+export {
+  getTrip,
+  listTrips,
+  updateTripDates,
+} from "./infrastructure/trips-service";
 export {
   getSavedCityGuide,
   getSavedCities,
   getSelectedDestinations,
+  getPrimaryDestination,
 } from "./infrastructure/guide-service";
 export {
   getItinerary,
@@ -73,6 +85,8 @@ export {
   setTripStatus,
 } from "./infrastructure/itinerary-service";
 export { CreateTripForm } from "./components/create-trip-form";
+export { TripDatesForm } from "./components/trip-dates-form";
+export { UpcomingTripCard } from "./components/upcoming-trip-card";
 export { TripList } from "./components/trip-list";
 export { PlanningPanel } from "./components/planning-panel";
 export { CityGuide } from "./components/city-guide";

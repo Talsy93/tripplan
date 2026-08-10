@@ -114,6 +114,39 @@ export async function getSelectedDestinations(
   }));
 }
 
+// A single city that best represents the trip, for illustrating it with a
+// photo. Prefers a city the user actually added; falls back to any suggested
+// city; null when planning hasn't produced any city yet.
+export async function getPrimaryDestination(
+  tripId: string,
+): Promise<string | null> {
+  const supabase = await createClient();
+
+  const { data: selected } = await supabase
+    .from("suggested_destinations")
+    .select("city")
+    .eq("trip_id", tripId)
+    .eq("source", "ai")
+    .eq("selected", true)
+    .not("category", "is", null)
+    .not("city", "is", null)
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (selected?.[0]?.city) return selected[0].city;
+
+  const { data: cities } = await supabase
+    .from("suggested_destinations")
+    .select("name")
+    .eq("trip_id", tripId)
+    .eq("source", "ai")
+    .is("category", null)
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  return cities?.[0]?.name ?? null;
+}
+
 function toRows(
   tripId: string,
   city: string,
