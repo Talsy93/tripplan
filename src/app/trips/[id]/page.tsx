@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui";
 import {
+  daysUntil,
+  formatCountdown,
   getItinerary,
   getSavedCities,
   getSelectedDestinations,
@@ -9,6 +11,7 @@ import {
   Itinerary,
   PlanningPanel,
   SelectedList,
+  TripDatesForm,
   tripStatusLabels,
 } from "@/features/trips";
 
@@ -41,8 +44,21 @@ export default async function TripPage({
 
       <header className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">{trip.name}</h1>
-        <Badge>{tripStatusLabels[trip.status]}</Badge>
+        <div className="flex items-center gap-2">
+          {trip.start_date && (
+            <Badge className="bg-primary/10 text-primary">
+              {formatCountdown(daysUntil(trip.start_date))}
+            </Badge>
+          )}
+          <Badge>{tripStatusLabels[trip.status]}</Badge>
+        </div>
       </header>
+
+      <TripDatesForm
+        tripId={trip.id}
+        startDate={trip.start_date}
+        endDate={trip.end_date}
+      />
 
       <Itinerary tripId={trip.id} initialItinerary={itinerary} />
 

@@ -19,6 +19,21 @@ export async function createTrip(name: string) {
   return { error: error?.message ?? null };
 }
 
+export async function updateTripDates(
+  tripId: string,
+  startDate: string,
+  endDate: string | null,
+) {
+  const supabase = await createClient();
+  // RLS scopes the update to the owner; a non-owner matches no row.
+  const { error } = await supabase
+    .from("trips")
+    .update({ start_date: startDate, end_date: endDate })
+    .eq("id", tripId);
+
+  return { error: error?.message ?? null };
+}
+
 export async function getTrip(id: string): Promise<Trip | null> {
   const supabase = await createClient();
   // RLS ensures only the owner's trip is returned; anything else yields null.
