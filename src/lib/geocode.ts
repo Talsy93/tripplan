@@ -1,24 +1,36 @@
 // Free geocoding — no API key, no billing (project rule: paid services are
 // off-limits). Turns a place name into coordinates so the route map can pin it.
 //
-// Two providers, in order:
+// Cities reach us with Hebrew names from the AI, which shapes the whole
+// strategy. Lookups are tried in this order, first hit wins:
 //
-//  1. Wikipedia (Hebrew, then English). Cities reach us with Hebrew names from
-//     the AI, and Nominatim resolves those poorly — "האקונה" with no country
-//     context matched a place in the US. Wikipedia's search handles Hebrew
-//     names natively, and requiring the article to carry coordinates filters
-//     out results that aren't places at all.
-//  2. Nominatim (OpenStreetMap), with the trip name appended as context, for
-//     places Wikipedia has no article for.
+//  1. Wikipedia (Hebrew, then English) on the name alone. This is the precise
+//     query: "אוסאקה" returns the article for Osaka even though it is spelled
+//     "אוסקה" there. Requiring the article to carry coordinates filters out
+//     results that aren't places.
+//  2. The same search with `context` appended, for names too obscure or too
+//     ambiguous to stand alone — "האקונה" by itself returns Hakuna Matata.
+//  3. Nominatim (OpenStreetMap), for places Wikipedia has no article for.
 //
-// Nominatim's usage policy requires an identifying User-Agent and allows at
-// most one request per second, so callers must go through geocodePlaces(),
-// which serialises lookups and paces them. Results are cached in the database
-// by the caller, so a city is normally geocoded only once.
+// Context comes last on purpose: it *lowers* accuracy for well-known cities,
+// because Wikipedia ranks the phrase as a whole and a nearby article can match
+// it better than the city itself.
+//
+// Both APIs throttle bursts, and Wikimedia answers a throttled request with
+// plain text rather than JSON — which reads as "no such place" unless checked
+// for. So callers must go through geocodePlaces(), which serialises lookups
+// and paces them. Results are cached in the database by the caller, so a city
+// is normally geocoded only once.
 
 const NOMINATIM_ENDPOINT = "https://nominatim.openstreetmap.org/search";
-const USER_AGENT = "TripPlan/1.0 (portfolio project)";
+// Wikimedia and Nominatim both require a User-Agent that identifies the client
+// and offers a way to reach its author. A bare product name gets throttled.
+const USER_AGENT = "TripPlan/1.0 (https://github.com/Talsy93/tripplan)";
 const MIN_INTERVAL_MS = 1_100;
+// Wikimedia has no published per-second figure, but it throttles bursts hard.
+// Resolving one city can take up to four searches (name/context × he/en), so
+// space them out.
+const WIKI_INTERVAL_MS = 400;
 const WIKI_LANGS = ["he", "en"] as const;
 
 export type Coordinates = { latitude: number; longitude: number };
@@ -41,6 +53,10 @@ export async function geocodePlaces(
     const coords = await geocodePlace(name, context);
     if (coords) {
       found.set(name, coords);
+    } else {
+      console.warn(
+        `[geocode] no coordinates for "${name}" (context: ${context ?? "none"})`,
+      );
     }
   }
   return found;
@@ -53,16 +69,43 @@ async function geocodePlace(
   const trimmed = name.trim();
   if (!trimmed) return null;
 
-  for (const lang of WIKI_LANGS) {
-    const coords = await fetchWikiCoordinates(lang, trimmed, context);
-    if (coords) return coords;
+  // The name on its own is the most precise query there is: "אוסקה" returns
+  // the city, exactly. Context is only useful for names that are ambiguous or
+  // obscure on their own, and it actively hurts the rest — Wikipedia's search
+  // ranks the whole phrase, so a well-known city can lose to an article that
+  // matches the context better. So: name alone first, context only as a
+  // rescue.
+  const cleaned = cleanContext(context);
+  const attempts: (string | undefined)[] = cleaned
+    ? [undefined, cleaned]
+    : [undefined];
+
+  for (const attempt of attempts) {
+    for (const lang of WIKI_LANGS) {
+      const coords = await fetchWikiCoordinates(lang, trimmed, attempt);
+      if (coords) return coords;
+      // Wikimedia throttles bursts, and a throttled response reads as "no
+      // result" — pace the retries so a miss is a real miss.
+      await sleep(WIKI_INTERVAL_MS);
+    }
   }
 
   // Only fall back to Nominatim when we have context to constrain it. Bare
   // Hebrew names match wildly unrelated places — "האקונה" alone resolves to an
   // office in Los Angeles — and a confidently wrong pin is worse than none.
-  if (!context) return null;
-  return fetchNominatimCoordinates(trimmed, context);
+  if (!cleaned) return null;
+  return fetchNominatimCoordinates(trimmed, cleaned);
+}
+
+// Trip names carry noise that wrecks a full-text search: "יפן 2026" makes
+// Wikipedia return the article for the year 2026, the 2026 Winter Olympics and
+// the 2026 World Cup — none of them places. Keep only the words.
+function cleanContext(context?: string): string | undefined {
+  if (!context) return undefined;
+  const words = context
+    .split(/\s+/)
+    .filter((word) => word.length > 1 && !/\d/.test(word));
+  return words.length > 0 ? words.join(" ") : undefined;
 }
 
 async function fetchWikiCoordinates(
@@ -89,7 +132,17 @@ async function fetchWikiCoordinates(
       // A place's coordinates never change — cache for a week.
       next: { revalidate: 604_800 },
     });
-    if (!res.ok) return null;
+
+    // A throttled request comes back as plain text ("You are making too many
+    // requests to the API"), which would otherwise blow up in res.json() and
+    // be swallowed as "no such place". Say so instead — the city is fine, we
+    // were just asking too fast.
+    if (!res.ok || !res.headers.get("content-type")?.includes("json")) {
+      console.warn(
+        `[geocode] ${lang}.wikipedia refused "${name}" (${res.status})`,
+      );
+      return null;
+    }
 
     const json = (await res.json()) as {
       query?: {
