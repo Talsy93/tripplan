@@ -19,6 +19,23 @@ export type RouteStop = {
   days: number[];
 };
 
+// A one-line description of the route, for the hero banner: how many stops,
+// how many days they cover and how many nights that is. Days are counted
+// across the whole route, so a day split between two cities isn't counted
+// twice.
+export function routeSummary(stops: RouteStop[]) {
+  const days = new Set<number>();
+  let nights = 0;
+
+  for (const stop of stops) {
+    for (const day of stop.days) {
+      days.add(day);
+    }
+    nights += stop.nights;
+  }
+  return { stopCount: stops.length, dayCount: days.size, nights };
+}
+
 // Which city each day ends in, indexed by day number.
 //
 // A day can touch more than one city; the last item is the one that decides,

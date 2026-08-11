@@ -26,7 +26,12 @@ export type {
 } from "./domain/suggested-destination";
 export { itineraryItemSchema } from "./domain/itinerary-item";
 export type { ItineraryItem } from "./domain/itinerary-item";
-export { routeBounds, cityByDay, itineraryStops } from "./domain/route";
+export {
+  routeBounds,
+  routeSummary,
+  cityByDay,
+  itineraryStops,
+} from "./domain/route";
 export type { RouteStop, TripRoute } from "./domain/route";
 export {
   aiSuggestRequestSchema,
@@ -96,4 +101,5 @@ export { CityGuide } from "./components/city-guide";
 export { SelectedList } from "./components/selected-list";
 export { Itinerary } from "./components/itinerary";
 export { RouteMap } from "./components/route-map";
+export { RouteHero } from "./components/route-hero";
 export { RouteMapPanel } from "./components/route-map-panel";
