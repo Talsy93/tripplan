@@ -100,6 +100,9 @@ function orderCities(
 
 // Distinct cities the user added things in, in order of first addition, with
 // how many things they added in each.
+//
+// Not filtered by source: a city the user only added places to from the
+// attractions search still belongs on the map.
 async function getRouteCities(
   tripId: string,
 ): Promise<{ city: string; itemCount: number }[]> {
@@ -108,7 +111,6 @@ async function getRouteCities(
     .from("suggested_destinations")
     .select("city")
     .eq("trip_id", tripId)
-    .eq("source", "ai")
     .eq("selected", true)
     .not("category", "is", null)
     .not("city", "is", null)

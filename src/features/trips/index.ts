@@ -34,7 +34,9 @@ export {
 } from "./domain/route";
 export {
   placeCategorySchema,
+  placeSchema,
   placeSearchRequestSchema,
+  selectableCategorySchema,
   PLACE_CATEGORIES,
   MIN_DETAILS,
   distanceKm,
@@ -42,7 +44,12 @@ export {
   isWorthShowing,
   comparePlaces,
 } from "./domain/place";
-export type { Place, PlaceCategory, PlaceSearchRequest } from "./domain/place";
+export type {
+  Place,
+  PlaceCategory,
+  PlaceSearchRequest,
+  SelectableCategory,
+} from "./domain/place";
 export type { RouteStop, TripRoute } from "./domain/route";
 export {
   aiSuggestRequestSchema,
@@ -103,6 +110,11 @@ export {
   setTripStatus,
 } from "./infrastructure/itinerary-service";
 export { getTripRoute, getCityCenter } from "./infrastructure/route-service";
+export {
+  addPlaceToTrip,
+  getAddedPlaceIds,
+} from "./infrastructure/place-service";
+export { addPlace } from "./application/place-actions";
 export { CreateTripForm } from "./components/create-trip-form";
 export { TripDatesForm } from "./components/trip-dates-form";
 export { UpcomingTripCard } from "./components/upcoming-trip-card";

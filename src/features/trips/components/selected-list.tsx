@@ -6,11 +6,17 @@ import { googleMapsSearchUrl } from "@/lib/maps";
 import { setSelected } from "../application/guide-actions";
 import type { SelectedItem } from "../domain/ai-suggestion";
 
+// Both vocabularies land in this list: the four an AI city guide produces, and
+// the six the attractions search uses.
 const CATEGORY_LABELS: Record<string, string> = {
   areas: "אזור לינה",
   restaurants: "מסעדה",
   attractions: "אטרקציה",
   experiences: "חוויה",
+  cafes: "בית קפה",
+  bakeries: "מאפייה",
+  shopping: "שופינג",
+  temples: "מקדש",
 };
 
 function keyOf(item: SelectedItem) {

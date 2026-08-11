@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button, Card, Input } from "@/components/ui";
 import { cn } from "@/lib/cn";
+import { addPlace } from "../application/place-actions";
 import { PLACE_CATEGORIES } from "../domain/place";
 import type { Place, PlaceCategory } from "../domain/place";
 import { PlaceDetails } from "./place-details";
@@ -18,16 +19,38 @@ type Status =
 export function PlaceSearch({
   tripId,
   cities,
+  addedIds,
 }: {
   tripId: string;
   // The trip's destinations, in route order — the filter's options.
   cities: string[];
+  // OSM ids already in the trip, so results can say so instead of offering to
+  // add them twice.
+  addedIds: string[];
 }) {
   const [city, setCity] = useState(cities[0] ?? "");
   const [category, setCategory] = useState<PlaceCategory | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [open, setOpen] = useState<Place | null>(null);
+  const [added, setAdded] = useState<Set<string>>(new Set(addedIds));
+  const [adding, setAdding] = useState<string | null>(null);
+
+  async function add(place: Place) {
+    setAdding(place.id);
+    // Optimistic: the row is written server-side, and a failure rolls it back.
+    setAdded((prev) => new Set(prev).add(place.id));
+
+    const ok = await addPlace(tripId, city, place);
+    if (!ok) {
+      setAdded((prev) => {
+        const next = new Set(prev);
+        next.delete(place.id);
+        return next;
+      });
+    }
+    setAdding(null);
+  }
 
   async function search(nextCategory: PlaceCategory | null) {
     if (!city) return;
@@ -199,6 +222,21 @@ export function PlaceSearch({
                       .join(" · ") || place.address}
                   </span>
                 </button>
+
+                {added.has(place.id) ? (
+                  <span className="shrink-0 text-sm text-muted">✓ בטיול</span>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => void add(place)}
+                    disabled={adding === place.id}
+                    className="shrink-0"
+                  >
+                    הוסף
+                  </Button>
+                )}
               </Card>
             </li>
           ))}

@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { aiCategoryKeySchema } from "./ai-suggestion";
 
 // A real-world place found on OpenStreetMap, as the app cares about it.
 // Overpass returns dozens of tags per element; this is the subset worth
@@ -55,6 +56,17 @@ export const PLACE_CATEGORIES: Record<
   },
 };
 
+// Selected items carry a category from one of two vocabularies: the four an AI
+// city guide produces, and the six the attractions search uses. They share one
+// column, so anything validating a category has to accept both — validating
+// against the guide's four alone would make removing a searched place fail
+// silently.
+export const selectableCategorySchema = z.union([
+  aiCategoryKeySchema,
+  placeCategorySchema,
+]);
+export type SelectableCategory = z.infer<typeof selectableCategorySchema>;
+
 export const placeSearchRequestSchema = z.object({
   tripId: z.uuid(),
   city: z.string().trim().min(1, { error: "יש לבחור יעד." }),
@@ -94,6 +106,26 @@ export type Place = {
   // near-empty entries and to rank what's left.
   detailCount: number;
 };
+
+// Validates a Place arriving from the client, before it is written to the trip.
+// The client is the one that received it from the search, but it is still
+// untrusted input on the way back in.
+export const placeSchema = z.object({
+  id: z.string().min(1).max(64),
+  name: z.string().trim().min(1).max(200),
+  localName: z.string().max(200).nullable(),
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  category: placeCategorySchema.nullable(),
+  cuisine: z.string().max(200).nullable(),
+  openingHours: z.string().max(200).nullable(),
+  website: z.string().max(500).nullable(),
+  phone: z.string().max(60).nullable(),
+  address: z.string().max(300).nullable(),
+  brand: z.string().max(200).nullable(),
+  notable: z.boolean(),
+  detailCount: z.number().int().min(0).max(10),
+});
 
 // The details a place is scored on. A name alone says nothing — these are what
 // make an entry worth putting in front of someone planning a trip.

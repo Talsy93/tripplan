@@ -84,14 +84,18 @@ export async function setDestinationSelected(
     .eq("trip_id", tripId)
     .eq("city", city)
     .eq("category", category)
-    .eq("name", name)
-    .eq("source", "ai");
+    .eq("name", name);
   if (error) {
     console.error("setDestinationSelected failed:", error.message);
   }
 }
 
 // Items the user added to the trip, across all cities.
+//
+// Both sources count: 'ai' items come from a city guide, 'manual' ones from the
+// attractions search. Filtering to 'ai' here would silently drop everything the
+// user found themselves — it wouldn't reach "what you picked", the route map, or
+// the itinerary builder.
 export async function getSelectedDestinations(
   tripId: string,
 ): Promise<SelectedItem[]> {
@@ -100,7 +104,6 @@ export async function getSelectedDestinations(
     .from("suggested_destinations")
     .select("city, category, name, description")
     .eq("trip_id", tripId)
-    .eq("source", "ai")
     .eq("selected", true)
     .not("category", "is", null)
     .order("city", { ascending: true });
@@ -187,12 +190,10 @@ export async function saveCityGuide(
   });
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("suggested_destinations")
-    .upsert(rows, {
-      onConflict: "trip_id,city,category,name",
-      ignoreDuplicates: true,
-    });
+  const { error } = await supabase.from("suggested_destinations").upsert(rows, {
+    onConflict: "trip_id,city,category,name",
+    ignoreDuplicates: true,
+  });
   if (error) {
     console.error("saveCityGuide failed:", error.message);
   }
@@ -250,10 +251,7 @@ export async function getSavedCities(
 }
 
 // Replaces the trip's suggested cities with a freshly generated set.
-export async function saveCities(
-  tripId: string,
-  cities: AiCitySuggestion[],
-) {
+export async function saveCities(tripId: string, cities: AiCitySuggestion[]) {
   const supabase = await createClient();
   await supabase
     .from("suggested_destinations")
@@ -271,9 +269,7 @@ export async function saveCities(
     source: "ai" as const,
     selected: false,
   }));
-  const { error } = await supabase
-    .from("suggested_destinations")
-    .insert(rows);
+  const { error } = await supabase.from("suggested_destinations").insert(rows);
   if (error) {
     console.error("saveCities failed:", error.message);
   }
