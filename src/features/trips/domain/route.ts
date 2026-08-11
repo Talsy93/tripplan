@@ -1,8 +1,11 @@
+import type { ItineraryDay } from "./ai-suggestion";
+
 // The trip's route: the cities the user added things in, in visiting order,
 // each with coordinates so it can be pinned on the map.
 //
-// Order comes from when the city entered the trip (stage 12a). Once itinerary
-// items carry a city, this will switch to the itinerary's day order.
+// Order comes from the itinerary's day order when there is an itinerary, and
+// otherwise from when each city entered the trip — so the map still works
+// while the trip is being planned.
 
 export type RouteStop = {
   city: string;
@@ -10,7 +13,65 @@ export type RouteStop = {
   longitude: number;
   // How many things the user added in this city — shown on the pin's popup.
   itemCount: number;
+  // Nights spent here, once there is an itinerary to derive them from.
+  nights: number;
+  // Itinerary days spent here, for the schedule beside the map.
+  days: number[];
 };
+
+// Which city each day ends in, indexed by day number.
+//
+// A day can touch more than one city; the last item is the one that decides,
+// because that is where the traveller ends up. Days whose items all lack a
+// city (the AI renamed them) map to null.
+export function cityByDay(itinerary: ItineraryDay[]): Map<number, string> {
+  const byDay = new Map<number, string>();
+
+  for (const day of itinerary) {
+    for (const item of day.items) {
+      if (item.city) {
+        byDay.set(day.day, item.city);
+      }
+    }
+  }
+  return byDay;
+}
+
+// Cities in the order the itinerary visits them, with the days spent in each
+// and how many nights that comes to.
+//
+// A night is a transition between two days, so the final day of the trip adds
+// none — days 1–3 in one city is three days and two nights, the way travel
+// itineraries are normally counted.
+export function itineraryStops(
+  itinerary: ItineraryDay[],
+): { city: string; days: number[]; nights: number }[] {
+  const byDay = cityByDay(itinerary);
+  const dayNumbers = [...byDay.keys()].sort((a, b) => a - b);
+  const lastDay = dayNumbers.at(-1);
+
+  const stops = new Map<
+    string,
+    { city: string; days: number[]; nights: number }
+  >();
+
+  for (const dayNumber of dayNumbers) {
+    const city = byDay.get(dayNumber);
+    if (!city) continue;
+
+    let stop = stops.get(city);
+    if (!stop) {
+      stop = { city, days: [], nights: 0 };
+      stops.set(city, stop);
+    }
+    stop.days.push(dayNumber);
+    if (dayNumber !== lastDay) {
+      stop.nights += 1;
+    }
+  }
+  // Map preserves insertion order, which is ascending day order.
+  return [...stops.values()];
+}
 
 // Cities the user added things in but that couldn't be geocoded. Surfaced so
 // the map can say so instead of silently dropping them.

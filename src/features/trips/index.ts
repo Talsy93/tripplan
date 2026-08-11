@@ -26,7 +26,7 @@ export type {
 } from "./domain/suggested-destination";
 export { itineraryItemSchema } from "./domain/itinerary-item";
 export type { ItineraryItem } from "./domain/itinerary-item";
-export { routeBounds } from "./domain/route";
+export { routeBounds, cityByDay, itineraryStops } from "./domain/route";
 export type { RouteStop, TripRoute } from "./domain/route";
 export {
   aiSuggestRequestSchema,

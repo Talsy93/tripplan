@@ -1,14 +1,20 @@
 import { createClient } from "@/lib/supabase/server";
 import { geocodePlaces } from "@/lib/geocode";
+import { itineraryStops } from "../domain/route";
 import type { RouteStop, TripRoute } from "../domain/route";
+import type { ItineraryDay } from "../domain/ai-suggestion";
 
 // The sentinel row saveCityGuide() writes per city (see guide-service.ts). It
 // is the natural home for the city's cached coordinates: exactly one row per
 // (trip, city), and it exists whenever the user has a guide for that city.
 const OVERVIEW_CATEGORY = "overview";
 
-// Builds the trip's route: every city the user added something in, ordered by
-// when it entered the trip, with coordinates for the map.
+// Builds the trip's route: every city the user added something in, with
+// coordinates for the map.
+//
+// Stops follow the itinerary's day order when there is an itinerary, and
+// otherwise the order the cities were added — so the map is useful during
+// planning, before any itinerary exists.
 //
 // `tripName` is passed to the geocoder as context — city names arrive in
 // Hebrew and are ambiguous on their own, so the trip's name (which usually
@@ -19,8 +25,9 @@ const OVERVIEW_CATEGORY = "overview";
 export async function getTripRoute(
   tripId: string,
   tripName?: string,
+  itinerary: ItineraryDay[] = [],
 ): Promise<TripRoute> {
-  const cities = await getRouteCities(tripId);
+  const cities = orderCities(await getRouteCities(tripId), itinerary);
   if (cities.length === 0) {
     return { stops: [], unlocatedCities: [] };
   }
@@ -30,9 +37,7 @@ export async function getTripRoute(
     cities.map((c) => c.city),
   );
 
-  const missing = cities
-    .map((c) => c.city)
-    .filter((city) => !cached.has(city));
+  const missing = cities.map((c) => c.city).filter((city) => !cached.has(city));
 
   if (missing.length > 0) {
     const geocoded = await geocodePlaces(missing, tripName);
@@ -45,15 +50,52 @@ export async function getTripRoute(
   const stops: RouteStop[] = [];
   const unlocatedCities: string[] = [];
 
-  for (const { city, itemCount } of cities) {
+  for (const { city, itemCount, nights, days } of cities) {
     const coords = cached.get(city);
     if (coords) {
-      stops.push({ city, ...coords, itemCount });
+      stops.push({ city, ...coords, itemCount, nights, days });
     } else {
       unlocatedCities.push(city);
     }
   }
   return { stops, unlocatedCities };
+}
+
+type OrderedCity = {
+  city: string;
+  itemCount: number;
+  nights: number;
+  days: number[];
+};
+
+// Puts the trip's cities in visiting order and attaches their nights.
+//
+// Cities the itinerary schedules come first, in day order. A city the user
+// added things in but never scheduled still belongs on the map, so it follows
+// afterwards with no nights.
+function orderCities(
+  cities: { city: string; itemCount: number }[],
+  itinerary: ItineraryDay[],
+): OrderedCity[] {
+  const itemCounts = new Map(cities.map((c) => [c.city, c.itemCount]));
+  const scheduled = itineraryStops(itinerary);
+
+  const ordered: OrderedCity[] = scheduled
+    .filter((stop) => itemCounts.has(stop.city))
+    .map((stop) => ({
+      city: stop.city,
+      itemCount: itemCounts.get(stop.city) ?? 0,
+      nights: stop.nights,
+      days: stop.days,
+    }));
+
+  const placed = new Set(ordered.map((stop) => stop.city));
+  for (const { city, itemCount } of cities) {
+    if (!placed.has(city)) {
+      ordered.push({ city, itemCount, nights: 0, days: [] });
+    }
+  }
+  return ordered;
 }
 
 // Distinct cities the user added things in, in order of first addition, with

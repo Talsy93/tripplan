@@ -7,7 +7,13 @@
 // services). Attribution is required by their tile usage policy.
 
 import L from "leaflet";
-import { MapContainer, Marker, Polyline, Popup, TileLayer } from "react-leaflet";
+import {
+  MapContainer,
+  Marker,
+  Polyline,
+  Popup,
+  TileLayer,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { routeBounds, type RouteStop } from "../domain/route";
 
@@ -76,6 +82,12 @@ export default function RouteMapCanvas({ stops }: { stops: RouteStop[] }) {
               {stop.itemCount === 1
                 ? "דבר אחד שבחרתם"
                 : `${stop.itemCount} דברים שבחרתם`}
+              {stop.nights > 0 && (
+                <>
+                  <br />
+                  {stop.nights === 1 ? "לילה אחד" : `${stop.nights} לילות`}
+                </>
+              )}
             </div>
           </Popup>
         </Marker>

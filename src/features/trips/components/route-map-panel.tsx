@@ -1,3 +1,4 @@
+import { getItinerary } from "../infrastructure/itinerary-service";
 import { getTripRoute } from "../infrastructure/route-service";
 import { RouteMap } from "./route-map";
 
@@ -12,6 +13,10 @@ export async function RouteMapPanel({
   // Geocoding context — see getTripRoute().
   tripName: string;
 }) {
-  const route = await getTripRoute(tripId, tripName);
-  return <RouteMap route={route} />;
+  // The itinerary decides both the order of the stops and the nights spent in
+  // each, so it has to be loaded before the route is built.
+  const itinerary = await getItinerary(tripId);
+  const route = await getTripRoute(tripId, tripName, itinerary);
+
+  return <RouteMap route={route} itinerary={itinerary} />;
 }
