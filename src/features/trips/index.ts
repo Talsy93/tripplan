@@ -132,6 +132,7 @@ export {
   axisHours,
   positionPercent,
   durationLabel,
+  distanceLabel,
 } from "./domain/timeline";
 export type {
   DayTimeline as DayTimelineData,

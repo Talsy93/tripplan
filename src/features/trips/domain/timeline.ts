@@ -7,6 +7,7 @@
 // the graphic. Losing an item the user picked would be worse than not placing
 // it on the axis.
 
+import { distanceKm } from "./place";
 import type { ItineraryDay, ItineraryEntry } from "./ai-suggestion";
 
 const MINUTES_PER_HOUR = 60;
@@ -25,7 +26,23 @@ export type Transition = {
   afterId: string;
   startMinutes: number;
   minutes: number;
+  // Straight-line distance to the next place, when both ends have coordinates
+  // — which today means both came from the attractions search. Null otherwise,
+  // and null is the common case.
+  distanceKm: number | null;
+  // Rough walking time, only when the distance is one a person would actually
+  // walk. Null past that, because the alternative — bus, metro, taxi — has no
+  // free routing service, and a made-up number is worse than none.
+  walkMinutes: number | null;
 };
+
+// Comfortable city walking pace, km/h.
+const WALKING_KMH = 4.5;
+// Past this, walking stops being the answer and we say nothing about how to
+// get there.
+const MAX_WALK_KM = 2.5;
+// Straight-line distance understates real walking, which follows streets.
+const STREET_DETOUR_FACTOR = 1.3;
 
 export type DayTimeline = {
   day: number;
@@ -89,14 +106,28 @@ export function buildDayTimeline(day: ItineraryDay): DayTimeline {
 
   const transitions: Transition[] = [];
   for (let i = 0; i < scheduled.length - 1; i += 1) {
-    const gap = scheduled[i + 1].startMinutes - scheduled[i].endMinutes;
-    if (gap >= MIN_TRANSITION_MIN) {
-      transitions.push({
-        afterId: scheduled[i].entry.id,
-        startMinutes: scheduled[i].endMinutes,
-        minutes: gap,
-      });
-    }
+    const from = scheduled[i];
+    const to = scheduled[i + 1];
+    const gap = to.startMinutes - from.endMinutes;
+    if (gap < MIN_TRANSITION_MIN) continue;
+
+    const distanceKm = straightLineKm(from.entry, to.entry);
+    transitions.push({
+      afterId: from.entry.id,
+      startMinutes: from.endMinutes,
+      minutes: gap,
+      distanceKm,
+      walkMinutes:
+        distanceKm !== null && distanceKm <= MAX_WALK_KM
+          ? Math.max(
+              1,
+              Math.round(
+                ((distanceKm * STREET_DETOUR_FACTOR) / WALKING_KMH) *
+                  MINUTES_PER_HOUR,
+              ),
+            )
+          : null,
+    });
   }
 
   const first = scheduled[0]?.startMinutes ?? 9 * MINUTES_PER_HOUR;
@@ -142,6 +173,27 @@ export function durationLabel(minutes: number) {
   if (hours === 0) return `${rest} דק׳`;
   if (rest === 0) return hours === 1 ? "שעה" : `${hours} שעות`;
   return `${hours}:${String(rest).padStart(2, "0")} שעות`;
+}
+
+function straightLineKm(from: ItineraryEntry, to: ItineraryEntry) {
+  if (
+    from.latitude === null ||
+    from.longitude === null ||
+    to.latitude === null ||
+    to.longitude === null
+  ) {
+    return null;
+  }
+  return distanceKm(
+    { latitude: from.latitude, longitude: from.longitude },
+    { latitude: to.latitude, longitude: to.longitude },
+  );
+}
+
+export function distanceLabel(km: number) {
+  // Under a kilometre, metres are the unit a person thinks in.
+  if (km < 1) return `${Math.round(km * 1000)} מ׳`;
+  return `${km.toFixed(1)} ק״מ`;
 }
 
 function floorToHour(minutes: number) {

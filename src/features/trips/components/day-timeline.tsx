@@ -5,6 +5,7 @@ import { googleMapsSearchUrl } from "@/lib/maps";
 import {
   axisHours,
   buildDayTimeline,
+  distanceLabel,
   durationLabel,
   formatMinutes,
   positionPercent,
@@ -114,7 +115,14 @@ export function DayTimeline({
               }}
             >
               <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted">
-                ↕ {durationLabel(transition.minutes)} מעבר
+                {transition.walkMinutes !== null ? "🚶" : "↕"}{" "}
+                {durationLabel(transition.minutes)} מעבר
+                {transition.distanceKm !== null && (
+                  <> · {distanceLabel(transition.distanceKm)}</>
+                )}
+                {transition.walkMinutes !== null && (
+                  <> · ~{transition.walkMinutes} דק׳ הליכה</>
+                )}
               </span>
             </div>
           ))}
