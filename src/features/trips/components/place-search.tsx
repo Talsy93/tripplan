@@ -6,9 +6,19 @@ import { cn } from "@/lib/cn";
 import { addPlace } from "../application/place-actions";
 import { PLACE_CATEGORIES } from "../domain/place";
 import type { Place, PlaceCategory } from "../domain/place";
+import type { AddedPlace } from "../infrastructure/place-service";
 import { PlaceDetails } from "./place-details";
 
 const CATEGORY_KEYS = Object.keys(PLACE_CATEGORIES) as PlaceCategory[];
+
+// A place is in the trip whether or not the itinerary has been built since —
+// so "in the trip" is the fallback, and a day is the better news when we have
+// it.
+function dayLabel(days: number[]) {
+  if (days.length === 0) return "בטיול";
+  if (days.length === 1) return `יום ${days[0]}`;
+  return `ימים ${days.join(", ")}`;
+}
 
 type Status =
   | { kind: "idle" }
@@ -19,32 +29,35 @@ type Status =
 export function PlaceSearch({
   tripId,
   cities,
-  addedIds,
+  addedPlaces,
 }: {
   tripId: string;
   // The trip's destinations, in route order — the filter's options.
   cities: string[];
-  // OSM ids already in the trip, so results can say so instead of offering to
-  // add them twice.
-  addedIds: string[];
+  // Places already in the trip, with the itinerary days they're scheduled on,
+  // so results can say so instead of offering to add them twice.
+  addedPlaces: AddedPlace[];
 }) {
   const [city, setCity] = useState(cities[0] ?? "");
   const [category, setCategory] = useState<PlaceCategory | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [open, setOpen] = useState<Place | null>(null);
-  const [added, setAdded] = useState<Set<string>>(new Set(addedIds));
+  const [added, setAdded] = useState<Map<string, number[]>>(
+    () => new Map(addedPlaces.map((place) => [place.externalId, place.days])),
+  );
   const [adding, setAdding] = useState<string | null>(null);
 
   async function add(place: Place) {
     setAdding(place.id);
     // Optimistic: the row is written server-side, and a failure rolls it back.
-    setAdded((prev) => new Set(prev).add(place.id));
+    // No days yet — it only gets scheduled when the itinerary is next built.
+    setAdded((prev) => new Map(prev).set(place.id, []));
 
     const ok = await addPlace(tripId, city, place);
     if (!ok) {
       setAdded((prev) => {
-        const next = new Set(prev);
+        const next = new Map(prev);
         next.delete(place.id);
         return next;
       });
@@ -224,7 +237,9 @@ export function PlaceSearch({
                 </button>
 
                 {added.has(place.id) ? (
-                  <span className="shrink-0 text-sm text-muted">✓ בטיול</span>
+                  <span className="shrink-0 text-sm text-muted">
+                    ✓ {dayLabel(added.get(place.id) ?? [])}
+                  </span>
                 ) : (
                   <Button
                     type="button"

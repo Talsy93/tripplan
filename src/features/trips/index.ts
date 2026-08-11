@@ -110,10 +110,8 @@ export {
   setTripStatus,
 } from "./infrastructure/itinerary-service";
 export { getTripRoute, getCityCenter } from "./infrastructure/route-service";
-export {
-  addPlaceToTrip,
-  getAddedPlaceIds,
-} from "./infrastructure/place-service";
+export { addPlaceToTrip, getAddedPlaces } from "./infrastructure/place-service";
+export type { AddedPlace } from "./infrastructure/place-service";
 export { addPlace } from "./application/place-actions";
 export { CreateTripForm } from "./components/create-trip-form";
 export { TripDatesForm } from "./components/trip-dates-form";

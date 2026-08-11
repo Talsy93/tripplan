@@ -1,16 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
+import { normaliseName } from "@/lib/text";
 import type {
   AiItinerary,
   ItineraryDay,
   SelectedItem,
 } from "../domain/ai-suggestion";
 import type { TripStatus } from "../domain/trip";
-
-// Name matching has to survive the AI echoing a name back with different
-// spacing or punctuation, which it does often enough to matter.
-function normalise(name: string) {
-  return name.trim().replace(/\s+/g, " ").toLowerCase();
-}
 
 export async function getItinerary(tripId: string): Promise<ItineraryDay[]> {
   const supabase = await createClient();
@@ -74,7 +69,7 @@ export async function saveItinerary(
   await supabase.from("itinerary_items").delete().eq("trip_id", tripId);
 
   const cityByName = new Map(
-    selected.map((item) => [normalise(item.name), item.city]),
+    selected.map((item) => [normaliseName(item.name), item.city]),
   );
 
   const rows = itinerary.days.flatMap((day) =>
@@ -86,7 +81,7 @@ export async function saveItinerary(
       start_label: item.start_time,
       end_label: item.end_time,
       note: item.note,
-      city: cityByName.get(normalise(item.name)) ?? null,
+      city: cityByName.get(normaliseName(item.name)) ?? null,
     })),
   );
   if (rows.length === 0) return;

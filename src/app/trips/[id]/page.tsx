@@ -5,7 +5,7 @@ import { Badge, Tabs } from "@/components/ui";
 import {
   daysUntil,
   formatCountdown,
-  getAddedPlaceIds,
+  getAddedPlaces,
   getItinerary,
   getSavedCities,
   getSelectedDestinations,
@@ -31,11 +31,11 @@ export default async function TripPage({
     notFound();
   }
 
-  const [savedCities, selected, itinerary, addedPlaceIds] = await Promise.all([
+  const [savedCities, selected, itinerary, addedPlaces] = await Promise.all([
     getSavedCities(id),
     getSelectedDestinations(id),
     getItinerary(id),
-    getAddedPlaceIds(id),
+    getAddedPlaces(id),
   ]);
 
   // The destinations the search can look around — the cities the user has
@@ -106,7 +106,7 @@ export default async function TripPage({
             <PlaceSearch
               tripId={trip.id}
               cities={searchCities}
-              addedIds={[...addedPlaceIds]}
+              addedPlaces={addedPlaces}
             />
           ),
         }}
