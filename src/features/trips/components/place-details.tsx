@@ -24,6 +24,7 @@ export function PlaceDetails({
   }, []);
 
   const rows = [
+    place.brand && { label: "רשת", value: place.brand },
     place.cuisine && { label: "מטבח", value: place.cuisine },
     place.openingHours && { label: "שעות", value: place.openingHours },
     place.address && { label: "כתובת", value: place.address },

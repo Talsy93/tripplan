@@ -36,7 +36,11 @@ export {
   placeCategorySchema,
   placeSearchRequestSchema,
   PLACE_CATEGORIES,
+  MIN_DETAILS,
   distanceKm,
+  countDetails,
+  isWorthShowing,
+  comparePlaces,
 } from "./domain/place";
 export type { Place, PlaceCategory, PlaceSearchRequest } from "./domain/place";
 export type { RouteStop, TripRoute } from "./domain/route";

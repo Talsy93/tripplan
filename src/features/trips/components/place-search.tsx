@@ -182,13 +182,21 @@ export function PlaceSearch({
                   onClick={() => setOpen(place)}
                   className="min-w-0 flex-1 text-start"
                 >
-                  <span className="block truncate font-semibold">
-                    {place.name}
+                  <span className="flex items-center gap-2">
+                    <span className="truncate font-semibold">{place.name}</span>
+                    {place.notable && (
+                      <span
+                        title="למקום יש ערך בוויקיפדיה"
+                        className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                      >
+                        מוכר
+                      </span>
+                    )}
                   </span>
                   <span className="block truncate text-xs text-muted">
-                    {[place.cuisine, place.openingHours, place.address]
+                    {[place.brand, place.cuisine, place.openingHours]
                       .filter(Boolean)
-                      .join(" · ") || "לחצו לפרטים"}
+                      .join(" · ") || place.address}
                   </span>
                 </button>
               </Card>

@@ -17,7 +17,12 @@
 //    answers an overloaded request with 429/504 and a non-JSON body; treating
 //    that as an empty result set is how a working search silently looks broken.
 
-import { PLACE_CATEGORIES, distanceKm } from "@/features/trips/domain/place";
+import {
+  PLACE_CATEGORIES,
+  comparePlaces,
+  countDetails,
+  isWorthShowing,
+} from "@/features/trips/domain/place";
 import type { Place, PlaceCategory } from "@/features/trips/domain/place";
 
 const ENDPOINT = "https://overpass-api.de/api/interpreter";
@@ -108,11 +113,12 @@ async function runQuery(
     const places = (json.elements ?? [])
       .map((element) => toPlace(element, category ?? null))
       .filter((place): place is Place => place !== null)
-      .filter((place) => !needle || matchesName(place, needle));
+      .filter((place) => !needle || matchesName(place, needle))
+      // OSM is full of name-only pins with nothing behind them. They are noise
+      // in a list of suggestions, so they don't get shown.
+      .filter(isWorthShowing);
 
-    // Nearest first: the closer to the city centre, the more likely it is the
-    // place the traveller meant.
-    places.sort((a, b) => distanceKm(center, a) - distanceKm(center, b));
+    places.sort((a, b) => comparePlaces(a, b, center));
     return { ok: true, places: places.slice(0, MAX_RESULTS) };
   } catch {
     return { ok: false, reason: "unavailable" };
@@ -194,6 +200,15 @@ function toPlace(
     return null;
   }
 
+  const details = {
+    cuisine: tags.cuisine ?? null,
+    openingHours: tags.opening_hours ?? null,
+    website: tags.website ?? tags["contact:website"] ?? null,
+    phone: tags.phone ?? tags["contact:phone"] ?? null,
+    address: buildAddress(tags),
+    brand: tags.brand ?? tags["brand:en"] ?? tags.operator ?? null,
+  };
+
   return {
     id: `${element.type ?? "node"}/${element.id ?? 0}`,
     name,
@@ -201,11 +216,11 @@ function toPlace(
     latitude,
     longitude,
     category,
-    cuisine: tags.cuisine ?? null,
-    openingHours: tags.opening_hours ?? null,
-    website: tags.website ?? tags["contact:website"] ?? null,
-    phone: tags.phone ?? tags["contact:phone"] ?? null,
-    address: buildAddress(tags),
+    ...details,
+    // OSM has no reviews, so a Wikipedia/Wikidata link is the available stand-in
+    // for "this is a place people know".
+    notable: Boolean(tags.wikidata ?? tags.wikipedia ?? tags["brand:wikidata"]),
+    detailCount: countDetails(details),
   };
 }
 
