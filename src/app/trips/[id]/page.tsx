@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, Tabs } from "@/components/ui";
 import {
+  BookingForm,
+  BookingList,
   daysUntil,
   formatCountdown,
   getAddedPlaces,
@@ -11,6 +13,7 @@ import {
   getSelectedDestinations,
   getTrip,
   Itinerary,
+  listBookings,
   PlaceSearch,
   PlanningPanel,
   RouteMapPanel,
@@ -31,12 +34,14 @@ export default async function TripPage({
     notFound();
   }
 
-  const [savedCities, selected, itinerary, addedPlaces] = await Promise.all([
-    getSavedCities(id),
-    getSelectedDestinations(id),
-    getItinerary(id),
-    getAddedPlaces(id),
-  ]);
+  const [savedCities, selected, itinerary, addedPlaces, bookings] =
+    await Promise.all([
+      getSavedCities(id),
+      getSelectedDestinations(id),
+      getItinerary(id),
+      getAddedPlaces(id),
+      listBookings(id),
+    ]);
 
   // The destinations the search can look around — the cities the user has
   // already added things in.
@@ -70,6 +75,7 @@ export default async function TripPage({
           { id: "plan", label: "תכנון" },
           { id: "map", label: "מפת מסלול" },
           { id: "places", label: "אטרקציות" },
+          { id: "logistics", label: "לוגיסטיקה" },
         ]}
         panels={{
           plan: (
@@ -108,6 +114,25 @@ export default async function TripPage({
               cities={searchCities}
               addedPlaces={addedPlaces}
             />
+          ),
+          logistics: (
+            <div className="flex flex-col gap-6">
+              <section className="flex flex-col gap-4">
+                <h2 className="text-lg font-bold">טיסות, רכבות ולינה</h2>
+                {/* "Now" is stamped on the server so the alert badges don't
+                    disagree between the server and client renders. */}
+                <BookingList
+                  tripId={trip.id}
+                  bookings={bookings}
+                  now={new Date().toISOString()}
+                />
+              </section>
+
+              <section className="flex flex-col gap-4">
+                <h2 className="text-lg font-bold">הוספה</h2>
+                <BookingForm tripId={trip.id} cities={searchCities} />
+              </section>
+            </div>
           ),
         }}
       />
