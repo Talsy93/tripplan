@@ -120,6 +120,10 @@ export type ItineraryEntry = {
   startLabel: string;
   endLabel: string;
   note: string;
+  // The city this item was picked in. Null when the AI renamed the item and it
+  // could no longer be matched back to a guide item — such an entry still
+  // shows in the itinerary, it just can't be placed on the map.
+  city: string | null;
 };
 export type ItineraryDay = {
   day: number;

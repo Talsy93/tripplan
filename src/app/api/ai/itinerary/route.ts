@@ -101,7 +101,7 @@ export async function POST(request: Request) {
       prompt: buildPrompt(trip, items),
       schema: aiItinerarySchema,
     });
-    await saveItinerary(tripId, itinerary);
+    await saveItinerary(tripId, itinerary, items);
     await setTripStatus(tripId, "executing");
     // Return the persisted itinerary so the client has row ids (for deletion).
     const saved = await getItinerary(tripId);
