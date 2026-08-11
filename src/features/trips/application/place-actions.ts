@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import * as z from "zod";
 import { placeSchema } from "../domain/place";
 import { addPlaceToTrip } from "../infrastructure/place-service";
 
@@ -12,9 +14,18 @@ export async function addPlace(
   city: string,
   place: unknown,
 ): Promise<boolean> {
+  const parsedId = z.uuid().safeParse(tripId);
   const parsed = placeSchema.safeParse(place);
-  if (!parsed.success) return false;
+  if (!parsedId.success || !parsed.success) return false;
   if (!city.trim()) return false;
 
-  return addPlaceToTrip(tripId, city.trim(), parsed.data);
+  const ok = await addPlaceToTrip(parsedId.data, city.trim(), parsed.data);
+  if (!ok) return false;
+
+  // The trip page renders "what you picked", the route map and the itinerary
+  // from server data captured when the page loaded. Without this the addition
+  // only appears after a manual refresh — the tabs are separate panels of one
+  // server render, not independent pages.
+  revalidatePath(`/trips/${parsedId.data}`);
+  return true;
 }

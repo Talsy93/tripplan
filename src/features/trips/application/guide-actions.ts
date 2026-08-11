@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import * as z from "zod";
 import {
   aiCategoryKeySchema,
@@ -69,4 +70,11 @@ export async function setSelected(
     name,
     Boolean(selected),
   );
+
+  // Keeps the trip page's other panels honest: removing something here has to
+  // reach the attractions tab's "already in your trip" marks and the route
+  // map, which are part of the same server render.
+  if (z.uuid().safeParse(tripId).success) {
+    revalidatePath(`/trips/${tripId}`);
+  }
 }
