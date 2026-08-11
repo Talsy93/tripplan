@@ -134,6 +134,22 @@ export { listBookings } from "./infrastructure/booking-service";
 export { addBooking, removeBooking } from "./application/booking-actions";
 export { BookingForm } from "./components/booking-form";
 export { BookingList } from "./components/booking-list";
+export {
+  forecastWindow,
+  describeWeather,
+  todayIso,
+  addDays,
+  daysBetween,
+  weekdayLabel,
+  MAX_FORECAST_DAYS,
+} from "./domain/weather";
+export type {
+  DailyWeather,
+  CityWeather,
+  ForecastWindow,
+} from "./domain/weather";
+export { WeatherPanel } from "./components/weather-panel";
+export { WeatherForecast } from "./components/weather-forecast";
 export { CreateTripForm } from "./components/create-trip-form";
 export { TripDatesForm } from "./components/trip-dates-form";
 export { UpcomingTripCard } from "./components/upcoming-trip-card";

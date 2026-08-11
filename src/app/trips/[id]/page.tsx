@@ -20,6 +20,7 @@ import {
   SelectedList,
   TripDatesForm,
   tripStatusLabels,
+  WeatherPanel,
 } from "@/features/trips";
 
 export default async function TripPage({
@@ -117,6 +118,17 @@ export default async function TripPage({
           ),
           logistics: (
             <div className="flex flex-col gap-6">
+              <section className="flex flex-col gap-4">
+                <h2 className="text-lg font-bold">מזג אוויר ביעדים</h2>
+                <Suspense
+                  fallback={
+                    <div className="h-28 w-full animate-pulse rounded-2xl bg-surface-2" />
+                  }
+                >
+                  <WeatherPanel trip={trip} />
+                </Suspense>
+              </section>
+
               <section className="flex flex-col gap-4">
                 <h2 className="text-lg font-bold">טיסות, רכבות ולינה</h2>
                 {/* "Now" is stamped on the server so the alert badges don't
