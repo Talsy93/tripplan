@@ -61,6 +61,11 @@ export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 export type BookingFormState = {
   error?: string;
   fieldErrors?: Partial<Record<keyof CreateBookingInput, string[]>>;
+  // What was submitted, echoed back. React resets an uncontrolled form once
+  // its action finishes — including when it failed — so without this a
+  // rejected form throws away everything that was typed. Absent on success,
+  // which is what clears the form.
+  values?: Partial<Record<keyof CreateBookingInput, string>>;
 };
 
 // ---- Alerts ---------------------------------------------------------------

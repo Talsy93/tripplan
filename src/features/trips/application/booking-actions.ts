@@ -8,6 +8,30 @@ import {
   deleteBooking as deleteBookingRow,
 } from "../infrastructure/booking-service";
 
+// Everything the form submits, as plain strings, so a rejected attempt can be
+// handed back to the fields it came from.
+const FORM_FIELDS = [
+  "kind",
+  "title",
+  "origin",
+  "destination",
+  "city",
+  "startsAt",
+  "endsAt",
+  "address",
+  "confirmation",
+  "note",
+] as const;
+
+function submittedValues(formData: FormData) {
+  const values: Record<string, string> = {};
+  for (const field of FORM_FIELDS) {
+    const value = formData.get(field);
+    if (typeof value === "string" && value !== "") values[field] = value;
+  }
+  return values;
+}
+
 export async function addBooking(
   _state: BookingFormState,
   formData: FormData,
@@ -29,19 +53,23 @@ export async function addBooking(
   });
 
   if (!parsed.success) {
-    const fieldErrors = z.flattenError(parsed.error).fieldErrors;
-    const firstError = Object.values(fieldErrors).flat()[0];
     return {
-      error: firstError ?? "הפרטים אינם תקינים.",
-      fieldErrors,
+      fieldErrors: z.flattenError(parsed.error).fieldErrors,
+      values: submittedValues(formData),
     };
   }
 
   if (!(await createBooking(parsed.data))) {
-    return { error: "השמירה נכשלה. נסו שוב." };
+    // A save that failed for reasons outside the form still keeps the input —
+    // retyping a flight is nobody's idea of error recovery.
+    return {
+      error: "השמירה נכשלה. נסו שוב.",
+      values: submittedValues(formData),
+    };
   }
 
   revalidatePath(`/trips/${parsed.data.tripId}`);
+  // No values: this is what lets the form clear itself on success.
   return {};
 }
 
