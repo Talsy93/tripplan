@@ -33,6 +33,7 @@ export {
   itineraryStops,
 } from "./domain/route";
 export {
+  categoryLabel,
   placeCategorySchema,
   placeSchema,
   placeSearchRequestSchema,
@@ -123,6 +124,20 @@ export { SelectedList } from "./components/selected-list";
 export { Itinerary } from "./components/itinerary";
 export { RouteMap } from "./components/route-map";
 export { RouteHero } from "./components/route-hero";
+export { DayTimeline } from "./components/day-timeline";
+export {
+  parseTimeLabel,
+  formatMinutes,
+  buildDayTimeline,
+  axisHours,
+  positionPercent,
+  durationLabel,
+} from "./domain/timeline";
+export type {
+  DayTimeline as DayTimelineData,
+  TimelineEntry,
+  Transition,
+} from "./domain/timeline";
 export { PlaceSearch } from "./components/place-search";
 export { PlaceDetails } from "./components/place-details";
 export { RouteMapPanel } from "./components/route-map-panel";

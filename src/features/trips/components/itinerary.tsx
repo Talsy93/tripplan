@@ -2,9 +2,15 @@
 
 import { useState } from "react";
 import { Button, Card } from "@/components/ui";
+import { cn } from "@/lib/cn";
 import { googleMapsSearchUrl } from "@/lib/maps";
 import { deleteItineraryEntry } from "../application/itinerary-actions";
+import { DayTimeline } from "./day-timeline";
 import type { ItineraryDay } from "../domain/ai-suggestion";
+
+// The graphic is the point of the feature, but a plain list stays available:
+// it survives times the AI wrote in prose, and it's easier to scan on a phone.
+type View = "timeline" | "list";
 
 type ItineraryProps = {
   tripId: string;
@@ -13,6 +19,7 @@ type ItineraryProps = {
 
 export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
   const [days, setDays] = useState<ItineraryDay[]>(initialItinerary);
+  const [view, setView] = useState<View>("timeline");
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,6 +73,33 @@ export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
     <section className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
         <h2 className="text-lg font-bold">לו&quot;ז הטיול</h2>
+
+        {hasItinerary && (
+          <div className="flex gap-1 rounded-full border border-border bg-surface-2 p-0.5 text-xs">
+            {(
+              [
+                ["timeline", "ציר שעות"],
+                ["list", "רשימה"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setView(id)}
+                aria-pressed={view === id}
+                className={cn(
+                  "rounded-full px-3 py-1 font-medium transition-colors",
+                  view === id
+                    ? "bg-surface text-foreground shadow-soft"
+                    : "text-muted hover:text-foreground",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <Button
           type="button"
           onClick={build}
@@ -88,39 +122,43 @@ export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
       {days.map((day) => (
         <div key={day.day} className="flex flex-col gap-2">
           <h3 className="font-bold">יום {day.day}</h3>
-          <div className="flex flex-col gap-2">
-            {day.items.map((item) => (
-              <Card key={item.id} className="flex flex-col gap-1 p-4">
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="font-semibold">{item.title}</span>
-                  <div className="flex shrink-0 items-baseline gap-3">
-                    <span className="text-xs text-muted">
-                      {item.startLabel}–{item.endLabel}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => remove(item.id)}
-                      aria-label="הסר מהלו״ז"
-                      className="text-muted transition-colors hover:text-foreground"
-                    >
-                      ✕
-                    </button>
+          {view === "timeline" ? (
+            <DayTimeline day={day} onRemove={remove} />
+          ) : (
+            <div className="flex flex-col gap-2">
+              {day.items.map((item) => (
+                <Card key={item.id} className="flex flex-col gap-1 p-4">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="font-semibold">{item.title}</span>
+                    <div className="flex shrink-0 items-baseline gap-3">
+                      <span className="text-xs text-muted">
+                        {item.startLabel}–{item.endLabel}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => remove(item.id)}
+                        aria-label="הסר מהלו״ז"
+                        className="text-muted transition-colors hover:text-foreground"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
-                </div>
-                {item.note && (
-                  <p className="text-sm text-muted">{item.note}</p>
-                )}
-                <a
-                  href={googleMapsSearchUrl(item.title)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="self-start text-xs text-primary hover:underline"
-                >
-                  🗺️ פתח ב-Google Maps
-                </a>
-              </Card>
-            ))}
-          </div>
+                  {item.note && (
+                    <p className="text-sm text-muted">{item.note}</p>
+                  )}
+                  <a
+                    href={googleMapsSearchUrl(item.title)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="self-start text-xs text-primary hover:underline"
+                  >
+                    🗺️ פתח ב-Google Maps
+                  </a>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       ))}
     </section>

@@ -56,6 +56,28 @@ export const PLACE_CATEGORIES: Record<
   },
 };
 
+// What to call one selected item, across both vocabularies.
+//
+// Distinct from PLACE_CATEGORIES[].label on purpose: that names a filter chip
+// ("מסעדות"), this names a thing ("מסעדה"). Kept in one place because it is
+// needed by the trip page, the city guide and the itinerary prompt — and when
+// the search's six categories were added, the prompt's private copy was missed
+// and started feeding the AI raw keys.
+const CATEGORY_LABELS: Record<string, string> = {
+  areas: "אזור לינה",
+  restaurants: "מסעדה",
+  attractions: "אטרקציה",
+  experiences: "חוויה",
+  cafes: "בית קפה",
+  bakeries: "מאפייה",
+  shopping: "שופינג",
+  temples: "מקדש",
+};
+
+export function categoryLabel(category: string) {
+  return CATEGORY_LABELS[category] ?? category;
+}
+
 // Selected items carry a category from one of two vocabularies: the four an AI
 // city guide produces, and the six the attractions search uses. They share one
 // column, so anything validating a category has to accept both — validating

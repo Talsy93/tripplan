@@ -3,6 +3,7 @@ import * as z from "zod";
 import {
   aiItineraryRequestSchema,
   aiItinerarySchema,
+  categoryLabel,
   getItinerary,
   getSelectedDestinations,
   getTrip,
@@ -18,18 +19,11 @@ import type { Trip } from "@/features/trips";
 const RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 60_000;
 
-const CATEGORY_LABELS: Record<string, string> = {
-  areas: "אזור לינה",
-  restaurants: "מסעדה",
-  attractions: "אטרקציה",
-  experiences: "חוויה",
-};
-
 function buildPrompt(trip: Trip, items: SelectedItem[]) {
   const list = items
     .map(
       (item) =>
-        `- ${item.name} (${item.city}, ${CATEGORY_LABELS[item.category] ?? item.category})`,
+        `- ${item.name} (${item.city}, ${categoryLabel(item.category)})`,
     )
     .join("\n");
 
@@ -69,14 +63,21 @@ export async function POST(request: Request) {
   const parsed = aiItineraryRequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "invalid_request", details: z.flattenError(parsed.error).fieldErrors },
+      {
+        error: "invalid_request",
+        details: z.flattenError(parsed.error).fieldErrors,
+      },
       { status: 400 },
     );
   }
 
   const { tripId } = parsed.data;
 
-  const limit = checkRateLimit(`ai:itinerary:${user.id}`, RATE_LIMIT, RATE_WINDOW_MS);
+  const limit = checkRateLimit(
+    `ai:itinerary:${user.id}`,
+    RATE_LIMIT,
+    RATE_WINDOW_MS,
+  );
   if (!limit.allowed) {
     return NextResponse.json(
       { error: "rate_limited", retryAfterMs: limit.retryAfterMs },
