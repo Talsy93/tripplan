@@ -126,6 +126,27 @@ async function getRouteCities(
   return [...counts].map(([city, itemCount]) => ({ city, itemCount }));
 }
 
+// One city's coordinates, for anything that needs to search around it.
+//
+// Reads the same cache the route map fills, and geocodes on a miss so the
+// caller works even for a city the map hasn't drawn yet.
+export async function getCityCenter(
+  tripId: string,
+  city: string,
+  tripName?: string,
+): Promise<{ latitude: number; longitude: number } | null> {
+  const cached = await getCachedCoordinates(tripId, [city]);
+  const hit = cached.get(city);
+  if (hit) return hit;
+
+  const geocoded = await geocodePlaces([city], tripName);
+  const coords = geocoded.get(city);
+  if (!coords) return null;
+
+  await cacheCoordinates(tripId, geocoded);
+  return coords;
+}
+
 async function getCachedCoordinates(tripId: string, cities: string[]) {
   const supabase = await createClient();
   const { data, error } = await supabase

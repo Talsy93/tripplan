@@ -10,6 +10,7 @@ import {
   getSelectedDestinations,
   getTrip,
   Itinerary,
+  PlaceSearch,
   PlanningPanel,
   RouteMapPanel,
   SelectedList,
@@ -34,6 +35,12 @@ export default async function TripPage({
     getSelectedDestinations(id),
     getItinerary(id),
   ]);
+
+  // The destinations the search can look around — the cities the user has
+  // already added things in.
+  const searchCities = [...new Set(selected.map((item) => item.city))].filter(
+    Boolean,
+  );
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10">
@@ -60,6 +67,7 @@ export default async function TripPage({
         items={[
           { id: "plan", label: "תכנון" },
           { id: "map", label: "מפת מסלול" },
+          { id: "places", label: "אטרקציות" },
         ]}
         panels={{
           plan: (
@@ -92,6 +100,7 @@ export default async function TripPage({
               <RouteMapPanel tripId={trip.id} tripName={trip.name} />
             </Suspense>
           ),
+          places: <PlaceSearch tripId={trip.id} cities={searchCities} />,
         }}
       />
     </main>

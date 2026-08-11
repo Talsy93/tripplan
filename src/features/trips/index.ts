@@ -32,6 +32,13 @@ export {
   cityByDay,
   itineraryStops,
 } from "./domain/route";
+export {
+  placeCategorySchema,
+  placeSearchRequestSchema,
+  PLACE_CATEGORIES,
+  distanceKm,
+} from "./domain/place";
+export type { Place, PlaceCategory, PlaceSearchRequest } from "./domain/place";
 export type { RouteStop, TripRoute } from "./domain/route";
 export {
   aiSuggestRequestSchema,
@@ -91,7 +98,7 @@ export {
   saveItinerary,
   setTripStatus,
 } from "./infrastructure/itinerary-service";
-export { getTripRoute } from "./infrastructure/route-service";
+export { getTripRoute, getCityCenter } from "./infrastructure/route-service";
 export { CreateTripForm } from "./components/create-trip-form";
 export { TripDatesForm } from "./components/trip-dates-form";
 export { UpcomingTripCard } from "./components/upcoming-trip-card";
@@ -102,4 +109,6 @@ export { SelectedList } from "./components/selected-list";
 export { Itinerary } from "./components/itinerary";
 export { RouteMap } from "./components/route-map";
 export { RouteHero } from "./components/route-hero";
+export { PlaceSearch } from "./components/place-search";
+export { PlaceDetails } from "./components/place-details";
 export { RouteMapPanel } from "./components/route-map-panel";
