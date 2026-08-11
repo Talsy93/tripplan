@@ -124,6 +124,11 @@ export type ItineraryEntry = {
   // could no longer be matched back to a guide item — such an entry still
   // shows in the itinerary, it just can't be placed on the map.
   city: string | null;
+  // Where the place is, when known. Only items that came from the attractions
+  // search carry coordinates — an AI guide item is a name and nothing more —
+  // so this is null for most entries and the timeline has to cope.
+  latitude: number | null;
+  longitude: number | null;
 };
 export type ItineraryDay = {
   day: number;

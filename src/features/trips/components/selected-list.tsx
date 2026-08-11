@@ -4,20 +4,8 @@ import { useState } from "react";
 import { Card } from "@/components/ui";
 import { googleMapsSearchUrl } from "@/lib/maps";
 import { setSelected } from "../application/guide-actions";
+import { categoryLabel } from "../domain/place";
 import type { SelectedItem } from "../domain/ai-suggestion";
-
-// Both vocabularies land in this list: the four an AI city guide produces, and
-// the six the attractions search uses.
-const CATEGORY_LABELS: Record<string, string> = {
-  areas: "אזור לינה",
-  restaurants: "מסעדה",
-  attractions: "אטרקציה",
-  experiences: "חוויה",
-  cafes: "בית קפה",
-  bakeries: "מאפייה",
-  shopping: "שופינג",
-  temples: "מקדש",
-};
 
 function keyOf(item: SelectedItem) {
   return `${item.city}|${item.category}|${item.name}`;
@@ -64,7 +52,7 @@ export function SelectedList({
                   <span>{item.name}</span>
                   <div className="flex shrink-0 items-center gap-3">
                     <span className="text-xs text-muted">
-                      {CATEGORY_LABELS[item.category] ?? item.category}
+                      {categoryLabel(item.category)}
                     </span>
                     <a
                       href={googleMapsSearchUrl(`${item.name} ${item.city}`)}

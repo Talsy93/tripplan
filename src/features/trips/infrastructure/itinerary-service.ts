@@ -7,16 +7,53 @@ import type {
 } from "../domain/ai-suggestion";
 import type { TripStatus } from "../domain/trip";
 
+// Coordinates for the trip's destinations, keyed the same way the itinerary
+// links back to them (city + normalised name, see getAddedPlaces).
+//
+// Only rows that actually hold coordinates come back, which in practice means
+// the places added from the attractions search — an AI guide item never had
+// any. The 'overview' rows are excluded on purpose: they hold the city centre
+// under the city's own name, and an entry that happens to share that name
+// would otherwise be placed at the centre of town.
+async function getEntryCoordinates(tripId: string) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("suggested_destinations")
+    .select("city, name, latitude, longitude")
+    .eq("trip_id", tripId)
+    .neq("category", "overview")
+    .not("latitude", "is", null)
+    .not("longitude", "is", null);
+
+  const points = new Map<string, { latitude: number; longitude: number }>();
+  for (const row of data ?? []) {
+    if (typeof row.latitude === "number" && typeof row.longitude === "number") {
+      points.set(coordinateKey(row.city, row.name), {
+        latitude: row.latitude,
+        longitude: row.longitude,
+      });
+    }
+  }
+  return points;
+}
+
+function coordinateKey(city: string | null, name: string) {
+  return `${city ?? ""}|${normaliseName(name)}`;
+}
+
 export async function getItinerary(tripId: string): Promise<ItineraryDay[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("itinerary_items")
-    .select(
-      "id, day_number, position, title, start_label, end_label, note, city",
-    )
-    .eq("trip_id", tripId)
-    .order("day_number", { ascending: true })
-    .order("position", { ascending: true });
+  const [{ data, error }, coordinates] = await Promise.all([
+    supabase
+      .from("itinerary_items")
+      .select(
+        "id, day_number, position, title, start_label, end_label, note, city",
+      )
+      .eq("trip_id", tripId)
+      .order("day_number", { ascending: true })
+      .order("position", { ascending: true }),
+    getEntryCoordinates(tripId),
+  ]);
 
   if (error || !data || data.length === 0) {
     return [];
@@ -30,6 +67,7 @@ export async function getItinerary(tripId: string): Promise<ItineraryDay[]> {
       day = { day: dayNumber, items: [] };
       byDay.set(dayNumber, day);
     }
+    const point = coordinates.get(coordinateKey(row.city, row.title ?? ""));
     day.items.push({
       id: row.id,
       title: row.title ?? "",
@@ -37,6 +75,8 @@ export async function getItinerary(tripId: string): Promise<ItineraryDay[]> {
       endLabel: row.end_label ?? "",
       note: row.note ?? "",
       city: row.city ?? null,
+      latitude: point?.latitude ?? null,
+      longitude: point?.longitude ?? null,
     });
   }
   return [...byDay.values()];
