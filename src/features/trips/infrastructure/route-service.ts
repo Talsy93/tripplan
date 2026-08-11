@@ -100,6 +100,9 @@ function orderCities(
 
 // Distinct cities the user added things in, in order of first addition, with
 // how many things they added in each.
+//
+// Not filtered by source: a city the user only added places to from the
+// attractions search still belongs on the map.
 async function getRouteCities(
   tripId: string,
 ): Promise<{ city: string; itemCount: number }[]> {
@@ -108,7 +111,6 @@ async function getRouteCities(
     .from("suggested_destinations")
     .select("city")
     .eq("trip_id", tripId)
-    .eq("source", "ai")
     .eq("selected", true)
     .not("category", "is", null)
     .not("city", "is", null)
@@ -124,6 +126,27 @@ async function getRouteCities(
   }
   // Map preserves insertion order, which is the created_at order above.
   return [...counts].map(([city, itemCount]) => ({ city, itemCount }));
+}
+
+// One city's coordinates, for anything that needs to search around it.
+//
+// Reads the same cache the route map fills, and geocodes on a miss so the
+// caller works even for a city the map hasn't drawn yet.
+export async function getCityCenter(
+  tripId: string,
+  city: string,
+  tripName?: string,
+): Promise<{ latitude: number; longitude: number } | null> {
+  const cached = await getCachedCoordinates(tripId, [city]);
+  const hit = cached.get(city);
+  if (hit) return hit;
+
+  const geocoded = await geocodePlaces([city], tripName);
+  const coords = geocoded.get(city);
+  if (!coords) return null;
+
+  await cacheCoordinates(tripId, geocoded);
+  return coords;
 }
 
 async function getCachedCoordinates(tripId: string, cities: string[]) {

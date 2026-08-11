@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import * as z from "zod";
 import {
   aiCategoryKeySchema,
@@ -7,6 +8,7 @@ import {
   aiCityGuideSchema,
   aiRecommendationSchema,
 } from "../domain/ai-suggestion";
+import { selectableCategorySchema } from "../domain/place";
 import {
   deleteCityGuide,
   saveCities as saveCitiesToDb,
@@ -32,7 +34,12 @@ export async function saveMore(
   const parsedCategory = aiCategoryKeySchema.safeParse(category);
   const parsedItems = z.array(aiRecommendationSchema).safeParse(items);
   if (!parsedCategory.success || !parsedItems.success) return;
-  await saveRecommendations(tripId, city, parsedCategory.data, parsedItems.data);
+  await saveRecommendations(
+    tripId,
+    city,
+    parsedCategory.data,
+    parsedItems.data,
+  );
 }
 
 export async function refreshGuide(tripId: string, city: string) {
@@ -52,7 +59,9 @@ export async function setSelected(
   name: string,
   selected: boolean,
 ) {
-  const parsedCategory = aiCategoryKeySchema.safeParse(category);
+  // Accepts both category vocabularies — a searched place carries one of the
+  // attractions-search categories, not one of the guide's four.
+  const parsedCategory = selectableCategorySchema.safeParse(category);
   if (!parsedCategory.success) return;
   await setDestinationSelected(
     tripId,
@@ -61,4 +70,11 @@ export async function setSelected(
     name,
     Boolean(selected),
   );
+
+  // Keeps the trip page's other panels honest: removing something here has to
+  // reach the attractions tab's "already in your trip" marks and the route
+  // map, which are part of the same server render.
+  if (z.uuid().safeParse(tripId).success) {
+    revalidatePath(`/trips/${tripId}`);
+  }
 }
