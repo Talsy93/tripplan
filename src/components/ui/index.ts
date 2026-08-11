@@ -4,3 +4,5 @@ export { Input } from "./input";
 export { Textarea } from "./textarea";
 export { Badge } from "./badge";
 export { Skeleton } from "./skeleton";
+export { Tabs } from "./tabs";
+export type { TabItem } from "./tabs";
