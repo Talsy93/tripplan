@@ -108,6 +108,7 @@ export {
 } from "./infrastructure/guide-service";
 export {
   getItinerary,
+  getItineraryDayCount,
   saveItinerary,
   setTripStatus,
 } from "./infrastructure/itinerary-service";
@@ -139,11 +140,28 @@ export {
   forecastWindow,
   describeWeather,
   todayIso,
+  todayIn,
+  APP_TIME_ZONE,
   addDays,
   daysBetween,
   weekdayLabel,
   MAX_FORECAST_DAYS,
 } from "./domain/weather";
+export {
+  tripPhase,
+  dateOfDay,
+  dayNumberOfDate,
+  currentDayNumber,
+  clampDay,
+  focusDayNumber,
+  itineraryOverrun,
+  bookingsByDay,
+  dayLabel,
+  dayOfTripLabel,
+  phaseLabel,
+} from "./domain/trip-days";
+export type { TripPhase } from "./domain/trip-days";
+export { DayPager } from "./components/day-pager";
 export type {
   DailyWeather,
   CityWeather,

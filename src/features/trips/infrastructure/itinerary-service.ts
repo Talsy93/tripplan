@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { normaliseName } from "@/lib/text";
 import type {
@@ -132,6 +133,29 @@ export async function saveItinerary(
   }
 }
 
+// How many days the itinerary covers, without loading it.
+//
+// The tab layout needs this only to derive the trip's phase, and reading the
+// highest day_number off the existing (trip_id, day_number) index is far less
+// work than fetching every row and its coordinates.
+export const getItineraryDayCount = cache(
+  async (tripId: string): Promise<number> => {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("itinerary_items")
+      .select("day_number")
+      .eq("trip_id", tripId)
+      .order("day_number", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) return 0;
+    return data.day_number ?? 0;
+  },
+);
+
+// Retained for an explicit archive action; the app no longer writes status as
+// a side effect of generating an itinerary. See ARCHITECTURE.md rule #6.
 export async function setTripStatus(tripId: string, status: TripStatus) {
   const supabase = await createClient();
   const { error } = await supabase

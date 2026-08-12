@@ -1,4 +1,5 @@
-import { CountdownHero, TripNav } from "@/features/trips";
+import { CountdownHero, DayPager, TripNav } from "@/features/trips";
+import type { ItineraryDay } from "@/features/trips";
 import { DesignPreview } from "./preview";
 
 // Temporary page for the phase B visual work (item B0). Two jobs:
@@ -18,6 +19,53 @@ function isoInDays(days: number): string {
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
+
+function entry(
+  id: string,
+  title: string,
+  startLabel: string,
+  endLabel: string,
+  city: string,
+) {
+  return {
+    id,
+    title,
+    startLabel,
+    endLabel,
+    note: "",
+    city,
+    latitude: null,
+    longitude: null,
+  };
+}
+
+const DEMO_DAYS: ItineraryDay[] = [
+  {
+    day: 1,
+    items: [
+      entry("a1", "נחיתה ונסיעה למלון", "14:00", "15:30", "ליסבון"),
+      entry("a2", "ארוחת ערב בבאירו אלטו", "20:00", "22:00", "ליסבון"),
+    ],
+  },
+  {
+    day: 2,
+    items: [
+      entry("b1", "ארוחת בוקר", "09:00", "10:00", "ליסבון"),
+      entry("b2", "מנזר ז׳רונימוש", "10:30", "12:30", "ליסבון"),
+      entry("b3", "ארוחת צהריים בטיים אאוט", "13:00", "14:30", "ליסבון"),
+      entry("b4", "מגדל בלם", "15:00", "16:30", "ליסבון"),
+      entry("b5", "שקיעה במירדורו", "17:30", "19:00", "ליסבון"),
+    ],
+  },
+  {
+    day: 3,
+    items: [
+      entry("c1", "רכבת לסינטרה", "08:30", "09:30", "סינטרה"),
+      entry("c2", "ארמון פנה", "10:00", "13:00", "סינטרה"),
+      entry("c3", "קינטה דה רגלייה", "14:00", "16:30", "סינטרה"),
+    ],
+  },
+];
 
 export default function DesignPreviewPage() {
   // Offsets rather than fixed dates: a hardcoded far-future date renders a
@@ -55,6 +103,21 @@ export default function DesignPreviewPage() {
             style={{ transform: "translateZ(0)" }}
           >
             <TripNav tripId="demo" />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-semibold text-muted">
+            מסך ״היום״ — נפתח על יום 2, חיצים ורצועת ימים לדילוג
+          </p>
+          <div className="max-w-xl rounded-card border border-border bg-background p-4">
+            <DayPager
+              days={DEMO_DAYS}
+              initialDay={2}
+              startDate={isoInDays(-1)}
+              currentDay={2}
+              bookingsByDay={{}}
+            />
           </div>
         </div>
 

@@ -1,5 +1,6 @@
 import { getCurrentUser, LogoutButton } from "@/features/auth";
 import {
+  APP_TIME_ZONE,
   CountdownHero,
   CreateTripForm,
   getItinerary,
@@ -8,6 +9,7 @@ import {
   itineraryStops,
   listTrips,
   pickUpcomingTrip,
+  todayIn,
   TripList,
 } from "@/features/trips";
 import { getPlaceImage } from "@/lib/place-image";
@@ -64,7 +66,7 @@ export default async function ProfilePage() {
       )}
 
       <CreateTripForm />
-      <TripList trips={trips} />
+      <TripList trips={trips} today={todayIn(APP_TIME_ZONE, new Date())} />
     </main>
   );
 }

@@ -8,6 +8,7 @@ import { deleteItineraryEntry } from "../application/itinerary-actions";
 import { DayTimeline } from "./day-timeline";
 import { cityByDay } from "../domain/route";
 import { cityToneClass, cityToneMap } from "../domain/tone";
+import { dateOfDay, dayLabel, itineraryOverrun } from "../domain/trip-days";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 
 // The graphic is the point of the feature, but a plain list stays available:
@@ -17,9 +18,18 @@ type View = "timeline" | "list";
 type ItineraryProps = {
   tripId: string;
   initialItinerary: ItineraryDay[];
+  // Dates are derived, never stored — see domain/trip-days.ts. Null means the
+  // trip has no departure date yet and days show as bare numbers.
+  startDate?: string | null;
+  endDate?: string | null;
 };
 
-export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
+export function Itinerary({
+  tripId,
+  initialItinerary,
+  startDate = null,
+  endDate = null,
+}: ItineraryProps) {
   const [days, setDays] = useState<ItineraryDay[]>(initialItinerary);
   const [view, setView] = useState<View>("timeline");
   const [building, setBuilding] = useState(false);
@@ -30,6 +40,7 @@ export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
   // Cities in visiting order — cityByDay is keyed by day, and day order is
   // route order, so this produces the same assignment the map and the hero use.
   const tones = cityToneMap([...cityByDay(days).values()]);
+  const overrun = itineraryOverrun(startDate, endDate, days.length);
 
   async function build() {
     setBuilding(true);
@@ -119,6 +130,16 @@ export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
 
       {error && <p className="text-sm text-danger-ink">{error}</p>}
 
+      {/* An itinerary longer than the booked dates is a real planning error,
+          so it is reported rather than clamped — clamping would make two days
+          share a date and hide the problem. */}
+      {overrun !== null && overrun > 0 && (
+        <p className="rounded-control bg-warning-tint px-3 py-2 text-sm text-warning-ink">
+          הלו״ז נמשך {overrun === 1 ? "יום אחד" : `${overrun} ימים`} אחרי תאריך
+          החזרה. אפשר לעדכן את התאריכים בטאב ״עוד״.
+        </p>
+      )}
+
       {!hasItinerary && !building && !error && (
         <p className="text-sm text-muted">
           אחרי שהוספתם פריטים לטיול, בנו לו&quot;ז יומי בלחיצה אחת.
@@ -136,7 +157,7 @@ export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
         >
           <h3 className="flex items-center gap-2 font-bold">
             <span className="h-2.5 w-2.5 rounded-full bg-tone-dot" />
-            יום {day.day}
+            {dayLabel(day.day, dateOfDay(startDate, day.day))}
             {city && (
               <span className="text-xs font-normal text-tone-ink">{city}</span>
             )}

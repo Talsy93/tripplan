@@ -2,7 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { AppShell } from "@/components/layout";
-import { getTrip, TripNav } from "@/features/trips";
+import { Badge } from "@/components/ui";
+import {
+  APP_TIME_ZONE,
+  getItineraryDayCount,
+  getTrip,
+  phaseLabel,
+  todayIn,
+  TripNav,
+  tripPhase,
+} from "@/features/trips";
 
 // Shared chrome for the five trip tabs.
 //
@@ -24,6 +33,16 @@ export default async function TripTabsLayout({
     notFound();
   }
 
+  // Derived, not stored — see ARCHITECTURE.md #6. The day count only changes
+  // the answer for a trip with a start date and no end date.
+  const dayCount = await getItineraryDayCount(trip.id);
+  const phase = tripPhase(
+    trip.start_date,
+    trip.end_date,
+    todayIn(APP_TIME_ZONE, new Date()),
+    dayCount,
+  );
+
   return (
     <AppShell
       header={
@@ -38,9 +57,15 @@ export default async function TripTabsLayout({
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
               הטיולים שלי
             </Link>
-            <span className="mx-auto font-display text-sm">{trip.name}</span>
-            {/* Balances the back link so the title stays optically centred. */}
-            <span className="w-20" aria-hidden="true" />
+            <span className="mx-auto truncate font-display text-sm">
+              {trip.name}
+            </span>
+            <Badge
+              tone={phase.kind === "during" ? "success" : "neutral"}
+              className="shrink-0"
+            >
+              {phaseLabel(phase)}
+            </Badge>
           </div>
         </header>
       }
