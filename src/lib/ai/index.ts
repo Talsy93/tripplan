@@ -1,1 +1,2 @@
-export { generateStructured } from "./provider";
+export { generateStructured, generateText } from "./provider";
+export type { ChatMessage } from "./provider";

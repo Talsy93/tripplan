@@ -15,11 +15,13 @@ import {
   getTrip,
   Itinerary,
   listBookings,
+  listChatMessages,
   PlaceSearch,
   Phrasebook,
   PlanningPanel,
   RouteMapPanel,
   SelectedList,
+  TripChat,
   TripDatesForm,
   tripStatusLabels,
   WeatherPanel,
@@ -37,15 +39,23 @@ export default async function TripPage({
     notFound();
   }
 
-  const [savedCities, selected, itinerary, addedPlaces, bookings, phrasebook] =
-    await Promise.all([
-      getSavedCities(id),
-      getSelectedDestinations(id),
-      getItinerary(id),
-      getAddedPlaces(id),
-      listBookings(id),
-      getPhrasebook(id),
-    ]);
+  const [
+    savedCities,
+    selected,
+    itinerary,
+    addedPlaces,
+    bookings,
+    phrasebook,
+    chatMessages,
+  ] = await Promise.all([
+    getSavedCities(id),
+    getSelectedDestinations(id),
+    getItinerary(id),
+    getAddedPlaces(id),
+    listBookings(id),
+    getPhrasebook(id),
+    listChatMessages(id),
+  ]);
 
   // The destinations the search can look around — the cities the user has
   // already added things in.
@@ -81,6 +91,7 @@ export default async function TripPage({
           { id: "places", label: "אטרקציות" },
           { id: "logistics", label: "לוגיסטיקה" },
           { id: "phrases", label: "מילים שימושיות" },
+          { id: "chat", label: "שיחה" },
         ]}
         panels={{
           plan: (
@@ -153,6 +164,7 @@ export default async function TripPage({
           phrases: (
             <Phrasebook tripId={trip.id} initialPhrasebook={phrasebook} />
           ),
+          chat: <TripChat tripId={trip.id} initialMessages={chatMessages} />,
         }}
       />
     </main>

@@ -168,6 +168,21 @@ export {
   savePhrasebook,
 } from "./infrastructure/phrasebook-service";
 export { Phrasebook } from "./components/phrasebook";
+export {
+  chatRoleSchema,
+  chatMessageSchema,
+  sendChatRequestSchema,
+  recentHistory,
+  MAX_HISTORY_TURNS,
+} from "./domain/chat";
+export type { ChatRole, TripChatMessage, SendChatRequest } from "./domain/chat";
+export {
+  listChatMessages,
+  appendChatMessages,
+  clearChat,
+} from "./infrastructure/chat-service";
+export { resetChat } from "./application/chat-actions";
+export { TripChat } from "./components/trip-chat";
 export { CreateTripForm } from "./components/create-trip-form";
 export { TripDatesForm } from "./components/trip-dates-form";
 export { UpcomingTripCard } from "./components/upcoming-trip-card";
