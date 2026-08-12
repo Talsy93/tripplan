@@ -5,7 +5,7 @@ import { routeSummary, type RouteStop } from "../domain/route";
 // shape of the trip laid over it. Presentational — the panel resolves the
 // image (free, may be null) and passes it in.
 //
-// Same treatment as UpcomingTripCard on the home screen, so the two hero
+// Same treatment as CountdownHero on the home screen, so the two hero
 // images read as one idea.
 export function RouteHero({
   tripName,

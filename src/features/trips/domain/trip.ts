@@ -94,9 +94,7 @@ export function formatShortDate(isoDate: string): string {
   return `${Number(day)}.${Number(month)}`;
 }
 
-// Hebrew labels for the trip state machine.
-export const tripStatusLabels: Record<TripStatus, string> = {
-  planning: "בתכנון",
-  executing: "בביצוע",
-  completed: "הושלם",
-};
+// There is no label map for `status` any more. The UI reads the phase derived
+// from the trip's dates instead — see phaseLabel in ./trip-days and iron rule
+// #6 in ARCHITECTURE.md. The column is still parsed above because it exists and
+// is non-null, not because anything displays it.

@@ -112,16 +112,13 @@ export function daysBetween(from: string, to: string) {
   return Math.round(ms / 86_400_000);
 }
 
-export function todayIso(now: Date) {
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-}
-
 // The calendar the app reckons "today" by.
 //
-// todayIso reads whichever machine calls it. On Vercel that is UTC, so for an
-// Israeli user between midnight and 03:00 the server says yesterday while the
-// browser says today — and the trip would be on a different day either side of
-// hydration. Pinning the zone makes both agree.
+// This replaced a todayIso(now) that read the calendar of whichever machine
+// called it. On Vercel that is UTC, so for an Israeli user between midnight and
+// 03:00 the server said yesterday while the browser said today — the trip would
+// land on a different day either side of hydration. That function is gone
+// rather than deprecated: leaving it exported is how the bug comes back.
 //
 // A traveller physically in Tokyo gets their home calendar day. Per-city zones
 // are available free from Open-Meteo's response, but that couples the day view

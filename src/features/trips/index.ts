@@ -3,7 +3,6 @@ export {
   tripStatusSchema,
   createTripSchema,
   setTripDatesSchema,
-  tripStatusLabels,
   daysUntil,
   formatCountdown,
   formatShortDate,
@@ -140,7 +139,6 @@ export { BookingList } from "./components/booking-list";
 export {
   forecastWindow,
   describeWeather,
-  todayIso,
   todayIn,
   APP_TIME_ZONE,
   addDays,
@@ -215,7 +213,6 @@ export { TripChat } from "./components/trip-chat";
 export { PlanPreview } from "./components/plan-preview";
 export { CreateTripForm } from "./components/create-trip-form";
 export { TripDatesForm } from "./components/trip-dates-form";
-export { UpcomingTripCard } from "./components/upcoming-trip-card";
 export { CountdownHero } from "./components/countdown-hero";
 export { UpNext } from "./components/up-next";
 export { MoreBackLink } from "./components/more-back-link";
