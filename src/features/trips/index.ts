@@ -181,8 +181,18 @@ export {
   appendChatMessages,
   clearChat,
 } from "./infrastructure/chat-service";
-export { resetChat } from "./application/chat-actions";
+export {
+  aiPlanItemSchema,
+  aiPlanCitySchema,
+  aiTripPlanSchema,
+  planFromChatRequestSchema,
+  planTotals,
+} from "./domain/trip-plan";
+export type { AiPlanItem, AiPlanCity, AiTripPlan } from "./domain/trip-plan";
+export { savePlanFromChat } from "./infrastructure/trip-plan-service";
+export { resetChat, applyPlan } from "./application/chat-actions";
 export { TripChat } from "./components/trip-chat";
+export { PlanPreview } from "./components/plan-preview";
 export { CreateTripForm } from "./components/create-trip-form";
 export { TripDatesForm } from "./components/trip-dates-form";
 export { UpcomingTripCard } from "./components/upcoming-trip-card";

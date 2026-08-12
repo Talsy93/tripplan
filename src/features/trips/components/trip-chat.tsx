@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, Card, Textarea } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { resetChat } from "../application/chat-actions";
+import { applyPlan, resetChat } from "../application/chat-actions";
+import { PlanPreview } from "./plan-preview";
 import type { TripChatMessage } from "../domain/chat";
+import type { AiTripPlan } from "../domain/trip-plan";
 
 type Turn = { id: string; role: "user" | "model"; content: string };
 
@@ -31,6 +33,10 @@ export function TripChat({
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [plan, setPlan] = useState<AiTripPlan | null>(null);
+  const [planning, setPlanning] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [applied, setApplied] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   // Keep the newest turn in view — a chat that leaves you scrolled to the top
@@ -86,6 +92,52 @@ export function TripChat({
     if (!(await resetChat(tripId))) return;
     setTurns([]);
     setError(null);
+    setPlan(null);
+  }
+
+  async function buildPlan() {
+    setPlanning(true);
+    setError(null);
+    setApplied(false);
+    try {
+      const res = await fetch("/api/ai/plan-from-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tripId }),
+      });
+
+      if (res.status === 400) {
+        setError("צריך קודם לנהל שיחה שממנה אפשר לבנות מסלול.");
+        return;
+      }
+      if (res.status === 429) {
+        setError("יותר מדי בקשות. נסו שוב בעוד רגע.");
+        return;
+      }
+      if (!res.ok) {
+        setError("בניית המסלול נכשלה. נסו שוב.");
+        return;
+      }
+      setPlan((await res.json()) as AiTripPlan);
+    } catch {
+      setError("שגיאת רשת. נסו שוב.");
+    } finally {
+      setPlanning(false);
+    }
+  }
+
+  async function confirmPlan() {
+    if (!plan) return;
+    setApplying(true);
+    const ok = await applyPlan(tripId, plan);
+    setApplying(false);
+
+    if (!ok) {
+      setError("ההוספה נכשלה. נסו שוב.");
+      return;
+    }
+    setPlan(null);
+    setApplied(true);
   }
 
   return (
@@ -93,15 +145,41 @@ export function TripChat({
       <div className="flex items-center gap-3">
         <h2 className="text-lg font-bold">שיחה עם מתכנן הטיולים</h2>
         {turns.length > 0 && (
-          <button
-            type="button"
-            onClick={() => void reset()}
-            className="ms-auto text-sm text-muted transition-colors hover:text-foreground"
-          >
-            נקה שיחה
-          </button>
+          <>
+            <Button
+              type="button"
+              onClick={() => void buildPlan()}
+              disabled={planning || sending}
+              size="sm"
+              className="ms-auto"
+            >
+              {planning ? "בונה…" : "בנה מסלול מהשיחה"}
+            </Button>
+            <button
+              type="button"
+              onClick={() => void reset()}
+              className="text-sm text-muted transition-colors hover:text-foreground"
+            >
+              נקה שיחה
+            </button>
+          </>
         )}
       </div>
+
+      {applied && (
+        <p className="text-sm text-muted">
+          נוסף לטיול ✓ — היעדים והפריטים מופיעים עכשיו בטאב התכנון ובמפת המסלול.
+        </p>
+      )}
+
+      {plan && (
+        <PlanPreview
+          plan={plan}
+          applying={applying}
+          onApply={() => void confirmPlan()}
+          onDismiss={() => setPlan(null)}
+        />
+      )}
 
       {turns.length === 0 && (
         <div className="flex flex-col gap-3">
