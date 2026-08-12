@@ -16,6 +16,10 @@ type SegmentedControlProps = {
 
 // Controlled on purpose: the caller already owns the selection, and a second
 // copy of it inside here is a second thing that can be wrong.
+//
+// role="group" with aria-pressed, not tablist/tab. A tab has to control a
+// tabpanel, and this filters a list in place — announcing it as tabs sends a
+// screen reader looking for panels that do not exist.
 export function SegmentedControl({
   items,
   value,
@@ -25,7 +29,7 @@ export function SegmentedControl({
 }: SegmentedControlProps) {
   return (
     <div
-      role="tablist"
+      role="group"
       aria-label={ariaLabel}
       className={cn(
         "flex gap-1 self-start rounded-full border border-border bg-surface-2 p-1",
@@ -37,9 +41,8 @@ export function SegmentedControl({
         return (
           <button
             key={item.id}
-            role="tab"
             type="button"
-            aria-selected={active}
+            aria-pressed={active}
             onClick={() => onChange(item.id)}
             className={cn(
               "rounded-full px-4 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",

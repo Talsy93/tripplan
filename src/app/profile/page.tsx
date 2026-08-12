@@ -1,3 +1,4 @@
+import { AppShell } from "@/components/layout";
 import { getCurrentUser, LogoutButton } from "@/features/auth";
 import {
   APP_TIME_ZONE,
@@ -43,7 +44,7 @@ export default async function ProfilePage() {
   }
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10 lg:max-w-4xl">
+    <AppShell>
       <header className="flex items-center justify-between gap-3">
         <div className="flex flex-col">
           <h1 className="font-display text-2xl">הטיולים שלי</h1>
@@ -67,6 +68,6 @@ export default async function ProfilePage() {
 
       <CreateTripForm />
       <TripList trips={trips} today={todayIn(APP_TIME_ZONE, new Date())} />
-    </main>
+    </AppShell>
   );
 }
