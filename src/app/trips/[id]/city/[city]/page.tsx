@@ -28,7 +28,7 @@ export default async function CityPage({
       </Link>
 
       <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold">{cityName}</h1>
+        <h1 className="font-display text-3xl">{cityName}</h1>
         <p className="text-sm text-muted">
           מה לעשות ב{cityName} — הצעות מפורטות
         </p>

@@ -143,7 +143,7 @@ export function TripChat({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <h2 className="text-lg font-bold">שיחה עם מתכנן הטיולים</h2>
+        <h2 className="font-display text-lg">שיחה עם מתכנן הטיולים</h2>
         {turns.length > 0 && (
           <>
             <Button

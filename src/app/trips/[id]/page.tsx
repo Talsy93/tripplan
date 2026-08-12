@@ -73,10 +73,10 @@ export default async function TripPage({
       </Link>
 
       <header className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">{trip.name}</h1>
+        <h1 className="font-display text-2xl">{trip.name}</h1>
         <div className="flex items-center gap-2">
           {trip.start_date && (
-            <Badge className="bg-primary/10 text-primary">
+            <Badge tone="primary">
               {formatCountdown(daysUntil(trip.start_date))}
             </Badge>
           )}
@@ -105,12 +105,12 @@ export default async function TripPage({
               <Itinerary tripId={trip.id} initialItinerary={itinerary} />
 
               <section className="flex flex-col gap-4">
-                <h2 className="text-lg font-bold">מה שבחרתם לטיול</h2>
+                <h2 className="font-display text-lg">מה שבחרתם לטיול</h2>
                 <SelectedList tripId={trip.id} items={selected} />
               </section>
 
               <section className="flex flex-col gap-4">
-                <h2 className="text-lg font-bold">גילוי יעדים</h2>
+                <h2 className="font-display text-lg">גילוי יעדים</h2>
                 <PlanningPanel tripId={trip.id} initialCities={savedCities} />
               </section>
             </div>
@@ -134,7 +134,7 @@ export default async function TripPage({
           logistics: (
             <div className="flex flex-col gap-6">
               <section className="flex flex-col gap-4">
-                <h2 className="text-lg font-bold">מזג אוויר ביעדים</h2>
+                <h2 className="font-display text-lg">מזג אוויר ביעדים</h2>
                 <Suspense
                   fallback={
                     <div className="h-28 w-full animate-pulse rounded-2xl bg-surface-2" />
@@ -145,7 +145,7 @@ export default async function TripPage({
               </section>
 
               <section className="flex flex-col gap-4">
-                <h2 className="text-lg font-bold">טיסות, רכבות ולינה</h2>
+                <h2 className="font-display text-lg">טיסות, רכבות ולינה</h2>
                 {/* "Now" is stamped on the server so the alert badges don't
                     disagree between the server and client renders. */}
                 <BookingList
@@ -156,7 +156,7 @@ export default async function TripPage({
               </section>
 
               <section className="flex flex-col gap-4">
-                <h2 className="text-lg font-bold">הוספה</h2>
+                <h2 className="font-display text-lg">הוספה</h2>
                 <BookingForm tripId={trip.id} cities={searchCities} />
               </section>
             </div>

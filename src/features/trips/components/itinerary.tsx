@@ -72,7 +72,7 @@ export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <h2 className="text-lg font-bold">לו&quot;ז הטיול</h2>
+        <h2 className="font-display text-lg">לו&quot;ז הטיול</h2>
 
         {hasItinerary && (
           <div className="flex gap-1 rounded-full border border-border bg-surface-2 p-0.5 text-xs">

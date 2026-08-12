@@ -20,7 +20,7 @@ export function CredentialsForm({
 
   return (
     <form action={formAction} className="flex w-full flex-col gap-4">
-      <h1 className="text-2xl font-bold">{title}</h1>
+      <h1 className="font-display text-2xl">{title}</h1>
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className="text-sm font-medium">
