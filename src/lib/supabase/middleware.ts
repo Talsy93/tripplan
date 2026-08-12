@@ -2,7 +2,10 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Routes reachable without an authenticated session.
-const PUBLIC_ROUTES = ["/login", "/signup", "/auth"];
+// TODO(B0): "/design-preview" is the temporary visual-direction mockup — static
+// markup with no user data and no data access. Both it and this entry are
+// removed once B1 locks the design tokens in.
+const PUBLIC_ROUTES = ["/login", "/signup", "/auth", "/design-preview"];
 
 function isPublicRoute(pathname: string) {
   if (pathname === "/") return true;
