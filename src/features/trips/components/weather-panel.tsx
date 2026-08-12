@@ -1,5 +1,5 @@
 import { getDailyForecast } from "@/lib/weather";
-import { forecastWindow, todayIso } from "../domain/weather";
+import { APP_TIME_ZONE, forecastWindow, todayIn } from "../domain/weather";
 import { getTripRoute } from "../infrastructure/route-service";
 import { WeatherForecast } from "./weather-forecast";
 import type { CityWeather } from "../domain/weather";
@@ -12,10 +12,13 @@ import type { Trip } from "../domain/trip";
 // Coordinates come from the route the map already resolved and cached, so this
 // costs no geocoding.
 export async function WeatherPanel({ trip }: { trip: Trip }) {
+  // The same fixed calendar the day view reckons by. Reading the host's clock
+  // instead — on Vercel, UTC — shifts the 16-day forecast horizon by a day near
+  // midnight, against what the itinerary is showing on the same screen.
   const window = forecastWindow(
     trip.start_date,
     trip.end_date,
-    todayIso(new Date()),
+    todayIn(APP_TIME_ZONE, new Date()),
   );
 
   if (window.kind !== "available") {

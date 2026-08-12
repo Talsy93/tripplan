@@ -23,8 +23,10 @@ export function tripTabHref(tripId: string, segment: TripTabSegment) {
 // Where a trip opens. A trip with no departure date is still being planned, so
 // it lands on discovery; anything else lands on the day view.
 //
-// B3 replaces this with the real phase calculation once itinerary days can be
-// mapped to calendar dates.
+// This was written expecting tripPhase to replace it. It should not: tripPhase
+// returns "undated" exactly when start_date is null, so routing on the phase
+// gives the same two answers while costing the redirect a day-count query. The
+// day view already handles before/during/after itself once you are there.
 export function defaultTripTab(startDate: string | null): TripTabSegment {
   return startDate ? "today" : "explore";
 }
