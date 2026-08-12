@@ -1,10 +1,12 @@
 import {
+  BookingList,
   CountdownHero,
   DayPager,
   PlaceSearch,
   savedCountsByCategory,
   TripNav,
 } from "@/features/trips";
+import type { Booking } from "@/features/trips";
 import type { ItineraryDay } from "@/features/trips";
 import { DesignPreview } from "./preview";
 
@@ -44,6 +46,58 @@ function entry(
     longitude: null,
   };
 }
+
+function hoursFromNow(hours: number): string {
+  return new Date(Date.now() + hours * 3_600_000).toISOString();
+}
+
+const DEMO_BOOKINGS: Booking[] = [
+  {
+    id: "f1",
+    trip_id: "demo",
+    kind: "flight",
+    title: "TP 1234",
+    origin: "TLV",
+    destination: "LIS",
+    city: "ליסבון",
+    starts_at: hoursFromNow(2),
+    ends_at: hoursFromNow(7),
+    address: null,
+    confirmation: "QK7P2M",
+    note: null,
+    created_at: hoursFromNow(-100),
+  },
+  {
+    id: "h1",
+    trip_id: "demo",
+    kind: "lodging",
+    title: "Baixa House",
+    origin: null,
+    destination: null,
+    city: "ליסבון",
+    starts_at: hoursFromNow(8),
+    ends_at: hoursFromNow(80),
+    address: "Rua dos Fanqueiros 81, Lisboa",
+    confirmation: null,
+    note: "צ׳ק-אין עצמאי, הקוד נשלח במייל",
+    created_at: hoursFromNow(-100),
+  },
+  {
+    id: "t1",
+    trip_id: "demo",
+    kind: "train",
+    title: "CP Alfa Pendular",
+    origin: "Lisboa",
+    destination: "Porto",
+    city: "פורטו",
+    starts_at: hoursFromNow(96),
+    ends_at: hoursFromNow(99),
+    address: null,
+    confirmation: null,
+    note: null,
+    created_at: hoursFromNow(-100),
+  },
+];
 
 const DEMO_DAYS: ItineraryDay[] = [
   {
@@ -109,6 +163,19 @@ export default function DesignPreviewPage() {
             style={{ transform: "translateZ(0)" }}
           >
             <TripNav tripId="demo" />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-semibold text-muted">
+            הזמנות — טיסה ורכבת נראות ככרטיס, לינה כשורה
+          </p>
+          <div className="max-w-xl rounded-card border border-border bg-background p-4">
+            <BookingList
+              tripId="demo"
+              bookings={DEMO_BOOKINGS}
+              now={new Date().toISOString()}
+            />
           </div>
         </div>
 

@@ -29,35 +29,37 @@ export function TripNav({ tripId }: { tripId: string }) {
 
   const items: NavItem[] = TRIP_TABS.map((tab) => {
     const Icon = ICONS[tab.segment];
+    const href = tripTabHref(tripId, tab.segment);
     return {
-      href: tripTabHref(tripId, tab.segment),
+      href,
       label: tab.label,
       icon: <Icon className="h-5 w-5" />,
+      // Matched on a segment boundary, not by bare prefix: a sub-screen such
+      // as /more/phrases must keep "עוד" lit, while /days must not light up
+      // for a hypothetical /d.
+      active: pathname === href || pathname.startsWith(`${href}/`),
     };
   });
 
   return (
     <>
       <div className="hidden md:flex md:gap-1 md:self-start md:rounded-full md:border md:border-border md:bg-surface-2 md:p-1">
-        {items.map((item) => {
-          const active = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors",
-                active
-                  ? "bg-surface text-foreground shadow-soft"
-                  : "text-muted hover:text-foreground",
-              )}
-            >
-              <span aria-hidden="true">{item.icon}</span>
-              {item.label}
-            </Link>
-          );
-        })}
+        {items.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={item.active ? "page" : undefined}
+            className={cn(
+              "flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors",
+              item.active
+                ? "bg-surface text-foreground shadow-soft"
+                : "text-muted hover:text-foreground",
+            )}
+          >
+            <span aria-hidden="true">{item.icon}</span>
+            {item.label}
+          </Link>
+        ))}
       </div>
 
       <BottomNav items={items} />

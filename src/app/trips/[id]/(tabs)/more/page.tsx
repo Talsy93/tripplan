@@ -1,18 +1,29 @@
-import { Suspense } from "react";
-import { notFound } from "next/navigation";
-import {
-  BookingForm,
-  BookingList,
-  getPhrasebook,
-  getSelectedDestinations,
-  getTrip,
-  listBookings,
-  listChatMessages,
-  Phrasebook,
-  TripChat,
-  TripDatesForm,
-  WeatherPanel,
-} from "@/features/trips";
+import Link from "next/link";
+import { ChevronLeft, MessageCircle, Languages, Luggage } from "lucide-react";
+import { Card } from "@/components/ui";
+
+// A menu, not a pile. The five sections used to stack on one page, which on a
+// phone meant scrolling past the weather to reach the chat.
+const ENTRIES = [
+  {
+    segment: "trip",
+    label: "פרטי הטיול",
+    hint: "תאריכים, טיסות, רכבות ולינה",
+    Icon: Luggage,
+  },
+  {
+    segment: "phrases",
+    label: "מילים שימושיות",
+    hint: "שיחון בשפת היעד, עם תעתיק",
+    Icon: Languages,
+  },
+  {
+    segment: "chat",
+    label: "שיחה",
+    hint: "לתכנן את הטיול בשיחה חופשית",
+    Icon: MessageCircle,
+  },
+] as const;
 
 export default async function MorePage({
   params,
@@ -20,61 +31,41 @@ export default async function MorePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const trip = await getTrip(id);
-  if (!trip) notFound();
-
-  const [selected, bookings, phrasebook, chatMessages] = await Promise.all([
-    getSelectedDestinations(id),
-    listBookings(id),
-    getPhrasebook(id),
-    listChatMessages(id),
-  ]);
-
-  const cities = [...new Set(selected.map((item) => item.city))].filter(Boolean);
 
   return (
     <>
-      <section className="flex flex-col gap-4">
-        <h2 className="font-display text-lg">תאריכי הטיול</h2>
-        <TripDatesForm
-          tripId={trip.id}
-          startDate={trip.start_date}
-          endDate={trip.end_date}
-        />
-      </section>
+      <h2 className="font-display text-xl">עוד</h2>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="font-display text-lg">מזג אוויר ביעדים</h2>
-        <Suspense
-          fallback={
-            <div className="h-28 w-full animate-pulse rounded-card bg-surface-2" />
-          }
-        >
-          <WeatherPanel trip={trip} />
-        </Suspense>
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <h2 className="font-display text-lg">טיסות, רכבות ולינה</h2>
-        {/* "Now" is stamped on the server so the alert badges don't disagree
-            between the server and client renders. */}
-        <BookingList
-          tripId={trip.id}
-          bookings={bookings}
-          now={new Date().toISOString()}
-        />
-        <BookingForm tripId={trip.id} cities={cities} />
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <h2 className="font-display text-lg">מילים שימושיות</h2>
-        <Phrasebook tripId={trip.id} initialPhrasebook={phrasebook} />
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <h2 className="font-display text-lg">שיחה</h2>
-        <TripChat tripId={trip.id} initialMessages={chatMessages} />
-      </section>
+      <ul className="flex flex-col gap-3">
+        {ENTRIES.map(({ segment, label, hint, Icon }) => (
+          <li key={segment}>
+            <Link href={`/trips/${id}/more/${segment}`} className="block">
+              <Card
+                variant="interactive"
+                className="flex items-center gap-3 p-4"
+              >
+                <span
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary"
+                  aria-hidden="true"
+                >
+                  <Icon className="h-5 w-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold">{label}</span>
+                  <span className="block truncate text-sm text-muted">
+                    {hint}
+                  </span>
+                </span>
+                {/* RTL: "forward" points left. */}
+                <ChevronLeft
+                  className="h-5 w-5 shrink-0 text-muted"
+                  aria-hidden="true"
+                />
+              </Card>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </>
   );
 }
