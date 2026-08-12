@@ -198,6 +198,14 @@ export { CreateTripForm } from "./components/create-trip-form";
 export { TripDatesForm } from "./components/trip-dates-form";
 export { UpcomingTripCard } from "./components/upcoming-trip-card";
 export { CountdownHero } from "./components/countdown-hero";
+export { UpNext } from "./components/up-next";
+export { TripNav } from "./components/trip-nav";
+export {
+  TRIP_TABS,
+  tripTabHref,
+  defaultTripTab,
+} from "./domain/trip-tabs";
+export type { TripTabSegment } from "./domain/trip-tabs";
 export {
   TONES,
   toneClass,

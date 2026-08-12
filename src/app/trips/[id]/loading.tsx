@@ -1,21 +1,15 @@
 import { Skeleton } from "@/components/ui";
 
+// Stands in for whichever tab is loading. The header and the tab bar live in
+// the (tabs) layout and render immediately, so this covers the content only —
+// it deliberately no longer draws a title bar of its own.
 export default function Loading() {
   return (
-    // Width must match the page it stands in for, or the layout jumps on load.
-    <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10">
-      <Skeleton className="h-4 w-24" />
-      <div className="flex items-center justify-between gap-3">
-        <Skeleton className="h-7 w-48" />
-        <Skeleton className="h-6 w-16" />
-      </div>
-      <div className="flex flex-col gap-3">
-        <Skeleton className="h-6 w-32" />
-        <Skeleton className="h-20 w-full rounded-2xl" />
-        <Skeleton className="h-20 w-full rounded-2xl" />
-      </div>
-      <Skeleton className="h-6 w-40" />
-      <Skeleton className="h-24 w-full rounded-2xl" />
-    </main>
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 pt-5">
+      <Skeleton className="h-72 w-full rounded-tile" />
+      <Skeleton className="h-6 w-32" />
+      <Skeleton className="h-16 w-full rounded-card" />
+      <Skeleton className="h-16 w-full rounded-card" />
+    </div>
   );
 }

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { tripSchema, type Trip } from "../domain/trip";
@@ -34,7 +35,9 @@ export async function updateTripDates(
   return { error: error?.message ?? null };
 }
 
-export async function getTrip(id: string): Promise<Trip | null> {
+// Deduped per request: the tab layout and the tab page both need the trip, and
+// without this a single page load would fetch it twice.
+export const getTrip = cache(async (id: string): Promise<Trip | null> => {
   const supabase = await createClient();
   // RLS ensures only the owner's trip is returned; anything else yields null.
   const { data, error } = await supabase
@@ -48,7 +51,7 @@ export async function getTrip(id: string): Promise<Trip | null> {
   }
 
   return tripSchema.parse(data);
-}
+});
 
 export async function listTrips(): Promise<Trip[]> {
   const supabase = await createClient();

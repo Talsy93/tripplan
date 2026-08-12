@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Heebo, Secular_One } from "next/font/google";
 import "./globals.css";
 
@@ -14,6 +14,12 @@ const secular = Secular_One({
   subsets: ["hebrew", "latin"],
   weight: "400",
 });
+
+// Required for env(safe-area-inset-*) to resolve to anything but 0 on iOS.
+// Without it the fixed bottom nav sits under the home indicator.
+export const viewport: Viewport = {
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   title: "TripPlan — תכנון טיולים",
@@ -31,7 +37,9 @@ export default function RootLayout({
       dir="rtl"
       className={`${heebo.variable} ${secular.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      {/* dvh, not vh: mobile browser chrome makes 100vh taller than the
+          visible area, which a fixed bottom bar makes obvious. */}
+      <body className="flex min-h-dvh flex-col">{children}</body>
     </html>
   );
 }

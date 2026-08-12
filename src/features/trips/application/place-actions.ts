@@ -26,6 +26,6 @@ export async function addPlace(
   // from server data captured when the page loaded. Without this the addition
   // only appears after a manual refresh — the tabs are separate panels of one
   // server render, not independent pages.
-  revalidatePath(`/trips/${parsedId.data}`);
+  revalidatePath(`/trips/${parsedId.data}`, "layout");
   return true;
 }

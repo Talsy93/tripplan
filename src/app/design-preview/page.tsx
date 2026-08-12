@@ -1,4 +1,4 @@
-import { CountdownHero } from "@/features/trips";
+import { CountdownHero, TripNav } from "@/features/trips";
 import { DesignPreview } from "./preview";
 
 // Temporary page for the phase B visual work (item B0). Two jobs:
@@ -41,6 +41,21 @@ export default function DesignPreviewPage() {
             אלה לא ציורים — זה <code>CountdownHero</code> עצמו, עם דאטה מומצא,
             בארבעת המצבים שלו.
           </p>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-semibold text-muted">
+            הניווט — שורת גלולות מ-md ומעלה, סרגל קבוע מתחתיו
+          </p>
+          {/* A transform makes this element the containing block for its
+              fixed descendants, so the bottom bar demos inside the frame
+              instead of sticking to the viewport of this page. */}
+          <div
+            className="relative h-40 overflow-hidden rounded-card border border-border bg-background p-4"
+            style={{ transform: "translateZ(0)" }}
+          >
+            <TripNav tripId="demo" />
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">

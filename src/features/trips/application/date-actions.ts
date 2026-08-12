@@ -32,7 +32,7 @@ export async function setTripDates(
     return { error: "שמירת התאריכים נכשלה. נסו שוב." };
   }
 
-  revalidatePath(`/trips/${tripId}`);
+  revalidatePath(`/trips/${tripId}`, "layout");
   revalidatePath("/profile");
   return { ok: true };
 }
