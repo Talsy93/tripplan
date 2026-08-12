@@ -1,8 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { Button, Card } from "@/components/ui";
-import type { AiPhrasebook } from "../domain/phrasebook";
+import { useMemo, useState } from "react";
+import { Search } from "lucide-react";
+import { Button, Card, EmptyState, Input } from "@/components/ui";
+import type { AiPhrase, AiPhrasebook } from "../domain/phrasebook";
+
+// Matches across all four fields. Someone reaching for a phrase might remember
+// the Hebrew, the English, or how it sounded — the pronunciation row is
+// searchable for the same reason it exists.
+function matches(phrase: AiPhrase, needle: string) {
+  return [phrase.he, phrase.en, phrase.local, phrase.pronunciation]
+    .join(" ")
+    .toLowerCase()
+    .includes(needle);
+}
 
 export function Phrasebook({
   tripId,
@@ -14,6 +25,22 @@ export function Phrasebook({
   const [phrasebook, setPhrasebook] = useState(initialPhrasebook);
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+
+  // Sections with no surviving phrase drop out entirely, so a search never
+  // leaves a heading standing over nothing.
+  const sections = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!phrasebook) return [];
+    if (!needle) return phrasebook.sections;
+
+    return phrasebook.sections
+      .map((section) => ({
+        ...section,
+        phrases: section.phrases.filter((phrase) => matches(phrase, needle)),
+      }))
+      .filter((section) => section.phrases.length > 0);
+  }, [phrasebook, query]);
 
   async function build() {
     setBuilding(true);
@@ -44,7 +71,7 @@ export function Phrasebook({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-lg font-bold">
+        <h2 className="font-display text-lg">
           מילים שימושיות
           {phrasebook && (
             <span className="ms-2 text-sm font-normal text-muted">
@@ -55,15 +82,33 @@ export function Phrasebook({
         <Button
           type="button"
           onClick={build}
-          disabled={building}
+          loading={building}
           size="sm"
+          variant={phrasebook ? "outline" : "primary"}
           className="ms-auto"
         >
-          {building ? "בונה…" : phrasebook ? "בנה מחדש" : "בנה שיחון"}
+          {phrasebook ? "בנה מחדש" : "בנה שיחון"}
         </Button>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {phrasebook && (
+        <div className="relative">
+          <Search
+            className="pointer-events-none absolute inset-y-0 start-3 my-auto h-4 w-4 text-muted"
+            aria-hidden="true"
+          />
+          <Input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="חיפוש ביטוי…"
+            aria-label="חיפוש בשיחון"
+            className="ps-9"
+          />
+        </div>
+      )}
+
+      {error && <p className="text-sm text-danger-ink">{error}</p>}
 
       {!phrasebook && !building && !error && (
         <p className="text-sm text-muted">
@@ -72,7 +117,15 @@ export function Phrasebook({
         </p>
       )}
 
-      {phrasebook?.sections.map((section) => (
+      {phrasebook && query.trim() && sections.length === 0 && (
+        <EmptyState
+          icon="🔍"
+          title="אין ביטוי כזה בשיחון"
+          description="נסו מילה אחרת, או בנו את השיחון מחדש כדי להרחיב אותו."
+        />
+      )}
+
+      {sections.map((section) => (
         <section key={section.title} className="flex flex-col gap-2">
           <h3 className="font-bold">{section.title}</h3>
           <ul className="flex flex-col gap-2">

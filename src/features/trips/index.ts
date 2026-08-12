@@ -6,6 +6,7 @@ export {
   tripStatusLabels,
   daysUntil,
   formatCountdown,
+  formatShortDate,
   pickUpcomingTrip,
 } from "./domain/trip";
 export type {
@@ -44,6 +45,7 @@ export {
   countDetails,
   isWorthShowing,
   comparePlaces,
+  savedCountsByCategory,
 } from "./domain/place";
 export type {
   Place,
@@ -107,6 +109,7 @@ export {
 } from "./infrastructure/guide-service";
 export {
   getItinerary,
+  getItineraryDayCount,
   saveItinerary,
   setTripStatus,
 } from "./infrastructure/itinerary-service";
@@ -138,11 +141,28 @@ export {
   forecastWindow,
   describeWeather,
   todayIso,
+  todayIn,
+  APP_TIME_ZONE,
   addDays,
   daysBetween,
   weekdayLabel,
   MAX_FORECAST_DAYS,
 } from "./domain/weather";
+export {
+  tripPhase,
+  dateOfDay,
+  dayNumberOfDate,
+  currentDayNumber,
+  clampDay,
+  focusDayNumber,
+  itineraryOverrun,
+  bookingsByDay,
+  dayLabel,
+  dayOfTripLabel,
+  phaseLabel,
+} from "./domain/trip-days";
+export type { TripPhase } from "./domain/trip-days";
+export { DayPager } from "./components/day-pager";
 export type {
   DailyWeather,
   CityWeather,
@@ -196,6 +216,24 @@ export { PlanPreview } from "./components/plan-preview";
 export { CreateTripForm } from "./components/create-trip-form";
 export { TripDatesForm } from "./components/trip-dates-form";
 export { UpcomingTripCard } from "./components/upcoming-trip-card";
+export { CountdownHero } from "./components/countdown-hero";
+export { UpNext } from "./components/up-next";
+export { MoreBackLink } from "./components/more-back-link";
+export { TripNav } from "./components/trip-nav";
+export {
+  TRIP_TABS,
+  tripTabHref,
+  defaultTripTab,
+} from "./domain/trip-tabs";
+export type { TripTabSegment } from "./domain/trip-tabs";
+export {
+  TONES,
+  toneClass,
+  toneByIndex,
+  cityToneMap,
+  cityToneClass,
+} from "./domain/tone";
+export type { Tone } from "./domain/tone";
 export { TripList } from "./components/trip-list";
 export { PlanningPanel } from "./components/planning-panel";
 export { CityGuide } from "./components/city-guide";

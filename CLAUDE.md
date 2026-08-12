@@ -13,10 +13,16 @@
 - Supabase — PostgreSQL + Auth + RLS
 - Vercel — דיפלוי אוטומטי מ-main
 - GitHub Actions — type-check + lint על כל push
-- TanStack Query (state מהשרת) / Zustand (state של UI בלבד)
 - Zod — סכמה אחת לכל ישות, ממנה נגזר הכול
 - Gemini דרך שכבת הפשטה (`src/lib/ai`), תשובות ב-Structured Output + ולידציית Zod
-- shadcn/ui + Tailwind CSS לאטומים
+- Tailwind CSS v4 (CSS-first, בלי קובץ config) + רכיבי UI כתובים ביד ב-`src/components/ui`
+- `lucide-react` לאייקוני ממשק; אימוג'י לזהות דומיין (קטגוריה, הזמנה, מזג אוויר)
+- `clsx` + `tailwind-merge` דרך `src/lib/cn.ts`
+
+> **מה שלא בשימוש, בכוונה:** TanStack Query, Zustand ו-shadcn/ui נרשמו בתחילת הפרויקט
+> אך מעולם לא הותקנו. Server Components ו-Server Actions כיסו את הצורך ב-state מהשרת,
+> וה-state המקומי היחיד הוא `useState` בתוך רכיב. **לא להוסיף אותם בלי צורך אמיתי** (YAGNI).
+> תוקן ב-2026-08-12, אחרי שנמצא שהמסמך תיאר סטאק שלא קיים בקוד.
 - ריפו יחיד, ארגון קוד Feature-Based
 
 **ישויות:** `profiles`, `trips` (עם status), `suggested_destinations`, `itinerary_items`.

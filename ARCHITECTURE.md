@@ -43,7 +43,15 @@ src/
 3. **One Zod schema per entity.** TypeScript types, form validation and API validation are all derived from it.
 4. **Secrets live server-side only.** API keys exist only in environment variables and are used only in `app/api` routes or server code. Never in client components, never committed to git.
 5. **Breadth before depth.** New capabilities are built as a thin end-to-end slice first.
-6. **Trips are a state machine.** `planning → executing → completed`. No boolean flags for status.
+6. **A trip's phase is derived from its dates, not stored.** `tripPhase()` in
+   `features/trips/domain/trip-days.ts` returns `undated | before | during | after`
+   from `start_date`, `end_date` and today. The `trips.status` column remains for
+   explicit user intent (archiving) and is not written by the app.
+   *Changed 2026-08-12.* The stored status was never true: it was set to
+   `executing` the moment an AI itinerary was saved — possibly months before
+   departure — and nothing ever set `completed`. Keeping a stored status honest
+   would need a scheduled job, which costs a paid service and is redundant with
+   a calculation that is free. No boolean flags for status either way.
 7. **`components/ui` stays dumb.** If a component knows what a "trip" is, it belongs to a feature.
 
 ## Domain Entities (initial)

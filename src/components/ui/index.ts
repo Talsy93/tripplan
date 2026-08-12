@@ -1,8 +1,11 @@
 export { Button, buttonClasses } from "./button";
 export { Card } from "./card";
+export { Chip } from "./chip";
+export { EmptyState } from "./empty-state";
+export { IconButton } from "./icon-button";
 export { Input } from "./input";
+export { SegmentedControl } from "./segmented-control";
+export type { SegmentedItem } from "./segmented-control";
 export { Textarea } from "./textarea";
 export { Badge } from "./badge";
 export { Skeleton } from "./skeleton";
-export { Tabs } from "./tabs";
-export type { TabItem } from "./tabs";

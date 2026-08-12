@@ -204,7 +204,7 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
     return <p className="text-sm text-muted">בונה מדריך לעיר…</p>;
   }
   if (error && !guide) {
-    return <p className="text-sm text-red-600">{error}</p>;
+    return <p className="text-sm text-danger-ink">{error}</p>;
   }
   if (!guide) {
     return null;
@@ -225,7 +225,7 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
       )}
 
       <div className="flex items-center gap-3">
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-danger-ink">{error}</p>}
         <Button
           type="button"
           variant="outline"
@@ -244,7 +244,7 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
         const isLoadingMore = loadingMore.includes(key);
         return (
           <section key={key} className="flex flex-col gap-3">
-            <h2 className="text-lg font-bold">
+            <h2 className="font-display text-lg">
               {icon} {label}
             </h2>
             <div className="flex flex-col gap-3">

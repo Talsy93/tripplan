@@ -20,9 +20,9 @@ export function CreateTripForm() {
         </Button>
       </div>
       {state?.errors?.name && (
-        <p className="text-sm text-red-600">{state.errors.name.join(" ")}</p>
+        <p className="text-sm text-danger-ink">{state.errors.name.join(" ")}</p>
       )}
-      {state?.message && <p className="text-sm text-red-600">{state.message}</p>}
+      {state?.message && <p className="text-sm text-danger-ink">{state.message}</p>}
     </form>
   );
 }

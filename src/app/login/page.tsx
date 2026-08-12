@@ -14,7 +14,7 @@ export default async function LoginPage({
       <Card className="flex w-full max-w-sm flex-col gap-4 p-6 sm:p-8">
         <CredentialsForm action={login} title="התחברות" submitLabel="התחברות" />
         {error === "oauth" && (
-          <p className="text-sm text-red-600">
+          <p className="text-sm text-danger-ink">
             ההתחברות עם Google נכשלה. נסו שוב.
           </p>
         )}

@@ -1,41 +1,170 @@
 @import "tailwindcss";
 
-/* Beige & Mocha palette — warm, light, single theme. Semantic tokens are
-   mapped to Tailwind utilities in the @theme block, so components use
-   bg-surface / text-muted / bg-primary / shadow-soft etc. */
+/* ===========================================================================
+   Beige & Mocha — warm, light. Chosen in B0 ("playful" variant).
+
+   Every value lives on :root as a raw custom property, and @theme inline maps
+   it to a Tailwind utility. A future dark theme overrides the :root values
+   under [data-theme="dark"] and nothing in the components has to change.
+   Names avoid Tailwind's own theme namespaces (--radius-lg, --ease-out, ...)
+   on purpose: redefining those would silently restyle every existing
+   rounded-lg / ease-out in the app.
+   =========================================================================== */
+
 :root {
+  /* --- surfaces and text ------------------------------------------------ */
   --background: #faf7f2;
   --surface: #fffdfc;
   --surface-2: #f3ebdd;
   --border: #ded3c8;
   --foreground: #3b2f2a;
   --muted: #6f625a;
+
+  /* --- brand ------------------------------------------------------------ */
   --primary: #9a7658;
   --primary-hover: #76563e;
   --primary-foreground: #ffffff;
+  --primary-tint: #efe5da;
   --accent: #c9785c;
   --ring: #9a7658;
+
+  /* --- semantic ---------------------------------------------------------
+     Each role is a trio: tint = pale background, ink = readable text on that
+     tint, solid = the saturated fill. Replaces the 15 hardcoded text-red-600.
+     -------------------------------------------------------------------- */
+  --danger-tint: #fbe0e0;
+  --danger-ink: #a13636;
+  --danger: #c2453f;
+
+  --success-tint: #d9ead9;
+  --success-ink: #37703f;
+  --success: #4e9159;
+
+  --warning-tint: #fbeacc;
+  --warning-ink: #8a5c12;
+  --warning: #d19527;
+
+  /* --- tone palette -----------------------------------------------------
+     Six pastels assigned to cities and categories. Same trio shape. These are
+     the source values; components never read them directly — they read the
+     --tone-* variables that a .tone-<name> class sets (see below), because the
+     assignment is made at runtime from a city's position in the route.
+     -------------------------------------------------------------------- */
+  /* Every ink is dark enough to clear WCAG AA (4.5:1) on its own tint, which
+     is the badge and category-tile combination, and on white. Rose and peach
+     were measured at 4.35 and 3.89 and darkened until they passed. */
+  --rose-tint: #fbdce4;
+  --rose-ink: #9c4962;
+  --rose-dot: #e88ba4;
+
+  --amber-tint: #fbe4c0;
+  --amber-ink: #8f5a18;
+  --amber-dot: #e8a94e;
+
+  --lilac-tint: #e3daf7;
+  --lilac-ink: #5f4499;
+  --lilac-dot: #a98fe0;
+
+  --mint-tint: #cfe9d4;
+  --mint-ink: #356c47;
+  --mint-dot: #7cc08f;
+
+  --sky-tint: #d2e6f7;
+  --sky-ink: #33608a;
+  --sky-dot: #79b0dd;
+
+  --peach-tint: #fbdcc8;
+  --peach-ink: #92522d;
+  --peach-dot: #ef9f74;
+
+  /* Neutral fallback, so an unassigned tone still renders as something. */
+  --tone-tint: var(--surface-2);
+  --tone-ink: var(--foreground);
+  --tone-dot: var(--primary);
 }
 
+/* A tone class sets the trio for its whole subtree. Put it on the card, the
+   chip or the row; children then use bg-tone / text-tone-ink / bg-tone-dot and
+   need to know nothing about which colour they ended up with. */
+.tone-rose  { --tone-tint: var(--rose-tint);  --tone-ink: var(--rose-ink);  --tone-dot: var(--rose-dot); }
+.tone-amber { --tone-tint: var(--amber-tint); --tone-ink: var(--amber-ink); --tone-dot: var(--amber-dot); }
+.tone-lilac { --tone-tint: var(--lilac-tint); --tone-ink: var(--lilac-ink); --tone-dot: var(--lilac-dot); }
+.tone-mint  { --tone-tint: var(--mint-tint);  --tone-ink: var(--mint-ink);  --tone-dot: var(--mint-dot); }
+.tone-sky   { --tone-tint: var(--sky-tint);   --tone-ink: var(--sky-ink);   --tone-dot: var(--sky-dot); }
+.tone-peach { --tone-tint: var(--peach-tint); --tone-ink: var(--peach-ink); --tone-dot: var(--peach-dot); }
+
 @theme inline {
+  /* surfaces and text */
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-border: var(--border);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
+
+  /* brand */
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-tint: var(--primary-tint);
   --color-accent: var(--accent);
   --color-ring: var(--ring);
+
+  /* semantic */
+  --color-danger: var(--danger);
+  --color-danger-tint: var(--danger-tint);
+  --color-danger-ink: var(--danger-ink);
+  --color-success: var(--success);
+  --color-success-tint: var(--success-tint);
+  --color-success-ink: var(--success-ink);
+  --color-warning: var(--warning);
+  --color-warning-tint: var(--warning-tint);
+  --color-warning-ink: var(--warning-ink);
+
+  /* the active tone — resolves against the nearest .tone-* ancestor */
+  --color-tone: var(--tone-tint);
+  --color-tone-ink: var(--tone-ink);
+  --color-tone-dot: var(--tone-dot);
+
+  /* typography — display sizes only; xs–3xl stay Tailwind's */
   --font-sans: var(--font-heebo);
+  --font-display: var(--font-secular);
+
+  --text-hero: 4rem;
+  --text-hero--line-height: 1;
+  --text-display: 2.5rem;
+  --text-display--line-height: 1.1;
+  --text-title: 1.75rem;
+  --text-title--line-height: 1.2;
+
+  /* radii — semantic names, so Tailwind's rounded-lg/2xl keep their meaning */
+  --radius-control: 0.75rem;
+  --radius-card: 1.25rem;
+  --radius-tile: 1.5rem;
+
+  /* elevation */
   --shadow-soft: 0 8px 24px rgba(59, 47, 42, 0.08);
   --shadow-card: 0 12px 36px rgba(59, 47, 42, 0.1);
+  --shadow-lift: 0 16px 44px rgba(59, 47, 42, 0.14);
+
+  /* motion */
+  --ease-snap: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-heebo), Arial, Helvetica, sans-serif;
+}
+
+/* Nothing in the app animates for someone who asked it not to. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

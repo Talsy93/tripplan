@@ -86,6 +86,14 @@ export function pickUpcomingTrip(trips: Trip[]): Trip | null {
   return best;
 }
 
+// "14.9" — the departure date beside the countdown. Day and month only: the
+// year is implied by the fact that the trip has not happened yet, and printing
+// it makes the line read like a form field instead of a promise.
+export function formatShortDate(isoDate: string): string {
+  const [, month, day] = isoDate.split("-");
+  return `${Number(day)}.${Number(month)}`;
+}
+
 // Hebrew labels for the trip state machine.
 export const tripStatusLabels: Record<TripStatus, string> = {
   planning: "בתכנון",

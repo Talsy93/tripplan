@@ -35,7 +35,7 @@ export function UpcomingTripCard({
 
         <div className="absolute inset-0 flex flex-col justify-end gap-1 p-5 text-white">
           <span className="text-sm font-medium text-white/80">הטיול הקרוב</span>
-          <h2 className="text-2xl font-bold drop-shadow-sm sm:text-3xl">
+          <h2 className="font-display text-2xl drop-shadow-sm sm:text-3xl">
             {trip.name}
           </h2>
           <span className="text-lg font-semibold drop-shadow-sm">

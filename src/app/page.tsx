@@ -9,7 +9,7 @@ export default async function HomePage() {
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 px-4 text-center">
       <div className="flex flex-col items-center gap-3">
         <span className="text-5xl">✈️</span>
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+        <h1 className="font-display text-4xl tracking-tight sm:text-5xl">
           TripPlan
         </h1>
         <p className="max-w-md text-lg text-muted">

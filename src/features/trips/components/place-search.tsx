@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Card, Input } from "@/components/ui";
+import { ChevronRight } from "lucide-react";
+import { Badge, Button, Card, Chip, EmptyState, Input } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { addPlace } from "../application/place-actions";
 import { PLACE_CATEGORIES } from "../domain/place";
-import type { Place, PlaceCategory } from "../domain/place";
+import { cityToneClass, cityToneMap, toneByIndex, toneClass } from "../domain/tone";
+import type { PlaceCategory } from "../domain/place";
+import type { Place } from "../domain/place";
 import type { AddedPlace } from "../infrastructure/place-service";
 import { PlaceDetails } from "./place-details";
 
@@ -30,6 +33,7 @@ export function PlaceSearch({
   tripId,
   cities,
   addedPlaces,
+  savedCounts,
 }: {
   tripId: string;
   // The trip's destinations, in route order — the filter's options.
@@ -37,8 +41,11 @@ export function PlaceSearch({
   // Places already in the trip, with the itinerary days they're scheduled on,
   // so results can say so instead of offering to add them twice.
   addedPlaces: AddedPlace[];
+  // How many things the trip already holds per category, for the tiles.
+  savedCounts: Record<PlaceCategory, number>;
 }) {
   const [city, setCity] = useState(cities[0] ?? "");
+  // Null means the category grid — the screen this tab opens on.
   const [category, setCategory] = useState<PlaceCategory | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
@@ -47,6 +54,8 @@ export function PlaceSearch({
     () => new Map(addedPlaces.map((place) => [place.externalId, place.days])),
   );
   const [adding, setAdding] = useState<string | null>(null);
+
+  const tones = cityToneMap(cities);
 
   async function add(place: Place) {
     setAdding(place.id);
@@ -65,9 +74,11 @@ export function PlaceSearch({
     setAdding(null);
   }
 
-  async function search(nextCategory: PlaceCategory | null) {
-    if (!city) return;
-    setCategory(nextCategory);
+  async function search(
+    nextCategory: PlaceCategory | null,
+    nextCity: string = city,
+  ) {
+    if (!nextCity) return;
     setStatus({ kind: "searching" });
 
     try {
@@ -76,7 +87,7 @@ export function PlaceSearch({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tripId,
-          city,
+          city: nextCity,
           category: nextCategory ?? undefined,
           query: query.trim() || undefined,
         }),
@@ -101,7 +112,7 @@ export function PlaceSearch({
       if (res.status === 422) {
         setStatus({
           kind: "error",
-          message: `לא הצלחנו לאתר את ${city} על המפה, אז אין סביב מה לחפש.`,
+          message: `לא הצלחנו לאתר את ${nextCity} על המפה, אז אין סביב מה לחפש.`,
         });
         return;
       }
@@ -117,144 +128,185 @@ export function PlaceSearch({
     }
   }
 
+  function openCategory(key: PlaceCategory) {
+    setCategory(key);
+    void search(key);
+  }
+
+  function backToGrid() {
+    setCategory(null);
+    setStatus({ kind: "idle" });
+    setQuery("");
+  }
+
   if (cities.length === 0) {
     return (
-      <Card className="flex flex-col items-center justify-center gap-2 p-8 text-center">
-        <p className="font-semibold">קודם בחרו יעדים</p>
-        <p className="text-sm text-muted">
-          החיפוש עובד סביב ערי הטיול, אז הוסיפו יעד אחד לפחות.
-        </p>
-      </Card>
+      <EmptyState
+        icon="🧭"
+        title="קודם בחרו יעדים"
+        description="החיפוש עובד סביב ערי הטיול, אז הוסיפו יעד אחד לפחות."
+      />
     );
   }
 
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-2 text-sm">
-          <span className="text-muted">יעד</span>
-          <select
-            value={city}
-            onChange={(event) => {
-              setCity(event.target.value);
-              setStatus({ kind: "idle" });
-            }}
-            className="rounded-full border border-border bg-surface px-3 py-1.5 text-sm"
-          >
-            {cities.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            void search(category);
-          }}
-          className="flex min-w-48 flex-1 gap-2"
-        >
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="חיפוש חופשי (למשל: ראמן)"
-            className="flex-1"
-          />
-          <Button
-            type="submit"
-            size="sm"
-            disabled={status.kind === "searching"}
-          >
-            חפש
-          </Button>
-        </form>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {CATEGORY_KEYS.map((key) => {
-          const isActive = category === key;
+  // ---- The grid: where this tab starts -------------------------------------
+  if (category === null) {
+    return (
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {CATEGORY_KEYS.map((key, index) => {
+          const meta = PLACE_CATEGORIES[key];
+          const count = savedCounts[key] ?? 0;
           return (
             <button
               key={key}
               type="button"
-              onClick={() => void search(isActive ? null : key)}
-              aria-pressed={isActive}
+              onClick={() => openCategory(key)}
               className={cn(
-                "rounded-full border px-3 py-1.5 text-sm transition-colors",
-                isActive
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-surface hover:border-primary",
+                "flex flex-col gap-2 rounded-tile bg-tone p-4 text-start transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                toneClass(toneByIndex(index)),
               )}
             >
-              {PLACE_CATEGORIES[key].emoji} {PLACE_CATEGORIES[key].label}
+              <span className="text-4xl leading-none" aria-hidden="true">
+                {meta.emoji}
+              </span>
+              <span className="text-tone-ink">
+                <span className="block text-sm font-bold leading-tight">
+                  {meta.label}
+                </span>
+                <span className="block text-xs opacity-75">
+                  {count > 0 ? `${count} בטיול` : "לחיפוש"}
+                </span>
+              </span>
             </button>
           );
         })}
       </div>
+    );
+  }
+
+  // ---- One category --------------------------------------------------------
+  const meta = PLACE_CATEGORIES[category];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <button
+        type="button"
+        onClick={backToGrid}
+        className="flex items-center gap-1 self-start text-sm text-muted transition-colors hover:text-foreground"
+      >
+        <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        חזרה לקטגוריות
+      </button>
+
+      <h3 className="flex items-center gap-2 font-display text-xl">
+        <span aria-hidden="true">{meta.emoji}</span>
+        {meta.label}
+      </h3>
+
+      {cities.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {cities.map((option) => (
+            <Chip
+              key={option}
+              active={option === city}
+              onClick={() => {
+                setCity(option);
+                void search(category, option);
+              }}
+            >
+              {option}
+            </Chip>
+          ))}
+        </div>
+      )}
+
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void search(category);
+        }}
+        className="flex gap-2"
+      >
+        <Input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={`חיפוש בתוך ${meta.label}`}
+          className="flex-1"
+        />
+        <Button type="submit" loading={status.kind === "searching"}>
+          חפש
+        </Button>
+      </form>
 
       {status.kind === "searching" && (
         <p className="text-sm text-muted">מחפש ב־{city}…</p>
       )}
 
       {status.kind === "error" && (
-        <p className="text-sm text-red-600">{status.message}</p>
+        <p className="text-sm text-danger-ink">{status.message}</p>
       )}
 
       {status.kind === "results" && status.places.length === 0 && (
-        <p className="text-sm text-muted">
-          לא נמצאו תוצאות. נסו קטגוריה אחרת או חיפוש רחב יותר.
-        </p>
+        <EmptyState
+          icon="🔍"
+          title="לא נמצאו תוצאות"
+          description="נסו קטגוריה אחרת, עיר אחרת, או חיפוש רחב יותר."
+        />
       )}
 
       {status.kind === "results" && status.places.length > 0 && (
         <ul className="flex flex-col gap-2">
-          {status.places.map((place) => (
-            <li key={place.id}>
-              <Card className="flex items-center justify-between gap-3 p-3">
-                <button
-                  type="button"
-                  onClick={() => setOpen(place)}
-                  className="min-w-0 flex-1 text-start"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="truncate font-semibold">{place.name}</span>
-                    {place.notable && (
-                      <span
-                        title="למקום יש ערך בוויקיפדיה"
-                        className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
-                      >
-                        מוכר
-                      </span>
-                    )}
-                  </span>
-                  <span className="block truncate text-xs text-muted">
-                    {[place.brand, place.cuisine, place.openingHours]
-                      .filter(Boolean)
-                      .join(" · ") || place.address}
-                  </span>
-                </button>
-
-                {added.has(place.id) ? (
-                  <span className="shrink-0 text-sm text-muted">
-                    ✓ {dayLabel(added.get(place.id) ?? [])}
-                  </span>
-                ) : (
-                  <Button
+          {status.places.map((place) => {
+            const days = added.get(place.id);
+            return (
+              <li key={place.id} className={cityToneClass(tones, city)}>
+                <Card className="flex items-center justify-between gap-3 border-s-4 border-s-tone-dot p-3">
+                  <button
                     type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void add(place)}
-                    disabled={adding === place.id}
-                    className="shrink-0"
+                    onClick={() => setOpen(place)}
+                    className="min-w-0 flex-1 text-start"
                   >
-                    הוסף
-                  </Button>
-                )}
-              </Card>
-            </li>
-          ))}
+                    <span className="flex items-center gap-2">
+                      <span className="truncate font-semibold">
+                        {place.name}
+                      </span>
+                      {place.notable && (
+                        <Badge
+                          tone="primary"
+                          title="למקום יש ערך בוויקיפדיה"
+                          className="shrink-0"
+                        >
+                          מוכר
+                        </Badge>
+                      )}
+                    </span>
+                    <span className="block truncate text-xs text-muted">
+                      {[place.brand, place.cuisine, place.openingHours]
+                        .filter(Boolean)
+                        .join(" · ") || place.address}
+                    </span>
+                  </button>
+
+                  {days ? (
+                    <Badge tone="success" className="shrink-0">
+                      ✓ {dayLabel(days)}
+                    </Badge>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="soft"
+                      onClick={() => void add(place)}
+                      loading={adding === place.id}
+                      className="shrink-0"
+                    >
+                      הוסף
+                    </Button>
+                  )}
+                </Card>
+              </li>
+            );
+          })}
         </ul>
       )}
 

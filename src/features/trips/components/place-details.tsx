@@ -45,7 +45,7 @@ export function PlaceDetails({
       <div className="flex flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col">
-            <h2 className="text-lg font-bold">{place.name}</h2>
+            <h2 className="font-display text-lg">{place.name}</h2>
             {place.localName && (
               // Worth showing: this is what's on the shopfront, and what to
               // hand a taxi driver.

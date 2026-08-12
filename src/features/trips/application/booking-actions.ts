@@ -68,7 +68,7 @@ export async function addBooking(
     };
   }
 
-  revalidatePath(`/trips/${parsed.data.tripId}`);
+  revalidatePath(`/trips/${parsed.data.tripId}`, "layout");
   // No values: this is what lets the form clear itself on success.
   return {};
 }
@@ -79,6 +79,6 @@ export async function removeBooking(tripId: string, id: string) {
   if (!parsedTrip.success || !parsedId.success) return false;
 
   const ok = await deleteBookingRow(parsedId.data);
-  if (ok) revalidatePath(`/trips/${parsedTrip.data}`);
+  if (ok) revalidatePath(`/trips/${parsedTrip.data}`, "layout");
   return ok;
 }

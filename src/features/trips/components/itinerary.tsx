@@ -6,6 +6,9 @@ import { cn } from "@/lib/cn";
 import { googleMapsSearchUrl } from "@/lib/maps";
 import { deleteItineraryEntry } from "../application/itinerary-actions";
 import { DayTimeline } from "./day-timeline";
+import { cityByDay } from "../domain/route";
+import { cityToneClass, cityToneMap } from "../domain/tone";
+import { dateOfDay, dayLabel, itineraryOverrun } from "../domain/trip-days";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 
 // The graphic is the point of the feature, but a plain list stays available:
@@ -15,15 +18,29 @@ type View = "timeline" | "list";
 type ItineraryProps = {
   tripId: string;
   initialItinerary: ItineraryDay[];
+  // Dates are derived, never stored — see domain/trip-days.ts. Null means the
+  // trip has no departure date yet and days show as bare numbers.
+  startDate?: string | null;
+  endDate?: string | null;
 };
 
-export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
+export function Itinerary({
+  tripId,
+  initialItinerary,
+  startDate = null,
+  endDate = null,
+}: ItineraryProps) {
   const [days, setDays] = useState<ItineraryDay[]>(initialItinerary);
   const [view, setView] = useState<View>("timeline");
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const hasItinerary = days.some((day) => day.items.length > 0);
+
+  // Cities in visiting order — cityByDay is keyed by day, and day order is
+  // route order, so this produces the same assignment the map and the hero use.
+  const tones = cityToneMap([...cityByDay(days).values()]);
+  const overrun = itineraryOverrun(startDate, endDate, days.length);
 
   async function build() {
     setBuilding(true);
@@ -72,7 +89,7 @@ export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <h2 className="text-lg font-bold">לו&quot;ז הטיול</h2>
+        <h2 className="font-display text-lg">לו&quot;ז הטיול</h2>
 
         {hasItinerary && (
           <div className="flex gap-1 rounded-full border border-border bg-surface-2 p-0.5 text-xs">
@@ -111,7 +128,17 @@ export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
         </Button>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger-ink">{error}</p>}
+
+      {/* An itinerary longer than the booked dates is a real planning error,
+          so it is reported rather than clamped — clamping would make two days
+          share a date and hide the problem. */}
+      {overrun !== null && overrun > 0 && (
+        <p className="rounded-control bg-warning-tint px-3 py-2 text-sm text-warning-ink">
+          הלו״ז נמשך {overrun === 1 ? "יום אחד" : `${overrun} ימים`} אחרי תאריך
+          החזרה. אפשר לעדכן את התאריכים בטאב ״עוד״.
+        </p>
+      )}
 
       {!hasItinerary && !building && !error && (
         <p className="text-sm text-muted">
@@ -119,9 +146,22 @@ export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
         </p>
       )}
 
-      {days.map((day) => (
-        <div key={day.day} className="flex flex-col gap-2">
-          <h3 className="font-bold">יום {day.day}</h3>
+      {days.map((day) => {
+        // A day belongs to the city it ends in — the same rule the route uses.
+        const city = [...day.items].reverse().find((it) => it.city)?.city;
+
+        return (
+        <div
+          key={day.day}
+          className={`flex flex-col gap-2 ${cityToneClass(tones, city ?? null)}`}
+        >
+          <h3 className="flex items-center gap-2 font-bold">
+            <span className="h-2.5 w-2.5 rounded-full bg-tone-dot" />
+            {dayLabel(day.day, dateOfDay(startDate, day.day))}
+            {city && (
+              <span className="text-xs font-normal text-tone-ink">{city}</span>
+            )}
+          </h3>
           {view === "timeline" ? (
             <DayTimeline day={day} onRemove={remove} />
           ) : (
@@ -160,7 +200,8 @@ export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
             </div>
           )}
         </div>
-      ))}
+        );
+      })}
     </section>
   );
 }

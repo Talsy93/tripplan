@@ -8,7 +8,6 @@ import {
   getSelectedDestinations,
   getTrip,
   saveItinerary,
-  setTripStatus,
 } from "@/features/trips";
 import { generateStructured } from "@/lib/ai";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -103,7 +102,9 @@ export async function POST(request: Request) {
       schema: aiItinerarySchema,
     });
     await saveItinerary(tripId, itinerary, items);
-    await setTripStatus(tripId, "executing");
+    // The trip's phase is derived from its dates now (ARCHITECTURE.md #6).
+    // This used to set status to 'executing' here, which claimed a trip was
+    // under way the moment its itinerary was generated — often months early.
     // Return the persisted itinerary so the client has row ids (for deletion).
     const saved = await getItinerary(tripId);
     return NextResponse.json({ days: saved });

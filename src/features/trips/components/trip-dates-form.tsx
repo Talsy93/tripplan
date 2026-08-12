@@ -23,7 +23,7 @@ export function TripDatesForm({
     <Card className="p-4">
       <form action={action} className="flex flex-col gap-3">
         <input type="hidden" name="tripId" value={tripId} />
-        <h2 className="text-lg font-bold">תאריכי הטיול</h2>
+        <h2 className="font-display text-lg">תאריכי הטיול</h2>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
@@ -54,7 +54,7 @@ export function TripDatesForm({
           {state?.ok && <span className="text-sm text-muted">נשמר ✓</span>}
         </div>
 
-        {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
+        {state?.error && <p className="text-sm text-danger-ink">{state.error}</p>}
       </form>
     </Card>
   );

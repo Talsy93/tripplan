@@ -75,6 +75,6 @@ export async function setSelected(
   // reach the attractions tab's "already in your trip" marks and the route
   // map, which are part of the same server render.
   if (z.uuid().safeParse(tripId).success) {
-    revalidatePath(`/trips/${tripId}`);
+    revalidatePath(`/trips/${tripId}`, "layout");
   }
 }

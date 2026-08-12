@@ -116,6 +116,23 @@ export function todayIso(now: Date) {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
+// The calendar the app reckons "today" by.
+//
+// todayIso reads whichever machine calls it. On Vercel that is UTC, so for an
+// Israeli user between midnight and 03:00 the server says yesterday while the
+// browser says today — and the trip would be on a different day either side of
+// hydration. Pinning the zone makes both agree.
+//
+// A traveller physically in Tokyo gets their home calendar day. Per-city zones
+// are available free from Open-Meteo's response, but that couples the day view
+// to the weather feature for a difference that only shows up around midnight.
+export const APP_TIME_ZONE = "Asia/Jerusalem";
+
+// "en-CA" is the locale whose short date format is YYYY-MM-DD.
+export function todayIn(zone: string, now: Date) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: zone }).format(now);
+}
+
 export function weekdayLabel(date: string) {
   return new Date(`${date}T00:00:00Z`).toLocaleDateString("he-IL", {
     weekday: "short",

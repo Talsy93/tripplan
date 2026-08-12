@@ -71,7 +71,7 @@ export function PlanningPanel({ tripId, initialCities }: PlanningPanelProps) {
         </Button>
       </form>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger-ink">{error}</p>}
 
       {cities.length > 0 && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

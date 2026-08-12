@@ -16,7 +16,7 @@ export async function applyPlan(tripId: string, plan: unknown) {
   if (!parsedId.success || !parsedPlan.success) return false;
 
   const ok = await savePlanFromChat(parsedId.data, parsedPlan.data);
-  if (ok) revalidatePath(`/trips/${parsedId.data}`);
+  if (ok) revalidatePath(`/trips/${parsedId.data}`, "layout");
   return ok;
 }
 
@@ -25,6 +25,6 @@ export async function resetChat(tripId: string) {
   if (!parsed.success) return false;
 
   const ok = await clearChat(parsed.data);
-  if (ok) revalidatePath(`/trips/${parsed.data}`);
+  if (ok) revalidatePath(`/trips/${parsed.data}`, "layout");
   return ok;
 }
