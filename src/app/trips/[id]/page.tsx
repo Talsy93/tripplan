@@ -2,11 +2,11 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, Tabs } from "@/components/ui";
+import { getPlaceImage } from "@/lib/place-image";
 import {
   BookingForm,
   BookingList,
-  daysUntil,
-  formatCountdown,
+  CountdownHero,
   getAddedPlaces,
   getItinerary,
   getSavedCities,
@@ -14,6 +14,7 @@ import {
   getPhrasebook,
   getTrip,
   Itinerary,
+  itineraryStops,
   listBookings,
   listChatMessages,
   PlaceSearch,
@@ -63,6 +64,13 @@ export default async function TripPage({
     Boolean,
   );
 
+  // Route order for the hero's chips: the itinerary decides it once one
+  // exists, otherwise the order cities were added. Same rule as the profile
+  // card, so a city keeps its colour across both screens.
+  const stops = itineraryStops(itinerary);
+  const routeCities = stops.length > 0 ? stops.map((s) => s.city) : searchCities;
+  const heroImage = await getPlaceImage(routeCities[0] ?? trip.name);
+
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10">
       <Link
@@ -72,14 +80,16 @@ export default async function TripPage({
         ← הטיולים שלי
       </Link>
 
-      <header className="flex items-center justify-between gap-3">
-        <h1 className="font-display text-2xl">{trip.name}</h1>
-        <div className="flex items-center gap-2">
-          {trip.start_date && (
-            <Badge tone="primary">
-              {formatCountdown(daysUntil(trip.start_date))}
-            </Badge>
-          )}
+      <header className="flex flex-col gap-3">
+        <h1 className="sr-only">{trip.name}</h1>
+        <CountdownHero
+          tripId={trip.id}
+          name={trip.name}
+          startDate={trip.start_date}
+          imageUrl={heroImage}
+          cities={routeCities}
+        />
+        <div className="flex justify-end">
           <Badge>{tripStatusLabels[trip.status]}</Badge>
         </div>
       </header>
