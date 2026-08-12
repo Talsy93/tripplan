@@ -199,7 +199,7 @@ export function PlaceSearch({
       )}
 
       {status.kind === "error" && (
-        <p className="text-sm text-red-600">{status.message}</p>
+        <p className="text-sm text-danger-ink">{status.message}</p>
       )}
 
       {status.kind === "results" && status.places.length === 0 && (

@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
-import { Heebo } from "next/font/google";
+import { Heebo, Secular_One } from "next/font/google";
 import "./globals.css";
 
 const heebo = Heebo({
   variable: "--font-heebo",
   subsets: ["hebrew", "latin"],
+});
+
+// Display face for headings and the countdown. Single weight by design — it is
+// already heavy, and a second weight would only blur what it is for.
+const secular = Secular_One({
+  variable: "--font-secular",
+  subsets: ["hebrew", "latin"],
+  weight: "400",
 });
 
 export const metadata: Metadata = {
@@ -21,7 +29,7 @@ export default function RootLayout({
     <html
       lang="he"
       dir="rtl"
-      className={`${heebo.variable} h-full antialiased`}
+      className={`${heebo.variable} ${secular.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

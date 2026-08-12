@@ -36,7 +36,7 @@ export function CredentialsForm({
           className="text-left"
         />
         {state?.errors?.email && (
-          <p className="text-sm text-red-600">{state.errors.email.join(" ")}</p>
+          <p className="text-sm text-danger-ink">{state.errors.email.join(" ")}</p>
         )}
       </div>
 
@@ -54,7 +54,7 @@ export function CredentialsForm({
           className="text-left"
         />
         {state?.errors?.password && (
-          <p className="text-sm text-red-600">
+          <p className="text-sm text-danger-ink">
             {state.errors.password.join(" ")}
           </p>
         )}

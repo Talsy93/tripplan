@@ -89,7 +89,7 @@ const CSS = `
 .dp .t-peach { --tint:#fbdcc8; --ink:#a45c33; --dot:#ef9f74; }
 
 .dp[data-variant="playful"] {
-  --dp-display: var(--font-display), var(--font-heebo), sans-serif;
+  --dp-display: var(--font-secular), var(--font-heebo), sans-serif;
   --dp-display-weight: 400;
   --dp-hero-num: 4.5rem;
   --dp-title: 1.75rem;
@@ -386,11 +386,11 @@ function WideBlock({ title, note, children }: { title: string; note: string; chi
   );
 }
 
-export function DesignPreview({ fontClassName }: { fontClassName: string }) {
+export function DesignPreview() {
   const [variant, setVariant] = useState<Variant>("playful");
 
   return (
-    <main className={`${fontClassName} mx-auto flex w-full max-w-[1400px] flex-col gap-8 px-4 py-8`}>
+    <main className="mx-auto flex w-full max-w-[1400px] flex-col gap-8 px-4 py-8">
       <style>{CSS}</style>
 
       <header className="flex flex-col gap-4">

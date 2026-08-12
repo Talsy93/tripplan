@@ -54,7 +54,7 @@ export function TripDatesForm({
           {state?.ok && <span className="text-sm text-muted">נשמר ✓</span>}
         </div>
 
-        {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
+        {state?.error && <p className="text-sm text-danger-ink">{state.error}</p>}
       </form>
     </Card>
   );

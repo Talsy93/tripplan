@@ -228,7 +228,7 @@ export function TripChat({
       )}
 
       {sending && <p className="text-sm text-muted">חושב…</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger-ink">{error}</p>}
       <div ref={endRef} />
 
       <form

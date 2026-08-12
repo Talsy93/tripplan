@@ -2,7 +2,8 @@ import { Skeleton } from "@/components/ui";
 
 export default function Loading() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-10">
+    // Width must match the page it stands in for, or the layout jumps on load.
+    <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10">
       <Skeleton className="h-4 w-24" />
       <div className="flex items-center justify-between gap-3">
         <Skeleton className="h-7 w-48" />

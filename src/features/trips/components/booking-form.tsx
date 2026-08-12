@@ -18,7 +18,7 @@ type Field = keyof CreateBookingInput;
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <span role="alert" className="text-xs text-red-600">
+    <span role="alert" className="text-xs text-danger-ink">
       {message}
     </span>
   );
@@ -52,7 +52,7 @@ export function BookingForm({
   // Marks the field itself, so the message isn't the only clue to where the
   // problem is.
   const fieldClass = (field: Field) =>
-    errorFor(field) ? "border-red-500 focus-visible:ring-red-500" : undefined;
+    errorFor(field) ? "border-danger focus-visible:ring-danger" : undefined;
 
   return (
     <Card className="p-4">
@@ -199,7 +199,7 @@ export function BookingForm({
           </Button>
         </div>
 
-        {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+        {state.error && <p className="text-sm text-danger-ink">{state.error}</p>}
       </form>
     </Card>
   );

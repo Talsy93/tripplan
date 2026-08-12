@@ -63,7 +63,7 @@ export function Phrasebook({
         </Button>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger-ink">{error}</p>}
 
       {!phrasebook && !building && !error && (
         <p className="text-sm text-muted">
