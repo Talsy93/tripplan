@@ -2,8 +2,10 @@
 
 import dynamic from "next/dynamic";
 import { Card } from "@/components/ui";
+import { cn } from "@/lib/cn";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 import type { TripRoute } from "../domain/route";
+import { cityToneClass, cityToneMap } from "../domain/tone";
 
 // Leaflet has no server rendering — it needs a real DOM. Loading the canvas
 // only in the browser keeps the rest of the page server-rendered.
@@ -42,6 +44,7 @@ export function RouteMap({
   const stopNumberByCity = new Map(
     route.stops.map((stop, index) => [stop.city, index + 1]),
   );
+  const tones = cityToneMap(route.stops.map((stop) => stop.city));
 
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
@@ -65,9 +68,9 @@ export function RouteMap({
       <aside className="flex w-full flex-col gap-3 lg:max-w-xs">
         <ol className="flex flex-col gap-2">
           {route.stops.map((stop, index) => (
-            <li key={stop.city}>
-              <Card className="flex items-center gap-3 p-3">
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+            <li key={stop.city} className={cityToneClass(tones, stop.city)}>
+              <Card className="flex items-center gap-3 border-s-4 border-s-tone-dot p-3">
+                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-tone text-xs font-bold text-tone-ink">
                   {index + 1}
                 </span>
                 <div className="flex min-w-0 flex-col">
@@ -98,16 +101,22 @@ export function RouteMap({
               const stopNumber = city ? stopNumberByCity.get(city) : undefined;
 
               return (
-                <div key={day.day} className="flex flex-col gap-1">
+                <div
+                  key={day.day}
+                  className={cn(
+                    "flex flex-col gap-1",
+                    cityToneClass(tones, city ?? null),
+                  )}
+                >
                   <h3 className="flex items-baseline gap-2 text-sm font-bold">
                     יום {day.day}
                     {stopNumber && (
-                      <span className="text-xs font-normal text-muted">
+                      <span className="text-xs font-normal text-tone-ink">
                         תחנה {stopNumber} · {city}
                       </span>
                     )}
                   </h3>
-                  <ul className="flex flex-col gap-0.5 border-s border-border ps-3 text-sm">
+                  <ul className="flex flex-col gap-0.5 border-s-2 border-tone-dot ps-3 text-sm">
                     {day.items.map((item) => (
                       <li key={item.id} className="flex gap-2">
                         <span className="shrink-0 text-xs text-muted">

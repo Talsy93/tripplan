@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Card, Input } from "@/components/ui";
-import { cn } from "@/lib/cn";
+import { Button, Card, Chip, Input } from "@/components/ui";
 import { addPlace } from "../application/place-actions";
 import { PLACE_CATEGORIES } from "../domain/place";
 import type { Place, PlaceCategory } from "../domain/place";
@@ -176,20 +175,14 @@ export function PlaceSearch({
         {CATEGORY_KEYS.map((key) => {
           const isActive = category === key;
           return (
-            <button
+            <Chip
               key={key}
-              type="button"
+              active={isActive}
               onClick={() => void search(isActive ? null : key)}
-              aria-pressed={isActive}
-              className={cn(
-                "rounded-full border px-3 py-1.5 text-sm transition-colors",
-                isActive
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-surface hover:border-primary",
-              )}
             >
-              {PLACE_CATEGORIES[key].emoji} {PLACE_CATEGORIES[key].label}
-            </button>
+              <span aria-hidden="true">{PLACE_CATEGORIES[key].emoji}</span>
+              {PLACE_CATEGORIES[key].label}
+            </Chip>
           );
         })}
       </div>

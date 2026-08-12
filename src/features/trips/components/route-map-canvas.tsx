@@ -16,16 +16,24 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { routeBounds, type RouteStop } from "../domain/route";
+import { cityToneMap, toneByIndex, type Tone } from "../domain/tone";
 
-// Numbered pins in the app's palette. A divIcon avoids Leaflet's default
-// marker images, which don't survive bundling.
-function numberedIcon(position: number) {
+// Numbered pins, one colour per city, matching the chips and the schedule.
+//
+// A divIcon avoids Leaflet's default marker images, which don't survive
+// bundling. The markup is built outside React's tree, so the .tone-* class
+// cannot reach it — the palette variable is named directly instead.
+//
+// The pin is filled with the tone's *ink* rather than its dot: the dots are
+// pale by design and a number on top of one is not readable at 32px. Ink is
+// dark enough to carry white text while still saying which city this is.
+function numberedIcon(position: number, tone: Tone) {
   return L.divIcon({
     className: "",
     html: `<div style="
       display:flex;align-items:center;justify-content:center;
       width:2rem;height:2rem;border-radius:9999px;
-      background:var(--primary);color:var(--primary-foreground);
+      background:var(--${tone}-ink);color:#fff;
       border:2px solid var(--surface);
       box-shadow:0 4px 12px rgba(59,47,42,0.35);
       font-weight:700;font-size:0.875rem;
@@ -38,6 +46,9 @@ function numberedIcon(position: number) {
 
 export default function RouteMapCanvas({ stops }: { stops: RouteStop[] }) {
   const bounds = routeBounds(stops);
+  // Built from the same city list, in the same order, as every other surface —
+  // that is what keeps a city one colour across the app.
+  const tones = cityToneMap(stops.map((stop) => stop.city));
   if (!bounds) return null;
 
   const line = stops.map((stop): [number, number] => [
@@ -73,7 +84,10 @@ export default function RouteMapCanvas({ stops }: { stops: RouteStop[] }) {
         <Marker
           key={stop.city}
           position={[stop.latitude, stop.longitude]}
-          icon={numberedIcon(index + 1)}
+          icon={numberedIcon(
+            index + 1,
+            tones.get(stop.city) ?? toneByIndex(index),
+          )}
         >
           <Popup>
             <div dir="rtl" className="text-center">

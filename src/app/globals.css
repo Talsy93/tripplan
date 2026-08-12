@@ -50,8 +50,11 @@
      --tone-* variables that a .tone-<name> class sets (see below), because the
      assignment is made at runtime from a city's position in the route.
      -------------------------------------------------------------------- */
+  /* Every ink is dark enough to clear WCAG AA (4.5:1) on its own tint, which
+     is the badge and category-tile combination, and on white. Rose and peach
+     were measured at 4.35 and 3.89 and darkened until they passed. */
   --rose-tint: #fbdce4;
-  --rose-ink: #a34c66;
+  --rose-ink: #9c4962;
   --rose-dot: #e88ba4;
 
   --amber-tint: #fbe4c0;
@@ -71,7 +74,7 @@
   --sky-dot: #79b0dd;
 
   --peach-tint: #fbdcc8;
-  --peach-ink: #a45c33;
+  --peach-ink: #92522d;
   --peach-dot: #ef9f74;
 
   /* Neutral fallback, so an unassigned tone still renders as something. */

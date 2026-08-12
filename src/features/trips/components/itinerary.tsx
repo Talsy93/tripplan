@@ -6,6 +6,8 @@ import { cn } from "@/lib/cn";
 import { googleMapsSearchUrl } from "@/lib/maps";
 import { deleteItineraryEntry } from "../application/itinerary-actions";
 import { DayTimeline } from "./day-timeline";
+import { cityByDay } from "../domain/route";
+import { cityToneClass, cityToneMap } from "../domain/tone";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 
 // The graphic is the point of the feature, but a plain list stays available:
@@ -24,6 +26,10 @@ export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
   const [error, setError] = useState<string | null>(null);
 
   const hasItinerary = days.some((day) => day.items.length > 0);
+
+  // Cities in visiting order — cityByDay is keyed by day, and day order is
+  // route order, so this produces the same assignment the map and the hero use.
+  const tones = cityToneMap([...cityByDay(days).values()]);
 
   async function build() {
     setBuilding(true);
@@ -119,9 +125,22 @@ export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
         </p>
       )}
 
-      {days.map((day) => (
-        <div key={day.day} className="flex flex-col gap-2">
-          <h3 className="font-bold">יום {day.day}</h3>
+      {days.map((day) => {
+        // A day belongs to the city it ends in — the same rule the route uses.
+        const city = [...day.items].reverse().find((it) => it.city)?.city;
+
+        return (
+        <div
+          key={day.day}
+          className={`flex flex-col gap-2 ${cityToneClass(tones, city ?? null)}`}
+        >
+          <h3 className="flex items-center gap-2 font-bold">
+            <span className="h-2.5 w-2.5 rounded-full bg-tone-dot" />
+            יום {day.day}
+            {city && (
+              <span className="text-xs font-normal text-tone-ink">{city}</span>
+            )}
+          </h3>
           {view === "timeline" ? (
             <DayTimeline day={day} onRemove={remove} />
           ) : (
@@ -160,7 +179,8 @@ export function Itinerary({ tripId, initialItinerary }: ItineraryProps) {
             </div>
           )}
         </div>
-      ))}
+        );
+      })}
     </section>
   );
 }
