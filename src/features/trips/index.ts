@@ -45,6 +45,7 @@ export {
   countDetails,
   isWorthShowing,
   comparePlaces,
+  savedCountsByCategory,
 } from "./domain/place";
 export type {
   Place,

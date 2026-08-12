@@ -56,6 +56,27 @@ export const PLACE_CATEGORIES: Record<
   },
 };
 
+// How many things the trip already holds in each search category.
+//
+// The column carries two vocabularies — the AI guide's (areas, experiences…)
+// and the search's six — so the overlapping keys, restaurants and attractions,
+// count guide items too. That is the honest answer to "how many restaurants
+// are in my trip", which is what the tile is asking.
+export function savedCountsByCategory(
+  items: { category: string }[],
+): Record<PlaceCategory, number> {
+  const counts = Object.fromEntries(
+    Object.keys(PLACE_CATEGORIES).map((key) => [key, 0]),
+  ) as Record<PlaceCategory, number>;
+
+  for (const item of items) {
+    if (item.category in counts) {
+      counts[item.category as PlaceCategory] += 1;
+    }
+  }
+  return counts;
+}
+
 // What to call one selected item, across both vocabularies.
 //
 // Distinct from PLACE_CATEGORIES[].label on purpose: that names a filter chip

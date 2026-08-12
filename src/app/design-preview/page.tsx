@@ -1,4 +1,10 @@
-import { CountdownHero, DayPager, TripNav } from "@/features/trips";
+import {
+  CountdownHero,
+  DayPager,
+  PlaceSearch,
+  savedCountsByCategory,
+  TripNav,
+} from "@/features/trips";
 import type { ItineraryDay } from "@/features/trips";
 import { DesignPreview } from "./preview";
 
@@ -103,6 +109,28 @@ export default function DesignPreviewPage() {
             style={{ transform: "translateZ(0)" }}
           >
             <TripNav tripId="demo" />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-semibold text-muted">
+            ״מה עושים?״ — רשת הקטגוריות שהטאב נפתח עליה. לחיצה כאן תיכשל
+            בחיפוש, כי אין טיול אמיתי מאחוריה.
+          </p>
+          <div className="rounded-card border border-border bg-background p-4">
+            <PlaceSearch
+              tripId="demo"
+              cities={CITIES}
+              addedPlaces={[]}
+              savedCounts={savedCountsByCategory([
+                { category: "restaurants" },
+                { category: "restaurants" },
+                { category: "cafes" },
+                { category: "attractions" },
+                { category: "attractions" },
+                { category: "attractions" },
+              ])}
+            />
           </div>
         </div>
 

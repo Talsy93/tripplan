@@ -4,6 +4,7 @@ import {
   getSelectedDestinations,
   PlaceSearch,
   PlanningPanel,
+  savedCountsByCategory,
   SelectedList,
 } from "@/features/trips";
 
@@ -29,11 +30,17 @@ export default async function ExplorePage({
   return (
     <>
       <section className="flex flex-col gap-4">
-        <h2 className="font-display text-lg">אטרקציות סביבכם</h2>
+        <div>
+          <h2 className="font-display text-xl">לאן עכשיו?</h2>
+          <p className="text-sm text-muted">
+            מתוכנן, אופציונלי, וכל מה ששמרתם
+          </p>
+        </div>
         <PlaceSearch
           tripId={id}
           cities={searchCities}
           addedPlaces={addedPlaces}
+          savedCounts={savedCountsByCategory(selected)}
         />
       </section>
 
