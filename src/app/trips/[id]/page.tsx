@@ -11,10 +11,12 @@ import {
   getItinerary,
   getSavedCities,
   getSelectedDestinations,
+  getPhrasebook,
   getTrip,
   Itinerary,
   listBookings,
   PlaceSearch,
+  Phrasebook,
   PlanningPanel,
   RouteMapPanel,
   SelectedList,
@@ -35,13 +37,14 @@ export default async function TripPage({
     notFound();
   }
 
-  const [savedCities, selected, itinerary, addedPlaces, bookings] =
+  const [savedCities, selected, itinerary, addedPlaces, bookings, phrasebook] =
     await Promise.all([
       getSavedCities(id),
       getSelectedDestinations(id),
       getItinerary(id),
       getAddedPlaces(id),
       listBookings(id),
+      getPhrasebook(id),
     ]);
 
   // The destinations the search can look around — the cities the user has
@@ -77,6 +80,7 @@ export default async function TripPage({
           { id: "map", label: "מפת מסלול" },
           { id: "places", label: "אטרקציות" },
           { id: "logistics", label: "לוגיסטיקה" },
+          { id: "phrases", label: "מילים שימושיות" },
         ]}
         panels={{
           plan: (
@@ -145,6 +149,9 @@ export default async function TripPage({
                 <BookingForm tripId={trip.id} cities={searchCities} />
               </section>
             </div>
+          ),
+          phrases: (
+            <Phrasebook tripId={trip.id} initialPhrasebook={phrasebook} />
           ),
         }}
       />

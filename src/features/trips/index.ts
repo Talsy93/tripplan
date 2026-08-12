@@ -150,6 +150,24 @@ export type {
 } from "./domain/weather";
 export { WeatherPanel } from "./components/weather-panel";
 export { WeatherForecast } from "./components/weather-forecast";
+export {
+  aiPhraseSchema,
+  aiPhraseSectionSchema,
+  aiPhrasebookSchema,
+  phrasebookRequestSchema,
+  PHRASE_TOPICS,
+} from "./domain/phrasebook";
+export type {
+  AiPhrase,
+  AiPhraseSection,
+  AiPhrasebook,
+  PhrasebookRequest,
+} from "./domain/phrasebook";
+export {
+  getPhrasebook,
+  savePhrasebook,
+} from "./infrastructure/phrasebook-service";
+export { Phrasebook } from "./components/phrasebook";
 export { CreateTripForm } from "./components/create-trip-form";
 export { TripDatesForm } from "./components/trip-dates-form";
 export { UpcomingTripCard } from "./components/upcoming-trip-card";
