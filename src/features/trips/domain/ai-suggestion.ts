@@ -1,10 +1,16 @@
 import * as z from "zod";
+import { normaliseName } from "@/lib/text";
 
 // ---- Level 1: city / area suggestions (concise) ----------------------------
 
 export const aiSuggestRequestSchema = z.object({
   prompt: z.string().trim().min(3, { error: "יש לתאר את הבקשה." }),
   count: z.number().int().min(1).max(10).optional(),
+  // Cities already on screen, so "more destinations" gets new ones instead of
+  // the same five reworded. Mirrors aiMoreRecommendationsRequestSchema below,
+  // which has had this since stage 8 — level 1 simply never grew the same
+  // affordance.
+  exclude: z.array(z.string()).optional(),
 });
 export type AiSuggestRequest = z.infer<typeof aiSuggestRequestSchema>;
 
@@ -18,6 +24,69 @@ export const aiCitySuggestionsSchema = z.object({
   cities: z.array(aiCitySuggestionSchema),
 });
 export type AiCitySuggestions = z.infer<typeof aiCitySuggestionsSchema>;
+
+// Appends newly suggested cities to the ones already held, dropping anything
+// that is already there.
+//
+// This is not belt-and-braces over a database constraint — for level-1 city rows
+// there is no constraint to lean on. The unique index from migration 0003 covers
+// (trip_id, city, category, name), and these rows carry NULL for both city and
+// category; Postgres treats NULLs as distinct, so the index never fires for them
+// (the migration's own comment says as much). Deduping here is the only thing
+// standing between "more destinations" and the same city listed twice.
+//
+// Incoming duplicates are also collapsed against each other, because one AI
+// response can name the same place twice on its own.
+export function mergeCitySuggestions(
+  existing: AiCitySuggestion[],
+  incoming: AiCitySuggestion[],
+): AiCitySuggestion[] {
+  const seen = new Set(existing.map((city) => normaliseName(city.name)));
+  const merged = [...existing];
+
+  for (const city of incoming) {
+    const key = normaliseName(city.name);
+    // An unnamed suggestion is not a destination; it would render as a blank
+    // card that cannot be opened.
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(city);
+  }
+  return merged;
+}
+
+// Just the cities from `incoming` that are not already in `existing` — what a
+// write needs, as opposed to what the screen needs.
+export function newCitySuggestions(
+  existing: AiCitySuggestion[],
+  incoming: AiCitySuggestion[],
+): AiCitySuggestion[] {
+  return mergeCitySuggestions(existing, incoming).slice(existing.length);
+}
+
+// The brief a "more destinations" round runs under, or null when there is
+// nothing to ask about.
+//
+// The original prompt is never stored — suggestions are, the request that made
+// them is not. So on a later visit the list is there and the brief is gone, and
+// requiring one would leave the button missing exactly when the trip is most
+// likely to want more. The cities themselves are a usable brief: the AI can read
+// a region and a style off "Kyoto, Osaka, Takayama" perfectly well, and the
+// caller sends the same names as `exclude` anyway.
+export function moreCitiesPrompt(
+  userPrompt: string,
+  cities: AiCitySuggestion[],
+): string | null {
+  const typed = userPrompt.trim();
+  if (typed.length >= 3) return typed;
+
+  const names = cities
+    .map((city) => city.name.trim())
+    .filter(Boolean);
+  if (names.length === 0) return null;
+
+  return `טיול באותו אזור ובאותו סגנון כמו היעדים האלה: ${names.join(", ")}`;
+}
 
 // ---- Level 2: full city guide (categorized recommendations) ----------------
 

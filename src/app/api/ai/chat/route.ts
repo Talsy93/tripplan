@@ -8,7 +8,11 @@ import {
   recentHistory,
   sendChatRequestSchema,
 } from "@/features/trips";
-import { generateText } from "@/lib/ai";
+import {
+  AiQuotaExceededError,
+  AiUnavailableError,
+  generateText,
+} from "@/lib/ai";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import type { SelectedItem, Trip } from "@/features/trips";
@@ -121,7 +125,13 @@ export async function POST(request: Request) {
     ]);
 
     return NextResponse.json({ reply });
-  } catch {
+  } catch (error) {
+    if (error instanceof AiQuotaExceededError) {
+      return NextResponse.json({ error: "ai_quota_exceeded" }, { status: 503 });
+    }
+    if (error instanceof AiUnavailableError) {
+      return NextResponse.json({ error: "ai_busy" }, { status: 503 });
+    }
     return NextResponse.json({ error: "ai_failed" }, { status: 502 });
   }
 }

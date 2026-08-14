@@ -5,11 +5,14 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, EmptyState, IconButton } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { BOOKING_KINDS, bookingWhere } from "../domain/booking";
+import { lodgingOrigin } from "../domain/directions";
 import { cityByDay } from "../domain/route";
 import { cityToneClass, cityToneMap } from "../domain/tone";
 import { clampDay, dateOfDay, dayOfTripLabel } from "../domain/trip-days";
 import { DayTimeline } from "./day-timeline";
+import { NightStay } from "./night-stay";
 import type { Booking } from "../domain/booking";
+import type { NightLodging } from "../domain/trip-days";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 
 // One day at a time, opened on the day you are actually living.
@@ -23,6 +26,7 @@ export function DayPager({
   startDate,
   currentDay,
   bookingsByDay,
+  lodgingByDay,
 }: {
   days: ItineraryDay[];
   initialDay: number;
@@ -31,6 +35,10 @@ export function DayPager({
   // in the strip even while looking at another day.
   currentDay: number | null;
   bookingsByDay: Record<number, Booking[]>;
+  // Where you sleep on each night, which bookingsByDay cannot tell you: it
+  // buckets a booking by its check-in alone, so a five-night hotel appears on
+  // one day and nowhere else.
+  lodgingByDay: Record<number, NightLodging>;
 }) {
   const [dayNumber, setDayNumber] = useState(initialDay);
 
@@ -51,6 +59,14 @@ export function DayPager({
   const city = [...active.items].reverse().find((it) => it.city)?.city ?? null;
   const date = dateOfDay(startDate, active.day);
   const bookings = bookingsByDay[active.day] ?? [];
+
+  // On the check-in day the booking card above already names the hotel, with
+  // its check-in time — repeating it as a "where you sleep" strip would read as
+  // the same thing rendered twice.
+  const stay = lodgingByDay[active.day] ?? null;
+  const stayAlreadyListed = bookings.some(
+    (booking) => booking.id === stay?.booking.id,
+  );
 
   const go = (delta: number) =>
     setDayNumber((d) => clampDay(d + delta, dayCount));
@@ -154,7 +170,14 @@ export function DayPager({
         </ul>
       )}
 
-      <DayTimeline day={active} />
+      <NightStay stay={stayAlreadyListed ? null : stay} />
+
+      {/* Directions run from where you slept, so the timeline can offer a
+          route to each of the day's places. */}
+      <DayTimeline
+        day={active}
+        origin={stay ? lodgingOrigin(stay.booking) : null}
+      />
     </div>
   );
 }

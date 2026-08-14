@@ -12,11 +12,12 @@ import {
   getTrip,
   itineraryStops,
   listBookings,
+  lodgingByDay,
   todayIn,
   tripPhase,
   UpNext,
 } from "@/features/trips";
-import type { Booking } from "@/features/trips";
+import type { Booking, NightLodging } from "@/features/trips";
 
 export default async function TodayPage({
   params,
@@ -54,6 +55,9 @@ export default async function TodayPage({
   const byDay: Record<number, Booking[]> = Object.fromEntries(
     bookingsByDay(bookings, trip.start_date, dayCount, APP_TIME_ZONE),
   );
+  const lodging: Record<number, NightLodging> = Object.fromEntries(
+    lodgingByDay(bookings, trip.start_date, dayCount, APP_TIME_ZONE),
+  );
 
   const onTheTrip = phase.kind === "during" || phase.kind === "after";
   const showDay = onTheTrip && focusDay !== null;
@@ -69,6 +73,7 @@ export default async function TodayPage({
           startDate={trip.start_date}
           currentDay={currentDay}
           bookingsByDay={byDay}
+          lodgingByDay={lodging}
         />
       ) : (
         <CountdownHero

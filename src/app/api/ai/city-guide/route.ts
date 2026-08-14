@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import * as z from "zod";
 import { aiCityGuideRequestSchema, aiCityGuideSchema } from "@/features/trips";
-import { generateStructured } from "@/lib/ai";
+import {
+  AiQuotaExceededError,
+  AiUnavailableError,
+  generateStructured,
+} from "@/lib/ai";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import type { AiCityGuideRequest } from "@/features/trips";
@@ -75,7 +79,13 @@ export async function POST(request: Request) {
       schema: aiCityGuideSchema,
     });
     return NextResponse.json(guide);
-  } catch {
+  } catch (error) {
+    if (error instanceof AiQuotaExceededError) {
+      return NextResponse.json({ error: "ai_quota_exceeded" }, { status: 503 });
+    }
+    if (error instanceof AiUnavailableError) {
+      return NextResponse.json({ error: "ai_busy" }, { status: 503 });
+    }
     return NextResponse.json({ error: "ai_failed" }, { status: 502 });
   }
 }

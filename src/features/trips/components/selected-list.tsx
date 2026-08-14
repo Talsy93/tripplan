@@ -60,7 +60,20 @@ export function SelectedList({
             {list.map((item) => (
               <li key={keyOf(item)}>
                 <Card className="flex items-center justify-between gap-3 border-s-4 border-s-tone-dot p-3">
-                  <span>{item.name}</span>
+                  {/* One truncated line of context under the name. For a
+                      hand-typed place this is the address that was entered —
+                      without it the address would be stored and never shown.
+                      For a guide item it's the start of the AI's description.
+                      Truncated rather than wrapped so a long description can't
+                      turn the list into paragraphs. */}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{item.name}</span>
+                    {item.description && (
+                      <span className="block truncate text-xs text-muted">
+                        {item.description}
+                      </span>
+                    )}
+                  </span>
                   <div className="flex shrink-0 items-center gap-3">
                     <span className="text-xs text-muted">
                       {categoryLabel(item.category)}

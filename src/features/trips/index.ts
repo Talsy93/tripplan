@@ -38,6 +38,8 @@ export {
   placeSchema,
   placeSearchRequestSchema,
   selectableCategorySchema,
+  manualPlaceSchema,
+  manualPlaceDescription,
   PLACE_CATEGORIES,
   MIN_DETAILS,
   distanceKm,
@@ -51,6 +53,7 @@ export type {
   PlaceCategory,
   PlaceSearchRequest,
   SelectableCategory,
+  ManualPlaceInput,
 } from "./domain/place";
 export type { RouteStop, TripRoute } from "./domain/route";
 export {
@@ -65,6 +68,8 @@ export {
   aiRecommendationsSchema,
   aiItineraryRequestSchema,
   aiItinerarySchema,
+  mergeCitySuggestions,
+  newCitySuggestions,
 } from "./domain/ai-suggestion";
 export type {
   AiSuggestRequest,
@@ -92,6 +97,7 @@ export {
   saveMore,
   refreshGuide,
   saveCities,
+  addMoreCities,
   setSelected,
 } from "./application/guide-actions";
 export { deleteItineraryEntry } from "./application/itinerary-actions";
@@ -105,6 +111,7 @@ export {
   getSavedCities,
   getSelectedDestinations,
   getPrimaryDestination,
+  appendCities,
 } from "./infrastructure/guide-service";
 export {
   getItinerary,
@@ -113,9 +120,14 @@ export {
   setTripStatus,
 } from "./infrastructure/itinerary-service";
 export { getTripRoute, getCityCenter } from "./infrastructure/route-service";
-export { addPlaceToTrip, getAddedPlaces } from "./infrastructure/place-service";
+export {
+  addPlaceToTrip,
+  addManualPlace,
+  getAddedPlaces,
+} from "./infrastructure/place-service";
 export type { AddedPlace } from "./infrastructure/place-service";
-export { addPlace } from "./application/place-actions";
+export { addPlace, createManualPlace } from "./application/place-actions";
+export type { ManualPlaceResult } from "./application/place-actions";
 export {
   bookingKindSchema,
   bookingSchema,
@@ -155,11 +167,17 @@ export {
   focusDayNumber,
   itineraryOverrun,
   bookingsByDay,
+  lodgingByDay,
+  nightStayLabel,
   dayLabel,
   dayOfTripLabel,
   phaseLabel,
 } from "./domain/trip-days";
-export type { TripPhase } from "./domain/trip-days";
+export type { TripPhase, NightLodging } from "./domain/trip-days";
+export { NightStay } from "./components/night-stay";
+export { lodgingOrigin, entryDestination } from "./domain/directions";
+export { aiErrorMessage, aiErrorFromResponse } from "./domain/ai-errors";
+export type { AiErrorCode } from "./domain/ai-errors";
 export { DayPager } from "./components/day-pager";
 export type {
   DailyWeather,
@@ -255,4 +273,5 @@ export type {
 } from "./domain/timeline";
 export { PlaceSearch } from "./components/place-search";
 export { PlaceDetails } from "./components/place-details";
+export { ManualPlaceForm } from "./components/manual-place-form";
 export { RouteMapPanel } from "./components/route-map-panel";

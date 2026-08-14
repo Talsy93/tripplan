@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { Button, Card, EmptyState, Input } from "@/components/ui";
+import { aiErrorFromResponse } from "../domain/ai-errors";
 import type { AiPhrase, AiPhrasebook } from "../domain/phrasebook";
 
 // Matches across all four fields. Someone reaching for a phrase might remember
@@ -52,12 +53,8 @@ export function Phrasebook({
         body: JSON.stringify({ tripId }),
       });
 
-      if (res.status === 429) {
-        setError("יותר מדי בקשות. נסו שוב בעוד רגע.");
-        return;
-      }
       if (!res.ok) {
-        setError("בניית השיחון נכשלה. נסו שוב.");
+        setError(await aiErrorFromResponse(res, "בניית השיחון נכשלה. נסו שוב."));
         return;
       }
       setPhrasebook((await res.json()) as AiPhrasebook);
