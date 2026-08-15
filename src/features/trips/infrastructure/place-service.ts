@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { normaliseName } from "@/lib/text";
-import type { Place } from "../domain/place";
+import { manualPlaceDescription } from "../domain/place";
+import type { ManualPlaceInput, Place } from "../domain/place";
 
 // Places found in the attractions search live in the same table as the AI
 // suggestions, distinguished by source='manual' — the enum value migration 0002
@@ -47,6 +48,80 @@ export async function addPlaceToTrip(
     return false;
   }
   return true;
+}
+
+// Adds a place the user typed in by hand.
+//
+// Deliberately NOT an upsert, unlike addPlaceToTrip above. The natural key is
+// (trip_id, city, category, name), so a typed name can collide with a row that
+// already exists — and a blind upsert would overwrite that row's `source`,
+// `external_id` and coordinates with a typed row's empty ones. Flipping an 'ai'
+// row to 'manual' would drop it out of the city guide (getSavedCityGuide
+// filters on source) and out of deleteCityGuide's reach; nulling an
+// external_id would break the search's "already added" badge. Both would fail
+// silently, which is how the source-filter bugs in stage 13b behaved.
+//
+// So: an existing row is only marked selected, and told its address if one was
+// given. Nothing already known about it is rewritten.
+export async function addManualPlace(
+  tripId: string,
+  input: ManualPlaceInput,
+): Promise<{ ok: boolean; existed: boolean }> {
+  const supabase = await createClient();
+  const description = manualPlaceDescription(input.address);
+
+  const key = {
+    trip_id: tripId,
+    city: input.city,
+    category: input.category,
+    name: input.name,
+  };
+
+  const { data: existing } = await supabase
+    .from("suggested_destinations")
+    .select("id")
+    .match(key)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("suggested_destinations")
+      .update({ selected: true, ...(description ? { description } : {}) })
+      .eq("id", existing.id);
+
+    if (error) {
+      console.error("addManualPlace update failed:", error.message);
+      return { ok: false, existed: true };
+    }
+    return { ok: true, existed: true };
+  }
+
+  // Coordinates and external_id are left unset on purpose. A typed place has
+  // no OSM element behind it, and geocoding a business name is the bug that
+  // put "Hakone" in Los Angeles (see migration 0005) — so the map and the
+  // distance-between-stops calculation simply skip it, the same way they
+  // already skip every AI guide item.
+  const { error } = await supabase.from("suggested_destinations").insert({
+    ...key,
+    description,
+    source: "manual" as const,
+    selected: true,
+  });
+
+  if (error) {
+    // 23505 = unique violation: something inserted the same row in between.
+    // Treat it as "it exists now", which is what the caller wanted anyway.
+    if (error.code === "23505") {
+      const { error: retryError } = await supabase
+        .from("suggested_destinations")
+        .update({ selected: true, ...(description ? { description } : {}) })
+        .match(key);
+      if (!retryError) return { ok: true, existed: true };
+    }
+    console.error("addManualPlace insert failed:", error.message);
+    return { ok: false, existed: false };
+  }
+  return { ok: true, existed: false };
 }
 
 // What the search needs to know about a result it has already seen added.

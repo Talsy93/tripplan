@@ -177,6 +177,105 @@ export function bookingsByDay(
   return byDay;
 }
 
+// ---- Where you sleep ------------------------------------------------------
+
+export type NightLodging = {
+  booking: Booking;
+  // The night you arrive — the day that also carries a check-in time.
+  isCheckIn: boolean;
+  // The last night of this booking; the following morning you check out.
+  isLastNight: boolean;
+};
+
+// The lodging that covers each itinerary day's night.
+//
+// Distinct from bookingsByDay above, which buckets every booking by its
+// `starts_at` alone. That answers "what happens today", so a hotel booked for
+// five nights shows up on the check-in day and nowhere else — and "where am I
+// sleeping on day 4" had no answer at all.
+//
+// A booking with check-in X and check-out Y covers the nights of X..Y-1: on the
+// morning of Y you leave, so that date gets no lodging. Dates are compared as
+// YYYY-MM-DD strings, which sort correctly, and are resolved in `zone` for the
+// same reason bookingsByDay takes one — a 23:40 check-in belongs to a different
+// date depending on whose calendar you ask.
+export function lodgingByDay(
+  bookings: Booking[],
+  startDate: string | null,
+  dayCount: number,
+  zone: string,
+): Map<number, NightLodging> {
+  const byDay = new Map<number, NightLodging>();
+  if (!startDate || dayCount < 1) return byDay;
+
+  const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: zone });
+  const dateOf = (iso: string): string | null => {
+    const at = new Date(iso);
+    return Number.isNaN(at.getTime()) ? null : formatter.format(at);
+  };
+
+  const stays: { booking: Booking; checkIn: string; checkOut: string | null }[] =
+    [];
+  for (const booking of bookings) {
+    if (booking.kind !== "lodging") continue;
+    const checkIn = dateOf(booking.starts_at);
+    if (!checkIn) continue;
+    const checkOut = booking.ends_at ? dateOf(booking.ends_at) : null;
+    // A check-out that is not after the check-in tells us nothing about later
+    // nights, so it is treated as unknown rather than as a negative span.
+    stays.push({
+      booking,
+      checkIn,
+      checkOut: checkOut && checkOut > checkIn ? checkOut : null,
+    });
+  }
+  if (stays.length === 0) return byDay;
+
+  for (let day = 1; day <= dayCount; day += 1) {
+    const date = addDays(startDate, day - 1);
+
+    // Without a check-out date we only know about the night of arrival.
+    // Assuming the stay continues would invent nights the user never entered —
+    // and would be wrong the moment they booked a second hotel.
+    const covering = stays.filter((stay) =>
+      stay.checkOut
+        ? stay.checkIn <= date && date < stay.checkOut
+        : stay.checkIn === date,
+    );
+    if (covering.length === 0) continue;
+
+    // Overlapping stays are a data conflict, not a scenario to average: the
+    // most recent check-in is where you actually went to sleep.
+    const chosen = covering.reduce((best, stay) =>
+      stay.checkIn > best.checkIn ||
+      (stay.checkIn === best.checkIn &&
+        stay.booking.starts_at > best.booking.starts_at)
+        ? stay
+        : best,
+    );
+
+    byDay.set(day, {
+      booking: chosen.booking,
+      isCheckIn: date === chosen.checkIn,
+      isLastNight: chosen.checkOut
+        ? addDays(date, 1) === chosen.checkOut
+        : true,
+    });
+  }
+
+  return byDay;
+}
+
+// How to describe a night, given where it falls in the stay. Kept next to
+// lodgingByDay rather than in the component, for the same reason dayLabel is
+// here: the wording is a property of the data, not of the screen.
+export function nightStayLabel(stay: NightLodging): string {
+  if (stay.isCheckIn && stay.isLastNight) return "לילה אחד כאן";
+  if (stay.isCheckIn) return "צ׳ק-אין";
+  if (stay.isLastNight) return "הלילה האחרון כאן";
+  return "ישנים כאן";
+}
+
 // Replaces tripStatusLabels in the UI. The stored status could not tell you
 // this: it was set to 'executing' the moment an itinerary was generated,
 // possibly months before departure, and never reached 'completed'.

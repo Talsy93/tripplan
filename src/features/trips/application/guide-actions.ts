@@ -10,12 +10,14 @@ import {
 } from "../domain/ai-suggestion";
 import { selectableCategorySchema } from "../domain/place";
 import {
+  appendCities,
   deleteCityGuide,
   saveCities as saveCitiesToDb,
   saveCityGuide,
   saveRecommendations,
   setDestinationSelected,
 } from "../infrastructure/guide-service";
+import type { AiCitySuggestion } from "../domain/ai-suggestion";
 
 // Persist a freshly generated guide. Validated so a client can't write junk;
 // RLS additionally restricts writes to the user's own trips.
@@ -50,6 +52,29 @@ export async function saveCities(tripId: string, cities: unknown) {
   const parsed = z.array(aiCitySuggestionSchema).safeParse(cities);
   if (!parsed.success) return;
   await saveCitiesToDb(tripId, parsed.data);
+}
+
+// Adds cities to the trip's suggestions, keeping the ones already there.
+//
+// Returns the cities that were actually new, so "more destinations" can report
+// an empty round rather than looking like it did nothing.
+export async function addMoreCities(
+  tripId: string,
+  cities: unknown,
+): Promise<AiCitySuggestion[]> {
+  const parsedId = z.uuid().safeParse(tripId);
+  const parsed = z.array(aiCitySuggestionSchema).safeParse(cities);
+  if (!parsedId.success || !parsed.success) return [];
+
+  const added = await appendCities(parsedId.data, parsed.data);
+
+  // The suggestions are read by the server render of the explore tab, and the
+  // route map reads the same rows — so the whole layout has to be revalidated
+  // or the additions vanish on the next navigation.
+  if (added.length > 0) {
+    revalidatePath(`/trips/${parsedId.data}`, "layout");
+  }
+  return added;
 }
 
 export async function setSelected(

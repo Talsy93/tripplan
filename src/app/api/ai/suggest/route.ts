@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import * as z from "zod";
 import { aiSuggestRequestSchema, aiCitySuggestionsSchema } from "@/features/trips";
-import { generateStructured } from "@/lib/ai";
+import {
+  AiQuotaExceededError,
+  AiUnavailableError,
+  generateStructured,
+} from "@/lib/ai";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import type { AiSuggestRequest } from "@/features/trips";
@@ -9,14 +13,22 @@ import type { AiSuggestRequest } from "@/features/trips";
 const RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 60_000;
 
-function buildPrompt({ prompt, count = 5 }: AiSuggestRequest) {
+function buildPrompt({ prompt, count = 5, exclude = [] }: AiSuggestRequest) {
   return [
     "אתה מתכנן טיולים מקצועי.",
     `הצע ${count} ערים או אזורים מתאימים לבקשה הבאה:`,
     `"${prompt}"`,
+    // Without this, "more destinations" returns the same five reworded. The
+    // client also drops duplicates on the way back in, because a prompt is a
+    // request and not a guarantee.
+    exclude.length > 0
+      ? `אל תציע את הערים הבאות שכבר הוצגו: ${exclude.join(", ")}. הצע ערים אחרות לגמרי.`
+      : "",
     "לכל עיר ספק שם ומשפט קצר שמסביר למה היא מתאימה.",
     "השב בעברית.",
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 export async function POST(request: Request) {
@@ -58,7 +70,13 @@ export async function POST(request: Request) {
       schema: aiCitySuggestionsSchema,
     });
     return NextResponse.json(suggestions);
-  } catch {
+  } catch (error) {
+    if (error instanceof AiQuotaExceededError) {
+      return NextResponse.json({ error: "ai_quota_exceeded" }, { status: 503 });
+    }
+    if (error instanceof AiUnavailableError) {
+      return NextResponse.json({ error: "ai_busy" }, { status: 503 });
+    }
     return NextResponse.json({ error: "ai_failed" }, { status: 502 });
   }
 }

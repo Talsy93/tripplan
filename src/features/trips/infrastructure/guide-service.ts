@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { newCitySuggestions } from "../domain/ai-suggestion";
 import type {
   AiCategoryKey,
   AiCitySuggestion,
@@ -248,6 +249,48 @@ export async function getSavedCities(
     name: row.name,
     description: row.description ?? "",
   }));
+}
+
+// Adds cities to the trip's suggestions without touching the ones already
+// there — what "show more destinations" needs.
+//
+// Separate from saveCities below, which deletes before it writes. That is right
+// for regenerating from a new prompt and wrong here, and the same distinction
+// already exists one level up between saveCityGuide and savePlanFromChat.
+//
+// Deduping happens against what is actually in the table rather than against
+// what the client had on screen, so two tabs open on the same trip cannot race
+// each other into a duplicate. There is no unique index to fall back on: these
+// rows carry NULL city and NULL category, and Postgres treats NULLs as distinct
+// (see migration 0003's own comment), so the index never fires for them.
+//
+// Returns the cities actually written, so the UI can say "nothing new" instead
+// of silently appearing to do nothing.
+export async function appendCities(
+  tripId: string,
+  cities: AiCitySuggestion[],
+): Promise<AiCitySuggestion[]> {
+  if (cities.length === 0) return [];
+
+  const existing = await getSavedCities(tripId);
+  const additions = newCitySuggestions(existing, cities);
+  if (additions.length === 0) return [];
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("suggested_destinations").insert(
+    additions.map((city) => ({
+      trip_id: tripId,
+      name: city.name,
+      description: city.description,
+      source: "ai" as const,
+      selected: false,
+    })),
+  );
+  if (error) {
+    console.error("appendCities failed:", error.message);
+    return [];
+  }
+  return additions;
 }
 
 // Replaces the trip's suggested cities with a freshly generated set.

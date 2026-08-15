@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, Card } from "@/components/ui";
 import { googleMapsSearchUrl } from "@/lib/maps";
+import { aiErrorFromResponse } from "../domain/ai-errors";
 import {
   refreshGuide,
   saveGuide,
@@ -102,12 +103,8 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
         body: JSON.stringify({ city }),
       });
 
-      if (res.status === 429) {
-        setError("יותר מדי בקשות. נסו שוב בעוד רגע.");
-        return;
-      }
       if (!res.ok) {
-        setError("טעינת המדריך נכשלה. נסו שוב.");
+        setError(await aiErrorFromResponse(res, "טעינת המדריך נכשלה. נסו שוב."));
         return;
       }
 

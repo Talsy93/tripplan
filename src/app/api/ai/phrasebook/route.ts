@@ -9,7 +9,11 @@ import {
   PHRASE_TOPICS,
   savePhrasebook,
 } from "@/features/trips";
-import { generateStructured } from "@/lib/ai";
+import {
+  AiQuotaExceededError,
+  AiUnavailableError,
+  generateStructured,
+} from "@/lib/ai";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
@@ -113,7 +117,13 @@ export async function POST(request: Request) {
     });
     await savePhrasebook(tripId, phrasebook);
     return NextResponse.json(phrasebook);
-  } catch {
+  } catch (error) {
+    if (error instanceof AiQuotaExceededError) {
+      return NextResponse.json({ error: "ai_quota_exceeded" }, { status: 503 });
+    }
+    if (error instanceof AiUnavailableError) {
+      return NextResponse.json({ error: "ai_busy" }, { status: 503 });
+    }
     return NextResponse.json({ error: "ai_failed" }, { status: 502 });
   }
 }

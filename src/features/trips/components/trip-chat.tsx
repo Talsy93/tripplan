@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button, Card, Textarea } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { applyPlan, resetChat } from "../application/chat-actions";
+import { aiErrorFromResponse } from "../domain/ai-errors";
 import { PlanPreview } from "./plan-preview";
 import type { TripChatMessage } from "../domain/chat";
 import type { AiTripPlan } from "../domain/trip-plan";
@@ -67,12 +68,8 @@ export function TripChat({
         body: JSON.stringify({ tripId, message }),
       });
 
-      if (res.status === 429) {
-        setError("יותר מדי הודעות. נסו שוב בעוד רגע.");
-        return;
-      }
       if (!res.ok) {
-        setError("השליחה נכשלה. נסו שוב.");
+        setError(await aiErrorFromResponse(res, "השליחה נכשלה. נסו שוב."));
         return;
       }
 
@@ -110,12 +107,8 @@ export function TripChat({
         setError("צריך קודם לנהל שיחה שממנה אפשר לבנות מסלול.");
         return;
       }
-      if (res.status === 429) {
-        setError("יותר מדי בקשות. נסו שוב בעוד רגע.");
-        return;
-      }
       if (!res.ok) {
-        setError("בניית המסלול נכשלה. נסו שוב.");
+        setError(await aiErrorFromResponse(res, "בניית המסלול נכשלה. נסו שוב."));
         return;
       }
       setPlan((await res.json()) as AiTripPlan);

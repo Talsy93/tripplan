@@ -110,6 +110,46 @@ export const selectableCategorySchema = z.union([
 ]);
 export type SelectableCategory = z.infer<typeof selectableCategorySchema>;
 
+// ---- A place typed in by hand --------------------------------------------
+//
+// The search only knows what OpenStreetMap knows, and OSM does not know about
+// the restaurant a friend recommended. This is the escape hatch.
+//
+// It lands in the same table as everything else, as source='manual' with no
+// external_id — the pair is what tells the two kinds of "manual" row apart:
+// a searched place always carries the OSM id it came from, a typed one never
+// does. getAddedPlaces filters on external_id being present for exactly this
+// reason, so typed places cannot disturb the search's "already added" badges.
+//
+// Categories are the search's six rather than the AI guide's four: this is a
+// place, and those are the labels the explore grid already shows.
+export const manualPlaceSchema = z.object({
+  name: z.string().trim().min(1, { error: "יש למלא שם." }).max(200, {
+    error: "השם ארוך מדי.",
+  }),
+  city: z.string().trim().min(1, { error: "יש למלא עיר." }).max(120, {
+    error: "שם העיר ארוך מדי.",
+  }),
+  category: placeCategorySchema,
+  // Optional: a name and a city are enough to find most places.
+  address: z.string().trim().max(300, { error: "הכתובת ארוכה מדי." }).optional(),
+});
+export type ManualPlaceInput = z.infer<typeof manualPlaceSchema>;
+
+// What goes in the row's description column, or null when there is nothing to
+// say.
+//
+// Null matters: adding a place that already exists is an upsert, and writing an
+// empty description would erase a real one that is already on the row — an AI
+// guide item's two sentences, or an address typed a moment earlier. The service
+// omits the column entirely when this returns null, which leaves it untouched.
+export function manualPlaceDescription(
+  address: string | null | undefined,
+): string | null {
+  const trimmed = (address ?? "").trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 export const placeSearchRequestSchema = z.object({
   tripId: z.uuid(),
   city: z.string().trim().min(1, { error: "יש לבחור יעד." }),

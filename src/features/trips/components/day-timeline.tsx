@@ -1,7 +1,8 @@
 "use client";
 
 import { Card } from "@/components/ui";
-import { googleMapsSearchUrl } from "@/lib/maps";
+import { googleMapsDirectionsUrl, googleMapsSearchUrl } from "@/lib/maps";
+import { entryDestination } from "../domain/directions";
 import {
   axisHours,
   buildDayTimeline,
@@ -17,12 +18,27 @@ import type { ItineraryDay } from "../domain/ai-suggestion";
 // that an hour looks like an hour.
 const PX_PER_HOUR = 76;
 
+// Below this height a card cannot fit its action row, and the card is
+// overflow-hidden — so the links were being drawn and then clipped to a couple
+// of visible pixels: present in the DOM, impossible to read or tap. Hiding them
+// is the honest version of what was already happening.
+//
+// The number is the content it has to hold: p-2 top and bottom (16), the title
+// row (20), and the link row itself (16).
+const MIN_PX_FOR_ACTIONS = 52;
+
 export function DayTimeline({
   day,
   onRemove,
+  // Where the day starts from — the lodging that covers this night, already
+  // reduced to a string Google can resolve. Null when the night has no booked
+  // lodging, and then no directions link is offered: a route from nowhere is
+  // not a route.
+  origin = null,
 }: {
   day: ItineraryDay;
   onRemove?: (entryId: string) => void;
+  origin?: string | null;
 }) {
   const timeline = buildDayTimeline(day);
   const hours = axisHours(timeline);
@@ -52,6 +68,10 @@ export function DayTimeline({
           {timeline.entries.map(({ entry, startMinutes, endMinutes }) => {
             const top = positionPercent(timeline, startMinutes);
             const bottom = positionPercent(timeline, endMinutes);
+            const destination = entryDestination(entry);
+            const heightPx =
+              ((endMinutes - startMinutes) / 60) * PX_PER_HOUR;
+            const showActions = heightPx >= MIN_PX_FOR_ACTIONS;
 
             return (
               <Card
@@ -82,16 +102,32 @@ export function DayTimeline({
                 {entry.note && (
                   <p className="truncate text-xs text-muted">{entry.note}</p>
                 )}
-                <a
-                  href={googleMapsSearchUrl(
-                    entry.city ? `${entry.title} ${entry.city}` : entry.title,
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-auto self-start text-xs text-primary hover:underline"
-                >
-                  🗺️ במפה
-                </a>
+                {showActions && (
+                  <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+                    <a
+                      href={googleMapsSearchUrl(
+                        entry.city
+                          ? `${entry.title} ${entry.city}`
+                          : entry.title,
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      🗺️ במפה
+                    </a>
+                    {origin && destination && (
+                      <a
+                        href={googleMapsDirectionsUrl(origin, destination)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        🚇 איך מגיעים
+                      </a>
+                    )}
+                  </div>
+                )}
               </Card>
             );
           })}

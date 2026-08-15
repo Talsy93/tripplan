@@ -3,12 +3,17 @@
 import { useState } from "react";
 import { Button, Card } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { googleMapsSearchUrl } from "@/lib/maps";
+import { googleMapsDirectionsUrl, googleMapsSearchUrl } from "@/lib/maps";
+import { withHebrewPrefix } from "@/lib/text";
 import { deleteItineraryEntry } from "../application/itinerary-actions";
+import { aiErrorFromResponse } from "../domain/ai-errors";
+import { entryDestination, lodgingOrigin } from "../domain/directions";
 import { DayTimeline } from "./day-timeline";
 import { cityByDay } from "../domain/route";
 import { cityToneClass, cityToneMap } from "../domain/tone";
 import { dateOfDay, dayLabel, itineraryOverrun } from "../domain/trip-days";
+import { NightStay } from "./night-stay";
+import type { NightLodging } from "../domain/trip-days";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 
 // The graphic is the point of the feature, but a plain list stays available:
@@ -22,6 +27,10 @@ type ItineraryProps = {
   // trip has no departure date yet and days show as bare numbers.
   startDate?: string | null;
   endDate?: string | null;
+  // Which lodging covers each day's night. Answers "where do I sleep on day 4"
+  // — a hotel booked for five nights is a single booking with one check-in, so
+  // listing bookings by their start date never told you.
+  lodgingByDay?: Record<number, NightLodging>;
 };
 
 export function Itinerary({
@@ -29,6 +38,7 @@ export function Itinerary({
   initialItinerary,
   startDate = null,
   endDate = null,
+  lodgingByDay = {},
 }: ItineraryProps) {
   const [days, setDays] = useState<ItineraryDay[]>(initialItinerary);
   const [view, setView] = useState<View>("timeline");
@@ -56,12 +66,8 @@ export function Itinerary({
         setError("צריך קודם להוסיף פריטים לטיול (בקטגוריות של העיר).");
         return;
       }
-      if (res.status === 429) {
-        setError("יותר מדי בקשות. נסו שוב בעוד רגע.");
-        return;
-      }
       if (!res.ok) {
-        setError('בניית הלו"ז נכשלה. נסו שוב.');
+        setError(await aiErrorFromResponse(res, 'בניית הלו"ז נכשלה. נסו שוב.'));
         return;
       }
 
@@ -150,6 +156,11 @@ export function Itinerary({
         // A day belongs to the city it ends in — the same rule the route uses.
         const city = [...day.items].reverse().find((it) => it.city)?.city;
 
+        // Directions start from wherever you slept that night, so both views
+        // below offer the same route from the same origin.
+        const stay = lodgingByDay[day.day] ?? null;
+        const origin = stay ? lodgingOrigin(stay.booking) : null;
+
         return (
         <div
           key={day.day}
@@ -162,11 +173,15 @@ export function Itinerary({
               <span className="text-xs font-normal text-tone-ink">{city}</span>
             )}
           </h3>
+          <NightStay stay={lodgingByDay[day.day] ?? null} />
+
           {view === "timeline" ? (
-            <DayTimeline day={day} onRemove={remove} />
+            <DayTimeline day={day} onRemove={remove} origin={origin} />
           ) : (
             <div className="flex flex-col gap-2">
-              {day.items.map((item) => (
+              {day.items.map((item) => {
+                const destination = entryDestination(item);
+                return (
                 <Card key={item.id} className="flex flex-col gap-1 p-4">
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="font-semibold">{item.title}</span>
@@ -187,16 +202,30 @@ export function Itinerary({
                   {item.note && (
                     <p className="text-sm text-muted">{item.note}</p>
                   )}
-                  <a
-                    href={googleMapsSearchUrl(item.title)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="self-start text-xs text-primary hover:underline"
-                  >
-                    🗺️ פתח ב-Google Maps
-                  </a>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                    <a
+                      href={googleMapsSearchUrl(item.title)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      🗺️ פתח ב-Google Maps
+                    </a>
+                    {origin && destination && (
+                      <a
+                        href={googleMapsDirectionsUrl(origin, destination)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        🚇 איך מגיעים{" "}
+                        {withHebrewPrefix("מ", stay?.booking.title ?? "")}
+                      </a>
+                    )}
+                  </div>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
