@@ -31,8 +31,9 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "TripPlan";
   const options = {
     body: payload.body || "יש עדכון בטיול שלך.",
-    icon: "/icon.svg",
-    badge: "/icon-maskable.svg",
+    // PNG, not SVG: several platforms silently show no icon for an SVG here.
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
     dir: "rtl",
     lang: "he",
     // Groups repeats of the same reminder instead of stacking them. The server

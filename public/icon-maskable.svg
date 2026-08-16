@@ -1,19 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="TripPlan">
-  <!-- Maskable variant: Android crops this to whatever shape the launcher uses,
-       so everything that matters stays inside the middle 80% (the "safe zone").
-       The artwork is the same, drawn smaller and on a full-bleed background. -->
+  <!-- Maskable variant: Android crops this to whatever shape the launcher
+       uses, so the artwork stays inside the middle 80 percent (the safe zone)
+       and the background runs full bleed. -->
   <rect width="512" height="512" fill="#faf7f2" />
-  <g transform="translate(256 256) scale(0.62) translate(-256 -256)">
+  <g transform="translate(256 256) scale(0.66) translate(-256 -256)">
+    <ellipse cx="256" cy="404" rx="74" ry="20" fill="#9a7658" opacity="0.16" />
     <path
-      d="M148 344c58-26 92-52 92-84s-46-46-46-86a62 62 0 1 1 124 0c0 40-46 54-46 86s34 58 92 84"
-      fill="none"
-      stroke="#9a7658"
-      stroke-width="26"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      stroke-dasharray="4 44"
+      d="M256 96c-70 0-127 57-127 127 0 95 127 181 127 181s127-86 127-181c0-70-57-127-127-127z"
+      fill="#9a7658"
     />
-    <circle cx="256" cy="174" r="62" fill="#9a7658" />
-    <circle cx="256" cy="174" r="24" fill="#faf7f2" />
+    <circle cx="256" cy="223" r="49" fill="#faf7f2" />
   </g>
 </svg>
