@@ -41,7 +41,16 @@ alter table public.trip_bookings
   -- reminder, and a negative one is not a thing.
   add column if not exists reminder_days_before    integer
     check (reminder_days_before is null
-           or (reminder_days_before >= 0 and reminder_days_before <= 60));
+           or (reminder_days_before >= 0 and reminder_days_before <= 60)),
+  -- When each reminder was actually pushed. These exist so a reminder fires
+  -- ONCE, at the lead time the user chose — not every day the deadline is
+  -- inside the window. A daily job cannot know it already sent unless the row
+  -- remembers, and "remind me 3 days before" has to mean one notification.
+  --
+  -- Null = not sent yet. Set to now() at the moment of sending, so a job that
+  -- runs twice, retries, or overlaps cannot produce a second notification.
+  add column if not exists cancel_notified_at      timestamptz,
+  add column if not exists book_by_notified_at     timestamptz;
 
 -- Finding "what has a deadline coming up" is a per-trip scan of a few rows, so
 -- no index is added: trip_bookings_trip_starts_idx from 0008 already narrows to
@@ -55,3 +64,7 @@ comment on column public.trip_bookings.booked is
   'False for something still to be reserved; true for a real reservation.';
 comment on column public.trip_bookings.reminder_days_before is
   'Days before a deadline to begin reminding. Null = the app default.';
+comment on column public.trip_bookings.cancel_notified_at is
+  'When the free-cancellation reminder was pushed. Null = not sent; set once.';
+comment on column public.trip_bookings.book_by_notified_at is
+  'When the "still needs booking" reminder was pushed. Null = not sent; set once.';

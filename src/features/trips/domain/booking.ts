@@ -38,6 +38,10 @@ export const bookingSchema = z.object({
   booked: z.boolean(),
   // Null means "use the app default" — see reminderDays below.
   reminder_days_before: z.number().int().nullable(),
+  // When each push was sent. Null = not sent yet; set once, so a reminder
+  // fires at the chosen lead time and not on every run after it.
+  cancel_notified_at: z.string().nullable(),
+  book_by_notified_at: z.string().nullable(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 
