@@ -1,19 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="TripPlan">
-  <!-- Colours are the app's own tokens (globals.css): --background and
-       --primary. Kept literal because a manifest icon is fetched by the OS,
-       which has no stylesheet. -->
+  <!-- Colours are the app's own background and primary tokens from
+       globals.css, written literally because an icon is fetched by the OS,
+       which has no stylesheet. Note: no double hyphens in this comment, which
+       XML forbids and strict parsers reject.
+
+       A single bold pin, because this is read at 40px on a home screen. An
+       earlier version drew a dashed route around the pin; at icon size the
+       dashes collapsed into a ring of dots that looked like a cog. -->
   <rect width="512" height="512" rx="112" fill="#faf7f2" />
-  <!-- A route: two stops and the path between them. -->
+
+  <!-- The ground the pin stands on, so it does not float. -->
+  <ellipse cx="256" cy="404" rx="74" ry="20" fill="#9a7658" opacity="0.16" />
+
   <path
-    d="M148 344c58-26 92-52 92-84s-46-46-46-86a62 62 0 1 1 124 0c0 40-46 54-46 86s34 58 92 84"
-    fill="none"
-    stroke="#9a7658"
-    stroke-width="26"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    stroke-dasharray="4 44"
+    d="M256 96c-70 0-127 57-127 127 0 95 127 181 127 181s127-86 127-181c0-70-57-127-127-127z"
+    fill="#9a7658"
   />
-  <circle cx="256" cy="174" r="62" fill="#9a7658" />
-  <circle cx="256" cy="174" r="24" fill="#faf7f2" />
-  <path d="M256 236c-34 44-52 72-52 90a52 52 0 0 0 104 0c0-18-18-46-52-90z" fill="#9a7658" opacity="0.18" />
+  <circle cx="256" cy="223" r="49" fill="#faf7f2" />
 </svg>

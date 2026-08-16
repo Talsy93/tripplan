@@ -35,8 +35,14 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
   },
   icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    // Must be PNG. iOS ignores an SVG apple-touch-icon entirely and falls back
+    // to a screenshot of the page for the home-screen tile — which is also the
+    // icon shown next to a push notification.
+    apple: { url: "/apple-touch-icon.png", sizes: "180x180" },
   },
 };
 
