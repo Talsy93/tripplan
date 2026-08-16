@@ -7,6 +7,7 @@ import {
   getTrip,
   listBookings,
   MoreBackLink,
+  PushToggle,
   TripDatesForm,
   WeatherPanel,
 } from "@/features/trips";
@@ -62,6 +63,13 @@ export default async function TripDetailsPage({
           now={new Date().toISOString()}
         />
         <BookingForm tripId={trip.id} cities={cities} />
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <h3 className="font-display text-lg">תזכורות</h3>
+        {/* Per-device, not per-trip: a subscription belongs to the browser it
+            was created in, so this is the same switch on every trip page. */}
+        <PushToggle />
       </section>
     </>
   );

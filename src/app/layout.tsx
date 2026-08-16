@@ -19,11 +19,25 @@ const secular = Secular_One({
 // Without it the fixed bottom nav sits under the home indicator.
 export const viewport: Viewport = {
   viewportFit: "cover",
+  // Painted behind the status bar once the app is installed.
+  themeColor: "#faf7f2",
 };
 
 export const metadata: Metadata = {
   title: "TripPlan — תכנון טיולים",
   description: "תכנון טיולים חכם: הצעות יעדים, בחירה, ולוח זמנים מסודר.",
+  // The manifest is what makes the app installable — and on iOS, installing is
+  // the only way push notifications work at all (see PushToggle).
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    title: "TripPlan",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
