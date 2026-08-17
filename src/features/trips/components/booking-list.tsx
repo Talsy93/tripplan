@@ -14,8 +14,12 @@ import {
   BOOKING_KINDS,
   bookingAlert,
   bookingNights,
+  bookingTodoAlert,
   bookingWhere,
+  cancellationAlert,
+  doubleBookedLodgingIds,
 } from "../domain/booking";
+import { APP_TIME_ZONE } from "../domain/weather";
 import { removeBooking } from "../application/booking-actions";
 import type { Booking, BookingAlert, BookingKind } from "../domain/booking";
 
@@ -88,8 +92,19 @@ export function BookingList({
       ? bookings
       : bookings.filter((booking) => booking.kind === filter);
 
+  // Computed over every booking, not just the visible ones: two hotels clash
+  // whether or not a filter happens to be showing both of them.
+  const doubleBooked = doubleBookedLodgingIds(bookings, APP_TIME_ZONE);
+
   return (
     <div className="flex flex-col gap-4">
+      {doubleBooked.size > 0 && (
+        <p className="rounded-control bg-warning-tint px-3 py-2 text-sm text-warning-ink">
+          ⚠️ יש לכם {doubleBooked.size} לינות שחופפות באותם לילות. אם הזמנתם שתי
+          אפשרויות כדי להחליט אחר כך — כדאי לבטל אחת מהן לפני שמועד הביטול
+          החינם עובר.
+        </p>
+      )}
       {segments.length > 2 && (
         <SegmentedControl
           items={segments}
@@ -102,8 +117,18 @@ export function BookingList({
       <ul className="flex flex-col gap-3">
         {shown.map((booking) => {
           const kind = BOOKING_KINDS[booking.kind];
-          const alert = bookingAlert(booking, asOf);
           const nights = bookingNights(booking);
+          const clashing = doubleBooked.has(booking.id);
+
+          // Three alerts can apply at once — a hotel can be starting soon, be
+          // cancellable until Thursday, and clash with another. They are
+          // rendered together rather than one winning, because they are
+          // different facts and hiding any of them loses information.
+          const alerts = [
+            bookingAlert(booking, asOf),
+            cancellationAlert(booking, asOf),
+            bookingTodoAlert(booking, asOf),
+          ].filter((entry): entry is BookingAlert => entry !== null);
 
           return (
             <li key={booking.id}>
@@ -117,15 +142,21 @@ export function BookingList({
                     <span className="truncate font-semibold">
                       {booking.title}
                     </span>
-                    {alert && (
+                    {clashing && (
+                      <Badge tone="warning" className="shrink-0">
+                        לינה כפולה
+                      </Badge>
+                    )}
+                    {alerts.map((alert) => (
                       <Badge
+                        key={alert.message}
                         tone={ALERT_TONE[alert.urgency]}
                         className="shrink-0"
                         suppressHydrationWarning
                       >
                         {alert.message}
                       </Badge>
-                    )}
+                    ))}
                   </span>
 
                   <IconButton
@@ -145,12 +176,26 @@ export function BookingList({
                   <StayLeg booking={booking} nights={nights} />
                 )}
 
-                {(booking.confirmation || booking.note) && (
+                {(booking.confirmation ||
+                  booking.note ||
+                  booking.free_cancellation_until ||
+                  (!booking.booked && booking.book_by)) && (
                   <div className="flex flex-col gap-1 border-t border-dashed border-border px-4 py-3 text-xs text-muted">
                     {booking.confirmation && (
                       <span dir="ltr" className="tabular-nums">
                         קוד הזמנה: {booking.confirmation}
                       </span>
+                    )}
+                    {/* Shown even when no alert is active, so the deadline that
+                        was entered is visible rather than only surfacing days
+                        later when it becomes urgent. */}
+                    {booking.free_cancellation_until && (
+                      <span>
+                        ביטול חינם עד {formatDay(booking.free_cancellation_until)}
+                      </span>
+                    )}
+                    {!booking.booked && booking.book_by && (
+                      <span>להזמין עד {formatDay(booking.book_by)}</span>
                     )}
                     {booking.note && <span>{booking.note}</span>}
                   </div>
@@ -233,6 +278,15 @@ function StayLeg({
       </div>
     </div>
   );
+}
+
+// A deadline is stored as a plain YYYY-MM-DD (a `date` column), so it is
+// reformatted by splitting the string rather than by parsing it into a Date —
+// `new Date("2026-09-10")` is UTC midnight and would print the 9th for any
+// reader west of Greenwich.
+function formatDay(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  return match ? `${match[3]}.${match[2]}.${match[1]}` : value;
 }
 
 function formatWhen(value: string) {

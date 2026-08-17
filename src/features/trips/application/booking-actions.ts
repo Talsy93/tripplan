@@ -21,7 +21,28 @@ const FORM_FIELDS = [
   "address",
   "confirmation",
   "note",
+  "freeCancellationUntil",
+  "bookBy",
+  "booked",
+  "reminderDaysBefore",
 ] as const;
+
+// A checkbox is absent from FormData when unticked, present as "on" when
+// ticked. Absent therefore means false — but only for a form that actually
+// contains the field, which is why the caller passes the flag explicitly rather
+// than letting `undefined` stand in for both "unticked" and "not asked".
+function checkboxValue(formData: FormData, field: string): boolean {
+  return formData.get(field) !== null;
+}
+
+// The reminder lead time arrives as a string, or as "" from an untouched field.
+// Undefined keeps the column null, which the domain reads as "use the default" —
+// distinct from 0, which is a real choice meaning "only on the day itself".
+function optionalNumber(value: FormDataEntryValue | null): number | undefined {
+  if (typeof value !== "string" || value.trim() === "") return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
 
 function submittedValues(formData: FormData) {
   const values: Record<string, string> = {};
@@ -29,6 +50,11 @@ function submittedValues(formData: FormData) {
     const value = formData.get(field);
     if (typeof value === "string" && value !== "") values[field] = value;
   }
+  // Recorded either way, unlike every other field. An unticked checkbox is
+  // simply absent, so leaving it out would let the form fall back to its own
+  // default — silently turning "not booked yet" back into "booked" when a
+  // rejected submission is handed back for correction.
+  values.booked = formData.get("booked") !== null ? "on" : "off";
   return values;
 }
 
@@ -50,6 +76,10 @@ export async function addBooking(
     address: formData.get("address") ?? undefined,
     confirmation: formData.get("confirmation") ?? undefined,
     note: formData.get("note") ?? undefined,
+    freeCancellationUntil: formData.get("freeCancellationUntil") || undefined,
+    bookBy: formData.get("bookBy") || undefined,
+    booked: checkboxValue(formData, "booked"),
+    reminderDaysBefore: optionalNumber(formData.get("reminderDaysBefore")),
   });
 
   if (!parsed.success) {
