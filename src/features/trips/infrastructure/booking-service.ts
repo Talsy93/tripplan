@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { deadlineDate } from "../domain/booking";
 import type { Booking, CreateBookingInput } from "../domain/booking";
 
 // The trip's bookings, earliest first — the order they'll be lived in.
@@ -32,6 +33,19 @@ export async function createBooking(input: CreateBookingInput) {
     address: input.address || null,
     confirmation: input.confirmation || null,
     note: input.note || null,
+    // 0011. The two dates are `date` columns, so they are stored as the plain
+    // YYYY-MM-DD the form produced — deliberately not turned into timestamps,
+    // because a deadline is a calendar date and no time-of-day is correct for
+    // it in every timezone.
+    free_cancellation_until: deadlineDate(input.freeCancellationUntil),
+    // A booking deadline only means anything for something not yet booked.
+    // Storing one against a real reservation would leave a row that says "book
+    // this by Tuesday" about a ticket already in hand.
+    book_by: input.booked === false ? deadlineDate(input.bookBy) : null,
+    booked: input.booked !== false,
+    // Null means "use the app default" — an explicit choice is stored, silence
+    // is not turned into a number.
+    reminder_days_before: input.reminderDaysBefore ?? null,
   });
 
   if (error) {
