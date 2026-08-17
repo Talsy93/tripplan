@@ -43,18 +43,28 @@ export function BookingList({
   bookings: Booking[];
   now: string;
 }) {
-  const [bookings, setBookings] = useState(initial);
+  // The prop is the source of truth, and only pending deletions are held
+  // locally.
+  //
+  // This used to be `useState(initial)`, which snapshotted the list at mount —
+  // so a booking added by the form did not appear even though the Server Action
+  // revalidated the route: the server sent new props and useState ignored them.
+  // It only showed up after a manual reload, which looked like the save had
+  // failed.
+  const [removed, setRemoved] = useState<string[]>([]);
   const [removing, setRemoving] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const asOf = new Date(now);
 
+  const bookings = initial.filter((booking) => !removed.includes(booking.id));
+
   async function remove(id: string) {
     setRemoving(id);
-    const previous = bookings;
-    setBookings((current) => current.filter((booking) => booking.id !== id));
+    // Optimistic: hide it now, put it back if the delete did not take.
+    setRemoved((current) => [...current, id]);
 
     if (!(await removeBooking(tripId, id))) {
-      setBookings(previous);
+      setRemoved((current) => current.filter((entry) => entry !== id));
     }
     setRemoving(null);
   }

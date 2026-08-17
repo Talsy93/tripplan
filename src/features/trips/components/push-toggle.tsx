@@ -145,8 +145,17 @@ export function PushToggle() {
         return;
       }
       setState({ kind: "on" });
-    } catch {
-      setState({ kind: "error", message: "ההפעלה נכשלה. נסו שוב." });
+    } catch (error) {
+      // Say what actually went wrong. A bare "it failed" here was the same
+      // mistake C1 was about: the reason existed and was thrown away, leaving
+      // nothing to act on. The browser's own message names the cause —
+      // an unreachable push service, a key mismatch, a revoked permission.
+      console.error("[push] enable failed:", error);
+      const detail =
+        error instanceof Error && error.message
+          ? `${error.name}: ${error.message}`
+          : String(error);
+      setState({ kind: "error", message: `ההפעלה נכשלה — ${detail}` });
     } finally {
       setBusy(false);
     }
