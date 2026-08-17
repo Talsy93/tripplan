@@ -89,6 +89,9 @@ export function BookingForm({
   // action returns no values, so the reset clears the form — which is right.
   const was = (field: Field) => state.values?.[field] ?? "";
   const errorFor = (field: Field) => state.fieldErrors?.[field]?.[0];
+  const hasFieldErrors = Object.values(state.fieldErrors ?? {}).some(
+    (messages) => (messages?.length ?? 0) > 0,
+  );
 
   // Marks the field itself, so the message isn't the only clue to where the
   // problem is.
@@ -97,9 +100,24 @@ export function BookingForm({
 
   return (
     <Card className="p-4">
-      <form action={action} className="flex flex-col gap-3">
+      {/* noValidate on purpose. With native validation on, an empty required
+          field blocks the submit before the action runs, so the server's Hebrew
+          field errors never get to render — and the browser's own bubble is
+          easy to miss, which read as "the button does nothing". One validation
+          path now: Zod on the server, reported next to the field it belongs to.
+          `required` stays for screen readers. */}
+      <form action={action} noValidate className="flex flex-col gap-3">
         <input type="hidden" name="tripId" value={tripId} />
         <input type="hidden" name="kind" value={kind} />
+
+        {/* A summary at the top, because the field that failed can be below the
+            fold on a phone — and a form that silently refuses to submit is the
+            worst possible feedback. */}
+        {hasFieldErrors && (
+          <p role="alert" className="text-sm text-danger-ink">
+            יש שדות חסרים או שגויים. בדקו את המסומנים למטה.
+          </p>
+        )}
 
         <div className="flex flex-wrap gap-2">
           {KINDS.map((key) => (

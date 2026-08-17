@@ -22,10 +22,13 @@ export type NewSubscription = {
 // device, so subscribing twice — a second visit, a re-granted permission —
 // has to update the existing row rather than pile up duplicates that would each
 // receive their own copy of every reminder.
+// Returns the database's own reason on failure rather than a boolean. "It
+// failed" is not something a user can act on, and the difference between a
+// missing table and an RLS refusal is the whole diagnosis.
 export async function saveSubscription(
   userId: string,
   subscription: NewSubscription,
-): Promise<boolean> {
+): Promise<{ ok: true } | { ok: false; reason: string }> {
   const supabase = await createClient();
   const { error } = await supabase.from("push_subscriptions").upsert(
     {
@@ -39,10 +42,10 @@ export async function saveSubscription(
   );
 
   if (error) {
-    console.error("saveSubscription failed:", error.message);
-    return false;
+    console.error("saveSubscription failed:", error.code, error.message);
+    return { ok: false, reason: `${error.code ?? ""} ${error.message}`.trim() };
   }
-  return true;
+  return { ok: true };
 }
 
 export async function deleteSubscription(endpoint: string): Promise<boolean> {

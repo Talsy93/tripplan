@@ -28,12 +28,19 @@ export async function registerPushSubscription(
   if (!user) return { ok: false, message: "צריך להיות מחובר." };
 
   const parsed = subscriptionSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, message: "מנוי לא תקין." };
+  if (!parsed.success) {
+    // Name the field, so "invalid subscription" is not the whole story.
+    const fields = Object.keys(z.flattenError(parsed.error).fieldErrors).join(", ");
+    return { ok: false, message: `מנוי לא תקין (${fields}).` };
+  }
 
   // The user id comes from the session, never from the client — otherwise a
   // caller could register a device against somebody else's account.
-  const ok = await saveSubscription(user.id, parsed.data);
-  return ok ? { ok: true } : { ok: false, message: "השמירה נכשלה." };
+  const result = await saveSubscription(user.id, parsed.data);
+  if (result.ok) return { ok: true };
+  // The database's reason, passed through. This is a single-user app and the
+  // difference between "table does not exist" and "RLS refused" is the fix.
+  return { ok: false, message: `השמירה נכשלה: ${result.reason}` };
 }
 
 export async function unregisterPushSubscription(
