@@ -70,6 +70,13 @@ export function TripChat({
 
       if (!res.ok) {
         setError(await aiErrorFromResponse(res, "השליחה נכשלה. נסו שוב."));
+        // The optimistic bubble above was never saved — nothing ever reached
+        // appendChatMessages — so leaving it in `turns` would show a message
+        // that looks sent forever and vanishes the moment the page reloads.
+        // Removing it and giving the text back to the input is what makes a
+        // busy/quota/network failure a retry rather than a retype.
+        setTurns((current) => current.filter((turn) => turn.id !== pendingId));
+        setDraft(message);
         return;
       }
 
@@ -80,6 +87,8 @@ export function TripChat({
       ]);
     } catch {
       setError("שגיאת רשת. נסו שוב.");
+      setTurns((current) => current.filter((turn) => turn.id !== pendingId));
+      setDraft(message);
     } finally {
       setSending(false);
     }
