@@ -112,6 +112,12 @@ export function PushToggle() {
 
   async function enable() {
     setBusy(true);
+    // Which step we are on, so a failure names the step instead of the whole
+    // operation. Enabling push touches four separate systems — the permission
+    // prompt, the service worker, the browser's push service, and our database
+    // — and "it failed" does not distinguish between them. Each fails for
+    // completely different reasons and has a completely different fix.
+    let stage = "הרשאה";
     try {
       // Must be called from the click itself — iOS rejects a permission request
       // that is not tied to a user gesture.
@@ -121,7 +127,23 @@ export function PushToggle() {
         return;
       }
 
+      stage = "service worker";
       const registration = await navigator.serviceWorker.ready;
+
+      stage = "מנוי בשירות הדחיפה";
+      // A subscription already held by this browser may have been created with
+      // a different VAPID key — an earlier attempt, or a key that has since been
+      // rotated. subscribe() then throws InvalidStateError rather than replacing
+      // it, and the only way forward is to drop the old one first. Harmless when
+      // there is nothing stale: the server row is keyed by endpoint and gets
+      // re-registered below either way.
+      const stale = await registration.pushManager.getSubscription();
+      if (stale) {
+        await stale.unsubscribe().catch(() => {
+          // If it will not go quietly, subscribe() will report why.
+        });
+      }
+
       const subscription = await registration.pushManager.subscribe({
         // Required to be true by every browser: a push must always be visible
         // to the user, never silent background work.
@@ -129,6 +151,7 @@ export function PushToggle() {
         applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY!),
       });
 
+      stage = "שמירה בשרת";
       const json = subscription.toJSON();
       const result = await registerPushSubscription({
         endpoint: subscription.endpoint,
@@ -141,21 +164,26 @@ export function PushToggle() {
         // Do not leave the browser subscribed to a server that has no record of
         // it — that is a device which can never be reached or turned off.
         await subscription.unsubscribe();
-        setState({ kind: "error", message: result.message ?? "ההפעלה נכשלה." });
+        setState({
+          kind: "error",
+          message: `נכשל בשלב ״${stage}״: ${result.message ?? "לא ידוע"}`,
+        });
         return;
       }
       setState({ kind: "on" });
     } catch (error) {
-      // Say what actually went wrong. A bare "it failed" here was the same
-      // mistake C1 was about: the reason existed and was thrown away, leaving
-      // nothing to act on. The browser's own message names the cause —
-      // an unreachable push service, a key mismatch, a revoked permission.
-      console.error("[push] enable failed:", error);
+      // Say what actually went wrong, and where. A bare "it failed" here was
+      // the same mistake C1 was about: the reason existed and was thrown away,
+      // leaving nothing to act on.
+      console.error(`[push] enable failed at stage "${stage}":`, error);
       const detail =
         error instanceof Error && error.message
           ? `${error.name}: ${error.message}`
           : String(error);
-      setState({ kind: "error", message: `ההפעלה נכשלה — ${detail}` });
+      setState({
+        kind: "error",
+        message: `נכשל בשלב ״${stage}״ — ${detail}`,
+      });
     } finally {
       setBusy(false);
     }
