@@ -27,6 +27,11 @@ type State =
   // Permission was denied. The browser will not ask again from a click, so the
   // only route back is through site settings.
   | { kind: "blocked" }
+  // The build has no VAPID public key. Kept apart from "error" because it is not
+  // retryable from the device: nothing the user does here can fix it, so no
+  // button is offered. Showing one anyway is what let a click run straight into
+  // `undefined.padEnd`.
+  | { kind: "unconfigured" }
   | { kind: "error"; message: string };
 
 // VAPID's public key travels to the browser and is safe there — it is the
@@ -34,10 +39,29 @@ type State =
 const PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
 // The Push API wants the key as bytes; it is published as base64url.
-function urlBase64ToUint8Array(base64: string) {
-  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+//
+// Validates rather than trusting: called with an undefined key this used to fail
+// as "undefined is not an object (evaluating 'm.padEnd')" — a minified stack
+// trace that says nothing about the actual problem, which was a missing
+// environment variable. A P-256 public key is always 65 bytes beginning with
+// 0x04, so both are checked and named.
+function urlBase64ToUint8Array(base64: string | undefined) {
+  if (!base64) {
+    throw new Error("מפתח VAPID ציבורי חסר בגרסה שנבנתה");
+  }
+  const padded = base64.padEnd(
+    base64.length + ((4 - (base64.length % 4)) % 4),
+    "=",
+  );
   const raw = atob(padded.replace(/-/g, "+").replace(/_/g, "/"));
-  return Uint8Array.from([...raw].map((char) => char.charCodeAt(0)));
+  const bytes = Uint8Array.from([...raw].map((char) => char.charCodeAt(0)));
+
+  if (bytes.length !== 65 || bytes[0] !== 4) {
+    throw new Error(
+      `מפתח VAPID ציבורי פגום (${bytes.length} בייטים, מצפים ל-65)`,
+    );
+  }
+  return bytes;
 }
 
 function isIos() {
@@ -58,7 +82,7 @@ export function PushToggle() {
 
   const detect = useCallback(async () => {
     if (!PUBLIC_KEY) {
-      setState({ kind: "error", message: "התראות לא הוגדרו בשרת." });
+      setState({ kind: "unconfigured" });
       return;
     }
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
@@ -148,7 +172,7 @@ export function PushToggle() {
         // Required to be true by every browser: a push must always be visible
         // to the user, never silent background work.
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY!),
+        applicationServerKey: urlBase64ToUint8Array(PUBLIC_KEY),
       });
 
       stage = "שמירה בשרת";
@@ -251,6 +275,19 @@ export function PushToggle() {
           חסמתם התראות לאתר הזה. כדי להפעיל צריך לאשר אותן מחדש בהגדרות הדפדפן —
           מכאן אי אפשר לבקש שוב.
         </p>
+      )}
+
+      {state.kind === "unconfigured" && (
+        <div className="flex flex-col gap-1 rounded-control bg-surface-2 p-3 text-sm">
+          <p className="font-semibold text-danger-ink">
+            התראות לא הוגדרו בשרת
+          </p>
+          <p className="text-muted">
+            מפתח ה-VAPID הציבורי חסר בגרסה שנבנתה. הוא נצרב בזמן ה-build, ולכן
+            הוספה שלו ב-Vercel דורשת build חדש — דיפלוי שמשתמש ב-Build Cache
+            ימשיך להשתמש בגרסה הישנה.
+          </p>
+        </div>
       )}
 
       {state.kind === "error" && (
