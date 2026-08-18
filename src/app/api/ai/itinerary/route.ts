@@ -9,6 +9,7 @@ import {
   getItinerary,
   getSelectedDestinations,
   getTrip,
+  isSchemaOutOfDate,
   listBookings,
   listCityDays,
   saveItinerary,
@@ -157,7 +158,23 @@ export async function POST(request: Request) {
       prompt: buildPrompt(trip, items, bookings, cityDaysLine),
       schema: aiItinerarySchema,
     });
-    await saveItinerary(tripId, itinerary, items);
+    const { error: saveError } = await saveItinerary(tripId, itinerary, items);
+
+    // A save that failed must not answer 200 with an empty itinerary. That is
+    // exactly what happened before: the write failed, the route reported
+    // success, and the client rendered the empty state — "I pressed build and
+    // nothing happened".
+    if (saveError) {
+      console.error("itinerary save failed:", saveError);
+      return NextResponse.json(
+        {
+          error: isSchemaOutOfDate(saveError)
+            ? "schema_out_of_date"
+            : "save_failed",
+        },
+        { status: 500 },
+      );
+    }
     // The trip's phase is derived from its dates now (ARCHITECTURE.md #6).
     // This used to set status to 'executing' here, which claimed a trip was
     // under way the moment its itinerary was generated — often months early.

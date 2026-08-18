@@ -15,11 +15,21 @@ export type AiErrorCode =
   | "ai_quota_exceeded"
   | "ai_busy"
   | "ai_failed"
-  | "rate_limited";
+  | "rate_limited"
+  // Not an AI failure at all: the AI answered and the write could not be saved
+  // because the database is behind the deployed code. Distinct because the fix
+  // is running a migration, and retrying will never help.
+  | "schema_out_of_date"
+  | "save_failed";
 
 const RATE_LIMITED = "יותר מדי בקשות. נסו שוב בעוד רגע.";
 const QUOTA_EXCEEDED = "מכסת ה-AI היומית נגמרה. נסו שוב מחר.";
 const BUSY = "שירות ה-AI עמוס כרגע. נסו שוב בעוד רגע.";
+// Deliberately says what to do rather than apologising: this one is fixed by
+// running a migration, not by trying again.
+const SCHEMA_OUT_OF_DATE =
+  "בסיס הנתונים לא מעודכן לגרסת הקוד. צריך להריץ את migration 0013 ב-Supabase, ואז לנסות שוב.";
+const SAVE_FAILED = "הלו״ז נבנה אבל השמירה נכשלה. הלו״ז הקודם נשמר. נסו שוב.";
 
 // Pure: the message for a given status and body code.
 //
@@ -38,6 +48,8 @@ export function aiErrorMessage(
 ): string {
   if (status === 429) return RATE_LIMITED;
   if (status === 503) return code === "ai_busy" ? BUSY : QUOTA_EXCEEDED;
+  if (code === "schema_out_of_date") return SCHEMA_OUT_OF_DATE;
+  if (code === "save_failed") return SAVE_FAILED;
   return fallback;
 }
 

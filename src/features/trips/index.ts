@@ -146,6 +146,7 @@ export type {
 } from "./domain/booking";
 export { listBookings } from "./infrastructure/booking-service";
 export { tripDayCount } from "./domain/trip-days";
+export { isSchemaOutOfDate } from "./infrastructure/itinerary-service";
 export {
   cityDayPlan,
   cityDayTotals,
