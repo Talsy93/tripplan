@@ -1,8 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
-import { AppShell } from "@/components/layout";
+import { AppHeader, AppShell } from "@/components/layout";
+import { SectionHeading } from "@/components/ui";
 import { CityGuide, getSavedCityGuide, getTrip } from "@/features/trips";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ city: string }>;
+}) {
+  const { city } = await params;
+  return { title: `${decodeURIComponent(city)} · TripPlan` };
+}
 
 export default async function CityPage({
   params,
@@ -21,22 +31,24 @@ export default async function CityPage({
   const initialGuide = await getSavedCityGuide(id, cityName);
 
   return (
-    <AppShell>
+    // No sidebar here on purpose: this screen sits outside the (tabs) group and
+    // has no tab context. It does get the header, which it had none of before.
+    <AppShell header={<AppHeader title={trip.name} />}>
       <Link
         href={`/trips/${id}/explore`}
-        className="flex items-center gap-1 self-start text-sm text-muted transition-colors hover:text-foreground"
+        className="flex items-center gap-1 self-start rounded-control text-sm text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {/* RTL: back points right. */}
         <ChevronRight className="h-4 w-4" aria-hidden="true" />
         חזרה לטיול
       </Link>
 
-      <header className="flex flex-col gap-1">
-        <h1 className="font-display text-3xl">{cityName}</h1>
-        <p className="text-sm text-muted">
-          מה לעשות ב{cityName} — הצעות מפורטות
-        </p>
-      </header>
+      <SectionHeading
+        level="page"
+        description={`מה לעשות ב${cityName} — הצעות מפורטות`}
+      >
+        {cityName}
+      </SectionHeading>
 
       <CityGuide tripId={id} city={cityName} initialGuide={initialGuide} />
     </AppShell>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpDown, Footprints, Map, Navigation, X } from "lucide-react";
+import { ArrowUpDown, Footprints, Map as MapIcon, Navigation, X } from "lucide-react";
 import { Card, IconButton, Surface } from "@/components/ui";
 import { googleMapsDirectionsUrl, googleMapsSearchUrl } from "@/lib/maps";
 import { entryDestination } from "../domain/directions";
@@ -130,7 +130,7 @@ export function DayTimeline({
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 font-semibold text-primary-ink hover:underline"
                     >
-                      <Map className="h-3.5 w-3.5" aria-hidden="true" />
+                      <MapIcon className="h-3.5 w-3.5" aria-hidden="true" />
                       במפה
                     </a>
                     {origin && destination && (

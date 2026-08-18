@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Map, Navigation, X } from "lucide-react";
+import { Map as MapIcon, Navigation, X } from "lucide-react";
 import {
   Banner,
   Button,
@@ -256,7 +256,7 @@ export function Itinerary({
                               rel="noopener noreferrer"
                               className="flex items-center gap-1 font-semibold text-primary-ink hover:underline"
                             >
-                              <Map className="h-3.5 w-3.5" aria-hidden="true" />
+                              <MapIcon className="h-3.5 w-3.5" aria-hidden="true" />
                               פתיחה ב-Google Maps
                             </a>
                             {origin && destination && (

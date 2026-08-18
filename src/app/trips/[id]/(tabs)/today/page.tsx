@@ -20,6 +20,8 @@ import {
 } from "@/features/trips";
 import type { Booking, NightLodging } from "@/features/trips";
 
+export const metadata = { title: "היום" };
+
 export default async function TodayPage({
   params,
 }: {

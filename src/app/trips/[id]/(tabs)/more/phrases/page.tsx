@@ -1,5 +1,7 @@
 import { getPhrasebook, MoreBackLink, Phrasebook } from "@/features/trips";
 
+export const metadata = { title: "מילים שימושיות" };
+
 export default async function PhrasesPage({
   params,
 }: {

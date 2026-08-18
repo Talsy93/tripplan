@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Compass, Map, Menu, Sun } from "lucide-react";
+import { CalendarDays, Compass, Map as MapIcon, Menu, Sun } from "lucide-react";
 import { BottomNav, SideNav, type NavItem } from "@/components/layout";
 import { cn } from "@/lib/cn";
 import {
@@ -17,7 +17,7 @@ const ICONS: Record<TripTabSegment, typeof Sun> = {
   today: Sun,
   days: CalendarDays,
   explore: Compass,
-  map: Map,
+  map: MapIcon,
   more: Menu,
 };
 

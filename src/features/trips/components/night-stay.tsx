@@ -1,4 +1,4 @@
-import { Map } from "lucide-react";
+import { Map as MapIcon } from "lucide-react";
 import { iconButtonClasses, ListRow } from "@/components/ui";
 import { googleMapsSearchUrl } from "@/lib/maps";
 import { BOOKING_KINDS } from "../domain/booking";
@@ -50,7 +50,7 @@ export function NightStay({ stay }: { stay: NightLodging | null }) {
           title="Google Maps"
           className={iconButtonClasses("ghost", "sm")}
         >
-          <Map className="h-4 w-4" aria-hidden="true" />
+          <MapIcon className="h-4 w-4" aria-hidden="true" />
         </a>
       }
       className="bg-surface-2"

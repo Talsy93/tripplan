@@ -14,6 +14,31 @@ import {
   tripPhase,
 } from "@/features/trips";
 
+// The trip's name becomes the title template for every tab under it, so a tab
+// only has to name itself ("היום") and the browser shows
+// "היום · איטליה · TripPlan". Every route in the app used to show the same
+// title, which made five open tabs indistinguishable.
+//
+// This costs one extra getTrip per navigation: generateMetadata runs separately
+// from the layout body, and Supabase queries are not deduplicated the way fetch
+// is. One indexed lookup by primary key is a fair price for the tab titles.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const trip = await getTrip(id);
+  const name = trip?.name ?? "טיול";
+
+  return {
+    title: {
+      default: `${name} · TripPlan`,
+      template: `%s · ${name} · TripPlan`,
+    },
+  };
+}
+
 // Shared chrome for the five trip tabs.
 //
 // This lives in a (tabs) route group rather than at [id]/layout.tsx so that

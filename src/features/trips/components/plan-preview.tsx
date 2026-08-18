@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Card } from "@/components/ui";
+import { Button, Card, SectionHeading, Surface } from "@/components/ui";
 import { categoryLabel } from "../domain/place";
 import { planTotals } from "../domain/trip-plan";
 import type { AiTripPlan } from "../domain/trip-plan";
@@ -23,39 +23,34 @@ export function PlanPreview({
 
   if (cities === 0) {
     return (
-      <Card className="flex flex-col gap-2 p-4">
-        <p className="font-semibold">עוד אין מספיק בשיחה</p>
+      <Surface tone="quiet" className="flex flex-col items-start gap-2">
+        <p className="text-base font-semibold">עוד אין מספיק בשיחה</p>
         <p className="text-sm text-muted">
           השיחה עדיין לא הגיעה ליעדים מוגדרים. המשיכו לדבר ונסו שוב.
         </p>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="self-start text-sm text-muted hover:text-foreground"
-        >
-          סגור
-        </button>
-      </Card>
+        <Button type="button" variant="ghost" size="sm" onClick={onDismiss}>
+          סגירה
+        </Button>
+      </Surface>
     );
   }
 
   return (
-    <Card className="flex flex-col gap-4 border-s-4 border-s-primary p-4">
-      <div className="flex flex-col gap-1">
-        <h3 className="font-bold">מה שנבנה מהשיחה</h3>
-        <p className="text-sm text-muted">{plan.summary}</p>
-      </div>
+    <Card className="flex flex-col gap-4">
+      <SectionHeading level="sub" description={plan.summary}>
+        מה שנבנה מהשיחה
+      </SectionHeading>
 
-      <div className="flex flex-col gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         {plan.cities.map((city) => (
           <div key={city.name} className="flex flex-col gap-1">
-            <span className="font-semibold">{city.name}</span>
-            <span className="text-xs text-muted">{city.intro}</span>
-            <ul className="flex flex-col gap-0.5 border-s border-border ps-3 text-sm">
+            <span className="text-sm font-semibold">{city.name}</span>
+            <span className="text-caption text-muted">{city.intro}</span>
+            <ul className="flex flex-col gap-0.5 border-s-2 border-border ps-3 text-sm">
               {city.items.map((item) => (
                 <li key={item.name} className="flex flex-wrap gap-x-2">
                   <span>{item.name}</span>
-                  <span className="text-xs text-muted">
+                  <span className="text-caption text-muted">
                     {categoryLabel(item.category)}
                   </span>
                 </li>
@@ -66,23 +61,17 @@ export function PlanPreview({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" onClick={onApply} disabled={applying} size="sm">
-          {applying
-            ? "מוסיף…"
-            : `הוסף לטיול (${cities} יעדים, ${items} פריטים)`}
+        <Button type="button" onClick={onApply} loading={applying} size="sm">
+          {`הוספה לטיול (${cities} יעדים, ${items} פריטים)`}
         </Button>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="text-sm text-muted transition-colors hover:text-foreground"
-        >
+        <Button type="button" variant="ghost" size="sm" onClick={onDismiss}>
           ביטול
-        </button>
+        </Button>
       </div>
 
       {/* Says plainly that this only adds — the reassurance that makes the
           button safe to press. */}
-      <p className="text-xs text-muted">
+      <p className="text-caption text-muted">
         ההוספה לא מוחקת כלום ממה שכבר בחרתם, וכל פריט ניתן להסרה בטאב התכנון.
       </p>
     </Card>

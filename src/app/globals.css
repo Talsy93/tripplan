@@ -95,6 +95,22 @@
   --scrim: rgba(12, 17, 28, 0.42);
   --scrim-soft: rgba(12, 17, 28, 0.18);
 
+  /* --- elevation --------------------------------------------------------
+     Four tiers by role, not by taste: soft = resting, card = raised,
+     lift = hover, modal = floating. The old system had no modal tier, so a
+     dialog and a static hero shared one shadow.
+
+     These sit on :root rather than only inside @theme inline because
+     `inline` means Tailwind substitutes the value into the utility and does
+     *not* emit the custom property — and route-map-canvas.tsx builds its
+     Leaflet pin as a raw CSS string outside React's tree, so var() is the
+     only way it can reach a token at all.
+     -------------------------------------------------------------------- */
+  --elevation-soft: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --elevation-card: 0 1px 3px rgba(16, 24, 40, 0.09), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --elevation-lift: 0 6px 16px rgba(16, 24, 40, 0.12);
+  --elevation-modal: 0 16px 40px rgba(16, 24, 40, 0.20);
+
   /* --- tone palette -----------------------------------------------------
      Six pastels assigned to cities and categories, by position in the route
      rather than by hash — two adjacent stops must not collide.
@@ -235,15 +251,14 @@
   --radius-tile: 1rem;
   --radius-modal: 1rem;
 
-  /* --- elevation --------------------------------------------------------
-     Four tiers by role, not by taste: soft = resting, card = raised,
-     lift = hover, modal = floating. The old system had no modal tier, so a
-     dialog and a static hero shared one shadow.
-     -------------------------------------------------------------------- */
-  --shadow-soft: 0 1px 2px rgba(16, 24, 40, 0.06);
-  --shadow-card: 0 1px 3px rgba(16, 24, 40, 0.09), 0 1px 2px rgba(16, 24, 40, 0.04);
-  --shadow-lift: 0 6px 16px rgba(16, 24, 40, 0.12);
-  --shadow-modal: 0 16px 40px rgba(16, 24, 40, 0.20);
+  /* elevation — raw values are --elevation-* on :root, for the reason
+     documented there. The names differ on purpose: --shadow-* is Tailwind's own
+     namespace, and a self-referential --shadow-soft: var(--shadow-soft) would
+     be a circular definition. */
+  --shadow-soft: var(--elevation-soft);
+  --shadow-card: var(--elevation-card);
+  --shadow-lift: var(--elevation-lift);
+  --shadow-modal: var(--elevation-modal);
 
   /* --- layout -----------------------------------------------------------
      Window classes follow Material 3: compact 0–599, medium 600–839,

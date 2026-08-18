@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Button, Card, Textarea } from "@/components/ui";
+import { ChevronLeft } from "lucide-react";
+import { Banner, Button, Card, Field, Textarea } from "@/components/ui";
 import { addMoreCities, saveCities } from "../application/guide-actions";
 import { aiErrorFromResponse } from "../domain/ai-errors";
 import {
@@ -116,48 +117,55 @@ export function PlanningPanel({ tripId, initialCities }: PlanningPanelProps) {
   }
 
   return (
-    <section className="flex flex-col gap-4">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-        <label htmlFor="prompt" className="text-sm font-medium">
-          מה בא לכם לעשות בטיול?
-        </label>
-        <Textarea
-          id="prompt"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="לדוגמה: שבוע באיטליה, דגש על אוכל, אמנות ואתרים היסטוריים"
-          rows={3}
-        />
+    <div className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+        <Field label="מה בא לכם לעשות בטיול?">
+          <Textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="לדוגמה: שבוע באיטליה, דגש על אוכל, אמנות ואתרים היסטוריים"
+            rows={3}
+          />
+        </Field>
         <Button
           type="submit"
-          disabled={loading || prompt.trim().length < 3}
+          loading={loading}
+          disabled={prompt.trim().length < 3}
           className="self-start"
         >
-          {loading ? "חושב…" : cities.length > 0 ? "הצעות חדשות" : "קבל הצעות מ-AI"}
+          {cities.length > 0 ? "הצעות חדשות" : "קבלת הצעות מ-AI"}
         </Button>
       </form>
 
-      {error && <p className="text-sm text-danger-ink">{error}</p>}
-      {notice && <p className="text-sm text-muted">{notice}</p>}
+      {error && <Banner tone="danger">{error}</Banner>}
+      {notice && <Banner tone="info">{notice}</Banner>}
 
       {cities.length > 0 && (
         <>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {cities.map((city, index) => (
-              <Link
-                key={`${city.name}-${index}`}
-                href={`/trips/${tripId}/city/${encodeURIComponent(city.name)}`}
-                className="block"
-              >
-                <Card className="flex h-full flex-col gap-1 p-4 transition-colors hover:border-primary">
-                  <span className="font-medium text-primary">
-                    {city.name} ←
-                  </span>
-                  <span className="text-sm text-muted">{city.description}</span>
-                </Card>
-              </Link>
+              <li key={`${city.name}-${index}`}>
+                <Link
+                  href={`/trips/${tripId}/city/${encodeURIComponent(city.name)}`}
+                  className="block h-full rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                >
+                  <Card
+                    variant="interactive"
+                    className="flex h-full flex-col gap-1"
+                  >
+                    <span className="flex items-center gap-1 text-base font-semibold text-primary-ink">
+                      {city.name}
+                      {/* RTL: "forward" points left. */}
+                      <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                    <span className="text-sm text-muted">
+                      {city.description}
+                    </span>
+                  </Card>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
 
           {/* Adds to the list rather than replacing it — the same affordance
               the city guide has had for its categories since stage 8. The
@@ -171,11 +179,11 @@ export function PlanningPanel({ tripId, initialCities }: PlanningPanelProps) {
               loading={loadingMore}
               className="self-start"
             >
-              {loadingMore ? "מחפש עוד…" : "הצג עוד יעדים"}
+              הצגת עוד יעדים
             </Button>
           )}
         </>
       )}
-    </section>
+    </div>
   );
 }

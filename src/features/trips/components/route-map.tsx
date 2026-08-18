@@ -1,19 +1,22 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Card } from "@/components/ui";
+import { Badge, EmptyState, ListRow, SectionHeading } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 import type { TripRoute } from "../domain/route";
 import { cityToneClass, cityToneMap } from "../domain/tone";
 
+// The map's height at each window class. It used to be a flat h-[26rem] at
+// every width, repeated in four places — a phone-sized map centred in a 1440px
+// screen. The canvas fills its frame now, so this is the only place it is set.
+const MAP_HEIGHT = "h-[20rem] sm:h-[24rem] lg:h-[calc(100dvh-14rem)] lg:min-h-[26rem]";
+
 // Leaflet has no server rendering — it needs a real DOM. Loading the canvas
 // only in the browser keeps the rest of the page server-rendered.
 const RouteMapCanvas = dynamic(() => import("./route-map-canvas"), {
   ssr: false,
-  loading: () => (
-    <div className="h-[26rem] w-full animate-pulse rounded-2xl bg-surface-2" />
-  ),
+  loading: () => <div className="h-full w-full animate-pulse bg-surface-2" />,
 });
 
 function nightsLabel(nights: number) {
@@ -30,12 +33,12 @@ export function RouteMap({
 }) {
   if (route.stops.length === 0) {
     return (
-      <Card className="flex h-[26rem] flex-col items-center justify-center gap-2 p-6 text-center">
-        <p className="font-semibold">המפה תתמלא כשתבחרו יעדים</p>
-        <p className="text-sm text-muted">
-          הוסיפו דברים לטיול מתוך מדריכי הערים, והתחנות יופיעו כאן לפי הסדר.
-        </p>
-      </Card>
+      <EmptyState
+        icon="🗺️"
+        title="המפה תתמלא כשתבחרו יעדים"
+        description="הוסיפו דברים לטיול מתוך מדריכי הערים, והתחנות יופיעו כאן לפי הסדר."
+        className={MAP_HEIGHT + " justify-center"}
+      />
     );
   }
 
@@ -47,13 +50,19 @@ export function RouteMap({
   const tones = cityToneMap(route.stops.map((stop) => stop.city));
 
   return (
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+    // Two real panes from lg: the map holds still and the schedule scrolls
+    // beside it, which is the layout the tab was always describing and never
+    // had. Below lg it stacks, map first.
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
       <div className="flex min-w-0 flex-1 flex-col gap-3">
         {/* Leaflet's zoom/attribution controls are laid out LTR; the map is a
             viewport, not text, so it opts out of the app's RTL direction. */}
         <div
           dir="ltr"
-          className="overflow-hidden rounded-2xl border border-border shadow-soft"
+          className={cn(
+            "overflow-hidden rounded-card border border-border shadow-soft",
+            MAP_HEIGHT,
+          )}
         >
           <RouteMapCanvas stops={route.stops} />
         </div>
@@ -65,33 +74,46 @@ export function RouteMap({
         )}
       </div>
 
-      <aside className="flex w-full flex-col gap-3 lg:max-w-xs">
-        <ol className="flex flex-col gap-2">
-          {route.stops.map((stop, index) => (
-            <li key={stop.city} className={cityToneClass(tones, stop.city)}>
-              <Card className="flex items-center gap-3 border-s-4 border-s-tone-dot p-3">
-                <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-tone text-xs font-bold text-tone-ink">
-                  {index + 1}
-                </span>
-                <div className="flex min-w-0 flex-col">
-                  <span className="truncate font-semibold">{stop.city}</span>
-                  <span className="text-xs text-muted">
-                    {stop.days.length > 0
+      <aside
+        className={cn(
+          "flex w-full flex-col gap-4 lg:w-pane lg:shrink-0",
+          // Scrolls independently of the map, which is what makes this a pane
+          // rather than a long column next to a short one.
+          "lg:sticky lg:top-20 lg:max-h-[calc(100dvh-14rem)] lg:overflow-y-auto lg:pe-1",
+        )}
+      >
+        <div className="flex flex-col gap-2">
+          <SectionHeading level="sub">התחנות</SectionHeading>
+          <ol className="flex flex-col gap-2">
+            {route.stops.map((stop, index) => (
+              <li key={stop.city} className={cityToneClass(tones, stop.city)}>
+                <ListRow
+                  leading={
+                    <Badge
+                      tone="tone"
+                      variant="solid"
+                      className="h-6 w-6 justify-center p-0 tabular-nums"
+                    >
+                      {index + 1}
+                    </Badge>
+                  }
+                  title={stop.city}
+                  subtitle={
+                    stop.days.length > 0
                       ? `ימים ${stop.days.join(", ")}${
-                          stop.nights > 0
-                            ? ` · ${nightsLabel(stop.nights)}`
-                            : ""
+                          stop.nights > 0 ? ` · ${nightsLabel(stop.nights)}` : ""
                         }`
-                      : "עוד לא בלו״ז"}
-                  </span>
-                </div>
-              </Card>
-            </li>
-          ))}
-        </ol>
+                      : "עוד לא בלו״ז"
+                  }
+                />
+              </li>
+            ))}
+          </ol>
+        </div>
 
         {itinerary.length > 0 && (
           <div className="flex flex-col gap-3">
+            <SectionHeading level="sub">הלוח, לפי תחנה</SectionHeading>
             {itinerary.map((day) => {
               // The stop a day belongs to is decided by where it ends — the
               // same rule the route uses (see cityByDay).
@@ -108,18 +130,18 @@ export function RouteMap({
                     cityToneClass(tones, city ?? null),
                   )}
                 >
-                  <h3 className="flex items-baseline gap-2 text-sm font-bold">
+                  <h4 className="flex items-baseline gap-2 text-sm font-bold">
                     יום {day.day}
                     {stopNumber && (
-                      <span className="text-xs font-normal text-tone-ink">
+                      <span className="font-normal text-muted">
                         תחנה {stopNumber} · {city}
                       </span>
                     )}
-                  </h3>
+                  </h4>
                   <ul className="flex flex-col gap-0.5 border-s-2 border-tone-dot ps-3 text-sm">
                     {day.items.map((item) => (
                       <li key={item.id} className="flex gap-2">
-                        <span className="shrink-0 text-xs text-muted">
+                        <span className="shrink-0 text-caption tabular-nums text-muted">
                           {item.startLabel}
                         </span>
                         <span className="truncate">{item.title}</span>

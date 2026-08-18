@@ -1,8 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
-import { Button, Card, EmptyState, Input } from "@/components/ui";
+import { Search, Volume2 } from "lucide-react";
+import {
+  Banner,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  SectionHeading,
+} from "@/components/ui";
 import { aiErrorFromResponse } from "../domain/ai-errors";
 import type { AiPhrase, AiPhrasebook } from "../domain/phrasebook";
 
@@ -67,26 +74,23 @@ export function Phrasebook({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <h2 className="font-display text-lg">
-          מילים שימושיות
-          {phrasebook && (
-            <span className="ms-2 text-sm font-normal text-muted">
-              {phrasebook.language}
-            </span>
-          )}
-        </h2>
-        <Button
-          type="button"
-          onClick={build}
-          loading={building}
-          size="sm"
-          variant={phrasebook ? "outline" : "primary"}
-          className="ms-auto"
-        >
-          {phrasebook ? "בנה מחדש" : "בנה שיחון"}
-        </Button>
-      </div>
+      <SectionHeading
+        level="page"
+        description={phrasebook?.language}
+        actions={
+          <Button
+            type="button"
+            onClick={build}
+            loading={building}
+            size="sm"
+            variant={phrasebook ? "outline" : "primary"}
+          >
+            {phrasebook ? "בנייה מחדש" : "בניית שיחון"}
+          </Button>
+        }
+      >
+        מילים שימושיות
+      </SectionHeading>
 
       {phrasebook && (
         <div className="relative">
@@ -105,13 +109,19 @@ export function Phrasebook({
         </div>
       )}
 
-      {error && <p className="text-sm text-danger-ink">{error}</p>}
+      {error && <Banner tone="danger">{error}</Banner>}
 
       {!phrasebook && !building && !error && (
-        <p className="text-sm text-muted">
-          נזהה את שפת היעד לפי הערים בטיול ונבנה שיחון בסיסי, כולל איך להגות כל
-          ביטוי.
-        </p>
+        <EmptyState
+          icon="🗣️"
+          title="אין עדיין שיחון"
+          description="נזהה את שפת היעד לפי הערים בטיול ונבנה שיחון בסיסי, כולל איך להגות כל ביטוי."
+          action={
+            <Button type="button" onClick={build} loading={building}>
+              בניית שיחון
+            </Button>
+          }
+        />
       )}
 
       {phrasebook && query.trim() && sections.length === 0 && (
@@ -124,12 +134,14 @@ export function Phrasebook({
 
       {sections.map((section) => (
         <section key={section.title} className="flex flex-col gap-2">
-          <h3 className="font-bold">{section.title}</h3>
-          <ul className="flex flex-col gap-2">
+          <SectionHeading level="section">{section.title}</SectionHeading>
+          {/* A phrase card is short, so a wide screen fits three of them and a
+              two-week phrasebook stops being a single scrolling column. */}
+          <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {section.phrases.map((phrase) => (
               <li key={`${section.title}|${phrase.he}`}>
-                <Card className="flex flex-col gap-1 p-3">
-                  <span className="font-semibold">{phrase.he}</span>
+                <Card padding="sm" className="flex h-full flex-col gap-1">
+                  <span className="text-sm font-semibold">{phrase.he}</span>
 
                   {/* The local script is set LTR-neutral with dir="auto" so a
                       language written right-to-left renders correctly too. */}
@@ -139,11 +151,12 @@ export function Phrasebook({
 
                   {/* The row that makes the feature usable: how to actually
                       say it, in letters the reader knows. */}
-                  <span className="text-sm font-medium text-primary">
-                    🗣️ {phrase.pronunciation}
+                  <span className="flex items-center gap-1.5 text-sm font-semibold text-primary-ink">
+                    <Volume2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {phrase.pronunciation}
                   </span>
 
-                  <span dir="ltr" className="text-xs text-muted">
+                  <span dir="ltr" className="text-caption text-muted">
                     {phrase.en}
                   </span>
                 </Card>
