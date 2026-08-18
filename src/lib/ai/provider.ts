@@ -1,6 +1,6 @@
 import { ApiError, GoogleGenAI } from "@google/genai";
 import * as z from "zod";
-import { classifyQuotaError } from "./quota";
+import { classifyQuotaError, parseQuotaLimit } from "./quota";
 
 // Provider-agnostic entry point for structured generation. The rest of the app
 // depends only on this function; swapping Gemini for another provider means
@@ -82,9 +82,17 @@ function handleProviderError(label: string, error: unknown): never {
   if (isQuotaExceeded(error)) {
     // 429 covers both windows. The body says which, when it says anything —
     // see lib/ai/quota.ts.
-    const { window, retryAfterSeconds } = classifyQuotaError(
-      error instanceof Error ? error.message : String(error),
+    const raw = error instanceof Error ? error.message : String(error);
+    const { window, retryAfterSeconds } = classifyQuotaError(raw);
+
+    // Logged as one line with the numbers on it, so diagnosing this from the
+    // hosting logs does not require re-deriving it from the raw body. The
+    // observed free-tier body says "limit: 20" and "retry in 15.6s" and names no
+    // window at all, which is what made the first attempt at this misclassify.
+    console.error(
+      `[ai] quota: window=${window} limit=${parseQuotaLimit(raw) ?? "?"} retryAfter=${retryAfterSeconds ?? "?"}s`,
     );
+
     if (window === "per-minute") {
       throw new AiRateLimitedError(error, retryAfterSeconds);
     }
