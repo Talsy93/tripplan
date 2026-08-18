@@ -4,9 +4,13 @@ import {
   aiItineraryRequestSchema,
   aiItinerarySchema,
   categoryLabel,
+  cityDayPlan,
+  cityDaysPromptLine,
   getItinerary,
   getSelectedDestinations,
   getTrip,
+  listBookings,
+  listCityDays,
   saveItinerary,
 } from "@/features/trips";
 import {
@@ -16,13 +20,38 @@ import {
 } from "@/lib/ai";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
-import type { SelectedItem } from "@/features/trips";
+import type { Booking, SelectedItem } from "@/features/trips";
 import type { Trip } from "@/features/trips";
 
 const RATE_LIMIT = 5;
 const RATE_WINDOW_MS = 60_000;
 
-function buildPrompt(trip: Trip, items: SelectedItem[]) {
+// The lodging, as a statement of where the trip sleeps on which dates.
+//
+// This was the whole gap: the prompt used to receive the trip name, its dates
+// and a flat list of items, and nothing else. A hotel booked for three nights in
+// Rome had no influence at all, so the model could return five days in Rome and
+// none in Florence while the app went on showing the Rome hotel beside a
+// Florence day. Bookings are the strongest statement of intent that already
+// exists — they were paid for — and they were being ignored.
+function lodgingLines(bookings: Booking[]) {
+  return bookings
+    .filter((b) => b.kind === "lodging" && b.city)
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+    .map((b) => {
+      const from = b.starts_at.slice(0, 10);
+      const to = b.ends_at?.slice(0, 10);
+      return to ? `- ${b.city}: ${from} עד ${to}` : `- ${b.city}: מ-${from}`;
+    });
+}
+
+function buildPrompt(
+  trip: Trip,
+  items: SelectedItem[],
+  bookings: Booking[],
+  cityDaysLine: string | null,
+) {
+  const lodging = lodgingLines(bookings);
   const list = items
     .map(
       (item) =>
@@ -36,6 +65,20 @@ function buildPrompt(trip: Trip, items: SelectedItem[]) {
     trip.start_date && trip.end_date
       ? `תאריכי הטיול: ${trip.start_date} עד ${trip.end_date}.`
       : "אין תאריכים קבועים — קבע מספר ימים סביר לפי כמות הפריטים.",
+
+    // Stated as a constraint, not as background. The model is being told the
+    // answer to "how many days in each city", because the user already decided
+    // it — either explicitly or by booking a hotel.
+    cityDaysLine &&
+      `חלוקת הימים בין הערים נקבעה מראש ואסור לשנות אותה: ${cityDaysLine}.`,
+    cityDaysLine &&
+      "עיר שלא מופיעה בחלוקה הזו — קבע לה מספר ימים סביר מהימים שנשארו.",
+
+    lodging.length > 0 && "הלינה שהוזמנה (אלה התאריכים שבהם ישנים בכל עיר):",
+    lodging.length > 0 && lodging.join("\n"),
+    lodging.length > 0 &&
+      "סדר את הימים כך שכל פריט יופיע ביום שבו הטיול נמצא בעיר שלו לפי הלינה.",
+
     "הפריטים שנבחרו לטיול:",
     list,
     "סדר אותם לימים ולפי שעות (מהבוקר לערב), בהתחשב בקרבה גאוגרפית ובזרימה טבעית של יום טיול.",
@@ -88,9 +131,11 @@ export async function POST(request: Request) {
     );
   }
 
-  const [trip, items] = await Promise.all([
+  const [trip, items, bookings, overrides] = await Promise.all([
     getTrip(tripId),
     getSelectedDestinations(tripId),
+    listBookings(tripId),
+    listCityDays(tripId),
   ]);
 
   if (!trip) {
@@ -100,9 +145,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "no_selection" }, { status: 400 });
   }
 
+  // Cities in the order they were added, which is the order every other surface
+  // colours them in.
+  const cities = [...new Set(items.map((item) => item.city))].filter(Boolean);
+  const cityDaysLine = cityDaysPromptLine(
+    cityDayPlan(cities, bookings, overrides),
+  );
+
   try {
     const itinerary = await generateStructured({
-      prompt: buildPrompt(trip, items),
+      prompt: buildPrompt(trip, items, bookings, cityDaysLine),
       schema: aiItinerarySchema,
     });
     await saveItinerary(tripId, itinerary, items);

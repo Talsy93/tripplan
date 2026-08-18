@@ -1,6 +1,14 @@
 "use client";
 
-import { ArrowUpDown, Footprints, Map as MapIcon, Navigation, X } from "lucide-react";
+import {
+  ArrowUpDown,
+  Clock,
+  Footprints,
+  Map as MapIcon,
+  Navigation,
+  Pencil,
+  X,
+} from "lucide-react";
 import { Card, IconButton, Surface } from "@/components/ui";
 import { googleMapsDirectionsUrl, googleMapsSearchUrl } from "@/lib/maps";
 import { entryDestination } from "../domain/directions";
@@ -36,6 +44,7 @@ const MIN_PX_FOR_ACTIONS = 52;
 export function DayTimeline({
   day,
   onRemove,
+  onEdit,
   // Where the day starts from — the lodging that covers this night, already
   // reduced to a string Google can resolve. Null when the night has no booked
   // lodging, and then no directions link is offered: a route from nowhere is
@@ -44,6 +53,9 @@ export function DayTimeline({
 }: {
   day: ItineraryDay;
   onRemove?: (entryId: string) => void;
+  // Opens the edit dialog for one entry. Optional so the read-only uses of this
+  // component (the day pager on the "today" tab) stay read-only.
+  onEdit?: (entryId: string) => void;
   origin?: string | null;
 }) {
   const timeline = buildDayTimeline(day);
@@ -100,6 +112,16 @@ export function DayTimeline({
                     <span className="text-caption tabular-nums text-muted">
                       {formatMinutes(startMinutes)}–{formatMinutes(endMinutes)}
                     </span>
+                    {onEdit && (
+                      <IconButton
+                        label={`עריכת ${entry.title}`}
+                        size="sm"
+                        className="h-6 w-6"
+                        onClick={() => onEdit(entry.id)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                      </IconButton>
+                    )}
                     {onRemove && (
                       <IconButton
                         label="הסרה מהלוח"
@@ -116,6 +138,22 @@ export function DayTimeline({
                 {entry.note && (
                   <p className="truncate text-caption text-muted">
                     {entry.note}
+                  </p>
+                )}
+                {/* Written by hand, so it is shown even when the block is too
+                    short for the action row below — knowing you need 25 minutes
+                    to get here is the reason it was typed in. */}
+                {(entry.travelNote || entry.travelMinutes !== null) && (
+                  <p className="flex min-w-0 items-center gap-1 truncate text-caption text-primary-ink">
+                    <Clock className="h-3 w-3 shrink-0" aria-hidden="true" />
+                    {entry.travelMinutes !== null && (
+                      <span className="shrink-0 font-semibold tabular-nums">
+                        {entry.travelMinutes} דק׳
+                      </span>
+                    )}
+                    {entry.travelNote && (
+                      <span className="truncate">{entry.travelNote}</span>
+                    )}
                   </p>
                 )}
                 {showActions && (

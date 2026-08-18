@@ -198,6 +198,12 @@ export type ItineraryEntry = {
   // so this is null for most entries and the timeline has to cope.
   latitude: number | null;
   longitude: number | null;
+  // How to get here and how long it takes, in the user's own words. The app
+  // cannot work this out — a straight-line distance needs coordinates at both
+  // ends, and free public-transport routing does not exist as an API — so these
+  // are typed in once rather than looked up again on the day.
+  travelNote: string | null;
+  travelMinutes: number | null;
 };
 export type ItineraryDay = {
   day: number;
