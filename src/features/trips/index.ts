@@ -90,7 +90,7 @@ export type {
   ItineraryDay,
   ItineraryEntry,
 } from "./domain/ai-suggestion";
-export { createTrip } from "./application/actions";
+export { createTrip, deleteTrip } from "./application/actions";
 export { setTripDates } from "./application/date-actions";
 export {
   saveGuide,
@@ -247,6 +247,7 @@ export { resetChat, applyPlan } from "./application/chat-actions";
 export { TripChat } from "./components/trip-chat";
 export { PlanPreview } from "./components/plan-preview";
 export { CreateTripForm, NewTripButton } from "./components/create-trip-form";
+export { DeleteTripButton } from "./components/delete-trip-button";
 export { TripDatesForm } from "./components/trip-dates-form";
 export { CountdownHero } from "./components/countdown-hero";
 export { UpNext } from "./components/up-next";
