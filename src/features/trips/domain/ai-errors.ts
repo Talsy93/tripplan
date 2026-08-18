@@ -16,6 +16,9 @@ export type AiErrorCode =
   | "ai_busy"
   | "ai_failed"
   | "rate_limited"
+  // Google's own per-minute cap, as opposed to our in-app limiter or the daily
+  // quota. Waiting seconds fixes it, which is the opposite of the quota case.
+  | "ai_rate_limited"
   // Not an AI failure at all: the AI answered and the write could not be saved
   // because the database is behind the deployed code. Distinct because the fix
   // is running a migration, and retrying will never help.
@@ -45,8 +48,17 @@ export function aiErrorMessage(
   status: number,
   code: string | undefined,
   fallback: string,
+  // Seconds Google asked us to wait, when it said. Turns "in a moment" into a
+  // number the reader can act on.
+  retryAfterSeconds?: number | null,
 ): string {
-  if (status === 429) return RATE_LIMITED;
+  if (status === 429) {
+    if (retryAfterSeconds !== null && retryAfterSeconds !== undefined) {
+      const seconds = Math.max(1, retryAfterSeconds);
+      return `יותר מדי בקשות. נסו שוב בעוד ${seconds} שניות.`;
+    }
+    return RATE_LIMITED;
+  }
   if (status === 503) return code === "ai_busy" ? BUSY : QUOTA_EXCEEDED;
   if (code === "schema_out_of_date") return SCHEMA_OUT_OF_DATE;
   if (code === "save_failed") return SAVE_FAILED;
@@ -62,11 +74,18 @@ export async function aiErrorFromResponse(
   fallback: string,
 ): Promise<string> {
   let code: string | undefined;
+  let retryAfterSeconds: number | null = null;
   try {
-    const body = (await response.json()) as { error?: unknown };
+    const body = (await response.json()) as {
+      error?: unknown;
+      retryAfterSeconds?: unknown;
+    };
     if (typeof body?.error === "string") code = body.error;
+    if (typeof body?.retryAfterSeconds === "number") {
+      retryAfterSeconds = body.retryAfterSeconds;
+    }
   } catch {
     // Leave it undefined and let the status decide.
   }
-  return aiErrorMessage(response.status, code, fallback);
+  return aiErrorMessage(response.status, code, fallback, retryAfterSeconds);
 }
