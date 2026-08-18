@@ -105,6 +105,19 @@ export function focusDayNumber(
 //
 // Deliberately reported rather than clamped: an itinerary longer than the trip
 // is a real planning mistake, and hiding it would make two days share a date.
+// How many days the trip's own dates allow, inclusive of both ends.
+//
+// The 4th to the 7th is four days, not three: a trip that leaves and returns on
+// the same date is one day. Returns null when either date is missing, which is
+// the difference between "no limit set" and "zero days".
+export function tripDayCount(
+  startDate: string | null,
+  endDate: string | null,
+): number | null {
+  if (!startDate || !endDate) return null;
+  const span = daysBetween(startDate, endDate);
+  return span >= 0 ? span + 1 : null;
+}
 export function itineraryOverrun(
   startDate: string | null,
   endDate: string | null,

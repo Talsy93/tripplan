@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Map as MapIcon, Navigation, X } from "lucide-react";
+import Link from "next/link";
+import {
+  Clock,
+  Compass,
+  Map as MapIcon,
+  Navigation,
+  Pencil,
+  X,
+} from "lucide-react";
 import {
   Banner,
   Button,
@@ -18,11 +26,14 @@ import { withHebrewPrefix } from "@/lib/text";
 import { deleteItineraryEntry } from "../application/itinerary-actions";
 import { aiErrorFromResponse } from "../domain/ai-errors";
 import { entryDestination, lodgingOrigin } from "../domain/directions";
+import { CityDaysEditor } from "./city-days-editor";
 import { DayTimeline } from "./day-timeline";
+import { EditEntryDialog } from "./edit-entry-dialog";
 import { cityByDay } from "../domain/route";
 import { cityToneClass, cityToneMap } from "../domain/tone";
 import { dateOfDay, dayLabel, itineraryOverrun } from "../domain/trip-days";
 import { NightStay } from "./night-stay";
+import type { CityDayPlan } from "../domain/city-days";
 import type { NightLodging } from "../domain/trip-days";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 
@@ -46,6 +57,11 @@ type ItineraryProps = {
   // — a hotel booked for five nights is a single booking with one check-in, so
   // listing bookings by their start date never told you.
   lodgingByDay?: Record<number, NightLodging>;
+  // How long the trip stays in each city, computed on the server. This is the
+  // input the itinerary builder was missing entirely — see domain/city-days.ts.
+  cityDays?: CityDayPlan[];
+  // Days the trip's own dates allow, or null when it has no dates yet.
+  tripDayCount?: number | null;
 };
 
 export function Itinerary({
@@ -54,11 +70,15 @@ export function Itinerary({
   startDate = null,
   endDate = null,
   lodgingByDay = {},
+  cityDays = [],
+  tripDayCount = null,
 }: ItineraryProps) {
   const [days, setDays] = useState<ItineraryDay[]>(initialItinerary);
   const [view, setView] = useState<View>("timeline");
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The entry whose edit dialog is open, by id.
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const hasItinerary = days.some((day) => day.items.length > 0);
 
@@ -66,6 +86,17 @@ export function Itinerary({
   // route order, so this produces the same assignment the map and the hero use.
   const tones = cityToneMap([...cityByDay(days).values()]);
   const overrun = itineraryOverrun(startDate, endDate, days.length);
+
+  // Resolved from the id rather than held as an object, so the dialog always
+  // edits the current row: a rebuild replaces every entry, and a stashed copy
+  // would go on showing the old times.
+  const editing = editingId
+    ? days.flatMap((day) =>
+        day.items
+          .filter((item) => item.id === editingId)
+          .map((entry) => ({ entry, day: day.day })),
+      )[0]
+    : undefined;
 
   async function build() {
     setBuilding(true);
@@ -130,6 +161,14 @@ export function Itinerary({
       >
         לו&quot;ז הטיול
       </SectionHeading>
+
+      {/* Above the build button on purpose: this is the input the build uses,
+          so it belongs before the thing that consumes it. */}
+      <CityDaysEditor
+        tripId={tripId}
+        plan={cityDays}
+        tripDayCount={tripDayCount}
+      />
 
       {error && <Banner tone="danger">{error}</Banner>}
 
@@ -216,8 +255,32 @@ export function Itinerary({
 
                 <NightStay stay={stay} />
 
+                {/* Marked, and pointed somewhere — not filled in automatically.
+                    A day the AI could only put one thing on usually means the
+                    city has more days than it has chosen places, and the fix is
+                    to go and choose more. */}
+                {day.items.length < 2 && (
+                  <Banner tone="info">
+                    <span className="flex flex-wrap items-center gap-x-2">
+                      היום הזה כמעט ריק.
+                      <Link
+                        href={`/trips/${tripId}/explore`}
+                        className="flex items-center gap-1 font-semibold underline"
+                      >
+                        <Compass className="h-3.5 w-3.5" aria-hidden="true" />
+                        הוספת פעילויות{city ? ` ב${city}` : ""}
+                      </Link>
+                    </span>
+                  </Banner>
+                )}
+
                 {view === "timeline" ? (
-                  <DayTimeline day={day} onRemove={remove} origin={origin} />
+                  <DayTimeline
+                    day={day}
+                    onRemove={remove}
+                    onEdit={setEditingId}
+                    origin={origin}
+                  />
                 ) : (
                   <div className="flex flex-col gap-2">
                     {day.items.map((item) => {
@@ -232,6 +295,17 @@ export function Itinerary({
                               <span className="text-caption tabular-nums text-muted">
                                 {item.startLabel}–{item.endLabel}
                               </span>
+                              <IconButton
+                                label={`עריכת ${item.title}`}
+                                size="sm"
+                                className="h-6 w-6"
+                                onClick={() => setEditingId(item.id)}
+                              >
+                                <Pencil
+                                  className="h-3.5 w-3.5"
+                                  aria-hidden="true"
+                                />
+                              </IconButton>
                               <IconButton
                                 label="הסרה מהלוח"
                                 size="sm"
@@ -248,6 +322,25 @@ export function Itinerary({
                           </div>
                           {item.note && (
                             <p className="text-sm text-muted">{item.note}</p>
+                          )}
+                          {(item.travelNote || item.travelMinutes !== null) && (
+                            <p className="flex items-start gap-1.5 text-caption text-primary-ink">
+                              <Clock
+                                className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                                aria-hidden="true"
+                              />
+                              <span>
+                                {item.travelMinutes !== null && (
+                                  <span className="font-semibold tabular-nums">
+                                    {item.travelMinutes} דק׳ הגעה
+                                  </span>
+                                )}
+                                {item.travelMinutes !== null &&
+                                  item.travelNote &&
+                                  " · "}
+                                {item.travelNote}
+                              </span>
+                            </p>
                           )}
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-caption">
                             <a
@@ -291,6 +384,20 @@ export function Itinerary({
           })}
         </div>
       </div>
+
+      {/* One dialog for the whole list rather than one per row: only a single
+          entry can be open at a time, and mounting a <dialog> per item would put
+          hundreds of them in the DOM on a two-week trip. */}
+      {editing && (
+        <EditEntryDialog
+          key={editing.entry.id}
+          entry={editing.entry}
+          dayNumber={editing.day}
+          dayCount={days.length}
+          open
+          onClose={() => setEditingId(null)}
+        />
+      )}
     </section>
   );
 }

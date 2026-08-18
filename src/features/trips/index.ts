@@ -145,6 +145,25 @@ export type {
   BookingFormState,
 } from "./domain/booking";
 export { listBookings } from "./infrastructure/booking-service";
+export { tripDayCount } from "./domain/trip-days";
+export {
+  cityDayPlan,
+  cityDayTotals,
+  cityDaysPromptLine,
+  cityDaysSchema,
+  setCityDaysSchema,
+} from "./domain/city-days";
+export type { CityDayPlan, CityDays } from "./domain/city-days";
+export {
+  listCityDays,
+  setCityDays as writeCityDays,
+} from "./infrastructure/city-days-service";
+export { updateItineraryEntrySchema } from "./domain/itinerary-edit";
+export type { UpdateEntryResult } from "./domain/itinerary-edit";
+export {
+  setCityDays,
+  updateItineraryEntry,
+} from "./application/itinerary-actions";
 export { addBooking, removeBooking } from "./application/booking-actions";
 export {
   cancellationAlert,
@@ -247,6 +266,8 @@ export { resetChat, applyPlan } from "./application/chat-actions";
 export { TripChat } from "./components/trip-chat";
 export { PlanPreview } from "./components/plan-preview";
 export { CreateTripForm, NewTripButton } from "./components/create-trip-form";
+export { CityDaysEditor } from "./components/city-days-editor";
+export { EditEntryDialog } from "./components/edit-entry-dialog";
 export { DeleteTripButton } from "./components/delete-trip-button";
 export { TripDatesForm } from "./components/trip-dates-form";
 export { CountdownHero } from "./components/countdown-hero";
