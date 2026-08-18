@@ -8,13 +8,9 @@
 
 **פאזה C הושלמה במלואה (C1–C10). פאזה D (עיצוב) נבנתה — D1 עד D6.**
 
-הענף הפעיל: **`feature/phase-d-design`**, שני קומיטים, טרם נדחף.
-
-```bash
-git push -u origin feature/phase-d-design
-```
-
-אחרי הדחיפה: PR + מיזוג דרך ה-UI של GitHub (אין `gh` CLI במכונה).
+הענף הפעיל: **`feature/phase-d-design`** — ארבעה קומיטים (D1–D3, D5 חלק א,
+D4–D6, D8), **נדחף ל-origin**. נשאר PR + מיזוג דרך ה-UI של GitHub (אין `gh` CLI
+במכונה): https://github.com/Talsy93/tripplan/pull/new/feature/phase-d-design
 
 ## מה נשאר לעשות בפאזה D
 
@@ -40,8 +36,19 @@ git push -u origin feature/phase-d-design
 
 ## מגבלות חוזרות שחשוב לדעת עליהן
 
-**Claude לא יכול להריץ `git push`** — הכלי חוסם פרומפט אינטראקטיבי לסיסמה.
-בכל שיחה, המשתמש מריץ את ה-push, ו-Claude בונה את הענף/קומיט ונותן את הפקודה.
+**`git push` כן עובד — ההנחה הקודמת הייתה שגויה.** ב-2026-08-18 התברר שיש
+credential helper מוגדר (`manager`), ושהדחיפה מצליחה להתחבר. מה שנכשל בפועל היה
+משהו אחר לגמרי, ושווה לזכור אותו:
+
+**GitHub דחה את הדחיפה ב-`GH007: Your push would publish a private email
+address`.** ההגנה הזו הופעלה בחשבון בשלב מסוים, בזמן ש-109 הקומיטים בהיסטוריה
+כולם נושאים `appsab11@gmail.com` — כלומר היא חסמה כתובת שכבר גלויה בריפו ציבורי.
+**התיקון:** `user.email` בריפו הזה הוגדר ל-`304832351+Talsy93@users.noreply.github.com`
+(כתובת ה-noreply של GitHub), וארבעת הקומיטים של פאזה D עברו re-author. מכאן והלאה
+כל קומיט חדש בריפו הזה נושא את כתובת ה-noreply, ולכן לא ייתקל בהגנה שוב.
+
+**מה שזה אומר לשיחות הבאות:** אין צורך לבקש מהמשתמש להריץ `git push` — אפשר
+לדחוף ישירות (ענפי feature בלבד; ל-`main` יש branch protection שדורשת PR).
 
 **פורט 3000 תפוס במכונה על ידי פרויקט אחר (PriceDrop).** `.claude/launch.json`
 קיבל `"autoPort": true` בפאזה D, כך ש-`preview_start` מקבל פורט פנוי. אם OAuth של
