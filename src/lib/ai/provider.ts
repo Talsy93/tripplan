@@ -1,5 +1,6 @@
 import { ApiError, GoogleGenAI } from "@google/genai";
 import * as z from "zod";
+import { classifyQuotaError } from "./quota";
 
 // Provider-agnostic entry point for structured generation. The rest of the app
 // depends only on this function; swapping Gemini for another provider means
@@ -34,6 +35,20 @@ export class AiQuotaExceededError extends Error {
   }
 }
 
+// Also an HTTP 429, and for a while it was reported as the one above — which is
+// how a user who pressed a button three times in a row got told to come back
+// tomorrow. The free tier's per-minute cap clears in seconds; the daily one does
+// not. Same status, opposite advice, so they cannot share a class.
+export class AiRateLimitedError extends Error {
+  readonly retryAfterSeconds: number | null;
+
+  constructor(cause: unknown, retryAfterSeconds: number | null) {
+    super("AI provider rate limited", { cause });
+    this.name = "AiRateLimitedError";
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
 // Thrown when Gemini itself is overloaded — HTTP 503 UNAVAILABLE, "this model
 // is currently experiencing high demand". A third state, distinct from both of
 // the above: the quota is fine and nothing is broken, it is busy. Waiting a
@@ -65,6 +80,14 @@ export function isUnavailable(error: unknown): boolean {
 function handleProviderError(label: string, error: unknown): never {
   console.error(`[ai] ${label} failed:`, error);
   if (isQuotaExceeded(error)) {
+    // 429 covers both windows. The body says which, when it says anything —
+    // see lib/ai/quota.ts.
+    const { window, retryAfterSeconds } = classifyQuotaError(
+      error instanceof Error ? error.message : String(error),
+    );
+    if (window === "per-minute") {
+      throw new AiRateLimitedError(error, retryAfterSeconds);
+    }
     throw new AiQuotaExceededError(error);
   }
   if (isUnavailable(error)) {

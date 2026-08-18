@@ -16,6 +16,7 @@ import {
 } from "@/features/trips";
 import {
   AiQuotaExceededError,
+  AiRateLimitedError,
   AiUnavailableError,
   generateStructured,
 } from "@/lib/ai";
@@ -182,6 +183,17 @@ export async function POST(request: Request) {
     const saved = await getItinerary(tripId);
     return NextResponse.json({ days: saved });
   } catch (error) {
+    // Google's per-minute cap. Answered as 429 with the delay it asked for, so
+    // the reader is told to wait seconds rather than until tomorrow.
+    if (error instanceof AiRateLimitedError) {
+      return NextResponse.json(
+        {
+          error: "ai_rate_limited",
+          retryAfterSeconds: error.retryAfterSeconds,
+        },
+        { status: 429 },
+      );
+    }
     if (error instanceof AiQuotaExceededError) {
       return NextResponse.json({ error: "ai_quota_exceeded" }, { status: 503 });
     }
