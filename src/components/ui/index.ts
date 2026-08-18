@@ -6,7 +6,7 @@ export { Chip, ChipRadio, chipClasses } from "./chip";
 export { Dialog } from "./dialog";
 export { EmptyState } from "./empty-state";
 export { Field, Input, Select, Textarea } from "./field";
-export { IconButton } from "./icon-button";
+export { IconButton, iconButtonClasses } from "./icon-button";
 export { ListRow } from "./list-row";
 export { SectionHeading } from "./section-heading";
 export { SegmentedControl } from "./segmented-control";

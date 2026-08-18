@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Card, EmptyState, IconButton } from "@/components/ui";
+import {
+  EmptyState,
+  IconButton,
+  ListRow,
+  Surface,
+  ToneDot,
+} from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { BOOKING_KINDS, bookingWhere } from "../domain/booking";
 import { lodgingOrigin } from "../domain/directions";
@@ -73,9 +79,13 @@ export function DayPager({
 
   return (
     <div className={cn("flex flex-col gap-4", cityToneClass(tones, city))}>
-      <Card
-        variant="flat"
-        className="flex items-center justify-between gap-2 bg-tone px-3 py-4"
+      {/* A neutral surface with a tone dot, not a tone-filled panel. Filling a
+          full-width header with a pastel is what put six competing colours on
+          one screen; the dot says the same thing at a tenth of the volume. */}
+      <Surface
+        tone="quiet"
+        padding="none"
+        className="flex items-center justify-between gap-2 px-3 py-3"
       >
         {/* RTL: "previous" is on the right and its glyph points right. The
             order in the DOM is what decides the sides — do not also mirror. */}
@@ -89,9 +99,12 @@ export function DayPager({
           <ChevronRight className="h-4 w-4" aria-hidden="true" />
         </IconButton>
 
-        <div className="min-w-0 text-center text-tone-ink">
-          <p className="truncate font-display text-xl">{city ?? "הטיול"}</p>
-          <p className="text-xs font-semibold opacity-80">
+        <div className="flex min-w-0 flex-col items-center text-center">
+          <p className="flex min-w-0 items-center gap-2 text-title font-bold">
+            <ToneDot />
+            <span className="truncate">{city ?? "הטיול"}</span>
+          </p>
+          <p className="text-caption font-semibold text-muted">
             {dayOfTripLabel(active.day, dayCount, date)}
           </p>
         </div>
@@ -105,7 +118,7 @@ export function DayPager({
         >
           <ChevronLeft className="h-4 w-4" aria-hidden="true" />
         </IconButton>
-      </Card>
+      </Surface>
 
       <div className="flex gap-1.5 overflow-x-auto pb-1">
         {days.map((day) => {
@@ -118,16 +131,17 @@ export function DayPager({
               onClick={() => setDayNumber(day.day)}
               aria-current={isActive ? "true" : undefined}
               className={cn(
-                "flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control text-xs transition-colors",
+                "flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control text-caption transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isActive
                   ? "bg-primary font-bold text-primary-foreground"
-                  : "border border-border bg-surface text-muted hover:text-foreground",
+                  : "border border-border-strong bg-surface text-muted hover:bg-surface-2 hover:text-foreground",
                 // A ring rather than a fill, so "today" and "selected" can be
                 // true at once and still be told apart.
                 isToday && !isActive && "ring-2 ring-primary",
               )}
             >
-              <span className="text-[10px] opacity-70">יום</span>
+              <span className="text-caption opacity-70">יום</span>
               <span className="font-bold">{day.day}</span>
             </button>
           );
@@ -142,28 +156,25 @@ export function DayPager({
             const at = new Date(booking.starts_at);
             return (
               <li key={booking.id}>
-                <Card className="flex items-center gap-3 border-s-4 border-s-primary p-3">
-                  <span className="text-xl leading-none" aria-hidden="true">
-                    {kind.emoji}
-                  </span>
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-sm font-bold">
-                      {booking.title}
+                <ListRow
+                  accent="action"
+                  leading={
+                    <span className="text-xl leading-none" aria-hidden="true">
+                      {kind.emoji}
                     </span>
-                    {where && (
-                      <span className="truncate text-xs text-muted">
-                        {where}
-                      </span>
-                    )}
-                  </div>
-                  <span
-                    dir="ltr"
-                    className="shrink-0 text-sm font-semibold tabular-nums text-muted"
-                  >
-                    {String(at.getHours()).padStart(2, "0")}:
-                    {String(at.getMinutes()).padStart(2, "0")}
-                  </span>
-                </Card>
+                  }
+                  title={booking.title}
+                  subtitle={where ?? undefined}
+                  trailing={
+                    <span
+                      dir="ltr"
+                      className="text-sm font-semibold tabular-nums text-muted"
+                    >
+                      {String(at.getHours()).padStart(2, "0")}:
+                      {String(at.getMinutes()).padStart(2, "0")}
+                    </span>
+                  }
+                />
               </li>
             );
           })}

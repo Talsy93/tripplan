@@ -1,4 +1,4 @@
-import { Badge, Card, EmptyState } from "@/components/ui";
+import { Badge, Banner, EmptyState, ListRow } from "@/components/ui";
 import {
   BOOKING_KINDS,
   bookingAlert,
@@ -64,31 +64,19 @@ export function UpNext({
         <ul className="flex flex-col gap-2">
           {todo.map(({ booking, alert }) => (
             <li key={`${booking.id}-${alert.message}`}>
-              <Card
-                className={
-                  alert.urgency === "now"
-                    ? "flex items-center gap-3 border-s-4 border-s-warning-ink bg-warning-tint p-3"
-                    : "flex items-center gap-3 border-s-4 border-s-primary bg-surface-2 p-3"
-                }
-              >
-                <span className="text-xl leading-none" aria-hidden="true">
-                  {alert.message.startsWith("ביטול") ? "💸" : "📝"}
-                </span>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-sm font-bold">
-                    {alert.message}
-                  </span>
-                  <span className="truncate text-xs text-muted">
-                    {booking.title}
-                  </span>
-                </div>
-              </Card>
+              {/* Banner rather than a card with a coloured stripe. The icon used
+                  to be chosen by alert.message.startsWith("ביטול"), which works
+                  right up until somebody rewords a sentence. */}
+              <Banner tone={alert.urgency === "now" ? "callout" : "info"}>
+                <span className="font-semibold">{alert.message}</span>
+                <span className="text-muted"> · {booking.title}</span>
+              </Banner>
             </li>
           ))}
         </ul>
       )}
 
-      <ul className="flex flex-col gap-3">
+      <ul className="flex flex-col gap-2">
         {upcoming.map((booking) => {
           const kind = BOOKING_KINDS[booking.kind];
           const alert = bookingAlert(booking, at);
@@ -96,27 +84,26 @@ export function UpNext({
 
           return (
             <li key={booking.id} className={cityToneClass(tones, booking.city)}>
-              <Card className="flex items-center gap-3 border-s-4 border-s-tone-dot p-3">
-                <span className="text-2xl leading-none" aria-hidden="true">
-                  {kind.emoji}
-                </span>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-semibold">
-                    {booking.title}
+              <ListRow
+                accent="tone"
+                leading={
+                  <span className="text-xl leading-none" aria-hidden="true">
+                    {kind.emoji}
                   </span>
-                  {where && (
-                    <span className="truncate text-xs text-muted">{where}</span>
-                  )}
-                </div>
-                {alert && (
-                  <Badge
-                    tone={alert.urgency === "now" ? "warning" : "neutral"}
-                    className="shrink-0"
-                  >
-                    {alert.message}
-                  </Badge>
-                )}
-              </Card>
+                }
+                title={booking.title}
+                subtitle={where ?? undefined}
+                trailing={
+                  alert && (
+                    <Badge
+                      tone={alert.urgency === "now" ? "warning" : "neutral"}
+                      suppressHydrationWarning
+                    >
+                      {alert.message}
+                    </Badge>
+                  )
+                }
+              />
             </li>
           );
         })}

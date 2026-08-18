@@ -1,9 +1,10 @@
-import { AppShell } from "@/components/layout";
+import { AppHeader, AppShell } from "@/components/layout";
+import { SectionHeading } from "@/components/ui";
 import { getCurrentUser, LogoutButton } from "@/features/auth";
 import {
   APP_TIME_ZONE,
   CountdownHero,
-  CreateTripForm,
+  NewTripButton,
   getItinerary,
   getPrimaryDestination,
   getSelectedDestinations,
@@ -14,6 +15,8 @@ import {
   TripList,
 } from "@/features/trips";
 import { getPlaceImage } from "@/lib/place-image";
+
+export const metadata = { title: "הטיולים שלי · TripPlan" };
 
 export default async function ProfilePage() {
   const [user, trips] = await Promise.all([getCurrentUser(), listTrips()]);
@@ -44,30 +47,45 @@ export default async function ProfilePage() {
   }
 
   return (
-    <AppShell>
-      <header className="flex items-center justify-between gap-3">
-        <div className="flex flex-col">
-          <h1 className="font-display text-2xl">הטיולים שלי</h1>
-          {user && (
-            <span className="text-sm text-muted">מחובר כ-{user.email}</span>
-          )}
-        </div>
-        <LogoutButton />
-      </header>
+    <AppShell
+      header={
+        <AppHeader
+          trailing={
+            <>
+              <NewTripButton />
+              <LogoutButton />
+            </>
+          }
+        />
+      }
+    >
+      <SectionHeading
+        level="page"
+        description={user ? `מחובר כ-${user.email}` : undefined}
+      >
+        הטיולים שלי
+      </SectionHeading>
 
       {upcoming && (
-        <CountdownHero
-          tripId={upcoming.id}
-          name={upcoming.name}
-          startDate={upcoming.start_date}
-          imageUrl={upcomingImage}
-          cities={upcomingCities}
-          href={`/trips/${upcoming.id}`}
-        />
+        <section className="flex flex-col gap-3">
+          <SectionHeading level="sub">הטיול הקרוב</SectionHeading>
+          <CountdownHero
+            tripId={upcoming.id}
+            name={upcoming.name}
+            startDate={upcoming.start_date}
+            imageUrl={upcomingImage}
+            cities={upcomingCities}
+            href={`/trips/${upcoming.id}`}
+          />
+        </section>
       )}
 
-      <CreateTripForm />
-      <TripList trips={trips} today={todayIn(APP_TIME_ZONE, new Date())} />
+      <section className="flex flex-col gap-3">
+        {trips.length > 0 && (
+          <SectionHeading level="sub">כל הטיולים · {trips.length}</SectionHeading>
+        )}
+        <TripList trips={trips} today={todayIn(APP_TIME_ZONE, new Date())} />
+      </section>
     </AppShell>
   );
 }

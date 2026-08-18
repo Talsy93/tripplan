@@ -1,8 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button } from "@/components/ui";
-import { Input } from "@/components/ui";
+import { Banner, Button, Field, Input } from "@/components/ui";
 import type { AuthFormState } from "../domain/schemas";
 
 type CredentialsFormProps = {
@@ -20,52 +19,40 @@ export function CredentialsForm({
 
   return (
     <form action={formAction} className="flex w-full flex-col gap-4">
-      <h1 className="font-display text-2xl">{title}</h1>
+      <h1 className="text-heading font-bold">{title}</h1>
 
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="email" className="text-sm font-medium">
-          אימייל
-        </label>
+      {/* dir="ltr" and text-left are deliberate: an address and a password are
+          Latin content, and letting them follow the page's RTL direction puts
+          the caret and the @ on the wrong side. */}
+      <Field label="אימייל" error={state?.errors?.email?.join(" ")}>
         <Input
-          id="email"
           name="email"
           type="email"
           autoComplete="email"
+          placeholder="name@example.com"
           required
           dir="ltr"
           className="text-left"
+          aria-invalid={state?.errors?.email ? true : undefined}
         />
-        {state?.errors?.email && (
-          <p className="text-sm text-danger-ink">{state.errors.email.join(" ")}</p>
-        )}
-      </div>
+      </Field>
 
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="password" className="text-sm font-medium">
-          סיסמה
-        </label>
+      <Field label="סיסמה" error={state?.errors?.password?.join(" ")}>
         <Input
-          id="password"
           name="password"
           type="password"
           autoComplete="current-password"
           required
           dir="ltr"
           className="text-left"
+          aria-invalid={state?.errors?.password ? true : undefined}
         />
-        {state?.errors?.password && (
-          <p className="text-sm text-danger-ink">
-            {state.errors.password.join(" ")}
-          </p>
-        )}
-      </div>
+      </Field>
 
-      {state?.message && (
-        <p className="text-sm text-muted">{state.message}</p>
-      )}
+      {state?.message && <Banner tone="danger">{state.message}</Banner>}
 
-      <Button type="submit" disabled={pending} className="w-full">
-        {pending ? "רגע…" : submitLabel}
+      <Button type="submit" loading={pending} size="lg" className="w-full">
+        {submitLabel}
       </Button>
     </form>
   );

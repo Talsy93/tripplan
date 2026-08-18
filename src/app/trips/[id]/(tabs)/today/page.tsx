@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { SectionHeading } from "@/components/ui";
 import { getPlaceImage } from "@/lib/place-image";
 import {
   APP_TIME_ZONE,
@@ -86,7 +87,7 @@ export default async function TodayPage({
       )}
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-display text-lg">מה קרוב</h2>
+        <SectionHeading level="section">מה קרוב</SectionHeading>
         {/* Stamped on the server so "in 3 hours" cannot disagree between the
             server render and hydration. */}
         <UpNext

@@ -246,7 +246,7 @@ export { savePlanFromChat } from "./infrastructure/trip-plan-service";
 export { resetChat, applyPlan } from "./application/chat-actions";
 export { TripChat } from "./components/trip-chat";
 export { PlanPreview } from "./components/plan-preview";
-export { CreateTripForm } from "./components/create-trip-form";
+export { CreateTripForm, NewTripButton } from "./components/create-trip-form";
 export { TripDatesForm } from "./components/trip-dates-form";
 export { CountdownHero } from "./components/countdown-hero";
 export { UpNext } from "./components/up-next";
