@@ -1,4 +1,5 @@
-import { Card } from "@/components/ui";
+import { Map as MapIcon } from "lucide-react";
+import { iconButtonClasses, ListRow } from "@/components/ui";
 import { googleMapsSearchUrl } from "@/lib/maps";
 import { BOOKING_KINDS } from "../domain/booking";
 import { nightStayLabel } from "../domain/trip-days";
@@ -20,30 +21,39 @@ export function NightStay({ stay }: { stay: NightLodging | null }) {
   const where = booking.address ?? booking.city;
 
   return (
-    <Card className="flex items-center gap-3 border-s-4 border-s-primary-tint bg-surface-2 p-3">
-      <span className="text-xl leading-none" aria-hidden="true">
-        {BOOKING_KINDS.lodging.emoji}
-      </span>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted">
-          {nightStayLabel(stay)}
+    <ListRow
+      accent="action"
+      leading={
+        <span className="text-lg leading-none" aria-hidden="true">
+          {BOOKING_KINDS.lodging.emoji}
         </span>
-        <span className="truncate text-sm font-bold">{booking.title}</span>
-        {where && <span className="truncate text-xs text-muted">{where}</span>}
-      </div>
-      <a
-        href={googleMapsSearchUrl(
-          [booking.title, booking.address, booking.city]
-            .filter(Boolean)
-            .join(" "),
-        )}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={`פתח את ${booking.title} ב-Google Maps`}
-        className="shrink-0 text-muted transition-colors hover:text-foreground"
-      >
-        🗺️
-      </a>
-    </Card>
+      }
+      title={
+        <>
+          <span className="font-normal text-muted">
+            {nightStayLabel(stay)} ·{" "}
+          </span>
+          {booking.title}
+        </>
+      }
+      subtitle={where ?? undefined}
+      trailing={
+        <a
+          href={googleMapsSearchUrl(
+            [booking.title, booking.address, booking.city]
+              .filter(Boolean)
+              .join(" "),
+          )}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`פתח את ${booking.title} ב-Google Maps`}
+          title="Google Maps"
+          className={iconButtonClasses("ghost", "sm")}
+        >
+          <MapIcon className="h-4 w-4" aria-hidden="true" />
+        </a>
+      }
+      className="bg-surface-2"
+    />
   );
 }

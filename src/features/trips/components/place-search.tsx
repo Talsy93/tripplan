@@ -1,12 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight } from "lucide-react";
-import { Badge, Button, Card, Chip, EmptyState, Input } from "@/components/ui";
+import { Check, ChevronRight, Search } from "lucide-react";
+import {
+  Badge,
+  Banner,
+  Button,
+  Chip,
+  EmptyState,
+  Input,
+  ListRow,
+  SectionHeading,
+} from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { addPlace } from "../application/place-actions";
 import { PLACE_CATEGORIES } from "../domain/place";
-import { cityToneClass, cityToneMap, toneByIndex, toneClass } from "../domain/tone";
+import { cityToneClass, cityToneMap } from "../domain/tone";
 import type { PlaceCategory } from "../domain/place";
 import type { Place } from "../domain/place";
 import type { AddedPlace } from "../infrastructure/place-service";
@@ -152,8 +161,8 @@ export function PlaceSearch({
   // ---- The grid: where this tab starts -------------------------------------
   if (category === null) {
     return (
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {CATEGORY_KEYS.map((key, index) => {
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+        {CATEGORY_KEYS.map((key) => {
           const meta = PLACE_CATEGORIES[key];
           const count = savedCounts[key] ?? 0;
           return (
@@ -161,19 +170,23 @@ export function PlaceSearch({
               key={key}
               type="button"
               onClick={() => openCategory(key)}
+              // The tiles used to be filled with one of the six pastels, keyed
+              // to the category's index. That was six saturated blocks on the
+              // opening screen of the tab, and the colour meant nothing — the
+              // pastels identify cities, not categories. Neutral now; the emoji
+              // is the identity and the count is the information.
               className={cn(
-                "flex flex-col gap-2 rounded-tile bg-tone p-4 text-start transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                toneClass(toneByIndex(index)),
+                "flex flex-col gap-2 rounded-card border border-border bg-surface p-4 text-start shadow-soft transition-shadow",
+                "hover:border-border-strong hover:shadow-lift",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               )}
             >
-              <span className="text-4xl leading-none" aria-hidden="true">
+              <span className="text-display leading-none" aria-hidden="true">
                 {meta.emoji}
               </span>
-              <span className="text-tone-ink">
-                <span className="block text-sm font-bold leading-tight">
-                  {meta.label}
-                </span>
-                <span className="block text-xs opacity-75">
+              <span className="flex flex-col">
+                <span className="text-sm font-bold">{meta.label}</span>
+                <span className="text-caption text-muted">
                   {count > 0 ? `${count} בטיול` : "לחיפוש"}
                 </span>
               </span>
@@ -192,16 +205,18 @@ export function PlaceSearch({
       <button
         type="button"
         onClick={backToGrid}
-        className="flex items-center gap-1 self-start text-sm text-muted transition-colors hover:text-foreground"
+        className="flex items-center gap-1 self-start rounded-control text-sm text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <ChevronRight className="h-4 w-4" aria-hidden="true" />
         חזרה לקטגוריות
       </button>
 
-      <h3 className="flex items-center gap-2 font-display text-xl">
-        <span aria-hidden="true">{meta.emoji}</span>
+      <SectionHeading
+        level="section"
+        leading={<span aria-hidden="true">{meta.emoji}</span>}
+      >
         {meta.label}
-      </h3>
+      </SectionHeading>
 
       {cities.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
@@ -227,14 +242,20 @@ export function PlaceSearch({
         }}
         className="flex gap-2"
       >
-        <Input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={`חיפוש בתוך ${meta.label}`}
-          className="flex-1"
-        />
+        <div className="relative flex-1">
+          <Search
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 start-3 my-auto h-4 w-4 text-muted"
+          />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={`חיפוש בתוך ${meta.label}`}
+            className="ps-9"
+          />
+        </div>
         <Button type="submit" loading={status.kind === "searching"}>
-          חפש
+          חיפוש
         </Button>
       </form>
 
@@ -243,7 +264,7 @@ export function PlaceSearch({
       )}
 
       {status.kind === "error" && (
-        <p className="text-sm text-danger-ink">{status.message}</p>
+        <Banner tone="danger">{status.message}</Banner>
       )}
 
       {status.kind === "results" && status.places.length === 0 && (
@@ -255,55 +276,57 @@ export function PlaceSearch({
       )}
 
       {status.kind === "results" && status.places.length > 0 && (
-        <ul className="flex flex-col gap-2">
+        <ul className="grid gap-2 xl:grid-cols-2">
           {status.places.map((place) => {
             const days = added.get(place.id);
             return (
               <li key={place.id} className={cityToneClass(tones, city)}>
-                <Card className="flex items-center justify-between gap-3 border-s-4 border-s-tone-dot p-3">
-                  <button
-                    type="button"
-                    onClick={() => setOpen(place)}
-                    className="min-w-0 flex-1 text-start"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className="truncate font-semibold">
-                        {place.name}
-                      </span>
+                <ListRow
+                  accent="tone"
+                  title={
+                    <button
+                      type="button"
+                      onClick={() => setOpen(place)}
+                      className="flex min-w-0 items-center gap-2 rounded text-start hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <span className="truncate">{place.name}</span>
                       {place.notable && (
                         <Badge
-                          tone="primary"
+                          tone="action"
                           title="למקום יש ערך בוויקיפדיה"
                           className="shrink-0"
                         >
                           מוכר
                         </Badge>
                       )}
-                    </span>
-                    <span className="block truncate text-xs text-muted">
-                      {[place.brand, place.cuisine, place.openingHours]
-                        .filter(Boolean)
-                        .join(" · ") || place.address}
-                    </span>
-                  </button>
-
-                  {days ? (
-                    <Badge tone="success" className="shrink-0">
-                      ✓ {dayLabel(days)}
-                    </Badge>
-                  ) : (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="soft"
-                      onClick={() => void add(place)}
-                      loading={adding === place.id}
-                      className="shrink-0"
-                    >
-                      הוסף
-                    </Button>
-                  )}
-                </Card>
+                    </button>
+                  }
+                  subtitle={
+                    [place.brand, place.cuisine, place.openingHours]
+                      .filter(Boolean)
+                      .join(" · ") ||
+                    place.address ||
+                    undefined
+                  }
+                  trailing={
+                    days ? (
+                      <Badge tone="success">
+                        <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                        {dayLabel(days)}
+                      </Badge>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="soft"
+                        onClick={() => void add(place)}
+                        loading={adding === place.id}
+                      >
+                        הוספה
+                      </Button>
+                    )
+                  }
+                />
               </li>
             );
           })}

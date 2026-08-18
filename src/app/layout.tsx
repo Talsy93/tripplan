@@ -1,26 +1,25 @@
 import type { Metadata, Viewport } from "next";
-import { Heebo, Secular_One } from "next/font/google";
+import { Heebo } from "next/font/google";
 import "./globals.css";
 
+// One family for the whole app. Phase D dropped Secular One as the display
+// face: hierarchy now comes from size and weight on a single family, which is
+// what makes a type system read as one voice instead of two. --font-display in
+// globals.css points here, so the remaining font-display call sites are inert
+// rather than broken while they are cleaned up.
 const heebo = Heebo({
   variable: "--font-heebo",
   subsets: ["hebrew", "latin"],
-});
-
-// Display face for headings and the countdown. Single weight by design — it is
-// already heavy, and a second weight would only blur what it is for.
-const secular = Secular_One({
-  variable: "--font-secular",
-  subsets: ["hebrew", "latin"],
-  weight: "400",
 });
 
 // Required for env(safe-area-inset-*) to resolve to anything but 0 on iOS.
 // Without it the fixed bottom nav sits under the home indicator.
 export const viewport: Viewport = {
   viewportFit: "cover",
-  // Painted behind the status bar once the app is installed.
-  themeColor: "#faf7f2",
+  // Painted behind the status bar once the app is installed, so it has to be
+  // the header's colour and not the canvas's. Kept in step with
+  // manifest.json's theme_color — the two disagreed until phase D.
+  themeColor: "#ffffff",
 };
 
 export const metadata: Metadata = {
@@ -55,7 +54,7 @@ export default function RootLayout({
     <html
       lang="he"
       dir="rtl"
-      className={`${heebo.variable} ${secular.variable} h-full antialiased`}
+      className={`${heebo.variable} h-full antialiased`}
     >
       {/* dvh, not vh: mobile browser chrome makes 100vh taller than the
           visible area, which a fixed bottom bar makes obvious. */}

@@ -4,6 +4,8 @@ import { getTrip, RouteMapPanel } from "@/features/trips";
 // This tab loads none of the trip's other data — RouteMapPanel fetches the
 // itinerary and the geocoded route itself. Splitting the tabs into routes is
 // what makes that a saving rather than a duplicate.
+export const metadata = { title: "מפה" };
+
 export default async function MapPage({
   params,
 }: {

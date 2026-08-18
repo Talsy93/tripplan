@@ -1,7 +1,16 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Button, Card, Input, Textarea } from "@/components/ui";
+import {
+  Banner,
+  Button,
+  Card,
+  Chip,
+  ChipRadio,
+  Input,
+  Select,
+  Textarea,
+} from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { addBooking } from "../application/booking-actions";
 import {
@@ -99,7 +108,7 @@ export function BookingForm({
     errorFor(field) ? "border-danger focus-visible:ring-danger" : undefined;
 
   return (
-    <Card className="p-4">
+    <Card>
       {/* noValidate on purpose. With native validation on, an empty required
           field blocks the submit before the action runs, so the server's Hebrew
           field errors never get to render — and the browser's own bubble is
@@ -114,27 +123,21 @@ export function BookingForm({
             fold on a phone — and a form that silently refuses to submit is the
             worst possible feedback. */}
         {hasFieldErrors && (
-          <p role="alert" className="text-sm text-danger-ink">
+          <Banner tone="danger">
             יש שדות חסרים או שגויים. בדקו את המסומנים למטה.
-          </p>
+          </Banner>
         )}
 
         <div className="flex flex-wrap gap-2">
           {KINDS.map((key) => (
-            <button
+            <Chip
               key={key}
-              type="button"
+              active={kind === key}
               onClick={() => setKind(key)}
-              aria-pressed={kind === key}
-              className={cn(
-                "rounded-full border px-3 py-1.5 text-sm transition-colors",
-                kind === key
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-surface hover:border-primary",
-              )}
             >
-              {BOOKING_KINDS[key].emoji} {BOOKING_KINDS[key].label}
-            </button>
+              <span aria-hidden="true">{BOOKING_KINDS[key].emoji}</span>
+              {BOOKING_KINDS[key].label}
+            </Chip>
           ))}
         </div>
 
@@ -218,18 +221,14 @@ export function BookingForm({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-muted">יעד בטיול (לא חובה)</span>
-            <select
-              name="city"
-              defaultValue={was("city")}
-              className="h-10 rounded-lg border border-border bg-surface px-3 text-sm"
-            >
+            <Select name="city" defaultValue={was("city")}>
               <option value="">—</option>
               {cities.map((city) => (
                 <option key={city} value={city}>
                   {city}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-muted">מספר אישור (לא חובה)</span>
@@ -266,7 +265,7 @@ export function BookingForm({
               name="booked"
               defaultChecked={booked}
               onChange={(event) => setBooked(event.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--primary)]"
             />
             <span>
               כבר הזמנתי
@@ -322,31 +321,21 @@ export function BookingForm({
             <div className="flex flex-wrap gap-2">
               {[...REMINDER_PRESETS, CUSTOM].map((preset) => {
                 const value = String(preset);
-                const active = leadChoice === value;
                 return (
-                  <label
+                  <ChipRadio
                     key={value}
-                    className={cn(
-                      "cursor-pointer rounded-full border px-3 py-1.5 text-sm transition-colors focus-within:ring-2 focus-within:ring-ring",
-                      active
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-surface hover:border-primary",
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      name="reminderChoice"
-                      value={value}
-                      checked={active}
-                      onChange={() => setLeadChoice(value)}
-                      className="sr-only"
-                    />
-                    {preset === CUSTOM
-                      ? "אחר"
-                      : preset === 1
-                        ? "יום לפני"
-                        : `${preset} ימים`}
-                  </label>
+                    name="reminderChoice"
+                    value={value}
+                    checked={leadChoice === value}
+                    onChange={() => setLeadChoice(value)}
+                    label={
+                      preset === CUSTOM
+                        ? "אחר"
+                        : preset === 1
+                          ? "יום לפני"
+                          : `${preset} ימים`
+                    }
+                  />
                 );
               })}
             </div>
@@ -385,12 +374,12 @@ export function BookingForm({
         </div>
 
         <div>
-          <Button type="submit" disabled={pending}>
-            {pending ? "שומר…" : "הוסף"}
+          <Button type="submit" loading={pending}>
+            הוספה
           </Button>
         </div>
 
-        {state.error && <p className="text-sm text-danger-ink">{state.error}</p>}
+        {state.error && <Banner tone="danger">{state.error}</Banner>}
       </form>
     </Card>
   );

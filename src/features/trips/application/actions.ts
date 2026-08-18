@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
 import { createTripSchema, type TripFormState } from "../domain/trip";
-import { createTrip as insertTrip } from "../infrastructure/trips-service";
+import {
+  createTrip as insertTrip,
+  deleteTrip as removeTrip,
+} from "../infrastructure/trips-service";
 
 export async function createTrip(
   _state: TripFormState,
@@ -23,4 +26,16 @@ export async function createTrip(
 
   revalidatePath("/profile");
   return undefined;
+}
+
+// Irreversible, and the confirmation lives in the UI (see DeleteTripButton) —
+// there is no soft delete and no undo. `revalidatePath` rather than `redirect`:
+// the caller is the trips list itself, so it only needs the list refetched.
+export async function deleteTrip(tripId: string): Promise<{ ok: boolean }> {
+  const { error } = await removeTrip(tripId);
+
+  if (error) return { ok: false };
+
+  revalidatePath("/profile");
+  return { ok: true };
 }

@@ -5,8 +5,10 @@ import { routeSummary, type RouteStop } from "../domain/route";
 // shape of the trip laid over it. Presentational — the panel resolves the
 // image (free, may be null) and passes it in.
 //
-// Same treatment as CountdownHero on the home screen, so the two hero
-// images read as one idea.
+// Same treatment as CountdownHero on the home screen, so the two hero images
+// read as one idea. Phase D made that true rather than aspirational: the two
+// used to disagree on their radius (rounded-2xl here, rounded-tile there) and
+// on their scrim stops, both of which are tokens now.
 export function RouteHero({
   tripName,
   stops,
@@ -25,25 +27,23 @@ export function RouteHero({
   ].filter(Boolean);
 
   return (
-    <div className="relative h-44 overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-accent shadow-card sm:h-52">
+    <div className="relative h-40 overflow-hidden rounded-tile bg-brand sm:h-48 lg:h-56">
       {imageUrl && (
         <Image
           src={imageUrl}
           alt={`תמונה של ${stops[0]?.city ?? tripName}`}
           fill
-          sizes="(max-width: 1024px) 100vw, 896px"
+          sizes="(max-width: 1024px) 100vw, 1200px"
           className="object-cover"
           priority
         />
       )}
       {/* Darken the lower half so the text stays legible over any photo. */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-scrim-strong via-scrim-soft to-transparent" />
 
       <div className="absolute inset-0 flex flex-col justify-end gap-1 p-5 text-white">
-        <h2 className="font-display text-2xl drop-shadow-sm sm:text-3xl">
-          {tripName}
-        </h2>
-        <span className="text-sm font-medium text-white/90 drop-shadow-sm">
+        <h2 className="text-title font-bold sm:text-heading">{tripName}</h2>
+        <span className="text-sm font-semibold text-white/90">
           {parts.join(" · ")}
         </span>
       </div>

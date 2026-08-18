@@ -1,4 +1,4 @@
-import { Card } from "@/components/ui";
+import { Banner, Card, SectionHeading, Surface, ToneDot } from "@/components/ui";
 import { describeWeather, weekdayLabel } from "../domain/weather";
 import { cityToneClass, cityToneMap } from "../domain/tone";
 import type { CityWeather, ForecastWindow } from "../domain/weather";
@@ -12,15 +12,15 @@ export function WeatherForecast({
   cities: CityWeather[];
 }) {
   if (window.kind === "past") {
-    return <p className="text-sm text-muted">הטיול הזה כבר מאחוריכם.</p>;
+    return <Banner tone="info">הטיול הזה כבר מאחוריכם.</Banner>;
   }
 
   // Not an error state — the forecast genuinely doesn't exist yet, and saying
   // when it will is more useful than an empty panel.
   if (window.kind === "too-far") {
     return (
-      <Card className="flex flex-col gap-1 p-4">
-        <p className="font-semibold">התחזית עוד לא קיימת</p>
+      <Surface tone="quiet" className="flex flex-col gap-1">
+        <p className="text-base font-semibold">התחזית עוד לא קיימת</p>
         <p className="text-sm text-muted">
           תחזית זמינה עד 16 ימים קדימה. נתחיל להציג אותה בעוד{" "}
           {window.daysUntilAvailable === 1
@@ -28,7 +28,7 @@ export function WeatherForecast({
             : `${window.daysUntilAvailable} ימים`}
           .
         </p>
-      </Card>
+      </Surface>
     );
   }
 
@@ -39,9 +39,9 @@ export function WeatherForecast({
   const withData = cities.filter((city) => city.days.length > 0);
   if (withData.length === 0) {
     return (
-      <p className="text-sm text-muted">
+      <Banner tone="danger">
         לא הצלחנו להביא תחזית ליעדים של הטיול. נסו שוב מאוחר יותר.
-      </p>
+      </Banner>
     );
   }
 
@@ -52,10 +52,9 @@ export function WeatherForecast({
           key={city.city}
           className={`flex flex-col gap-2 ${cityToneClass(tones, city.city)}`}
         >
-          <h3 className="flex items-center gap-2 font-semibold">
-            <span className="h-2.5 w-2.5 rounded-full bg-tone-dot" />
+          <SectionHeading level="sub" leading={<ToneDot />}>
             {city.city}
-          </h3>
+          </SectionHeading>
           {/* Days scroll sideways rather than wrapping, so a two-week trip
               stays one row per city instead of a grid that hides the shape. */}
           <ul className="flex gap-2 overflow-x-auto pb-1">
@@ -63,18 +62,25 @@ export function WeatherForecast({
               const { emoji, label } = describeWeather(day.code);
               return (
                 <li key={day.date} className="shrink-0">
-                  <Card className="flex w-24 flex-col items-center gap-1 p-3 text-center">
-                    <span className="text-xs text-muted">
+                  <Card
+                    padding="sm"
+                    className="flex w-24 flex-col items-center gap-1 text-center"
+                  >
+                    <span className="text-caption text-muted">
                       {weekdayLabel(day.date)}
                     </span>
-                    <span className="text-2xl" title={label} aria-label={label}>
+                    <span
+                      className="text-title"
+                      title={label}
+                      aria-label={label}
+                    >
                       {emoji}
                     </span>
                     <span className="text-sm font-semibold tabular-nums">
                       {Math.round(day.maxC)}° / {Math.round(day.minC)}°
                     </span>
                     {day.rainChance !== null && day.rainChance > 0 && (
-                      <span className="text-xs text-muted tabular-nums">
+                      <span className="text-caption tabular-nums text-muted">
                         💧 {day.rainChance}%
                       </span>
                     )}

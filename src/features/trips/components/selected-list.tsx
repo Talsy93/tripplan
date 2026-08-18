@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Card } from "@/components/ui";
+import { Map as MapIcon, X } from "lucide-react";
+import {
+  EmptyState,
+  IconButton,
+  iconButtonClasses,
+  ListRow,
+  SectionHeading,
+  ToneDot,
+} from "@/components/ui";
 import { googleMapsSearchUrl } from "@/lib/maps";
 import { setSelected } from "../application/guide-actions";
 import { categoryLabel } from "../domain/place";
@@ -28,9 +36,11 @@ export function SelectedList({
 
   if (items.length === 0) {
     return (
-      <p className="text-sm text-muted">
-        עדיין לא הוספתם פריטים. היכנסו לעיר והוסיפו המלצות לטיול.
-      </p>
+      <EmptyState
+        icon="📍"
+        title="עדיין לא הוספתם פריטים"
+        description="חפשו מקום למעלה, או היכנסו לעיר מתוך ״גילוי יעדים״ והוסיפו המלצות לטיול."
+      />
     );
   }
 
@@ -46,57 +56,57 @@ export function SelectedList({
   const tones = cityToneMap([...byCity.keys()]);
 
   return (
-    <div className="flex flex-col gap-4">
+    // Cities side by side once there is room. A single column of full-width
+    // rows was the whole screen at every width before phase D.
+    <div className="grid gap-5 lg:grid-cols-2">
       {[...byCity.entries()].map(([city, list]) => (
         <div
           key={city}
           className={`flex flex-col gap-2 ${toneClass(tones.get(city)!)}`}
         >
-          <h3 className="flex items-center gap-2 font-semibold">
-            <span className="h-2.5 w-2.5 rounded-full bg-tone-dot" />
+          <SectionHeading level="sub" leading={<ToneDot />}>
             {city}
-          </h3>
+            <span className="font-normal text-muted"> · {list.length}</span>
+          </SectionHeading>
+
           <ul className="flex flex-col gap-2">
             {list.map((item) => (
               <li key={keyOf(item)}>
-                <Card className="flex items-center justify-between gap-3 border-s-4 border-s-tone-dot p-3">
-                  {/* One truncated line of context under the name. For a
-                      hand-typed place this is the address that was entered —
-                      without it the address would be stored and never shown.
-                      For a guide item it's the start of the AI's description.
-                      Truncated rather than wrapped so a long description can't
-                      turn the list into paragraphs. */}
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate">{item.name}</span>
-                    {item.description && (
-                      <span className="block truncate text-xs text-muted">
-                        {item.description}
-                      </span>
-                    )}
-                  </span>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span className="text-xs text-muted">
-                      {categoryLabel(item.category)}
-                    </span>
-                    <a
-                      href={googleMapsSearchUrl(`${item.name} ${item.city}`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="פתח ב-Google Maps"
-                      className="text-muted transition-colors hover:text-foreground"
-                    >
-                      🗺️
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => remove(item)}
-                      aria-label="הסר מהטיול"
-                      className="text-muted transition-colors hover:text-foreground"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </Card>
+                <ListRow
+                  accent="tone"
+                  title={item.name}
+                  // One truncated line of context under the name. For a
+                  // hand-typed place this is the address that was entered —
+                  // without it the address would be stored and never shown.
+                  // For a guide item it's the start of the AI's description.
+                  // Truncated rather than wrapped so a long description can't
+                  // turn the list into paragraphs.
+                  subtitle={
+                    item.description ?? categoryLabel(item.category)
+                  }
+                  trailing={
+                    <>
+                      <a
+                        href={googleMapsSearchUrl(`${item.name} ${item.city}`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="פתיחה ב-Google Maps"
+                        title="Google Maps"
+                        className={iconButtonClasses("ghost", "sm")}
+                      >
+                        <MapIcon className="h-4 w-4" aria-hidden="true" />
+                      </a>
+                      <IconButton
+                        label="הסרה מהטיול"
+                        size="sm"
+                        variant="danger"
+                        onClick={() => remove(item)}
+                      >
+                        <X className="h-4 w-4" aria-hidden="true" />
+                      </IconButton>
+                    </>
+                  }
+                />
               </li>
             ))}
           </ul>

@@ -1,3 +1,4 @@
+import { SectionHeading } from "@/components/ui";
 import {
   getAddedPlaces,
   getSavedCities,
@@ -8,6 +9,8 @@ import {
   savedCountsByCategory,
   SelectedList,
 } from "@/features/trips";
+
+export const metadata = { title: "מה עושים?" };
 
 export default async function ExplorePage({
   params,
@@ -38,12 +41,12 @@ export default async function ExplorePage({
   return (
     <>
       <section className="flex flex-col gap-4">
-        <div>
-          <h2 className="font-display text-xl">לאן עכשיו?</h2>
-          <p className="text-sm text-muted">
-            מתוכנן, אופציונלי, וכל מה ששמרתם
-          </p>
-        </div>
+        <SectionHeading
+          level="section"
+          description="מתוכנן, אופציונלי, וכל מה ששמרתם"
+        >
+          לאן עכשיו?
+        </SectionHeading>
         <PlaceSearch
           tripId={id}
           cities={searchCities}
@@ -57,12 +60,17 @@ export default async function ExplorePage({
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-display text-lg">מה שבחרתם לטיול</h2>
+        <SectionHeading level="section">מה שבחרתם לטיול</SectionHeading>
         <SelectedList tripId={id} items={selected} />
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="font-display text-lg">גילוי יעדים</h2>
+        <SectionHeading
+          level="section"
+          description="תארו את הטיול ותקבלו יעדים להתחיל מהם"
+        >
+          גילוי יעדים
+        </SectionHeading>
         <PlanningPanel tripId={id} initialCities={savedCities} />
       </section>
     </>

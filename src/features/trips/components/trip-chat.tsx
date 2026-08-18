@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button, Card, Textarea } from "@/components/ui";
+import {
+  Banner,
+  Button,
+  Card,
+  Chip,
+  SectionHeading,
+  Textarea,
+} from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { applyPlan, resetChat } from "../application/chat-actions";
 import { aiErrorFromResponse } from "../domain/ai-errors";
@@ -144,34 +151,39 @@ export function TripChat({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
-        <h2 className="font-display text-lg">שיחה עם מתכנן הטיולים</h2>
-        {turns.length > 0 && (
-          <>
-            <Button
-              type="button"
-              onClick={() => void buildPlan()}
-              disabled={planning || sending}
-              size="sm"
-              className="ms-auto"
-            >
-              {planning ? "בונה…" : "בנה מסלול מהשיחה"}
-            </Button>
-            <button
-              type="button"
-              onClick={() => void reset()}
-              className="text-sm text-muted transition-colors hover:text-foreground"
-            >
-              נקה שיחה
-            </button>
-          </>
-        )}
-      </div>
+      <SectionHeading
+        level="page"
+        actions={
+          turns.length > 0 && (
+            <>
+              <Button
+                type="button"
+                onClick={() => void buildPlan()}
+                loading={planning}
+                disabled={sending}
+                size="sm"
+              >
+                בניית מסלול מהשיחה
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => void reset()}
+              >
+                ניקוי שיחה
+              </Button>
+            </>
+          )
+        }
+      >
+        שיחה עם מתכנן הטיולים
+      </SectionHeading>
 
       {applied && (
-        <p className="text-sm text-muted">
-          נוסף לטיול ✓ — היעדים והפריטים מופיעים עכשיו בטאב התכנון ובמפת המסלול.
-        </p>
+        <Banner tone="success">
+          נוסף לטיול — היעדים והפריטים מופיעים עכשיו בטאב התכנון ובמפת המסלול.
+        </Banner>
       )}
 
       {plan && (
@@ -191,14 +203,9 @@ export function TripChat({
           </p>
           <div className="flex flex-wrap gap-2">
             {OPENERS.map((opener) => (
-              <button
-                key={opener}
-                type="button"
-                onClick={() => void send(opener)}
-                className="rounded-full border border-border bg-surface px-3 py-1.5 text-sm transition-colors hover:border-primary"
-              >
+              <Chip key={opener} onClick={() => void send(opener)}>
                 {opener}
-              </button>
+              </Chip>
             ))}
           </div>
         </div>
@@ -215,10 +222,11 @@ export function TripChat({
               )}
             >
               <Card
+                padding="sm"
                 className={cn(
-                  "max-w-[85%] whitespace-pre-wrap p-3 text-sm",
+                  "max-w-[85%] whitespace-pre-wrap text-sm lg:max-w-[70%]",
                   turn.role === "user"
-                    ? "bg-primary text-primary-foreground"
+                    ? "border-primary bg-primary text-primary-foreground"
                     : "bg-surface",
                 )}
               >
@@ -230,15 +238,19 @@ export function TripChat({
       )}
 
       {sending && <p className="text-sm text-muted">חושב…</p>}
-      {error && <p className="text-sm text-danger-ink">{error}</p>}
+      {error && <Banner tone="danger">{error}</Banner>}
       <div ref={endRef} />
 
+      {/* Sticky, and it was not before: the composer sat in normal flow at the
+          bottom of a growing list, so on a phone you had to scroll past the
+          whole conversation to reach the box you wanted to type in. The offset
+          clears the fixed bottom nav; from md there is no bar to clear. */}
       <form
         onSubmit={(event) => {
           event.preventDefault();
           void send(draft);
         }}
-        className="flex items-end gap-2"
+        className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] flex items-end gap-2 rounded-card border border-border bg-surface/95 p-2 shadow-card backdrop-blur md:bottom-4"
       >
         <Textarea
           value={draft}
@@ -256,8 +268,8 @@ export function TripChat({
           maxLength={2000}
           className="flex-1"
         />
-        <Button type="submit" disabled={sending || !draft.trim()}>
-          שלח
+        <Button type="submit" loading={sending} disabled={!draft.trim()}>
+          שליחה
         </Button>
       </form>
     </div>

@@ -9,6 +9,8 @@ import {
 } from "@/features/trips";
 import type { NightLodging } from "@/features/trips";
 
+export const metadata = { title: "לו\"ז" };
+
 export default async function DaysPage({
   params,
 }: {

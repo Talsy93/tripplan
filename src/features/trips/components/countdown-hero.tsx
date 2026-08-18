@@ -28,70 +28,70 @@ export function CountdownHero({
   const tones = cityToneMap(cities);
 
   const body = (
-    <div className="relative h-72 overflow-hidden rounded-tile bg-gradient-to-br from-primary to-accent shadow-card sm:h-80">
+    <div className="relative h-64 overflow-hidden rounded-tile bg-brand sm:h-72 lg:h-80">
       {imageUrl && (
         <Image
           src={imageUrl}
           alt=""
           fill
-          sizes="(max-width: 768px) 100vw, 900px"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 70vw, 900px"
+          className="object-cover transition-transform duration-500 ease-snap group-hover:scale-105"
           priority
         />
       )}
-      {/* Dark enough, everywhere, that white text survives any photo. */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/45 to-black/25" />
+      {/* Dark enough, everywhere, that white text survives any photo. Tokens
+          rather than from-black/80: raw black is what would break a dark theme,
+          and the two heroes in the app used to disagree on their stops. */}
+      <div className="absolute inset-0 bg-gradient-to-t from-scrim-strong via-scrim to-scrim-soft" />
 
-      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-5 py-6 text-center text-white">
-        <p className="font-display text-2xl drop-shadow-sm sm:text-3xl">
-          {name} מחכה לנו
-        </p>
+      <div className="absolute inset-0 flex flex-col items-start justify-end gap-2 p-5 text-white sm:p-6">
+        {days !== null && days >= 0 && (
+          <p className="text-caption font-semibold text-white/85">
+            עד ההמראה · {formatShortDate(startDate!)}
+          </p>
+        )}
 
         {days === null ? (
-          <p className="mt-2 text-sm text-white/80">
-            עוד לא נקבע תאריך יציאה
-          </p>
-        ) : days < 0 ? (
-          <p className="mt-3 font-display text-4xl drop-shadow-sm">
-            {formatCountdown(days)}
-          </p>
+          <>
+            <p className="text-title font-bold sm:text-heading">{name}</p>
+            <p className="text-sm text-white/85">עוד לא נקבע תאריך יציאה</p>
+          </>
         ) : (
           <>
-            <p className="mt-2 text-xs text-white/75">
-              עד ההמראה · {formatShortDate(startDate!)}
-            </p>
-            {days === 0 ? (
-              <p className="font-display text-4xl drop-shadow-sm sm:text-5xl">
-                {formatCountdown(days)}
-              </p>
-            ) : (
-              <p className="flex items-baseline gap-2 drop-shadow-sm">
-                <span className="font-display text-hero leading-none">
+            {days > 0 ? (
+              <p className="flex items-baseline gap-2">
+                <span className="text-display font-bold leading-none sm:text-hero">
                   {days}
                 </span>
-                <span className="text-lg font-semibold text-white/90">
+                <span className="text-base font-semibold text-white/90">
                   {days === 1 ? "יום" : "ימים"}
                 </span>
               </p>
+            ) : (
+              <p className="text-display font-bold sm:text-hero">
+                {formatCountdown(days)}
+              </p>
             )}
+            <p className="text-title font-bold">{name}</p>
           </>
         )}
 
         {tones.size > 0 && (
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-1.5 gap-y-2">
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
             {[...tones.keys()].map((city, i) => (
               <span
                 key={city}
-                className={cn("flex items-center gap-1.5", toneClass(
-                  tones.get(city)!,
-                ))}
+                className={cn(
+                  "flex items-center gap-1.5",
+                  toneClass(tones.get(city)!),
+                )}
               >
                 {i > 0 && (
-                  <span aria-hidden="true" className="text-xs text-white/60">
+                  <span aria-hidden="true" className="text-caption text-white/60">
                     ←
                   </span>
                 )}
-                <span className="flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-tone-ink">
+                <span className="flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-caption font-semibold text-foreground">
                   <span className="h-2 w-2 rounded-full bg-tone-dot" />
                   {city}
                 </span>

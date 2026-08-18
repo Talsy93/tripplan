@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
-import { AppShell } from "@/components/layout";
+import { AppHeader, AppShell } from "@/components/layout";
 import { Badge } from "@/components/ui";
 import {
   APP_TIME_ZONE,
@@ -10,8 +10,34 @@ import {
   phaseLabel,
   todayIn,
   TripNav,
+  TripSideNav,
   tripPhase,
 } from "@/features/trips";
+
+// The trip's name becomes the title template for every tab under it, so a tab
+// only has to name itself ("היום") and the browser shows
+// "היום · איטליה · TripPlan". Every route in the app used to show the same
+// title, which made five open tabs indistinguishable.
+//
+// This costs one extra getTrip per navigation: generateMetadata runs separately
+// from the layout body, and Supabase queries are not deduplicated the way fetch
+// is. One indexed lookup by primary key is a fair price for the tab titles.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const trip = await getTrip(id);
+  const name = trip?.name ?? "טיול";
+
+  return {
+    title: {
+      default: `${name} · TripPlan`,
+      template: `%s · ${name} · TripPlan`,
+    },
+  };
+}
 
 // Shared chrome for the five trip tabs.
 //
@@ -46,29 +72,27 @@ export default async function TripTabsLayout({
   return (
     <AppShell
       header={
-        <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur">
-          <div className="mx-auto flex w-full max-w-5xl items-center gap-2 px-4 py-3">
+        <AppHeader
+          title={trip.name}
+          back={
             <Link
               href="/profile"
-              className="flex items-center gap-1 text-sm text-muted transition-colors hover:text-foreground"
+              className="flex shrink-0 items-center gap-1 text-sm text-muted transition-colors hover:text-foreground"
             >
               {/* In RTL "back" points left, and the glyph is chosen by
                   meaning rather than by mirroring the LTR arrow. */}
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-              הטיולים שלי
+              <span className="hidden sm:inline">הטיולים שלי</span>
             </Link>
-            <span className="mx-auto truncate font-display text-sm">
-              {trip.name}
-            </span>
-            <Badge
-              tone={phase.kind === "during" ? "success" : "neutral"}
-              className="shrink-0"
-            >
+          }
+          trailing={
+            <Badge tone={phase.kind === "during" ? "success" : "neutral"}>
               {phaseLabel(phase)}
             </Badge>
-          </div>
-        </header>
+          }
+        />
       }
+      sidebar={<TripSideNav tripId={trip.id} />}
       nav={<TripNav tripId={trip.id} />}
     >
       {children}

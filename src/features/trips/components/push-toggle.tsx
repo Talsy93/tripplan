@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Bell, BellOff, Share } from "lucide-react";
-import { Button, Card } from "@/components/ui";
+import { Bell, BellOff, Check, Share } from "lucide-react";
+import { Banner, Button, Card, Surface } from "@/components/ui";
 import {
   isPushRegistered,
   registerPushSubscription,
@@ -231,13 +231,22 @@ export function PushToggle() {
   }
 
   return (
-    <Card className="flex flex-col gap-3 p-4">
+    <Card className="flex h-full flex-col gap-3">
       <div className="flex items-start gap-3">
-        <span className="text-xl leading-none" aria-hidden="true">
-          {state.kind === "on" ? "🔔" : "🔕"}
+        {/* Was an emoji bell sitting inches from the lucide bells on the
+            buttons below — the same concept drawn two ways in one card. */}
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary-ink"
+          aria-hidden="true"
+        >
+          {state.kind === "on" ? (
+            <Bell className="h-5 w-5" />
+          ) : (
+            <BellOff className="h-5 w-5" />
+          )}
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <h3 className="font-display text-lg">תזכורות למכשיר</h3>
+          <h3 className="text-base font-semibold">תזכורות למכשיר</h3>
           <p className="text-sm text-muted">
             התראה אחת, בזמן שהגדרתם — לפני שמועד ביטול חינם עובר, או כשצריך
             להזמין משהו מראש.
@@ -250,7 +259,7 @@ export function PushToggle() {
       )}
 
       {state.kind === "needs-install" && (
-        <div className="flex flex-col gap-2 rounded-control bg-surface-2 p-3 text-sm">
+        <Surface tone="sunken" padding="sm" className="flex flex-col gap-2 text-sm">
           <p className="font-semibold">באייפון צריך קודם להתקין את האפליקציה</p>
           <p className="flex flex-wrap items-center gap-1 text-muted">
             <span>לחצו על</span>
@@ -261,7 +270,7 @@ export function PushToggle() {
             אחרי שתפתחו את האפליקציה מהמסך הבית, הכפתור להפעלת התראות יופיע כאן.
             זו דרישה של אפל ואי אפשר לעקוף אותה.
           </p>
-        </div>
+        </Surface>
       )}
 
       {state.kind === "unsupported" && (
@@ -271,14 +280,14 @@ export function PushToggle() {
       )}
 
       {state.kind === "blocked" && (
-        <p className="text-sm text-danger-ink">
+        <Banner tone="danger">
           חסמתם התראות לאתר הזה. כדי להפעיל צריך לאשר אותן מחדש בהגדרות הדפדפן —
           מכאן אי אפשר לבקש שוב.
-        </p>
+        </Banner>
       )}
 
       {state.kind === "unconfigured" && (
-        <div className="flex flex-col gap-1 rounded-control bg-surface-2 p-3 text-sm">
+        <Surface tone="sunken" padding="sm" className="flex flex-col gap-1 text-sm">
           <p className="font-semibold text-danger-ink">
             התראות לא הוגדרו בשרת
           </p>
@@ -287,11 +296,11 @@ export function PushToggle() {
             הוספה שלו ב-Vercel דורשת build חדש — דיפלוי שמשתמש ב-Build Cache
             ימשיך להשתמש בגרסה הישנה.
           </p>
-        </div>
+        </Surface>
       )}
 
       {state.kind === "error" && (
-        <p className="text-sm text-danger-ink">{state.message}</p>
+        <Banner tone="danger">{state.message}</Banner>
       )}
 
       {(state.kind === "off" || state.kind === "error") && (
@@ -302,14 +311,15 @@ export function PushToggle() {
           className="self-start"
         >
           <Bell className="h-4 w-4" aria-hidden="true" />
-          הפעילו תזכורות
+          הפעלת תזכורות
         </Button>
       )}
 
       {state.kind === "on" && (
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm text-success-ink">
-            ✓ תזכורות פעילות במכשיר הזה
+          <span className="flex items-center gap-1 text-sm text-success-ink">
+            <Check className="h-4 w-4" aria-hidden="true" />
+            תזכורות פעילות במכשיר הזה
           </span>
           <Button
             type="button"
@@ -320,7 +330,7 @@ export function PushToggle() {
             className="ms-auto"
           >
             <BellOff className="h-4 w-4" aria-hidden="true" />
-            כבו
+            כיבוי
           </Button>
         </div>
       )}

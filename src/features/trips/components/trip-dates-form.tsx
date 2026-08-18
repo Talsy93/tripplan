@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button, Card, Input } from "@/components/ui";
+import { Check } from "lucide-react";
+import { Banner, Button, Card, Field, Input } from "@/components/ui";
 import { setTripDates } from "../application/date-actions";
 import type { TripDatesFormState } from "../domain/trip";
 
@@ -20,14 +21,12 @@ export function TripDatesForm({
   );
 
   return (
-    <Card className="p-4">
-      <form action={action} className="flex flex-col gap-3">
+    <Card>
+      <form action={action} className="flex flex-col gap-4">
         <input type="hidden" name="tripId" value={tripId} />
-        <h2 className="font-display text-lg">תאריכי הטיול</h2>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted">תאריך יציאה</span>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field label="תאריך יציאה">
             <Input
               type="date"
               name="start_date"
@@ -35,26 +34,37 @@ export function TripDatesForm({
               required
               dir="ltr"
             />
-          </label>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-muted">תאריך חזרה (לא חובה)</span>
+          </Field>
+          <Field
+            label={
+              <>
+                תאריך חזרה{" "}
+                <span className="font-normal text-muted">(לא חובה)</span>
+              </>
+            }
+          >
             <Input
               type="date"
               name="end_date"
               defaultValue={endDate ?? ""}
               dir="ltr"
             />
-          </label>
+          </Field>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button type="submit" disabled={pending}>
-            {pending ? "שומר…" : "שמירת תאריכים"}
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="submit" loading={pending}>
+            שמירת תאריכים
           </Button>
-          {state?.ok && <span className="text-sm text-muted">נשמר ✓</span>}
+          {state?.ok && (
+            <span className="flex items-center gap-1 text-sm text-success-ink">
+              <Check className="h-4 w-4" aria-hidden="true" />
+              נשמר
+            </span>
+          )}
         </div>
 
-        {state?.error && <p className="text-sm text-danger-ink">{state.error}</p>}
+        {state?.error && <Banner tone="danger">{state.error}</Banner>}
       </form>
     </Card>
   );

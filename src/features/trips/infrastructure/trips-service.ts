@@ -67,3 +67,29 @@ export async function listTrips(): Promise<Trip[]> {
 
   return z.array(tripSchema).parse(data);
 }
+
+// Deleting a trip deletes everything hanging off it, and that happens in the
+// database rather than here: every child table declares
+// `trip_id ... references public.trips (id) on delete cascade` —
+// suggested_destinations and itinerary_items (0002), trip_bookings (0008),
+// trip_phrasebooks (0009) and trip_chat_messages (0010). Doing it in five
+// statements from here would be slower, non-atomic, and would silently miss the
+// sixth table the day one is added.
+//
+// RLS scopes the delete to the owner ("Users manage own trips" is `for all`), so
+// a non-owner's id matches no row. That is why the count is checked: Postgres
+// reports a delete that matched nothing as a success, and treating "not yours"
+// as "deleted" would tell the user their trip is gone when it is not.
+export async function deleteTrip(tripId: string) {
+  const supabase = await createClient();
+
+  const { error, count } = await supabase
+    .from("trips")
+    .delete({ count: "exact" })
+    .eq("id", tripId);
+
+  if (error) return { error: error.message };
+  if (count === 0) return { error: "not-found" };
+
+  return { error: null };
+}

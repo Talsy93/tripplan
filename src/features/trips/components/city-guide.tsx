@@ -1,7 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Button, Card } from "@/components/ui";
+import { Check, Compass, Lightbulb, Map as MapIcon } from "lucide-react";
+import {
+  Banner,
+  Button,
+  Card,
+  SectionHeading,
+  Skeleton,
+  Surface,
+} from "@/components/ui";
 import { googleMapsSearchUrl } from "@/lib/maps";
 import { aiErrorFromResponse } from "../domain/ai-errors";
 import {
@@ -54,7 +62,7 @@ function GuideCard({
   onToggle: () => void;
 }) {
   return (
-    <Card className="flex flex-col gap-2 p-5">
+    <Card className="flex h-full flex-col gap-2">
       <div className="flex items-start justify-between gap-3">
         <span className="text-base font-semibold">{item.name}</span>
         <Button
@@ -64,18 +72,23 @@ function GuideCard({
           onClick={onToggle}
           className="shrink-0"
         >
-          {item.selected ? "✓ נוסף" : "הוסף לטיול"}
+          {item.selected && <Check className="h-4 w-4" aria-hidden="true" />}
+          {item.selected ? "נוסף" : "הוספה לטיול"}
         </Button>
       </div>
-      <p className="text-sm leading-relaxed text-muted">{item.description}</p>
-      <p className="text-xs text-muted">💡 {item.tip}</p>
+      <p className="text-sm text-muted">{item.description}</p>
+      <p className="flex items-start gap-1.5 text-caption text-muted">
+        <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        {item.tip}
+      </p>
       <a
         href={googleMapsSearchUrl(`${item.name} ${city}`)}
         target="_blank"
         rel="noopener noreferrer"
-        className="self-start text-xs text-primary hover:underline"
+        className="mt-auto flex items-center gap-1 self-start text-caption font-semibold text-primary-ink hover:underline"
       >
-        🗺️ פתח ב-Google Maps
+        <MapIcon className="h-3.5 w-3.5" aria-hidden="true" />
+        פתיחה ב-Google Maps
       </a>
     </Card>
   );
@@ -198,10 +211,20 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
   }
 
   if (loading) {
-    return <p className="text-sm text-muted">בונה מדריך לעיר…</p>;
+    return (
+      <div className="flex flex-col gap-3">
+        <Skeleton className="h-24" />
+        <Skeleton className="h-5 w-32" />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <Skeleton className="h-36" />
+          <Skeleton className="h-36" />
+          <Skeleton className="h-36" />
+        </div>
+      </div>
+    );
   }
   if (error && !guide) {
-    return <p className="text-sm text-danger-ink">{error}</p>;
+    return <Banner tone="danger">{error}</Banner>;
   }
   if (!guide) {
     return null;
@@ -210,28 +233,29 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
   return (
     <div className="flex flex-col gap-8">
       {(guide.intro || guide.gettingThere) && (
-        <section className="flex flex-col gap-3 rounded-2xl border border-border bg-surface-2 p-5">
-          {guide.intro && <p className="leading-relaxed">{guide.intro}</p>}
+        <Surface tone="quiet" padding="lg" className="flex flex-col gap-3">
+          {guide.intro && <p>{guide.intro}</p>}
           {guide.gettingThere && (
             <p className="flex items-start gap-2 text-sm text-muted">
-              <span aria-hidden="true">🧭</span>
+              <Compass className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{guide.gettingThere}</span>
             </p>
           )}
-        </section>
+        </Surface>
       )}
 
-      <div className="flex items-center gap-3">
-        {error && <p className="text-sm text-danger-ink">{error}</p>}
+      {error && <Banner tone="danger">{error}</Banner>}
+
+      <div className="flex items-center">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={handleRefresh}
-          disabled={refreshing}
+          loading={refreshing}
           className="ms-auto"
         >
-          {refreshing ? "מרענן…" : "רענן הצעות"}
+          רענון הצעות
         </Button>
       </div>
 
@@ -241,10 +265,15 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
         const isLoadingMore = loadingMore.includes(key);
         return (
           <section key={key} className="flex flex-col gap-3">
-            <h2 className="font-display text-lg">
-              {icon} {label}
-            </h2>
-            <div className="flex flex-col gap-3">
+            <SectionHeading
+              level="section"
+              leading={<span aria-hidden="true">{icon}</span>}
+            >
+              {label}
+            </SectionHeading>
+            {/* A guide card is a paragraph and a button, so three across is
+                comfortable on a desktop. It was one column at every width. */}
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {items.map((item, index) => (
                 <GuideCard
                   key={`${item.name}-${index}`}
@@ -259,10 +288,10 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
               variant="outline"
               size="sm"
               onClick={() => loadMore(key)}
-              disabled={isLoadingMore}
+              loading={isLoadingMore}
               className="self-start"
             >
-              {isLoadingMore ? "מוסיף…" : "עוד תוצאות"}
+              עוד תוצאות
             </Button>
           </section>
         );

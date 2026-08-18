@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Compass, Map, Menu, Sun } from "lucide-react";
-import { BottomNav, type NavItem } from "@/components/layout";
+import { CalendarDays, Compass, Map as MapIcon, Menu, Sun } from "lucide-react";
+import { BottomNav, SideNav, type NavItem } from "@/components/layout";
 import { cn } from "@/lib/cn";
 import {
   TRIP_TABS,
@@ -17,17 +17,14 @@ const ICONS: Record<TripTabSegment, typeof Sun> = {
   today: Sun,
   days: CalendarDays,
   explore: Compass,
-  map: Map,
+  map: MapIcon,
   more: Menu,
 };
 
-// One list, two presentations: a fixed bar on phones and a pill row from md up.
-// Building both from the same array is what stops them drifting — the six-tab
-// version they replace existed in exactly one place for the same reason.
-export function TripNav({ tripId }: { tripId: string }) {
+function useTripNavItems(tripId: string): NavItem[] {
   const pathname = usePathname();
 
-  const items: NavItem[] = TRIP_TABS.map((tab) => {
+  return TRIP_TABS.map((tab) => {
     const Icon = ICONS[tab.segment];
     const href = tripTabHref(tripId, tab.segment);
     return {
@@ -40,10 +37,21 @@ export function TripNav({ tripId }: { tripId: string }) {
       active: pathname === href || pathname.startsWith(`${href}/`),
     };
   });
+}
+
+// One list, three presentations: a fixed bar on phones, a pill row on tablets,
+// and a rail on desktop. Building all three from the same array is what stops
+// them drifting — the six-tab version they replace existed in exactly one place
+// for the same reason.
+//
+// This component covers the first two. The rail is rendered by TripSideNav into
+// AppShell's `sidebar` slot, because it has to sit outside the content column.
+export function TripNav({ tripId }: { tripId: string }) {
+  const items = useTripNavItems(tripId);
 
   return (
     <>
-      <div className="hidden md:flex md:gap-1 md:self-start md:rounded-full md:border md:border-border md:bg-surface-2 md:p-1">
+      <div className="hidden gap-1 self-start rounded-full border border-border bg-surface-2 p-1 md:flex lg:hidden">
         {items.map((item) => (
           <Link
             key={item.href}
@@ -51,6 +59,7 @@ export function TripNav({ tripId }: { tripId: string }) {
             aria-current={item.active ? "page" : undefined}
             className={cn(
               "flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               item.active
                 ? "bg-surface text-foreground shadow-soft"
                 : "text-muted hover:text-foreground",
@@ -65,4 +74,8 @@ export function TripNav({ tripId }: { tripId: string }) {
       <BottomNav items={items} />
     </>
   );
+}
+
+export function TripSideNav({ tripId }: { tripId: string }) {
+  return <SideNav items={useTripNavItems(tripId)} />;
 }

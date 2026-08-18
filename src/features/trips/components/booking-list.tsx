@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Plane } from "lucide-react";
+import { Plane, X } from "lucide-react";
 import {
   Badge,
+  Banner,
   Card,
   EmptyState,
   IconButton,
@@ -23,10 +24,10 @@ import { APP_TIME_ZONE } from "../domain/weather";
 import { removeBooking } from "../application/booking-actions";
 import type { Booking, BookingAlert, BookingKind } from "../domain/booking";
 
-const ALERT_TONE: Record<BookingAlert["urgency"], "warning" | "primary" | "neutral"> =
+const ALERT_TONE: Record<BookingAlert["urgency"], "warning" | "action" | "neutral"> =
   {
     now: "warning",
-    soon: "primary",
+    soon: "action",
     upcoming: "neutral",
   };
 
@@ -109,11 +110,11 @@ export function BookingList({
   return (
     <div className="flex flex-col gap-4">
       {doubleBooked.size > 0 && (
-        <p className="rounded-control bg-warning-tint px-3 py-2 text-sm text-warning-ink">
-          ⚠️ יש לכם {doubleBooked.size} לינות שחופפות באותם לילות. אם הזמנתם שתי
+        <Banner tone="callout">
+          יש לכם {doubleBooked.size} לינות שחופפות באותם לילות. אם הזמנתם שתי
           אפשרויות כדי להחליט אחר כך — כדאי לבטל אחת מהן לפני שמועד הביטול
           החינם עובר.
-        </p>
+        </Banner>
       )}
       {segments.length > 2 && (
         <SegmentedControl
@@ -124,7 +125,9 @@ export function BookingList({
         />
       )}
 
-      <ul className="flex flex-col gap-3">
+      {/* Two abreast at xl. A boarding-pass card is wide but not 1200px wide,
+          and a trip with six bookings was six full-width bands before. */}
+      <ul className="grid gap-3 xl:grid-cols-2">
         {shown.map((booking) => {
           const kind = BOOKING_KINDS[booking.kind];
           const nights = bookingNights(booking);
@@ -142,14 +145,14 @@ export function BookingList({
 
           return (
             <li key={booking.id}>
-              <Card className="overflow-hidden">
+              <Card padding="none" className="h-full overflow-hidden">
                 <div className="flex items-start justify-between gap-3 p-4 pb-2">
                   {/* Wraps rather than squeezing: an alert like "departing in
                       2 hours" is wider than the title on a phone, and a
                       truncated flight number is worse than a second line. */}
                   <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                     <span aria-hidden="true">{kind.emoji}</span>
-                    <span className="truncate font-semibold">
+                    <span className="truncate text-base font-semibold">
                       {booking.title}
                     </span>
                     {clashing && (
@@ -176,7 +179,7 @@ export function BookingList({
                     disabled={removing === booking.id}
                     onClick={() => void remove(booking.id)}
                   >
-                    ✕
+                    <X className="h-4 w-4" aria-hidden="true" />
                   </IconButton>
                 </div>
 
@@ -190,7 +193,7 @@ export function BookingList({
                   booking.note ||
                   booking.free_cancellation_until ||
                   (!booking.booked && booking.book_by)) && (
-                  <div className="flex flex-col gap-1 border-t border-dashed border-border px-4 py-3 text-xs text-muted">
+                  <div className="flex flex-col gap-1 border-t border-dashed border-border px-4 py-3 text-caption text-muted">
                     {booking.confirmation && (
                       <span dir="ltr" className="tabular-nums">
                         קוד הזמנה: {booking.confirmation}
@@ -251,10 +254,10 @@ function Endpoint({
 }) {
   return (
     <div className={align === "end" ? "text-right" : "text-left"}>
-      <p className="font-display text-lg leading-tight">{place ?? "—"}</p>
+      <p className="text-title font-bold">{place ?? "—"}</p>
       {when && (
         <p
-          className="text-xs tabular-nums text-muted"
+          className="text-caption tabular-nums text-muted"
           suppressHydrationWarning
         >
           {formatWhen(when)}
@@ -275,7 +278,7 @@ function StayLeg({
   return (
     <div className="flex flex-col gap-1 px-4 pb-4">
       {where && <span className="truncate text-sm text-muted">{where}</span>}
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted">
         {/* Times render in the viewer's timezone and locale, which the server
             doesn't share — the first client render can legitimately differ. */}
         <span dir="ltr" className="tabular-nums" suppressHydrationWarning>

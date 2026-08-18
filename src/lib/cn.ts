@@ -10,8 +10,10 @@ import { extendTailwindMerge } from "tailwind-merge";
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
-      rounded: [{ rounded: ["control", "card", "tile"] }],
-      "font-size": [{ text: ["hero", "display", "title"] }],
+      rounded: [{ rounded: ["control", "card", "tile", "modal"] }],
+      "font-size": [
+        { text: ["caption", "title", "heading", "display", "hero"] },
+      ],
     },
   },
 });

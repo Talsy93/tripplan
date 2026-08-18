@@ -1,91 +1,160 @@
 @import "tailwindcss";
 
 /* ===========================================================================
-   Beige & Mocha — warm, light. Chosen in B0 ("playful" variant).
+   Design tokens v3 — the Booking.com direction (phase D, 2026-08-18).
 
-   Every value lives on :root as a raw custom property, and @theme inline maps
-   it to a Tailwind utility. A future dark theme overrides the :root values
-   under [data-theme="dark"] and nothing in the components has to change.
-   Names avoid Tailwind's own theme namespaces (--radius-lg, --ease-out, ...)
-   on purpose: redefining those would silently restyle every existing
-   rounded-lg / ease-out in the app.
+   Replaces the "Beige & Mocha" palette from B1. The reason for the change is
+   recorded in PROJECT_PLAN.md; the short version is that beige-on-beige gave
+   --background and --surface a 1.03:1 ratio, so a card never read as a card
+   and the whole screen blurred into one warm field.
+
+   Two rules the previous system got right and this one keeps:
+
+   1. Every value lives on :root as a raw custom property, and @theme inline
+      maps it to a Tailwind utility. A future dark theme overrides the :root
+      values under [data-theme="dark"] and no component has to change.
+   2. Names avoid Tailwind's own theme namespaces on purpose. Redefining
+      --radius-lg or --ease-out would silently restyle every existing
+      rounded-lg / ease-out in the app, so semantic names are used instead.
+
+   New in v3: role trios follow Booking's BUI grouping (action / callout /
+   success / danger) rather than being named after their hue, and the two
+   scrims are tokens so a photo overlay no longer hardcodes black.
    =========================================================================== */
 
 :root {
-  /* --- surfaces and text ------------------------------------------------ */
-  --background: #faf7f2;
-  --surface: #fffdfc;
-  --surface-2: #f3ebdd;
-  --border: #ded3c8;
-  --foreground: #3b2f2a;
-  --muted: #6f625a;
-
-  /* --- brand ------------------------------------------------------------ */
-  --primary: #9a7658;
-  --primary-hover: #76563e;
-  --primary-foreground: #ffffff;
-  --primary-tint: #efe5da;
-  --accent: #c9785c;
-  --ring: #9a7658;
-
-  /* --- semantic ---------------------------------------------------------
-     Each role is a trio: tint = pale background, ink = readable text on that
-     tint, solid = the saturated fill. Replaces the 15 hardcoded text-red-600.
+  /* --- surfaces and text ------------------------------------------------
+     Measured, not guessed: #eceef2 against white is 1.16:1, so a white card
+     on the canvas has a visible edge even before its border is drawn. The
+     old pair was 1.03:1. --border-strong is for dividers that need to carry
+     structure (pane edges, table rules) rather than just hint at it.
      -------------------------------------------------------------------- */
-  --danger-tint: #fbe0e0;
-  --danger-ink: #a13636;
-  --danger: #c2453f;
+  --background: #eceef2;
+  --surface: #ffffff;
+  --surface-2: #f4f6f9;
+  --surface-sunken: #e2e6ed;
+  --border: #dcdfe6;
+  --border-strong: #c2c8d2;
+  --foreground: #1a1d21;
+  --muted: #5f6673;
 
-  --success-tint: #d9ead9;
-  --success-ink: #37703f;
-  --success: #4e9159;
+  /* --- brand -------------------------------------------------------------
+     The navy is Booking's signature and is used only for the app frame —
+     sidebar and header. The action blue is the single accent that means
+     "this is the thing to press".
+     -------------------------------------------------------------------- */
+  --brand: #003b95;
+  --brand-foreground: #ffffff;
 
-  --warning-tint: #fbeacc;
-  --warning-ink: #8a5c12;
-  --warning: #d19527;
+  --primary: #0071c2;
+  --primary-hover: #005a9e;
+  --primary-foreground: #ffffff;
+  --primary-tint: #e5f0fa;
+  --primary-ink: #005a9e;
+  --ring: #0071c2;
+
+  /* --- role trios --------------------------------------------------------
+     tint = pale background, ink = readable text on that tint, solid = the
+     saturated fill. Every ink clears WCAG AA (4.5:1) on its own tint and on
+     white; the numbers are in the phase D log in PROJECT_PLAN.md.
+
+     `action` is the trio form of --primary, so a soft button and a primary
+     button read as the same colour idea.
+     -------------------------------------------------------------------- */
+  --action-tint: #e5f0fa;
+  --action-ink: #005a9e;
+  --action: #0071c2;
+
+  /* Booking's yellow. Reserved for "look here" — deals, counts, reminders.
+     It is never an action; pressing yellow is not a thing in this app. */
+  --callout-tint: #fff4d6;
+  --callout-ink: #7a4f00;
+  --callout: #feba02;
+
+  --success-tint: #e3f3e6;
+  --success-ink: #1e6b32;
+  --success: #2e8b45;
+
+  --danger-tint: #fdeaea;
+  --danger-ink: #b02525;
+  --danger: #d13438;
+
+  /* `warning` is kept as an alias of callout rather than deleted: the three
+     warning surfaces in the app already speak in warning-tint/warning-ink,
+     and renaming them at the call site buys nothing. */
+  --warning-tint: var(--callout-tint);
+  --warning-ink: var(--callout-ink);
+  --warning: var(--callout);
+
+  /* --- scrims -----------------------------------------------------------
+     Photo overlays used to be written as from-black/80 via-black/45, which
+     is the one thing guaranteed to break a dark theme. As tokens they are a
+     single override away from being correct in both.
+     -------------------------------------------------------------------- */
+  --scrim-strong: rgba(12, 17, 28, 0.74);
+  --scrim: rgba(12, 17, 28, 0.42);
+  --scrim-soft: rgba(12, 17, 28, 0.18);
+
+  /* --- elevation --------------------------------------------------------
+     Four tiers by role, not by taste: soft = resting, card = raised,
+     lift = hover, modal = floating. The old system had no modal tier, so a
+     dialog and a static hero shared one shadow.
+
+     These sit on :root rather than only inside @theme inline because
+     `inline` means Tailwind substitutes the value into the utility and does
+     *not* emit the custom property — and route-map-canvas.tsx builds its
+     Leaflet pin as a raw CSS string outside React's tree, so var() is the
+     only way it can reach a token at all.
+     -------------------------------------------------------------------- */
+  --elevation-soft: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --elevation-card: 0 1px 3px rgba(16, 24, 40, 0.09), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --elevation-lift: 0 6px 16px rgba(16, 24, 40, 0.12);
+  --elevation-modal: 0 16px 40px rgba(16, 24, 40, 0.20);
 
   /* --- tone palette -----------------------------------------------------
-     Six pastels assigned to cities and categories. Same trio shape. These are
-     the source values; components never read them directly — they read the
-     --tone-* variables that a .tone-<name> class sets (see below), because the
-     assignment is made at runtime from a city's position in the route.
+     Six pastels assigned to cities and categories, by position in the route
+     rather than by hash — two adjacent stops must not collide.
+
+     Phase D narrowed their job. They used to fill card and tile backgrounds,
+     which put six pastels plus three role colours on one screen. Now a tone
+     identifies a city through a dot, a small tag, and a map stop number, and
+     the surface underneath stays neutral. The mechanism is unchanged: a
+     .tone-<name> class sets the trio for its subtree and children read
+     bg-tone / text-tone-ink / bg-tone-dot without knowing which one they got.
+
+     Inks were measured against their own tint and against white. Rose and
+     peach came in at 4.35 and 3.89 in B5 and were darkened until they passed.
      -------------------------------------------------------------------- */
-  /* Every ink is dark enough to clear WCAG AA (4.5:1) on its own tint, which
-     is the badge and category-tile combination, and on white. Rose and peach
-     were measured at 4.35 and 3.89 and darkened until they passed. */
   --rose-tint: #fbdce4;
   --rose-ink: #9c4962;
-  --rose-dot: #e88ba4;
+  --rose-dot: #d9628a;
 
   --amber-tint: #fbe4c0;
   --amber-ink: #8f5a18;
-  --amber-dot: #e8a94e;
+  --amber-dot: #d9902f;
 
   --lilac-tint: #e3daf7;
   --lilac-ink: #5f4499;
-  --lilac-dot: #a98fe0;
+  --lilac-dot: #8f70d4;
 
   --mint-tint: #cfe9d4;
   --mint-ink: #356c47;
-  --mint-dot: #7cc08f;
+  --mint-dot: #5aa872;
 
   --sky-tint: #d2e6f7;
   --sky-ink: #33608a;
-  --sky-dot: #79b0dd;
+  --sky-dot: #5896c9;
 
   --peach-tint: #fbdcc8;
   --peach-ink: #92522d;
-  --peach-dot: #ef9f74;
+  --peach-dot: #e08650;
 
   /* Neutral fallback, so an unassigned tone still renders as something. */
   --tone-tint: var(--surface-2);
   --tone-ink: var(--foreground);
-  --tone-dot: var(--primary);
+  --tone-dot: var(--muted);
 }
 
-/* A tone class sets the trio for its whole subtree. Put it on the card, the
-   chip or the row; children then use bg-tone / text-tone-ink / bg-tone-dot and
-   need to know nothing about which colour they ended up with. */
 .tone-rose  { --tone-tint: var(--rose-tint);  --tone-ink: var(--rose-ink);  --tone-dot: var(--rose-dot); }
 .tone-amber { --tone-tint: var(--amber-tint); --tone-ink: var(--amber-ink); --tone-dot: var(--amber-dot); }
 .tone-lilac { --tone-tint: var(--lilac-tint); --tone-ink: var(--lilac-ink); --tone-dot: var(--lilac-dot); }
@@ -98,54 +167,111 @@
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-sunken: var(--surface-sunken);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
 
-  /* brand */
+  /* brand and action */
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary-tint: var(--primary-tint);
-  --color-accent: var(--accent);
+  --color-primary-ink: var(--primary-ink);
   --color-ring: var(--ring);
 
-  /* semantic */
-  --color-danger: var(--danger);
-  --color-danger-tint: var(--danger-tint);
-  --color-danger-ink: var(--danger-ink);
+  /* role trios */
+  --color-action: var(--action);
+  --color-action-tint: var(--action-tint);
+  --color-action-ink: var(--action-ink);
+  --color-callout: var(--callout);
+  --color-callout-tint: var(--callout-tint);
+  --color-callout-ink: var(--callout-ink);
   --color-success: var(--success);
   --color-success-tint: var(--success-tint);
   --color-success-ink: var(--success-ink);
+  --color-danger: var(--danger);
+  --color-danger-tint: var(--danger-tint);
+  --color-danger-ink: var(--danger-ink);
   --color-warning: var(--warning);
   --color-warning-tint: var(--warning-tint);
   --color-warning-ink: var(--warning-ink);
+
+  /* scrims — usable as gradient stops: from-scrim-strong to-transparent */
+  --color-scrim-strong: var(--scrim-strong);
+  --color-scrim: var(--scrim);
+  --color-scrim-soft: var(--scrim-soft);
 
   /* the active tone — resolves against the nearest .tone-* ancestor */
   --color-tone: var(--tone-tint);
   --color-tone-ink: var(--tone-ink);
   --color-tone-dot: var(--tone-dot);
 
-  /* typography — display sizes only; xs–3xl stay Tailwind's */
+  /* --- typography -------------------------------------------------------
+     One family. Hierarchy comes from size and weight, not from a second
+     face — that is what makes Booking's type read as a system. The display
+     token still exists and still points at the body family, so the 33
+     font-display call sites keep compiling while they are cleaned up.
+
+     The ramp is 12 / 14 / 16 / 20 / 24 / 32, plus 48 for the countdown.
+     Tailwind's own text-lg (18) and text-3xl (30) are off-ramp and should
+     not be used; text-sm and text-base carry body copy.
+
+     Hebrew wants more leading than Latin: sm and base are overridden to 1.7
+     globally, which is the single highest-impact readability change in the
+     whole phase. No letter-spacing anywhere — it damages Hebrew.
+     -------------------------------------------------------------------- */
   --font-sans: var(--font-heebo);
-  --font-display: var(--font-secular);
+  --font-display: var(--font-heebo);
 
-  --text-hero: 4rem;
+  --text-sm--line-height: 1.7;
+  --text-base--line-height: 1.7;
+
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.5;
+  --text-title: 1.25rem;
+  --text-title--line-height: 1.4;
+  --text-heading: 1.5rem;
+  --text-heading--line-height: 1.3;
+  --text-display: 2rem;
+  --text-display--line-height: 1.15;
+  --text-hero: 3rem;
   --text-hero--line-height: 1;
-  --text-display: 2.5rem;
-  --text-display--line-height: 1.1;
-  --text-title: 1.75rem;
-  --text-title--line-height: 1.2;
 
-  /* radii — semantic names, so Tailwind's rounded-lg/2xl keep their meaning */
-  --radius-control: 0.75rem;
-  --radius-card: 1.25rem;
-  --radius-tile: 1.5rem;
+  /* --- radii ------------------------------------------------------------
+     Tightened from v1 (card was 1.25rem). Booking's corners are restrained;
+     a 20px radius on a dense list of cards is what made the old screens
+     read as soft rather than organised.
+     -------------------------------------------------------------------- */
+  --radius-control: 0.5rem;
+  --radius-card: 0.75rem;
+  --radius-tile: 1rem;
+  --radius-modal: 1rem;
 
-  /* elevation */
-  --shadow-soft: 0 8px 24px rgba(59, 47, 42, 0.08);
-  --shadow-card: 0 12px 36px rgba(59, 47, 42, 0.1);
-  --shadow-lift: 0 16px 44px rgba(59, 47, 42, 0.14);
+  /* elevation — raw values are --elevation-* on :root, for the reason
+     documented there. The names differ on purpose: --shadow-* is Tailwind's own
+     namespace, and a self-referential --shadow-soft: var(--shadow-soft) would
+     be a circular definition. */
+  --shadow-soft: var(--elevation-soft);
+  --shadow-card: var(--elevation-card);
+  --shadow-lift: var(--elevation-lift);
+  --shadow-modal: var(--elevation-modal);
+
+  /* --- layout -----------------------------------------------------------
+     Window classes follow Material 3: compact 0–599, medium 600–839,
+     expanded 840–1199, large 1200–1599, extra-large 1600+. Tailwind's own
+     sm/md/lg/xl/2xl are close enough to those edges to use directly; what
+     was missing was anything to put in them.
+
+     The container scale drives max-w-*, w-* and basis-*, so `sidebar` below
+     is both the rail's width and the value the content offsets by.
+     -------------------------------------------------------------------- */
+  --container-sidebar: 15rem;
+  --container-pane: 22rem;
+  --container-shell: 90rem;
 
   /* motion */
   --ease-snap: cubic-bezier(0.32, 0.72, 0, 1);
