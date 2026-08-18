@@ -251,7 +251,7 @@ export { TripDatesForm } from "./components/trip-dates-form";
 export { CountdownHero } from "./components/countdown-hero";
 export { UpNext } from "./components/up-next";
 export { MoreBackLink } from "./components/more-back-link";
-export { TripNav } from "./components/trip-nav";
+export { TripNav, TripSideNav } from "./components/trip-nav";
 export {
   TRIP_TABS,
   tripTabHref,

@@ -23,10 +23,10 @@ import { APP_TIME_ZONE } from "../domain/weather";
 import { removeBooking } from "../application/booking-actions";
 import type { Booking, BookingAlert, BookingKind } from "../domain/booking";
 
-const ALERT_TONE: Record<BookingAlert["urgency"], "warning" | "primary" | "neutral"> =
+const ALERT_TONE: Record<BookingAlert["urgency"], "warning" | "action" | "neutral"> =
   {
     now: "warning",
-    soon: "primary",
+    soon: "action",
     upcoming: "neutral",
   };
 

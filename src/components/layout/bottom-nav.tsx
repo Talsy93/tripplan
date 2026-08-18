@@ -24,7 +24,10 @@ export function BottomNav({ items }: { items: NavItem[] }) {
               href={item.href}
               aria-current={item.active ? "page" : undefined}
               className={cn(
-                "mx-auto flex max-w-20 flex-col items-center gap-1 rounded-control py-1.5 text-[11px] transition-colors",
+                "mx-auto flex max-w-20 flex-col items-center gap-1 rounded-control py-1.5 text-caption transition-colors",
+                // Phase D: this was the one interactive surface in the layout
+                // layer with no focus ring at all.
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 item.active
                   ? "font-bold text-primary"
                   : "text-muted hover:text-foreground",
@@ -34,9 +37,10 @@ export function BottomNav({ items }: { items: NavItem[] }) {
                   text+icon: five glyphs of near-equal weight sit side by side,
                   and colour alone is the kind of signal that washes out in
                   direct sun — exactly the lighting a travel app gets used in.
-                  The pill is the same "filled = selected" language the desktop
-                  strip and SegmentedControl already use, just moved onto the
-                  icon since the mobile bar has no room for a full row fill. */}
+                  The pill is the same "filled = selected" language the tablet
+                  strip, the desktop rail and SegmentedControl already use, just
+                  moved onto the icon since the mobile bar has no room for a
+                  full row fill. */}
               <span
                 aria-hidden="true"
                 className={cn(

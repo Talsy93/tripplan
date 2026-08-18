@@ -272,7 +272,7 @@ export function PlaceSearch({
                       </span>
                       {place.notable && (
                         <Badge
-                          tone="primary"
+                          tone="action"
                           title="למקום יש ערך בוויקיפדיה"
                           className="shrink-0"
                         >

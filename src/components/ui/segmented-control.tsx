@@ -6,10 +6,27 @@ export type SegmentedItem = {
   count?: number;
 };
 
+type Size = "sm" | "md";
+
+// `sm` exists because itinerary.tsx had cloned this control at a smaller scale
+// (p-0.5 / px-3 py-1 / text-xs) rather than ask for a size. Two of the four
+// copies of this control that existed before phase D differed only in these
+// numbers.
+const tracks: Record<Size, string> = {
+  sm: "gap-0.5 p-0.5",
+  md: "gap-1 p-1",
+};
+
+const segments: Record<Size, string> = {
+  sm: "px-3 py-1 text-caption",
+  md: "px-4 py-1.5 text-sm",
+};
+
 type SegmentedControlProps = {
   items: SegmentedItem[];
   value: string;
   onChange: (id: string) => void;
+  size?: Size;
   className?: string;
   "aria-label"?: string;
 };
@@ -24,6 +41,7 @@ export function SegmentedControl({
   items,
   value,
   onChange,
+  size = "md",
   className,
   "aria-label": ariaLabel,
 }: SegmentedControlProps) {
@@ -32,7 +50,8 @@ export function SegmentedControl({
       role="group"
       aria-label={ariaLabel}
       className={cn(
-        "flex gap-1 self-start rounded-full border border-border bg-surface-2 p-1",
+        "flex self-start rounded-full border border-border bg-surface-2",
+        tracks[size],
         className,
       )}
     >
@@ -45,7 +64,8 @@ export function SegmentedControl({
             aria-pressed={active}
             onClick={() => onChange(item.id)}
             className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "rounded-full font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              segments[size],
               active
                 ? "bg-surface text-foreground shadow-soft"
                 : "text-muted hover:text-foreground",
