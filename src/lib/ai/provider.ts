@@ -8,9 +8,20 @@ import * as z from "zod";
 // A single Zod schema does double duty: it constrains the model's output
 // (converted to JSON Schema) and validates the response.
 
-// `-latest` alias tracks the current Flash model, so the code survives a
-// specific version being retired (as gemini-2.5-flash was for new users).
-const MODEL = "gemini-flash-latest";
+// Pinned, not the "-latest" alias. The alias was tried first specifically to
+// avoid this file needing updates when a model is retired (as gemini-2.5-flash
+// was for new users) — but it turned out to be the cause of a real outage, not
+// the fix for one. Direct calls to the API (bypassing this app entirely) showed
+// `gemini-flash-latest` returning 503 UNAVAILABLE on roughly 2 of every 3
+// requests, while `gemini-3.6-flash` — the exact model Google's own 404 message
+// for the deprecated gemini-2.5-flash names as the replacement — returned 200
+// every time. The alias appears to route partial traffic to an overloaded
+// preview tier; a named version does not.
+//
+// The tradeoff this reintroduces: Google will eventually retire this name too,
+// and it will need to be updated here by hand. That is a known, visible cost.
+// The alias's silent failure mode was worse.
+const MODEL = "gemini-3.6-flash";
 
 // Thrown when Gemini's free-tier daily quota is exhausted (HTTP 429 from the
 // API itself — distinct from our own in-app rate limiter). Routes catch this
