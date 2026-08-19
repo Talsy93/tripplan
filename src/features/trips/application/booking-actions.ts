@@ -2,10 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
-import { createBookingSchema, type BookingFormState } from "../domain/booking";
+import {
+  createBookingSchema,
+  updateBookingSchema,
+  type BookingFormState,
+} from "../domain/booking";
 import {
   createBooking,
   deleteBooking as deleteBookingRow,
+  updateBooking as updateBookingRow,
 } from "../infrastructure/booking-service";
 
 // Everything the form submits, as plain strings, so a rejected attempt can be
@@ -25,6 +30,8 @@ const FORM_FIELDS = [
   "bookBy",
   "booked",
   "reminderDaysBefore",
+  "costAmount",
+  "costCurrency",
 ] as const;
 
 // A checkbox is absent from FormData when unticked, present as "on" when
@@ -80,6 +87,8 @@ export async function addBooking(
     bookBy: formData.get("bookBy") || undefined,
     booked: checkboxValue(formData, "booked"),
     reminderDaysBefore: optionalNumber(formData.get("reminderDaysBefore")),
+    costAmount: formData.get("costAmount") || undefined,
+    costCurrency: formData.get("costCurrency") || undefined,
   });
 
   if (!parsed.success) {
@@ -100,6 +109,50 @@ export async function addBooking(
 
   revalidatePath(`/trips/${parsed.data.tripId}`, "layout");
   // No values: this is what lets the form clear itself on success.
+  return {};
+}
+
+export async function editBooking(
+  _state: BookingFormState,
+  formData: FormData,
+): Promise<BookingFormState> {
+  const parsed = updateBookingSchema.safeParse({
+    id: formData.get("id"),
+    tripId: formData.get("tripId"),
+    kind: formData.get("kind"),
+    title: formData.get("title"),
+    origin: formData.get("origin") ?? undefined,
+    destination: formData.get("destination") ?? undefined,
+    city: formData.get("city") ?? undefined,
+    startsAt: formData.get("startsAt"),
+    endsAt: formData.get("endsAt") || undefined,
+    address: formData.get("address") ?? undefined,
+    confirmation: formData.get("confirmation") ?? undefined,
+    note: formData.get("note") ?? undefined,
+    freeCancellationUntil: formData.get("freeCancellationUntil") || undefined,
+    bookBy: formData.get("bookBy") || undefined,
+    booked: checkboxValue(formData, "booked"),
+    reminderDaysBefore: optionalNumber(formData.get("reminderDaysBefore")),
+    costAmount: formData.get("costAmount") || undefined,
+    costCurrency: formData.get("costCurrency") || undefined,
+  });
+
+  if (!parsed.success) {
+    return {
+      fieldErrors: z.flattenError(parsed.error).fieldErrors,
+      values: submittedValues(formData),
+    };
+  }
+
+  const { error } = await updateBookingRow(parsed.data);
+  if (error) {
+    return {
+      error: "העדכון נכשל. נסו שוב.",
+      values: submittedValues(formData),
+    };
+  }
+
+  revalidatePath(`/trips/${parsed.data.tripId}`, "layout");
   return {};
 }
 

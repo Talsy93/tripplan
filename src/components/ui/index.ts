@@ -13,3 +13,4 @@ export { SegmentedControl } from "./segmented-control";
 export type { SegmentedItem } from "./segmented-control";
 export { Skeleton } from "./skeleton";
 export { Surface } from "./surface";
+export { ToastProvider, useToast } from "./toast";

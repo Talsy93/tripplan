@@ -1,5 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
-import { newCitySuggestions } from "../domain/ai-suggestion";
+import { geocodePlaces } from "@/lib/geocode";
+import {
+  DISTRICT_MERGE_RADIUS_KM,
+  isSameDestination,
+  newCitySuggestions,
+} from "../domain/ai-suggestion";
+import { getTrip } from "./trips-service";
 import type {
   AiCategoryKey,
   AiCitySuggestion,
@@ -266,6 +272,51 @@ export async function getSavedCities(
 //
 // Returns the cities actually written, so the UI can say "nothing new" instead
 // of silently appearing to do nothing.
+// Drops any candidate that geocodes within DISTRICT_MERGE_RADIUS_KM of a city
+// already on the list — Shibuya of Tokyo, not a second destination — and of
+// any *other* candidate accepted earlier in the same batch (one AI response
+// can propose two districts of the same city it's never seen before).
+//
+// Best-effort: a name that fails to geocode is kept rather than blocking the
+// whole round on one lookup, and with nothing yet on the list there is
+// nothing to compare against, so the common case (a trip's very first
+// cities) skips the network round trip entirely.
+async function withoutNearbyDuplicates(
+  tripId: string,
+  existingNames: string[],
+  candidates: AiCitySuggestion[],
+): Promise<AiCitySuggestion[]> {
+  if (candidates.length === 0) return candidates;
+  if (existingNames.length === 0 && candidates.length === 1) return candidates;
+
+  const trip = await getTrip(tripId);
+  const names = [...new Set([...existingNames, ...candidates.map((c) => c.name)])];
+  const coords = await geocodePlaces(names, trip?.name ?? undefined);
+
+  const known: { latitude: number; longitude: number }[] = [];
+  for (const name of existingNames) {
+    const point = coords.get(name);
+    if (point) known.push(point);
+  }
+
+  const kept: AiCitySuggestion[] = [];
+  for (const candidate of candidates) {
+    const point = coords.get(candidate.name);
+    const isNearbyDuplicate =
+      point !== undefined && known.some((seen) => isSameDestination(seen, point));
+
+    if (isNearbyDuplicate) {
+      console.warn(
+        `[guide-service] "${candidate.name}" dropped — within ${DISTRICT_MERGE_RADIUS_KM}km of a destination already on the trip`,
+      );
+      continue;
+    }
+    kept.push(candidate);
+    if (point) known.push(point);
+  }
+  return kept;
+}
+
 export async function appendCities(
   tripId: string,
   cities: AiCitySuggestion[],
@@ -273,7 +324,14 @@ export async function appendCities(
   if (cities.length === 0) return [];
 
   const existing = await getSavedCities(tripId);
-  const additions = newCitySuggestions(existing, cities);
+  const newOnes = newCitySuggestions(existing, cities);
+  if (newOnes.length === 0) return [];
+
+  const additions = await withoutNearbyDuplicates(
+    tripId,
+    existing.map((city) => city.name),
+    newOnes,
+  );
   if (additions.length === 0) return [];
 
   const supabase = await createClient();
@@ -305,7 +363,14 @@ export async function saveCities(tripId: string, cities: AiCitySuggestion[]) {
 
   if (cities.length === 0) return;
 
-  const rows = cities.map((city) => ({
+  // A fresh round has no "existing" cities to compare against (they were just
+  // deleted above), but the AI can still name two districts of the same
+  // unfamiliar city in one response — so this still checks the batch against
+  // itself.
+  const deduped = await withoutNearbyDuplicates(tripId, [], cities);
+  if (deduped.length === 0) return;
+
+  const rows = deduped.map((city) => ({
     trip_id: tripId,
     name: city.name,
     description: city.description,

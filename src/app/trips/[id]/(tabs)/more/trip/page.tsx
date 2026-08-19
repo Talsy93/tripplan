@@ -4,6 +4,7 @@ import { SectionHeading, Skeleton } from "@/components/ui";
 import {
   BookingForm,
   BookingList,
+  ExpenseSummary,
   getSelectedDestinations,
   getTrip,
   listBookings,
@@ -71,9 +72,15 @@ export default async function TripDetailsPage({
         <BookingList
           tripId={trip.id}
           bookings={bookings}
+          cities={cities}
           now={new Date().toISOString()}
         />
         <BookingForm tripId={trip.id} cities={cities} />
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <SectionHeading level="section">הוצאות הטיול</SectionHeading>
+        <ExpenseSummary bookings={bookings} />
       </section>
     </>
   );

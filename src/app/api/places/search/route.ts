@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { tripId, city, category, query } = parsed.data;
+  const { tripId, city, category, query, near } = parsed.data;
 
   // Reading the trip is also the authorisation check: RLS returns nothing for
   // a trip the caller doesn't own, so a stranger's tripId can't be searched.
@@ -63,7 +63,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  const center = await getCityCenter(tripId, city, trip.name);
+  // `near` re-centres on a specific result instead of the city as a whole —
+  // no geocoding needed, the point is already known.
+  const center = near ?? (await getCityCenter(tripId, city, trip.name));
   if (!center) {
     return NextResponse.json({ error: "city_not_located" }, { status: 422 });
   }

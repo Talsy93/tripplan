@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Heebo } from "next/font/google";
+import { ToastProvider } from "@/components/ui";
 import "./globals.css";
 
 // One family for the whole app. Phase D dropped Secular One as the display
@@ -58,7 +59,9 @@ export default function RootLayout({
     >
       {/* dvh, not vh: mobile browser chrome makes 100vh taller than the
           visible area, which a fixed bottom bar makes obvious. */}
-      <body className="flex min-h-dvh flex-col">{children}</body>
+      <body className="flex min-h-dvh flex-col">
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }

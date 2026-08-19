@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { distanceKm } from "@/lib/geo";
 import { aiCategoryKeySchema } from "./ai-suggestion";
 
 // A real-world place found on OpenStreetMap, as the app cares about it.
@@ -156,6 +157,14 @@ export const placeSearchRequestSchema = z.object({
   category: placeCategorySchema.optional(),
   // Free-text search, matched against the place's name.
   query: z.string().trim().max(80).optional(),
+  // Overrides the city's own centre with a specific point — "search near
+  // this result" instead of near the whole city. A big city's centre can be
+  // many kilometres from a district the user actually cares about, so
+  // re-centring on a place the user already found is more accurate than
+  // widening the city-wide radius would be.
+  near: z
+    .object({ latitude: z.number(), longitude: z.number() })
+    .optional(),
 });
 export type PlaceSearchRequest = z.infer<typeof placeSearchRequestSchema>;
 
@@ -255,23 +264,7 @@ export function comparePlaces(
   return distanceKm(center, a) - distanceKm(center, b);
 }
 
-// Distance in kilometres between two points, for sorting results by how close
-// they are to the city centre. Haversine on a spherical earth — accurate to
-// well under a percent at city scale.
-export function distanceKm(
-  a: { latitude: number; longitude: number },
-  b: { latitude: number; longitude: number },
-) {
-  const EARTH_RADIUS_KM = 6371;
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-
-  const dLat = toRad(b.latitude - a.latitude);
-  const dLng = toRad(b.longitude - a.longitude);
-  const lat1 = toRad(a.latitude);
-  const lat2 = toRad(b.latitude);
-
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
-  return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(h));
-}
+// Re-exported for callers that already import distance ranking alongside the
+// rest of this module (comparePlaces uses it directly below). The
+// implementation lives in lib/geo.ts — see that file for why.
+export { distanceKm };

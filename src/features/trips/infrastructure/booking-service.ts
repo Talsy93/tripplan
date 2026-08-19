@@ -1,6 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { deadlineDate } from "../domain/booking";
-import type { Booking, CreateBookingInput } from "../domain/booking";
+import { deadlineDate, parseCost } from "../domain/booking";
+import type {
+  Booking,
+  CreateBookingInput,
+  UpdateBookingInput,
+} from "../domain/booking";
 
 // The trip's bookings, earliest first — the order they'll be lived in.
 export async function listBookings(tripId: string): Promise<Booking[]> {
@@ -46,6 +50,10 @@ export async function createBooking(input: CreateBookingInput) {
     // Null means "use the app default" — an explicit choice is stored, silence
     // is not turned into a number.
     reminder_days_before: input.reminderDaysBefore ?? null,
+    // 0014. The schema already guarantees these travel together — either both
+    // present or both absent — so there is nothing further to reconcile here.
+    cost_amount: parseCost(input.costAmount),
+    cost_currency: input.costCurrency || null,
   });
 
   if (error) {
@@ -53,6 +61,42 @@ export async function createBooking(input: CreateBookingInput) {
     return false;
   }
   return true;
+}
+
+// Same fields as createBooking, targeted at an existing row instead of a new
+// one. RLS restricts the update to the user's own trips, so a foreign id
+// matches no row — checked the same way updateItineraryEntry checks it,
+// because Postgres calls an update that matched nothing a success.
+export async function updateBooking(input: UpdateBookingInput) {
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("trip_bookings")
+    .update(
+      {
+        kind: input.kind,
+        title: input.title,
+        origin: input.origin || null,
+        destination: input.destination || null,
+        city: input.city || null,
+        starts_at: input.startsAt,
+        ends_at: input.endsAt || null,
+        address: input.address || null,
+        confirmation: input.confirmation || null,
+        note: input.note || null,
+        free_cancellation_until: deadlineDate(input.freeCancellationUntil),
+        book_by: input.booked === false ? deadlineDate(input.bookBy) : null,
+        booked: input.booked !== false,
+        reminder_days_before: input.reminderDaysBefore ?? null,
+        cost_amount: parseCost(input.costAmount),
+        cost_currency: input.costCurrency || null,
+      },
+      { count: "exact" },
+    )
+    .eq("id", input.id);
+
+  if (error) return { error: error.message };
+  if (count === 0) return { error: "not-found" };
+  return { error: null };
 }
 
 // RLS restricts this to the user's own trips, so the id alone is enough.

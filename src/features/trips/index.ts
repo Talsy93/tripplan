@@ -145,7 +145,13 @@ export type {
   BookingFormState,
 } from "./domain/booking";
 export { listBookings } from "./infrastructure/booking-service";
-export { tripDayCount } from "./domain/trip-days";
+export { tripDayCount, buildDayCityPlan, travelDayCount } from "./domain/trip-days";
+export type { DayCityPlan } from "./domain/trip-days";
+export {
+  dayCityPlanPromptLines,
+  dayCityPlanHasFacts,
+  reconcileItineraryWithDayPlan,
+} from "./domain/itinerary-plan";
 export { isSchemaOutOfDate } from "./infrastructure/itinerary-service";
 export {
   cityDayPlan,
@@ -165,7 +171,20 @@ export {
   setCityDays,
   updateItineraryEntry,
 } from "./application/itinerary-actions";
-export { addBooking, removeBooking } from "./application/booking-actions";
+export {
+  addBooking,
+  editBooking,
+  removeBooking,
+} from "./application/booking-actions";
+export { updateBookingSchema, toDateTimeLocal } from "./domain/booking";
+export type { UpdateBookingInput } from "./domain/booking";
+export {
+  costTotalsByCurrency,
+  uncostedCount,
+  formatMoney,
+} from "./domain/expenses";
+export type { CurrencyTotal } from "./domain/expenses";
+export { ExpenseSummary } from "./components/expense-summary";
 export {
   cancellationAlert,
   bookingTodoAlert,

@@ -3,16 +3,22 @@ import * as z from "zod";
 import {
   aiItineraryRequestSchema,
   aiItinerarySchema,
+  APP_TIME_ZONE,
+  buildDayCityPlan,
   categoryLabel,
   cityDayPlan,
   cityDaysPromptLine,
+  dayCityPlanHasFacts,
+  dayCityPlanPromptLines,
   getItinerary,
   getSelectedDestinations,
   getTrip,
   isSchemaOutOfDate,
   listBookings,
   listCityDays,
+  reconcileItineraryWithDayPlan,
   saveItinerary,
+  tripDayCount,
 } from "@/features/trips";
 import {
   AiQuotaExceededError,
@@ -22,7 +28,7 @@ import {
 } from "@/lib/ai";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
-import type { Booking, SelectedItem } from "@/features/trips";
+import type { Booking, DayCityPlan, SelectedItem } from "@/features/trips";
 import type { Trip } from "@/features/trips";
 
 const RATE_LIMIT = 5;
@@ -52,6 +58,7 @@ function buildPrompt(
   items: SelectedItem[],
   bookings: Booking[],
   cityDaysLine: string | null,
+  dayPlan: DayCityPlan[] | null,
 ) {
   const lodging = lodgingLines(bookings);
   const list = items
@@ -61,6 +68,14 @@ function buildPrompt(
     )
     .join("\n");
 
+  // When the plan has real facts (a lodging or travel day from an actual
+  // booking), it replaces the day-count line entirely: it already says which
+  // city every such day belongs to, which is strictly more specific than "N
+  // days somewhere in this list" — and the app enforces it afterwards
+  // regardless of what the model does with it (see reconcileItineraryWithDayPlan),
+  // so there is no reason to also ask for the weaker version.
+  const hasDayPlan = dayPlan !== null && dayCityPlanHasFacts(dayPlan);
+
   return [
     "אתה מתכנן טיולים מקצועי.",
     `בנה לו"ז יומי לטיול "${trip.name}".`,
@@ -68,17 +83,27 @@ function buildPrompt(
       ? `תאריכי הטיול: ${trip.start_date} עד ${trip.end_date}.`
       : "אין תאריכים קבועים — קבע מספר ימים סביר לפי כמות הפריטים.",
 
+    hasDayPlan &&
+      "התאריך והעיר של כל יום נקבעו מראש ואסור לשנות אותם. מספרי הימים בתשובה שלך חייבים להתאים בדיוק למספרים למטה:",
+    hasDayPlan && dayCityPlanPromptLines(dayPlan!),
+    hasDayPlan &&
+      "מקמו כל פריט רק ביום שהעיר שלו מתוזמנת בו, ולעולם לא ביום נסיעה.",
+
     // Stated as a constraint, not as background. The model is being told the
     // answer to "how many days in each city", because the user already decided
-    // it — either explicitly or by booking a hotel.
-    cityDaysLine &&
+    // it — either explicitly or by booking a hotel. Falls back to this weaker
+    // form only when there is no day-by-day plan to give instead.
+    !hasDayPlan &&
+      cityDaysLine &&
       `חלוקת הימים בין הערים נקבעה מראש ואסור לשנות אותה: ${cityDaysLine}.`,
-    cityDaysLine &&
+    !hasDayPlan &&
+      cityDaysLine &&
       "עיר שלא מופיעה בחלוקה הזו — קבע לה מספר ימים סביר מהימים שנשארו.",
 
-    lodging.length > 0 && "הלינה שהוזמנה (אלה התאריכים שבהם ישנים בכל עיר):",
-    lodging.length > 0 && lodging.join("\n"),
-    lodging.length > 0 &&
+    !hasDayPlan && lodging.length > 0 && "הלינה שהוזמנה (אלה התאריכים שבהם ישנים בכל עיר):",
+    !hasDayPlan && lodging.length > 0 && lodging.join("\n"),
+    !hasDayPlan &&
+      lodging.length > 0 &&
       "סדר את הימים כך שכל פריט יופיע ביום שבו הטיול נמצא בעיר שלו לפי הלינה.",
 
     "הפריטים שנבחרו לטיול:",
@@ -154,12 +179,26 @@ export async function POST(request: Request) {
     cityDayPlan(cities, bookings, overrides),
   );
 
+  // Only possible with a fixed start and end date — an open-ended trip has no
+  // fixed day count to build a day-by-day plan against, and falls back to the
+  // weaker city-days line above exactly as before.
+  const dayCount = tripDayCount(trip.start_date, trip.end_date);
+  const dayPlan =
+    trip.start_date && dayCount
+      ? buildDayCityPlan(trip.start_date, dayCount, bookings, APP_TIME_ZONE)
+      : null;
+
   try {
     const itinerary = await generateStructured({
-      prompt: buildPrompt(trip, items, bookings, cityDaysLine),
+      prompt: buildPrompt(trip, items, bookings, cityDaysLine, dayPlan),
       schema: aiItinerarySchema,
     });
-    const { error: saveError } = await saveItinerary(tripId, itinerary, items);
+    const reconciled = reconcileItineraryWithDayPlan(
+      itinerary,
+      items,
+      dayPlan && dayCityPlanHasFacts(dayPlan) ? dayPlan : null,
+    );
+    const { error: saveError } = await saveItinerary(tripId, reconciled, items);
 
     // A save that failed must not answer 200 with an empty itinerary. That is
     // exactly what happened before: the write failed, the route reported
