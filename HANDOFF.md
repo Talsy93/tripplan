@@ -9,7 +9,7 @@
 **פאזה E נבנתה (E1–E7) על ענף `feature/phase-e-trip-fixes`, ממתינה ל-PR.**
 פאזה C הושלמה (C1–C10). פאזה D הושלמה (D1–D11) ומוזגה כולה ל-`main` דרך
 PRs #33–#37. המשתמש העלה לפרודקשן והריץ את `migration 0013` ב-Supabase.
-**Migration 0014 (עלות הזמנה) עדיין לא רץ ב-Supabase** — לרוץ אחרי מיזוג ה-PR.
+**Migration 0014 (עלות הזמנה) רץ ב-Supabase** (אושר על ידי המשתמש 2026-08-20).
 
 - `main` מסונכרן מול origin. ענף פתוח יחיד: `feature/phase-e-trip-fixes`.
 - עבודה חדשה מתחילה מענף חדש מעל `main` (יש branch protection: חובה PR +
