@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { Fragment, useActionState, useEffect, useRef, useState } from "react";
 import {
   Banner,
   Button,
@@ -10,15 +10,18 @@ import {
   Input,
   Select,
   Textarea,
+  useToast,
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { addBooking } from "../application/booking-actions";
+import { addBooking, editBooking } from "../application/booking-actions";
 import {
   BOOKING_KINDS,
   DEFAULT_REMINDER_DAYS,
   REMINDER_PRESETS,
+  toDateTimeLocal,
 } from "../domain/booking";
 import type {
+  Booking,
   BookingFormState,
   BookingKind,
   CreateBookingInput,
@@ -41,33 +44,77 @@ function FieldError({ message }: { message?: string }) {
   );
 }
 
+// The values an existing booking pre-fills the form with, in the same
+// camelCase shape `was()` below reads — so editing reuses the exact same
+// defaulting path a rejected submission already uses, rather than a second
+// one.
+function bookingDefaults(booking: Booking | undefined): Partial<Record<Field, string>> {
+  if (!booking) return {};
+  return {
+    title: booking.title,
+    origin: booking.origin ?? "",
+    destination: booking.destination ?? "",
+    city: booking.city ?? "",
+    startsAt: toDateTimeLocal(booking.starts_at),
+    endsAt: booking.ends_at ? toDateTimeLocal(booking.ends_at) : "",
+    address: booking.address ?? "",
+    confirmation: booking.confirmation ?? "",
+    note: booking.note ?? "",
+    freeCancellationUntil: booking.free_cancellation_until ?? "",
+    bookBy: booking.book_by ?? "",
+    reminderDaysBefore:
+      booking.reminder_days_before !== null
+        ? String(booking.reminder_days_before)
+        : String(DEFAULT_REMINDER_DAYS),
+    costAmount: booking.cost_amount !== null ? String(booking.cost_amount) : "",
+    costCurrency: booking.cost_currency ?? "",
+  };
+}
+
 // The form changes shape with the kind: transport asks where from and where to,
 // lodging asks for one address. Keeping it one form rather than three means one
 // action and one validation path.
+//
+// Editing reuses this same form rather than a second component: `booking`
+// present switches the action to editBooking and seeds every field from it —
+// the shape of "describe a booking" doesn't change between adding one and
+// correcting one.
 export function BookingForm({
   tripId,
   cities,
+  booking,
+  onSuccess,
 }: {
   tripId: string;
   // The trip's destinations, to attach a booking to one of them.
   cities: string[];
+  // Present only when editing an existing row.
+  booking?: Booking;
+  // Fired after a successful save — the edit dialog closes itself with this.
+  onSuccess?: () => void;
 }) {
+  const isEdit = booking !== undefined;
   const [state, action, pending] = useActionState<BookingFormState, FormData>(
-    addBooking,
+    isEdit ? editBooking : addBooking,
     {},
   );
-  const [kind, setKind] = useState<BookingKind>("flight");
+  const defaults = bookingDefaults(booking);
+  const [kind, setKind] = useState<BookingKind>(booking?.kind ?? "flight");
   const isTransport = BOOKING_KINDS[kind].isTransport;
 
   // Whether this is a real reservation or something still to be booked. The
   // rejected-submission echo records it either way (see submittedValues), so a
   // validation error cannot quietly flip it back.
   const [booked, setBooked] = useState(() =>
-    state.values ? state.values.booked === "on" : true,
+    state.values ? state.values.booked === "on" : (booking?.booked ?? true),
   );
-  const [leadChoice, setLeadChoice] = useState<string>(
-    String(DEFAULT_REMINDER_DAYS),
-  );
+  const [leadChoice, setLeadChoice] = useState<string>(() => {
+    const initial = defaults.reminderDaysBefore;
+    if (initial === undefined) return String(DEFAULT_REMINDER_DAYS);
+    return (REMINDER_PRESETS as readonly number[]).some((preset) => String(preset) === initial)
+      ? initial
+      : CUSTOM;
+  });
 
   // React resets the form's DOM once the action finishes, and a reset restores
   // each input from its `defaultChecked`/`defaultValue` *attribute* — which
@@ -92,11 +139,31 @@ export function BookingForm({
     setFormGeneration((generation) => generation + 1);
   }
 
+  // Fired from an effect rather than during the render above: showToast
+  // updates ToastProvider, an ancestor, and React does not allow one
+  // component's render to schedule another component's state update. Keyed
+  // off a true→false edge on `pending` rather than `state` itself, so the
+  // identical initial state ({}, no error, no values) cannot be mistaken for
+  // a just-completed submission on mount.
+  const { showToast } = useToast();
+  const wasPending = useRef(false);
+  useEffect(() => {
+    if (wasPending.current && !pending && !state.error && !state.fieldErrors) {
+      showToast(
+        isEdit ? BOOKING_KINDS[kind].updatedLabel : BOOKING_KINDS[kind].addedLabel,
+      );
+      onSuccess?.();
+    }
+    wasPending.current = pending;
+  }, [pending, state, kind, isEdit, showToast, onSuccess]);
+
   // React resets an uncontrolled form once its action finishes, failure
   // included. Feeding the submitted values back in as defaults is what makes a
   // rejected submission a correction rather than a retype. On success the
-  // action returns no values, so the reset clears the form — which is right.
-  const was = (field: Field) => state.values?.[field] ?? "";
+  // action returns no values, so the reset clears the form — which is right
+  // for adding; an edit form closes on success instead (see onSuccess above),
+  // so it never gets the chance to reset against a booking that's now stale.
+  const was = (field: Field) => state.values?.[field] ?? defaults[field] ?? "";
   const errorFor = (field: Field) => state.fieldErrors?.[field]?.[0];
   const hasFieldErrors = Object.values(state.fieldErrors ?? {}).some(
     (messages) => (messages?.length ?? 0) > 0,
@@ -107,8 +174,13 @@ export function BookingForm({
   const fieldClass = (field: Field) =>
     errorFor(field) ? "border-danger focus-visible:ring-danger" : undefined;
 
+  // Adding sits directly on the page and needs Card's own surface; editing
+  // already lives inside a Dialog, which is a surface of its own — nesting
+  // Card there would be a card inside a card.
+  const Wrapper = isEdit ? Fragment : Card;
+
   return (
-    <Card>
+    <Wrapper>
       {/* noValidate on purpose. With native validation on, an empty required
           field blocks the submit before the action runs, so the server's Hebrew
           field errors never get to render — and the browser's own bubble is
@@ -118,6 +190,7 @@ export function BookingForm({
       <form action={action} noValidate className="flex flex-col gap-3">
         <input type="hidden" name="tripId" value={tripId} />
         <input type="hidden" name="kind" value={kind} />
+        {isEdit && <input type="hidden" name="id" value={booking.id} />}
 
         {/* A summary at the top, because the field that failed can be below the
             fold on a phone — and a form that silently refuses to submit is the
@@ -238,6 +311,37 @@ export function BookingForm({
               dir="ltr"
               defaultValue={was("confirmation")}
             />
+          </label>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted">עלות (לא חובה)</span>
+            <Input
+              type="number"
+              name="costAmount"
+              min={0}
+              step="0.01"
+              dir="ltr"
+              placeholder="0.00"
+              defaultValue={was("costAmount")}
+              aria-invalid={Boolean(errorFor("costAmount"))}
+              className={fieldClass("costAmount")}
+            />
+            <FieldError message={errorFor("costAmount")} />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-muted">מטבע</span>
+            <Input
+              name="costCurrency"
+              maxLength={3}
+              dir="ltr"
+              placeholder="ILS"
+              className={cn("uppercase", fieldClass("costCurrency"))}
+              defaultValue={was("costCurrency")}
+              aria-invalid={Boolean(errorFor("costCurrency"))}
+            />
+            <FieldError message={errorFor("costCurrency")} />
           </label>
         </div>
 
@@ -375,12 +479,12 @@ export function BookingForm({
 
         <div>
           <Button type="submit" loading={pending}>
-            הוספה
+            {isEdit ? "שמירה" : "הוספה"}
           </Button>
         </div>
 
         {state.error && <Banner tone="danger">{state.error}</Banner>}
       </form>
-    </Card>
+    </Wrapper>
   );
 }

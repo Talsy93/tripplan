@@ -1,7 +1,7 @@
 "use client";
 
-import { ExternalLink, Map as MapIcon } from "lucide-react";
-import { Dialog } from "@/components/ui";
+import { ExternalLink, Map as MapIcon, Search } from "lucide-react";
+import { Button, Dialog } from "@/components/ui";
 import { googleMapsSearchUrl } from "@/lib/maps";
 import type { Place } from "../domain/place";
 
@@ -15,10 +15,15 @@ export function PlaceDetails({
   place,
   city,
   onClose,
+  onSearchNearby,
 }: {
   place: Place;
   city: string;
   onClose: () => void;
+  // Re-runs the current category's search centred on this place instead of
+  // the whole city — "enter" it and get more results like it, the same way
+  // choosing a city does at the top level.
+  onSearchNearby: () => void;
 }) {
   const rows = [
     place.brand && { label: "רשת", value: place.brand },
@@ -82,6 +87,11 @@ export function PlaceDetails({
           </a>
         )}
       </div>
+
+      <Button type="button" variant="outline" size="sm" onClick={onSearchNearby}>
+        <Search className="h-4 w-4" aria-hidden="true" />
+        עוד תוצאות ליד {place.name}
+      </Button>
 
       <p className="text-caption text-muted">
         המידע מ-OpenStreetMap, נתרם בידי מתנדבים — ייתכן שאינו מעודכן.

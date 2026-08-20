@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Plane, X } from "lucide-react";
+import { Pencil, Plane, X } from "lucide-react";
 import {
   Badge,
   Banner,
   Card,
+  Dialog,
   EmptyState,
   IconButton,
   SegmentedControl,
@@ -20,8 +21,10 @@ import {
   cancellationAlert,
   doubleBookedLodgingIds,
 } from "../domain/booking";
+import { formatMoney } from "../domain/expenses";
 import { APP_TIME_ZONE } from "../domain/weather";
 import { removeBooking } from "../application/booking-actions";
+import { BookingForm } from "./booking-form";
 import type { Booking, BookingAlert, BookingKind } from "../domain/booking";
 
 const ALERT_TONE: Record<BookingAlert["urgency"], "warning" | "action" | "neutral"> =
@@ -36,12 +39,16 @@ type Filter = "all" | BookingKind;
 export function BookingList({
   tripId,
   bookings: initial,
+  cities,
   // Passed in from the server render so both sides agree on what "now" is
   // instead of disagreeing across hydration.
   now,
 }: {
   tripId: string;
   bookings: Booking[];
+  // For the edit dialog's "יעד בטיול" field — the same list BookingForm
+  // already gets when adding.
+  cities: string[];
   now: string;
 }) {
   // The prop is the source of truth, and only pending deletions are held
@@ -55,6 +62,7 @@ export function BookingList({
   const [removed, setRemoved] = useState<string[]>([]);
   const [removing, setRemoving] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
+  const [editing, setEditing] = useState<Booking | null>(null);
   const asOf = new Date(now);
 
   const bookings = initial.filter((booking) => !removed.includes(booking.id));
@@ -172,15 +180,25 @@ export function BookingList({
                     ))}
                   </span>
 
-                  <IconButton
-                    label={`הסר ${kind.label}`}
-                    variant="danger"
-                    size="sm"
-                    disabled={removing === booking.id}
-                    onClick={() => void remove(booking.id)}
-                  >
-                    <X className="h-4 w-4" aria-hidden="true" />
-                  </IconButton>
+                  <span className="flex shrink-0 items-center gap-1">
+                    <IconButton
+                      label={`עריכת ${kind.label}`}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditing(booking)}
+                    >
+                      <Pencil className="h-4 w-4" aria-hidden="true" />
+                    </IconButton>
+                    <IconButton
+                      label={`הסר ${kind.label}`}
+                      variant="danger"
+                      size="sm"
+                      disabled={removing === booking.id}
+                      onClick={() => void remove(booking.id)}
+                    >
+                      <X className="h-4 w-4" aria-hidden="true" />
+                    </IconButton>
+                  </span>
                 </div>
 
                 {kind.isTransport ? (
@@ -192,11 +210,17 @@ export function BookingList({
                 {(booking.confirmation ||
                   booking.note ||
                   booking.free_cancellation_until ||
+                  booking.cost_amount !== null ||
                   (!booking.booked && booking.book_by)) && (
                   <div className="flex flex-col gap-1 border-t border-dashed border-border px-4 py-3 text-caption text-muted">
                     {booking.confirmation && (
                       <span dir="ltr" className="tabular-nums">
                         קוד הזמנה: {booking.confirmation}
+                      </span>
+                    )}
+                    {booking.cost_amount !== null && booking.cost_currency && (
+                      <span dir="ltr" className="tabular-nums">
+                        עלות: {formatMoney(booking.cost_amount, booking.cost_currency)}
                       </span>
                     )}
                     {/* Shown even when no alert is active, so the deadline that
@@ -218,6 +242,25 @@ export function BookingList({
           );
         })}
       </ul>
+
+      <Dialog
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title={editing ? `עריכת ${BOOKING_KINDS[editing.kind].label}` : ""}
+      >
+        {/* Keyed so switching which booking is being edited without the
+            dialog ever fully closing still remounts the form against the new
+            defaults, instead of reusing the old one's local state. */}
+        {editing && (
+          <BookingForm
+            key={editing.id}
+            tripId={tripId}
+            cities={cities}
+            booking={editing}
+            onSuccess={() => setEditing(null)}
+          />
+        )}
+      </Dialog>
     </div>
   );
 }

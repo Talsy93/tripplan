@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { distanceKm } from "@/lib/geo";
 import { normaliseName } from "@/lib/text";
 
 // ---- Level 1: city / area suggestions (concise) ----------------------------
@@ -62,6 +63,26 @@ export function newCitySuggestions(
   incoming: AiCitySuggestion[],
 ): AiCitySuggestion[] {
   return mergeCitySuggestions(existing, incoming).slice(existing.length);
+}
+
+// Two points count as the same destination when they're this close — close
+// enough that they're the same trip stop, not two. Tokyo's wards span a few
+// kilometres each and its whole metro area is on the order of 40km across, so
+// 30km catches "Shibuya" as part of "Tokyo" without also swallowing genuinely
+// separate nearby cities (Kyoto/Osaka are about 40km apart).
+//
+// This is the backstop, not the primary defence: the AI prompt is asked
+// directly not to suggest a neighbourhood of a city already on the list.
+// Coordinates are not always available (geocoding a name can fail, or simply
+// hasn't been tried yet) — when either point is missing, the caller should
+// treat the two as different rather than call this at all.
+export const DISTRICT_MERGE_RADIUS_KM = 30;
+
+export function isSameDestination(
+  a: { latitude: number; longitude: number },
+  b: { latitude: number; longitude: number },
+): boolean {
+  return distanceKm(a, b) <= DISTRICT_MERGE_RADIUS_KM;
 }
 
 // The brief a "more destinations" round runs under, or null when there is

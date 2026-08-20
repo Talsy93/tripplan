@@ -25,6 +25,13 @@ function buildPrompt({ prompt, count = 5, exclude = [] }: AiSuggestRequest) {
     exclude.length > 0
       ? `אל תציע את הערים הבאות שכבר הוצגו: ${exclude.join(", ")}. הצע ערים אחרות לגמרי.`
       : "",
+    // The direct cause of a bug where "Shibuya" ended up as its own
+    // destination alongside "Tokyo": a district or neighbourhood is not a
+    // trip stop of its own, and treating it like one duplicated every
+    // attraction that happens to be well-known both ways. The app also
+    // checks this by geocoded distance as a backstop (mergeCitySuggestions'
+    // caller), but asking for it directly avoids the round trip entirely.
+    "אם הבקשה מתייחסת לשכונה, למחוז או לאזור בתוך עיר גדולה יותר (לדוגמה שיבויה, שהיא שכונה בתוך טוקיו) — הציעו את שם העיר הגדולה שמכילה אותו, ולא את שם השכונה עצמה. שכונות הן חלק מהעיר, לא יעדים נפרדים.",
     "לכל עיר ספק שם ומשפט קצר שמסביר למה היא מתאימה.",
     "השב בעברית.",
   ]

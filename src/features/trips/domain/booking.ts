@@ -10,11 +10,38 @@ export type BookingKind = z.infer<typeof bookingKindSchema>;
 
 export const BOOKING_KINDS: Record<
   BookingKind,
-  { label: string; emoji: string; isTransport: boolean }
+  {
+    label: string;
+    emoji: string;
+    isTransport: boolean;
+    // Hebrew grammatical gender differs by kind (טיסה/רכבת are feminine,
+    // מלון is masculine), so the toast's confirmation is data here rather
+    // than a string built in the component.
+    addedLabel: string;
+    updatedLabel: string;
+  }
 > = {
-  flight: { label: "טיסה", emoji: "✈️", isTransport: true },
-  train: { label: "רכבת", emoji: "🚆", isTransport: true },
-  lodging: { label: "לינה", emoji: "🏨", isTransport: false },
+  flight: {
+    label: "טיסה",
+    emoji: "✈️",
+    isTransport: true,
+    addedLabel: "הטיסה נוספה",
+    updatedLabel: "הטיסה עודכנה",
+  },
+  train: {
+    label: "רכבת",
+    emoji: "🚆",
+    isTransport: true,
+    addedLabel: "הרכבת נוספה",
+    updatedLabel: "הרכבת עודכנה",
+  },
+  lodging: {
+    label: "לינה",
+    emoji: "🏨",
+    isTransport: false,
+    addedLabel: "המלון נוסף",
+    updatedLabel: "המלון עודכן",
+  },
 };
 
 export const bookingSchema = z.object({
@@ -42,65 +69,133 @@ export const bookingSchema = z.object({
   // fires at the chosen lead time and not on every run after it.
   cancel_notified_at: z.string().nullable(),
   book_by_notified_at: z.string().nullable(),
+  // Added in 0014. Both null or both set — an amount with no currency can't
+  // be totalled, and the form only ever writes them together.
+  cost_amount: z.number().nullable(),
+  cost_currency: z.string().nullable(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 
-// What a form is allowed to submit. `starts_at`/`ends_at` arrive as the strings
-// a datetime-local input produces, which have no timezone — they're read as the
-// user's own wall clock, which is what someone typing a departure time means.
-export const createBookingSchema = z
-  .object({
-    tripId: z.uuid(),
-    kind: bookingKindSchema,
-    title: z.string().trim().min(1, { error: "יש לציין שם או מספר." }).max(120),
-    origin: z.string().trim().max(120).optional(),
-    destination: z.string().trim().max(120).optional(),
-    city: z.string().trim().max(120).optional(),
-    startsAt: z.string().min(1, { error: "יש לציין מועד." }),
-    endsAt: z.string().optional(),
-    address: z.string().trim().max(300).optional(),
-    confirmation: z.string().trim().max(120).optional(),
-    note: z.string().trim().max(1000).optional(),
-    // 0011. All optional: most bookings have none of them.
-    freeCancellationUntil: z.string().optional(),
-    bookBy: z.string().optional(),
-    // False for something still to be reserved. The form sends a checkbox.
-    booked: z.boolean().optional(),
-    // Matches the column's own bounds, so the check constraint can never be the
-    // thing that reports a bad value.
-    reminderDaysBefore: z
-      .number()
-      .int({ error: "מספר הימים חייב להיות שלם." })
-      .min(0, { error: "מספר הימים לא יכול להיות שלילי." })
-      .max(60, { error: "אפשר להזכיר עד 60 ימים מראש." })
-      .optional(),
-  })
-  .refine(
-    (value) =>
-      !value.endsAt || new Date(value.endsAt) > new Date(value.startsAt),
-    { error: "מועד הסיום חייב להיות אחרי ההתחלה.", path: ["endsAt"] },
-  )
-  // A deadline after the booking has already begun describes nothing that can
-  // be acted on, and is almost always a typo in the year.
-  //
-  // Compared as YYYY-MM-DD strings, which sort correctly: the deadline is a date
-  // and startsAt is a datetime-local, so parsing both as Date would compare
-  // midnight against an afternoon and reject a deadline on the check-in day —
-  // which is exactly when a hotel's free cancellation usually expires.
-  .refine(
-    (value) =>
-      !value.freeCancellationUntil ||
-      value.freeCancellationUntil <= value.startsAt.slice(0, 10),
-    {
-      error: "מועד הביטול חייב להיות לפני תחילת ההזמנה.",
-      path: ["freeCancellationUntil"],
-    },
-  )
-  .refine(
-    (value) => !value.bookBy || value.bookBy <= value.startsAt.slice(0, 10),
-    { error: "מועד ההזמנה חייב להיות לפני תחילת ההזמנה.", path: ["bookBy"] },
-  );
+// The fields a form submits, shared between adding a booking and editing one
+// — editing is the same shape plus the id of the row being changed. Kept as a
+// plain object of field schemas (not yet a z.object) so both callers can
+// spread it and still get the same cross-field refinements below.
+const bookingFields = {
+  tripId: z.uuid(),
+  kind: bookingKindSchema,
+  title: z.string().trim().min(1, { error: "יש לציין שם או מספר." }).max(120),
+  origin: z.string().trim().max(120).optional(),
+  destination: z.string().trim().max(120).optional(),
+  city: z.string().trim().max(120).optional(),
+  // `starts_at`/`ends_at` arrive as the strings a datetime-local input
+  // produces, which have no timezone — they're read as the user's own wall
+  // clock, which is what someone typing a departure time means.
+  startsAt: z.string().min(1, { error: "יש לציין מועד." }),
+  endsAt: z.string().optional(),
+  address: z.string().trim().max(300).optional(),
+  confirmation: z.string().trim().max(120).optional(),
+  note: z.string().trim().max(1000).optional(),
+  // 0011. All optional: most bookings have none of them.
+  freeCancellationUntil: z.string().optional(),
+  bookBy: z.string().optional(),
+  // False for something still to be reserved. The form sends a checkbox.
+  booked: z.boolean().optional(),
+  // Matches the column's own bounds, so the check constraint can never be the
+  // thing that reports a bad value.
+  reminderDaysBefore: z
+    .number()
+    .int({ error: "מספר הימים חייב להיות שלם." })
+    .min(0, { error: "מספר הימים לא יכול להיות שלילי." })
+    .max(60, { error: "אפשר להזכיר עד 60 ימים מראש." })
+    .optional(),
+  // 0014. A plain string from a number input, parsed later (costAmount below)
+  // rather than coerced here — z.coerce would turn an empty field into 0
+  // instead of "not entered".
+  costAmount: z
+    .string()
+    .trim()
+    .optional()
+    .refine((value) => !value || (Number.isFinite(Number(value)) && Number(value) >= 0), {
+      error: "הסכום צריך להיות מספר חיובי.",
+    }),
+  costCurrency: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .optional()
+    .refine((value) => !value || value.length === 3, {
+      error: "קוד מטבע הוא שלוש אותיות, למשל ILS.",
+    }),
+};
+
+// Applied identically to add and edit: the cross-field rules describe the
+// booking's data, not which action is being taken.
+function withBookingRefinements<
+  T extends z.ZodType<{
+    startsAt: string;
+    endsAt?: string;
+    freeCancellationUntil?: string;
+    bookBy?: string;
+    costAmount?: string;
+    costCurrency?: string;
+  }>,
+>(schema: T) {
+  return schema
+    .refine(
+      (value) =>
+        !value.endsAt || new Date(value.endsAt) > new Date(value.startsAt),
+      { error: "מועד הסיום חייב להיות אחרי ההתחלה.", path: ["endsAt"] },
+    )
+    // A deadline after the booking has already begun describes nothing that can
+    // be acted on, and is almost always a typo in the year.
+    //
+    // Compared as YYYY-MM-DD strings, which sort correctly: the deadline is a
+    // date and startsAt is a datetime-local, so parsing both as Date would
+    // compare midnight against an afternoon and reject a deadline on the
+    // check-in day — which is exactly when a hotel's free cancellation
+    // usually expires.
+    .refine(
+      (value) =>
+        !value.freeCancellationUntil ||
+        value.freeCancellationUntil <= value.startsAt.slice(0, 10),
+      {
+        error: "מועד הביטול חייב להיות לפני תחילת ההזמנה.",
+        path: ["freeCancellationUntil"],
+      },
+    )
+    .refine(
+      (value) => !value.bookBy || value.bookBy <= value.startsAt.slice(0, 10),
+      { error: "מועד ההזמנה חייב להיות לפני תחילת ההזמנה.", path: ["bookBy"] },
+    )
+    // An amount with no currency can't be totalled, and a currency with no
+    // amount has nothing to total — the pair travels together or not at all.
+    .refine((value) => !value.costAmount || value.costCurrency, {
+      error: "יש לבחור מטבע לסכום שהוזן.",
+      path: ["costCurrency"],
+    })
+    .refine((value) => !value.costCurrency || value.costAmount, {
+      error: "יש להזין סכום, או לנקות את המטבע.",
+      path: ["costAmount"],
+    });
+}
+
+export const createBookingSchema = withBookingRefinements(z.object(bookingFields));
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
+
+export const updateBookingSchema = withBookingRefinements(
+  z.object({ ...bookingFields, id: z.uuid() }),
+);
+export type UpdateBookingInput = z.infer<typeof updateBookingSchema>;
+
+// A submitted amount, parsed once and shared by the create and update paths.
+// Null for anything that isn't a clean non-negative number — the schema
+// above already rejects that at the form boundary, so this is really just
+// the string→number conversion.
+export function parseCost(amount: string | undefined): number | null {
+  if (!amount) return null;
+  const value = Number(amount);
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
 
 export type BookingFormState = {
   error?: string;
@@ -163,6 +258,18 @@ export function bookingAlert(
     return { urgency: "upcoming", message: `${verb} בעוד ${days} ימים` };
   }
   return null;
+}
+
+// The reverse of the datetime-local input: recovers the "YYYY-MM-DDTHH:mm"
+// a form submitted, for pre-filling the edit form.
+//
+// Relies on the same assumption createBooking's write side does: the input
+// carries no timezone, and Postgres stores it verbatim under the database's
+// own (UTC) session zone rather than converting it — so the digits that come
+// back are the digits that were typed, and slicing off the seconds and the
+// offset Supabase adds is enough to reconstruct the original value exactly.
+export function toDateTimeLocal(iso: string): string {
+  return iso.slice(0, 16);
 }
 
 // A deadline is a calendar date, and it is stored as one (0011). Returns the

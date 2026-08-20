@@ -51,7 +51,11 @@ const RETRY_DELAY_MS = 2_500;
 // every match — fine for suggesting places to a traveller, and the reason the
 // radius stays tight.
 const FETCH_LIMIT = 400;
-const MAX_RESULTS = 60;
+// Higher than what the tab shows at once (PAGE_SIZE in place-search.tsx):
+// "עוד תוצאות" reveals more of this same ranked list client-side rather than
+// re-querying Overpass, since a repeat query of the same city/category just
+// returns the same day-cached elements and the same top slice.
+const MAX_RESULTS = 150;
 
 export type OverpassOutcome =
   | { ok: true; places: Place[] }

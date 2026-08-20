@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronRight, Search } from "lucide-react";
+import { Check, ChevronRight, MapPin, Search, X } from "lucide-react";
 import {
   Badge,
   Banner,
@@ -38,6 +38,19 @@ type Status =
   | { kind: "results"; places: Place[] }
   | { kind: "error"; message: string };
 
+// One result page at a time. The server already returns a larger ranked list
+// than this (see MAX_RESULTS in lib/overpass.ts) purely so "עוד תוצאות" can
+// reveal more of it locally — no second Overpass call, no extra rate-limit
+// spend, for something that isn't a new search at all.
+const PAGE_SIZE = 20;
+
+// A point to search around instead of the city as a whole — set by "חיפוש
+// ליד כאן" on a result. A city's own centre can be many kilometres from a
+// district the user actually cares about (this is also why a large city's
+// results can look like they're "in the wrong place"), and re-centring on a
+// place already found is more accurate than widening the radius would be.
+type NearPoint = { latitude: number; longitude: number; label: string };
+
 export function PlaceSearch({
   tripId,
   cities,
@@ -58,6 +71,8 @@ export function PlaceSearch({
   const [category, setCategory] = useState<PlaceCategory | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [near, setNear] = useState<NearPoint | null>(null);
   const [open, setOpen] = useState<Place | null>(null);
   const [added, setAdded] = useState<Map<string, number[]>>(
     () => new Map(addedPlaces.map((place) => [place.externalId, place.days])),
@@ -86,6 +101,7 @@ export function PlaceSearch({
   async function search(
     nextCategory: PlaceCategory | null,
     nextCity: string = city,
+    nextNear: NearPoint | null = near,
   ) {
     if (!nextCity) return;
     setStatus({ kind: "searching" });
@@ -99,6 +115,9 @@ export function PlaceSearch({
           city: nextCity,
           category: nextCategory ?? undefined,
           query: query.trim() || undefined,
+          near: nextNear
+            ? { latitude: nextNear.latitude, longitude: nextNear.longitude }
+            : undefined,
         }),
       });
 
@@ -131,6 +150,7 @@ export function PlaceSearch({
       }
 
       const data: { places: Place[] } = await res.json();
+      setVisibleCount(PAGE_SIZE);
       setStatus({ kind: "results", places: data.places ?? [] });
     } catch {
       setStatus({ kind: "error", message: "שגיאת רשת. נסו שוב." });
@@ -139,13 +159,33 @@ export function PlaceSearch({
 
   function openCategory(key: PlaceCategory) {
     setCategory(key);
-    void search(key);
+    setNear(null);
+    void search(key, city, null);
   }
 
   function backToGrid() {
     setCategory(null);
     setStatus({ kind: "idle" });
     setQuery("");
+    setNear(null);
+  }
+
+  // "Enter" a result the way choosing a city does: re-centre the search on
+  // it and run the current category again from there.
+  function searchNear(place: Place) {
+    const point: NearPoint = {
+      latitude: place.latitude,
+      longitude: place.longitude,
+      label: place.name,
+    };
+    setOpen(null);
+    setNear(point);
+    void search(category, city, point);
+  }
+
+  function clearNear() {
+    setNear(null);
+    void search(category, city, null);
   }
 
   if (cities.length === 0) {
@@ -218,22 +258,48 @@ export function PlaceSearch({
         {meta.label}
       </SectionHeading>
 
-      {cities.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {cities.map((option) => (
-            <Chip
-              key={option}
-              active={option === city}
-              onClick={() => {
-                setCity(option);
-                void search(category, option);
-              }}
+      {/* The destination name used to scroll away with the first result, so a
+          long list of "restaurants" gave no reminder of which city they were
+          in once the chip row above them was gone. Sticky and full-bleed
+          (matching <main>'s own padding so the bar reaches the edges it
+          scrolls under), it stays in view for as long as the results do. */}
+      <div className="sticky top-14 z-20 -mx-4 flex flex-col gap-2 border-b border-border bg-surface/95 px-4 py-2 backdrop-blur md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-1.5 text-sm font-bold">
+            <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+            <span className="truncate">
+              {near ? `ליד ${near.label}` : city}
+            </span>
+          </div>
+          {near && (
+            <button
+              type="button"
+              onClick={clearNear}
+              className="flex shrink-0 items-center gap-1 rounded-control text-caption text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {option}
-            </Chip>
-          ))}
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
+              חזרה לכל {city}
+            </button>
+          )}
         </div>
-      )}
+        {cities.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {cities.map((option) => (
+              <Chip
+                key={option}
+                active={option === city}
+                onClick={() => {
+                  setCity(option);
+                  setNear(null);
+                  void search(category, option, null);
+                }}
+              >
+                {option}
+              </Chip>
+            ))}
+          </div>
+        )}
+      </div>
 
       <form
         onSubmit={(event) => {
@@ -277,7 +343,7 @@ export function PlaceSearch({
 
       {status.kind === "results" && status.places.length > 0 && (
         <ul className="grid gap-2 xl:grid-cols-2">
-          {status.places.map((place) => {
+          {status.places.slice(0, visibleCount).map((place) => {
             const days = added.get(place.id);
             return (
               <li key={place.id} className={cityToneClass(tones, city)}>
@@ -333,8 +399,25 @@ export function PlaceSearch({
         </ul>
       )}
 
+      {status.kind === "results" && status.places.length > visibleCount && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+          className="self-start"
+        >
+          עוד תוצאות
+        </Button>
+      )}
+
       {open && (
-        <PlaceDetails place={open} city={city} onClose={() => setOpen(null)} />
+        <PlaceDetails
+          place={open}
+          city={city}
+          onClose={() => setOpen(null)}
+          onSearchNearby={() => searchNear(open)}
+        />
       )}
     </div>
   );

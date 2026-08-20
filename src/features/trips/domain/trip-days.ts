@@ -1,4 +1,5 @@
 import { addDays, daysBetween, weekdayLabel } from "./weather";
+import { BOOKING_KINDS } from "./booking";
 import type { Booking } from "./booking";
 
 // Where a trip is in time, and which calendar date each itinerary day falls on.
@@ -287,6 +288,89 @@ export function nightStayLabel(stay: NightLodging): string {
   if (stay.isCheckIn) return "צ׳ק-אין";
   if (stay.isLastNight) return "הלילה האחרון כאן";
   return "ישנים כאן";
+}
+
+// ---- Deterministic day → city, for the itinerary builder -------------------
+//
+// The itinerary prompt used to hand the model a day *count* per city ("Tokyo:
+// 5 days, Osaka: 3 days") and ask it to arrange the days itself — which is a
+// request, not a guarantee, and the model would sometimes ignore it entirely
+// or place a city's days out of the order the bookings actually say. This
+// answers "which city does day N belong to" from the bookings' own dates, the
+// same source of truth lodgingByDay already trusts for "where do I sleep" —
+// so the itinerary route can hand the model a fact instead of a hope, and
+// itinerary-plan.ts's reconciliation can correct anything the model gets
+// wrong anyway.
+
+// How many of the trip's first days are spent travelling rather than at a
+// destination, from the earliest transport booking's own arrival time.
+//
+// A flight that departs on the trip's start date and lands the next calendar
+// day means that first day has no destination to schedule activities in —
+// this is the direct fix for a long-haul flight leaving 1.11 and landing
+// 2.11 getting a full day of Tokyo activities on the 1st. Only the earliest
+// transport booking is considered: it is assumed to be the leg that begins
+// the trip, not a domestic hop days later. 0 when there is no transport
+// booking, it has no arrival time, or it lands the same day it departs.
+export function travelDayCount(
+  bookings: Booking[],
+  startDate: string,
+  zone: string,
+): number {
+  const transports = bookings
+    .filter((booking) => BOOKING_KINDS[booking.kind].isTransport && booking.ends_at)
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+
+  const first = transports[0];
+  if (!first?.ends_at) return 0;
+
+  const arrival = new Date(first.ends_at);
+  if (Number.isNaN(arrival.getTime())) return 0;
+
+  const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: zone });
+  const gap = daysBetween(startDate, formatter.format(arrival));
+  return gap > 0 ? gap : 0;
+}
+
+export type DayCityPlan =
+  // A night lodgingByDay actually knows about — the strong signal, paid for.
+  | { day: number; date: string; kind: "lodging"; city: string }
+  // Before the trip's own arrival, from travelDayCount — no destination
+  // exists yet, so no item belongs here regardless of what booked it.
+  | { day: number; date: string; kind: "travel" }
+  // Nothing known either way. A city with no lodging anywhere in the plan is
+  // free to use these; one that does have lodging days is not.
+  | { day: number; date: string; kind: "open" };
+
+// The full day-by-day plan, one entry per day of the trip.
+//
+// Every day gets an entry, including days lodgingByDay has nothing for — an
+// "open" day is itself information (the itinerary builder's fallback text
+// only applies there), and skipping it would make day N+1's absence from the
+// list indistinguishable from day N+1 not existing.
+export function buildDayCityPlan(
+  startDate: string,
+  dayCount: number,
+  bookings: Booking[],
+  zone: string,
+): DayCityPlan[] {
+  const lodging = lodgingByDay(bookings, startDate, dayCount, zone);
+  const travelDays = travelDayCount(bookings, startDate, zone);
+
+  const plan: DayCityPlan[] = [];
+  for (let day = 1; day <= dayCount; day += 1) {
+    const date = addDays(startDate, day - 1);
+    const stay = lodging.get(day);
+
+    if (stay?.booking.city) {
+      plan.push({ day, date, kind: "lodging", city: stay.booking.city });
+    } else if (day <= travelDays) {
+      plan.push({ day, date, kind: "travel" });
+    } else {
+      plan.push({ day, date, kind: "open" });
+    }
+  }
+  return plan;
 }
 
 // Replaces tripStatusLabels in the UI. The stored status could not tell you
