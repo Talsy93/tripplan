@@ -8,6 +8,7 @@ import {
   Map as MapIcon,
   Navigation,
   Pencil,
+  Sparkles,
   X,
 } from "lucide-react";
 import {
@@ -27,8 +28,10 @@ import { deleteItineraryEntry } from "../application/itinerary-actions";
 import { aiErrorFromResponse } from "../domain/ai-errors";
 import { entryDestination, lodgingOrigin } from "../domain/directions";
 import { CityDaysEditor } from "./city-days-editor";
+import { DaySuggestionsDialog } from "./day-suggestions-dialog";
 import { DayTimeline } from "./day-timeline";
 import { EditEntryDialog } from "./edit-entry-dialog";
+import { withEmptyDays } from "../domain/itinerary-plan";
 import { cityByDay } from "../domain/route";
 import { cityToneClass, cityToneMap } from "../domain/tone";
 import { dateOfDay, dayLabel, itineraryOverrun } from "../domain/trip-days";
@@ -73,14 +76,23 @@ export function Itinerary({
   cityDays = [],
   tripDayCount = null,
 }: ItineraryProps) {
-  const [days, setDays] = useState<ItineraryDay[]>(initialItinerary);
+  const [scheduled, setScheduled] = useState<ItineraryDay[]>(initialItinerary);
   const [view, setView] = useState<View>("timeline");
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // The entry whose edit dialog is open, by id.
   const [editingId, setEditingId] = useState<string | null>(null);
+  // The empty day whose suggestions dialog is open.
+  const [suggestingDay, setSuggestingDay] = useState<number | null>(null);
 
-  const hasItinerary = days.some((day) => day.items.length > 0);
+  const hasItinerary = scheduled.some((day) => day.items.length > 0);
+
+  // Every day the trip covers, not only the ones that have something on them.
+  // A week in Tokyo with three days planned used to render three days, which
+  // reads as a shorter trip rather than as four free days.
+  const days = hasItinerary
+    ? (withEmptyDays(scheduled, tripDayCount) as ItineraryDay[])
+    : scheduled;
 
   // Cities in visiting order — cityByDay is keyed by day, and day order is
   // route order, so this produces the same assignment the map and the hero use.
@@ -97,6 +109,14 @@ export function Itinerary({
           .map((entry) => ({ entry, day: day.day })),
       )[0]
     : undefined;
+
+  // Resolved here rather than captured when the button was clicked, for the
+  // same reason `editing` is: a rebuild while the dialog is open replaces
+  // every day, and a stashed city could name one the trip no longer visits.
+  const suggestingCity =
+    suggestingDay !== null
+      ? (lodgingByDay[suggestingDay]?.booking.city ?? null)
+      : null;
 
   async function build() {
     setBuilding(true);
@@ -118,7 +138,7 @@ export function Itinerary({
       }
 
       const data: { days: ItineraryDay[] } = await res.json();
-      setDays(data.days ?? []);
+      setScheduled(data.days ?? []);
     } catch {
       setError("שגיאת רשת. נסו שוב.");
     } finally {
@@ -127,7 +147,7 @@ export function Itinerary({
   }
 
   function remove(entryId: string) {
-    setDays((prev) =>
+    setScheduled((prev) =>
       prev
         .map((day) => ({
           ...day,
@@ -228,8 +248,15 @@ export function Itinerary({
 
         <div className="flex min-w-0 flex-1 flex-col gap-6">
           {days.map((day) => {
-            // A day belongs to the city it ends in — the same rule the route uses.
-            const city = [...day.items].reverse().find((it) => it.city)?.city;
+            // A day belongs to the city it ends in — the same rule the route
+            // uses. An empty day has no item to read that off, so it falls
+            // back to where the trip sleeps that night, which is the only
+            // thing that knows where a blank day is.
+            const city =
+              [...day.items].reverse().find((it) => it.city)?.city ??
+              lodgingByDay[day.day]?.booking.city ??
+              undefined;
+            const isEmpty = day.items.length === 0;
 
             // Directions start from wherever you slept that night, so both views
             // below offer the same route from the same origin.
@@ -255,14 +282,36 @@ export function Itinerary({
 
                 <NightStay stay={stay} />
 
+                {/* An entirely free day gets the offer to fill it, right
+                    here — the point of showing empty days at all. Asking the
+                    AI is one click, and it opens beside the day rather than
+                    sending the user off to another tab and back.
+                    Needs a city: with nowhere to be, there is nothing to
+                    suggest, so that day falls through to the link below. */}
+                {isEmpty && city && (
+                  <Banner tone="info">
+                    <span className="flex flex-wrap items-center gap-x-2">
+                      היום הזה פנוי.
+                      <button
+                        type="button"
+                        onClick={() => setSuggestingDay(day.day)}
+                        className="flex items-center gap-1 rounded font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                        מה אפשר לעשות ב{city}?
+                      </button>
+                    </span>
+                  </Banner>
+                )}
+
                 {/* Marked, and pointed somewhere — not filled in automatically.
                     A day the AI could only put one thing on usually means the
                     city has more days than it has chosen places, and the fix is
                     to go and choose more. */}
-                {day.items.length < 2 && (
+                {day.items.length < 2 && !(isEmpty && city) && (
                   <Banner tone="info">
                     <span className="flex flex-wrap items-center gap-x-2">
-                      היום הזה כמעט ריק.
+                      {isEmpty ? "היום הזה פנוי." : "היום הזה כמעט ריק."}
                       <Link
                         href={`/trips/${tripId}/explore`}
                         className="flex items-center gap-1 font-semibold underline"
@@ -396,6 +445,23 @@ export function Itinerary({
           dayCount={days.length}
           open
           onClose={() => setEditingId(null)}
+        />
+      )}
+
+      {suggestingDay !== null && suggestingCity && (
+        <DaySuggestionsDialog
+          key={suggestingDay}
+          tripId={tripId}
+          city={suggestingCity}
+          dayNumber={suggestingDay}
+          // Everything the trip already holds in that city, so the model is
+          // not asked to suggest what is already scheduled elsewhere.
+          alreadyInTrip={days
+            .flatMap((day) => day.items)
+            .filter((item) => item.city === suggestingCity)
+            .map((item) => item.title)}
+          open
+          onClose={() => setSuggestingDay(null)}
         />
       )}
     </section>

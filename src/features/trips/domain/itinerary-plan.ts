@@ -39,6 +39,46 @@ export function dayCityPlanHasFacts(plan: DayCityPlan[]): boolean {
 
 type PlanItem = { name: string; start_time: string; end_time: string; note: string };
 
+// Every day of the trip, including the ones with nothing scheduled.
+//
+// The itinerary only ever contained days that had items, because it is built
+// from `itinerary_items` rows and an empty day has none. So a trip with a
+// week booked in Tokyo and three days planned rendered three days — the other
+// four did not appear at all, which reads as "the trip is shorter" rather than
+// "these days are free".
+//
+// `dayCount` wins when it is known (the trip has both dates); otherwise the
+// highest scheduled day is the whole trip, which is the old behaviour.
+export function withEmptyDays<T extends { day: number; items: unknown[] }>(
+  days: T[],
+  dayCount: number | null,
+): { day: number; items: T["items"] }[] {
+  const scheduled = new Map(days.map((day) => [day.day, day]));
+  const highest = days.reduce((max, day) => Math.max(max, day.day), 0);
+  const total = Math.max(dayCount ?? 0, highest);
+  if (total < 1) return days;
+
+  const filled: { day: number; items: T["items"] }[] = [];
+  for (let day = 1; day <= total; day += 1) {
+    filled.push(scheduled.get(day) ?? { day, items: [] });
+  }
+  return filled;
+}
+
+// Which city an empty day belongs to, so "add things to do" can point at one.
+//
+// An empty day has no items to read a city off, so the answer comes from the
+// day plan built from the bookings — the same source the itinerary itself is
+// reconciled against. Null for a travel day (there is nothing to do there by
+// definition) and for a day nothing has decided yet.
+export function cityOfEmptyDay(
+  dayNumber: number,
+  plan: DayCityPlan[] | null,
+): string | null {
+  const entry = plan?.find((day) => day.day === dayNumber);
+  return entry?.kind === "lodging" ? entry.city : null;
+}
+
 // Corrects the model's own day numbers against the plan, so a hotel booked
 // for a week in Tokyo reads as a full week in Tokyo even if the model decided
 // otherwise. The model is free to order items *within* a day and to use the

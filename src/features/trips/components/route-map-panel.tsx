@@ -34,7 +34,7 @@ export async function RouteMapPanel({
           imageUrl={imageUrl}
         />
       )}
-      <RouteMap route={route} itinerary={itinerary} />
+      <RouteMap tripId={tripId} route={route} itinerary={itinerary} />
     </div>
   );
 }

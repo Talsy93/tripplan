@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CalendarDays, Compass, MapPinned, Plane } from "lucide-react";
 import { getCurrentUser, LogoutButton } from "@/features/auth";
-import { buttonClasses, Card } from "@/components/ui";
+import { buttonClasses } from "@/components/ui";
 
 const SELLING_POINTS = [
   {
@@ -66,19 +66,20 @@ export default async function HomePage() {
           </div>
         </div>
 
-        <ul className="grid gap-3 sm:grid-cols-3">
+        {/* Not cards. A bordered, elevated box on a landing page reads as a
+            control — three of them in a row look like three buttons, and
+            visitors were trying to click them. These are prose with an icon
+            beside it: no border, no surface, nothing that invites a click
+            except the actual buttons above. */}
+        <ul className="grid gap-x-8 gap-y-6 sm:grid-cols-3">
           {SELLING_POINTS.map(({ Icon, title, body }) => (
-            <li key={title}>
-              <Card className="flex h-full flex-col gap-2">
-                <span
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-tint text-primary-ink"
-                  aria-hidden="true"
-                >
-                  <Icon className="h-5 w-5" />
-                </span>
-                <span className="text-base font-semibold">{title}</span>
-                <span className="text-sm text-muted">{body}</span>
-              </Card>
+            <li key={title} className="flex flex-col gap-2">
+              <Icon
+                className="h-6 w-6 text-primary-ink"
+                aria-hidden="true"
+              />
+              <span className="text-base font-semibold">{title}</span>
+              <span className="text-sm text-muted">{body}</span>
             </li>
           ))}
         </ul>
