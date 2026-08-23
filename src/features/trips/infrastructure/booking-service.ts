@@ -52,8 +52,12 @@ export async function createBooking(input: CreateBookingInput) {
     reminder_days_before: input.reminderDaysBefore ?? null,
     // 0014. The schema already guarantees these travel together — either both
     // present or both absent — so there is nothing further to reconcile here.
+    // Both or neither. The currency picker always submits a code (it has a
+    // default), so a booking with no price must not be stored as "EUR, amount
+    // unknown" — that would put it in the filter's currency list with nothing
+    // in it.
     cost_amount: parseCost(input.costAmount),
-    cost_currency: input.costCurrency || null,
+    cost_currency: parseCost(input.costAmount) === null ? null : input.costCurrency || null,
   });
 
   if (error) {

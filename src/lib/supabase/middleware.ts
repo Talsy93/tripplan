@@ -2,7 +2,13 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Routes reachable without an authenticated session.
-const PUBLIC_ROUTES = ["/login", "/signup", "/auth"];
+//
+// `/share` is the read-only public view of a trip (migration 0015). It is
+// authenticated by the token in its own URL rather than by a session, and it
+// must stay reachable without one — redirecting it to /login would defeat the
+// entire feature. The page itself reads through a redacting service and
+// renders nothing a stranger should not see; see infrastructure/share-service.ts.
+const PUBLIC_ROUTES = ["/login", "/signup", "/auth", "/share"];
 
 function isPublicRoute(pathname: string) {
   if (pathname === "/") return true;

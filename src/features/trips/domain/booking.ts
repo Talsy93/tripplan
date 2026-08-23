@@ -76,6 +76,14 @@ export const bookingSchema = z.object({
 });
 export type Booking = z.infer<typeof bookingSchema>;
 
+// The currencies a form may submit. Kept here rather than imported from
+// domain/expenses.ts, which imports *this* file for BOOKING_KINDS — the
+// circular import that broke the build in phase E came from exactly this kind
+// of convenience. expenses.ts owns the display side (symbol, label, order);
+// this is the validation set, and the two are checked against each other by
+// the CURRENCIES list being the only thing the picker renders.
+const CURRENCY_CODES = ["ILS", "USD", "EUR"];
+
 // The fields a form submits, shared between adding a booking and editing one
 // — editing is the same shape plus the id of the row being changed. Kept as a
 // plain object of field schemas (not yet a z.object) so both callers can
@@ -118,13 +126,16 @@ const bookingFields = {
     .refine((value) => !value || (Number.isFinite(Number(value)) && Number(value) >= 0), {
       error: "הסכום צריך להיות מספר חיובי.",
     }),
+  // One of the three the picker offers. Validated as a set rather than as
+  // "three letters": a free-typed code splits one currency into two totals
+  // that never sum, which is a silent wrong number rather than an error.
   costCurrency: z
     .string()
     .trim()
     .toUpperCase()
     .optional()
-    .refine((value) => !value || value.length === 3, {
-      error: "קוד מטבע הוא שלוש אותיות, למשל ILS.",
+    .refine((value) => !value || CURRENCY_CODES.includes(value), {
+      error: "מטבע לא נתמך.",
     }),
 };
 
@@ -167,15 +178,14 @@ function withBookingRefinements<
       (value) => !value.bookBy || value.bookBy <= value.startsAt.slice(0, 10),
       { error: "מועד ההזמנה חייב להיות לפני תחילת ההזמנה.", path: ["bookBy"] },
     )
-    // An amount with no currency can't be totalled, and a currency with no
-    // amount has nothing to total — the pair travels together or not at all.
+    // An amount with no currency cannot be totalled. The reverse is not an
+    // error: the currency picker has a default, so every submission carries a
+    // code whether or not a price was typed — a booking with no amount simply
+    // stores neither (see createBooking), rather than rejecting a form the
+    // user never filled that part of.
     .refine((value) => !value.costAmount || value.costCurrency, {
       error: "יש לבחור מטבע לסכום שהוזן.",
       path: ["costCurrency"],
-    })
-    .refine((value) => !value.costCurrency || value.costAmount, {
-      error: "יש להזין סכום, או לנקות את המטבע.",
-      path: ["costAmount"],
     });
 }
 
@@ -401,6 +411,97 @@ export function bookingTodoAlert(
     urgency: days <= 3 ? "soon" : "upcoming",
     message: `להזמין עוד ${days} ימים`,
   };
+}
+
+// ---- Connections ----------------------------------------------------------
+//
+// Two transport bookings that are really one journey: you land, you wait, you
+// board again. The app stored them as two unrelated rows, so a Tel Aviv →
+// Istanbul → Tokyo trip read as two separate flights with an unexplained gap,
+// and neither the list nor the itinerary knew the traveller never left the
+// airport in between.
+//
+// Nothing new is stored. A connection is a *relationship* between two rows
+// that the rows already describe: the second departs from where the first
+// arrived, soon after it landed. Storing it would mean keeping a link in sync
+// with two timestamps that the user can edit at any moment.
+
+// The longest gap that still reads as a layover rather than a stopover you
+// planned. Twelve hours covers an overnight connection in an airport hotel;
+// beyond that it is a night somewhere, which is a destination and not a wait.
+const MAX_LAYOVER_HOURS = 12;
+
+export type Connection = {
+  from: Booking;
+  to: Booking;
+  // Minutes on the ground between landing and the next departure.
+  layoverMinutes: number;
+};
+
+// Where a transport booking lands, normalised for comparison. Case and
+// surrounding whitespace differ constantly between two rows typed days apart.
+function legKey(place: string | null): string | null {
+  const trimmed = place?.trim().toLowerCase();
+  return trimmed ? trimmed : null;
+}
+
+// The connections among a trip's transport bookings, earliest first.
+//
+// Requires the first leg to have an arrival time: without `ends_at` there is
+// no landing to measure the gap from, and assuming one would invent a layover.
+// That is the same rule bookingNights applies to a missing check-out — an
+// absent value is unknown, not zero.
+export function findConnections(bookings: Booking[]): Connection[] {
+  const legs = bookings
+    .filter((booking) => BOOKING_KINDS[booking.kind].isTransport)
+    .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+
+  const connections: Connection[] = [];
+
+  for (let i = 0; i < legs.length - 1; i += 1) {
+    const first = legs[i];
+    if (!first.ends_at) continue;
+
+    const arrival = new Date(first.ends_at).getTime();
+    const arriveAt = legKey(first.destination);
+    if (Number.isNaN(arrival) || !arriveAt) continue;
+
+    // Only the very next leg is considered. A later one departing from the
+    // same airport is a return flight home, not a connection.
+    const next = legs[i + 1];
+    const departure = new Date(next.starts_at).getTime();
+    if (Number.isNaN(departure)) continue;
+    if (legKey(next.origin) !== arriveAt) continue;
+
+    const layoverMinutes = Math.round((departure - arrival) / MINUTE_MS);
+    if (layoverMinutes < 0 || layoverMinutes > MAX_LAYOVER_HOURS * 60) continue;
+
+    connections.push({ from: first, to: next, layoverMinutes });
+  }
+  return connections;
+}
+
+// The ids of every booking that is part of some connection, so a list can tell
+// at a glance whether a row stands alone.
+export function connectedBookingIds(connections: Connection[]): Set<string> {
+  const ids = new Set<string>();
+  for (const connection of connections) {
+    ids.add(connection.from.id);
+    ids.add(connection.to.id);
+  }
+  return ids;
+}
+
+// "3 שעות ו-20 דק׳ המתנה" — the layover, in the units a traveller thinks in.
+export function layoverLabel(minutes: number): string {
+  if (minutes < 60) return `${minutes} דק׳ המתנה`;
+
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  const hoursLabel = hours === 1 ? "שעה" : `${hours} שעות`;
+  return rest === 0
+    ? `${hoursLabel} המתנה`
+    : `${hoursLabel} ו-${rest} דק׳ המתנה`;
 }
 
 // ---- Double booking -------------------------------------------------------

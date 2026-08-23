@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Plane, X } from "lucide-react";
+import { ArrowDown, Pencil, Plane, X } from "lucide-react";
 import {
   Badge,
   Banner,
@@ -19,7 +19,10 @@ import {
   bookingTodoAlert,
   bookingWhere,
   cancellationAlert,
+  connectedBookingIds,
   doubleBookedLodgingIds,
+  findConnections,
+  layoverLabel,
 } from "../domain/booking";
 import { formatMoney } from "../domain/expenses";
 import { APP_TIME_ZONE } from "../domain/weather";
@@ -115,6 +118,15 @@ export function BookingList({
   // whether or not a filter happens to be showing both of them.
   const doubleBooked = doubleBookedLodgingIds(bookings, APP_TIME_ZONE);
 
+  // Same reasoning: two flights connect whether or not the current filter
+  // shows both. The layover is rendered between them only when they are
+  // actually adjacent on screen, which the map below checks per row.
+  const connections = findConnections(bookings);
+  const connected = connectedBookingIds(connections);
+  const layoverAfter = new Map(
+    connections.map((connection) => [connection.from.id, connection]),
+  );
+
   return (
     <div className="flex flex-col gap-4">
       {doubleBooked.size > 0 && (
@@ -136,10 +148,20 @@ export function BookingList({
       {/* Two abreast at xl. A boarding-pass card is wide but not 1200px wide,
           and a trip with six bookings was six full-width bands before. */}
       <ul className="grid gap-3 xl:grid-cols-2">
-        {shown.map((booking) => {
+        {shown.map((booking, index) => {
           const kind = BOOKING_KINDS[booking.kind];
           const nights = bookingNights(booking);
           const clashing = doubleBooked.has(booking.id);
+
+          // The layover strip is drawn only when the connecting leg is the
+          // very next card on screen. Under a filter that hides it, a strip
+          // saying "3 hours' wait" would point at whatever happened to follow.
+          const connection = layoverAfter.get(booking.id);
+          const nextShown = shown[index + 1];
+          const layover =
+            connection && nextShown?.id === connection.to.id
+              ? connection.layoverMinutes
+              : null;
 
           // Three alerts can apply at once — a hotel can be starting soon, be
           // cancellable until Thursday, and clash with another. They are
@@ -166,6 +188,15 @@ export function BookingList({
                     {clashing && (
                       <Badge tone="warning" className="shrink-0">
                         לינה כפולה
+                      </Badge>
+                    )}
+                    {connected.has(booking.id) && (
+                      <Badge
+                        tone="action"
+                        className="shrink-0"
+                        title="חלק ממסלול עם קונקשן"
+                      >
+                        קונקשן
                       </Badge>
                     )}
                     {alerts.map((alert) => (
@@ -238,6 +269,17 @@ export function BookingList({
                   </div>
                 )}
               </Card>
+
+              {/* The wait between two legs of one journey. Inside the same
+                  <li> as the leg it follows, so the grid keeps the pair in
+                  one cell and a two-column layout cannot split a connection
+                  across columns. */}
+              {layover !== null && (
+                <div className="flex items-center gap-2 px-4 pt-2 text-caption text-muted">
+                  <ArrowDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  {layoverLabel(layover)}
+                </div>
+              )}
             </li>
           );
         })}

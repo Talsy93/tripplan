@@ -6,10 +6,12 @@ import {
   BookingList,
   ExpenseSummary,
   getSelectedDestinations,
+  getShareToken,
   getTrip,
   listBookings,
   MoreBackLink,
   PushToggle,
+  ShareTrip,
   TripDatesForm,
   WeatherPanel,
 } from "@/features/trips";
@@ -25,9 +27,10 @@ export default async function TripDetailsPage({
   const trip = await getTrip(id);
   if (!trip) notFound();
 
-  const [selected, bookings] = await Promise.all([
+  const [selected, bookings, shareToken] = await Promise.all([
     getSelectedDestinations(id),
     listBookings(id),
+    getShareToken(id),
   ]);
 
   const cities = [...new Set(selected.map((item) => item.city))].filter(Boolean);
@@ -81,6 +84,16 @@ export default async function TripDetailsPage({
       <section className="flex flex-col gap-3">
         <SectionHeading level="section">הוצאות הטיול</SectionHeading>
         <ExpenseSummary bookings={bookings} />
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <SectionHeading
+          level="section"
+          description="קישור לצפייה בלבד, בלי אפשרות לערוך"
+        >
+          שיתוף הטיול
+        </SectionHeading>
+        <ShareTrip tripId={trip.id} initialToken={shareToken} />
       </section>
     </>
   );

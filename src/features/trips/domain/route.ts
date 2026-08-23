@@ -17,7 +17,65 @@ export type RouteStop = {
   nights: number;
   // Itinerary days spent here, for the schedule beside the map.
   days: number[];
+  // Reverse-geocoded from the coordinates above (migration 0015). Null when the
+  // lookup has not run or failed — the UI groups those separately rather than
+  // inventing a country.
+  country: string | null;
+  countryCode: string | null;
 };
+
+// The country most of the trip is in, by number of cities.
+//
+// Used two ways, and the second is the reason it exists: as a heading when the
+// trip spans several countries, and as the yardstick for spotting a city whose
+// pin landed somewhere it obviously should not have. A trip to Japan with one
+// city in Los Angeles is not a two-country trip — it is one bad geocode, which
+// is exactly the bug this was written for.
+//
+// Null when nothing has a country yet, or when no country holds a strict
+// majority-of-one over the runner-up — a genuine two-country trip has no
+// "dominant" country and nothing about it is suspicious.
+export function dominantCountry(
+  cities: { countryCode: string | null }[],
+): string | null {
+  const counts = new Map<string, number>();
+  for (const city of cities) {
+    if (!city.countryCode) continue;
+    counts.set(city.countryCode, (counts.get(city.countryCode) ?? 0) + 1);
+  }
+  if (counts.size === 0) return null;
+
+  const ranked = [...counts].sort(([, a], [, b]) => b - a);
+  if (ranked.length > 1 && ranked[0][1] === ranked[1][1]) return null;
+  return ranked[0][0];
+}
+
+// Stops grouped by country, in the order the route visits them.
+//
+// Cities with no country come last under a null key rather than being dropped:
+// a city that failed to geocode is still somewhere the user added things, and
+// hiding it would make the trip look smaller than it is.
+export function stopsByCountry(
+  stops: RouteStop[],
+): { country: string | null; stops: RouteStop[] }[] {
+  const groups: { country: string | null; stops: RouteStop[] }[] = [];
+
+  for (const stop of stops) {
+    // Matched against the last group only, not any group: a route that returns
+    // to a country after leaving it is two visits, and merging them would
+    // reorder the trip.
+    const last = groups[groups.length - 1];
+    if (last && last.country === stop.country) {
+      last.stops.push(stop);
+    } else {
+      groups.push({ country: stop.country, stops: [stop] });
+    }
+  }
+
+  // A single group adds a heading that says nothing — the caller renders the
+  // flat list instead. Reported by returning it anyway; the component decides.
+  return groups;
+}
 
 // A one-line description of the route, for the hero banner: how many stops,
 // how many days they cover and how many nights that is. Days are counted
@@ -95,6 +153,10 @@ export function itineraryStops(
 export type TripRoute = {
   stops: RouteStop[];
   unlocatedCities: string[];
+  // Cities whose pin was automatically moved this render because it had landed
+  // in the wrong country. Reported rather than fixed silently: a pin that
+  // relocates between two visits with no explanation is its own kind of broken.
+  repairedCities: string[];
 };
 
 // The map needs a centre and a zoom before it can render. Derives both from

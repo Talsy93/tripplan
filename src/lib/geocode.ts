@@ -62,7 +62,10 @@ export async function geocodePlaces(
   return found;
 }
 
-async function geocodePlace(
+// Exported so a caller that has *better* context than the trip name can retry
+// a single place with it — route-service re-runs a city that landed in the
+// wrong country, passing the country the rest of the trip agreed on.
+export async function geocodePlace(
   name: string,
   context?: string,
 ): Promise<Coordinates | null> {
@@ -221,4 +224,76 @@ async function fetchNominatimCoordinates(
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ---- Reverse: a point back to its country --------------------------------
+//
+// The opposite direction from everything above, and far more reliable than it.
+// Forward-geocoding a Hebrew city name is guesswork — that is what put "האקונה"
+// in Los Angeles — while a pair of coordinates sits in exactly one country and
+// Nominatim answers that without ambiguity.
+//
+// Two uses, one lookup: grouping the trip's cities by country, and noticing a
+// pin that landed in the wrong one.
+
+const NOMINATIM_REVERSE_ENDPOINT =
+  "https://nominatim.openstreetmap.org/reverse";
+
+export type CountryInfo = {
+  // The Hebrew name where Nominatim has one, for display.
+  name: string;
+  // ISO 3166-1 alpha-2, lowercase, for comparing two cities without worrying
+  // about which language each name came back in.
+  code: string;
+};
+
+export async function reverseCountry(
+  point: Coordinates,
+): Promise<CountryInfo | null> {
+  const params = new URLSearchParams({
+    lat: String(point.latitude),
+    lon: String(point.longitude),
+    format: "jsonv2",
+    // Zoom 3 is the country level. Asking for less detail than we need keeps
+    // the response small and lets Nominatim answer from a coarser index.
+    zoom: "3",
+    addressdetails: "1",
+    "accept-language": "he,en",
+  });
+
+  try {
+    const res = await fetch(`${NOMINATIM_REVERSE_ENDPOINT}?${params}`, {
+      headers: { "User-Agent": USER_AGENT },
+      // A point does not move between countries. Cache for a week, like the
+      // forward lookups above.
+      next: { revalidate: 604_800 },
+    });
+    if (!res.ok) return null;
+
+    const json = (await res.json()) as {
+      address?: { country?: string; country_code?: string };
+    };
+    const name = json.address?.country;
+    const code = json.address?.country_code;
+    if (!name || !code) return null;
+
+    return { name, code: code.toLowerCase() };
+  } catch {
+    return null;
+  }
+}
+
+// Reverse-geocodes several points, paced the same way geocodePlaces is —
+// Nominatim's usage policy is one request a second and it is enforced.
+export async function reverseCountries(
+  points: Map<string, Coordinates>,
+): Promise<Map<string, CountryInfo>> {
+  const found = new Map<string, CountryInfo>();
+
+  for (const [index, [key, point]] of [...points].entries()) {
+    if (index > 0) await sleep(MIN_INTERVAL_MS);
+    const country = await reverseCountry(point);
+    if (country) found.set(key, country);
+  }
+  return found;
 }

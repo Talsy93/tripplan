@@ -13,6 +13,7 @@ import {
   getItinerary,
   getSelectedDestinations,
   getTrip,
+  getTripRoute,
   isSchemaOutOfDate,
   listBookings,
   listCityDays,
@@ -59,6 +60,7 @@ function buildPrompt(
   bookings: Booking[],
   cityDaysLine: string | null,
   dayPlan: DayCityPlan[] | null,
+  cities: string[],
 ) {
   const lodging = lodgingLines(bookings);
   const list = items
@@ -105,6 +107,14 @@ function buildPrompt(
     !hasDayPlan &&
       lodging.length > 0 &&
       "סדר את הימים כך שכל פריט יופיע ביום שבו הטיול נמצא בעיר שלו לפי הלינה.",
+
+    // The city order is geographic (see the caller), so saying so turns it
+    // from a list into an instruction. Without this the model reorders freely
+    // and can send the trip back and forth between two cities it already
+    // passed through.
+    !hasDayPlan &&
+      cities.length > 1 &&
+      `סדר הערים הגאוגרפי ההגיוני הוא: ${cities.join(" ← ")}. שמרו על ערים סמוכות זו לזו ברצף, ואל תחזרו לעיר שכבר עזבתם.`,
 
     "הפריטים שנבחרו לטיול:",
     list,
@@ -172,9 +182,25 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "no_selection" }, { status: 400 });
   }
 
-  // Cities in the order they were added, which is the order every other surface
-  // colours them in.
-  const cities = [...new Set(items.map((item) => item.city))].filter(Boolean);
+  // Cities in *travel* order, not the order they happened to be added.
+  //
+  // getTripRoute resolves each city's coordinates and sorts the ones the
+  // itinerary has not scheduled yet by proximity, so the list handed to the
+  // model already has neighbouring cities next to each other. Before this the
+  // order was "whenever I clicked add", which is what produced a route
+  // doubling back — Osaka scheduled between two Tokyo days because that is the
+  // sequence the rows were created in.
+  //
+  // Falls back to the added order when nothing could be geocoded, which is
+  // exactly what it used to do.
+  const route = await getTripRoute(tripId, trip.name);
+  const added = [...new Set(items.map((item) => item.city))].filter(Boolean);
+  const routeOrder = route.stops.map((stop) => stop.city);
+  const cities = [
+    ...routeOrder.filter((city) => added.includes(city)),
+    ...added.filter((city) => !routeOrder.includes(city)),
+  ];
+
   const cityDaysLine = cityDaysPromptLine(
     cityDayPlan(cities, bookings, overrides),
   );
@@ -190,7 +216,7 @@ export async function POST(request: Request) {
 
   try {
     const itinerary = await generateStructured({
-      prompt: buildPrompt(trip, items, bookings, cityDaysLine, dayPlan),
+      prompt: buildPrompt(trip, items, bookings, cityDaysLine, dayPlan, cities),
       schema: aiItinerarySchema,
     });
     const reconciled = reconcileItineraryWithDayPlan(

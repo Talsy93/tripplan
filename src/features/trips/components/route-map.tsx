@@ -1,8 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Badge, EmptyState, ListRow, SectionHeading } from "@/components/ui";
+import { Globe } from "lucide-react";
+import { Badge, Banner, EmptyState, ListRow, SectionHeading } from "@/components/ui";
 import { cn } from "@/lib/cn";
+import { stopsByCountry } from "../domain/route";
+import { ResetLocationsButton } from "./reset-locations-button";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 import type { TripRoute } from "../domain/route";
 import { cityToneClass, cityToneMap } from "../domain/tone";
@@ -25,9 +28,11 @@ function nightsLabel(nights: number) {
 }
 
 export function RouteMap({
+  tripId,
   route,
   itinerary,
 }: {
+  tripId: string;
   route: TripRoute;
   itinerary: ItineraryDay[];
 }) {
@@ -49,6 +54,11 @@ export function RouteMap({
   );
   const tones = cityToneMap(route.stops.map((stop) => stop.city));
 
+  // Numbers stay global across the groups below — a stop's number matches its
+  // pin on the map, and restarting the count per country would break that.
+  const countryGroups = stopsByCountry(route.stops);
+  const showCountries = countryGroups.length > 1;
+
   return (
     // Two real panes from lg: the map holds still and the schedule scrolls
     // beside it, which is the layout the tab was always describing and never
@@ -67,11 +77,22 @@ export function RouteMap({
           <RouteMapCanvas stops={route.stops} />
         </div>
 
+        {/* A pin that quietly moves between two visits is its own kind of
+            broken, so a correction is announced rather than just applied. */}
+        {route.repairedCities.length > 0 && (
+          <Banner tone="info">
+            תיקנו את המיקום של {route.repairedCities.join(", ")} — הסיכה נחתה
+            במדינה אחרת מכל שאר התחנות.
+          </Banner>
+        )}
+
         {route.unlocatedCities.length > 0 && (
           <p className="text-sm text-muted">
             לא הצלחנו למקם על המפה: {route.unlocatedCities.join(", ")}
           </p>
         )}
+
+        <ResetLocationsButton tripId={tripId} />
       </div>
 
       <aside
@@ -84,28 +105,45 @@ export function RouteMap({
       >
         <div className="flex flex-col gap-2">
           <SectionHeading level="sub">התחנות</SectionHeading>
+          {/* Grouped by country only when the trip actually crosses one. A
+              single heading over every stop is a label that says nothing, and
+              it costs a line of vertical space on a phone. */}
           <ol className="flex flex-col gap-2">
-            {route.stops.map((stop, index) => (
-              <li key={stop.city} className={cityToneClass(tones, stop.city)}>
-                <ListRow
-                  leading={
-                    <Badge
-                      tone="tone"
-                      variant="solid"
-                      className="h-6 w-6 justify-center p-0 tabular-nums"
-                    >
-                      {index + 1}
-                    </Badge>
-                  }
-                  title={stop.city}
-                  subtitle={
-                    stop.days.length > 0
-                      ? `ימים ${stop.days.join(", ")}${
-                          stop.nights > 0 ? ` · ${nightsLabel(stop.nights)}` : ""
-                        }`
-                      : "עוד לא בלו״ז"
-                  }
-                />
+            {countryGroups.map((group, groupIndex) => (
+              <li key={`${group.country ?? "unknown"}-${groupIndex}`}>
+                {showCountries && (
+                  <h4 className="flex items-center gap-1.5 pb-1.5 pt-1 text-caption font-bold text-muted">
+                    <Globe className="h-3.5 w-3.5" aria-hidden="true" />
+                    {group.country ?? "יעדים ללא מיקום"}
+                  </h4>
+                )}
+                <ol className="flex flex-col gap-2">
+                  {group.stops.map((stop) => (
+                    <li key={stop.city} className={cityToneClass(tones, stop.city)}>
+                      <ListRow
+                        leading={
+                          <Badge
+                            tone="tone"
+                            variant="solid"
+                            className="h-6 w-6 justify-center p-0 tabular-nums"
+                          >
+                            {stopNumberByCity.get(stop.city)}
+                          </Badge>
+                        }
+                        title={stop.city}
+                        subtitle={
+                          stop.days.length > 0
+                            ? `ימים ${stop.days.join(", ")}${
+                                stop.nights > 0
+                                  ? ` · ${nightsLabel(stop.nights)}`
+                                  : ""
+                              }`
+                            : "עוד לא בלו״ז"
+                        }
+                      />
+                    </li>
+                  ))}
+                </ol>
               </li>
             ))}
           </ol>

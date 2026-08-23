@@ -180,11 +180,46 @@ export { updateBookingSchema, toDateTimeLocal } from "./domain/booking";
 export type { UpdateBookingInput } from "./domain/booking";
 export {
   costTotalsByCurrency,
+  costedCities,
+  filterByCity,
   uncostedCount,
   formatMoney,
+  currencySymbol,
+  CURRENCIES,
+  DEFAULT_CURRENCY,
+  UNASSIGNED_CITY,
 } from "./domain/expenses";
-export type { CurrencyTotal } from "./domain/expenses";
+export type { CurrencyTotal, CurrencyCode } from "./domain/expenses";
 export { ExpenseSummary } from "./components/expense-summary";
+export {
+  findConnections,
+  connectedBookingIds,
+  layoverLabel,
+} from "./domain/booking";
+export type { Connection } from "./domain/booking";
+export { dominantCountry, stopsByCountry } from "./domain/route";
+export {
+  resetTripLocations,
+  getCityCenter as getCityCentre,
+} from "./infrastructure/route-service";
+export { resetLocations } from "./application/route-actions";
+export { ResetLocationsButton } from "./components/reset-locations-button";
+export { DaySuggestionsDialog } from "./components/day-suggestions-dialog";
+export { withEmptyDays, cityOfEmptyDay } from "./domain/itinerary-plan";
+export {
+  redactBooking,
+  isShareToken,
+  generateShareToken,
+} from "./domain/share";
+export type { SharedTrip, SharedBooking } from "./domain/share";
+export {
+  getSharedTrip,
+  getShareToken,
+  shareTrip,
+  unshareTrip,
+} from "./infrastructure/share-service";
+export { enableSharing, disableSharing } from "./application/share-actions";
+export { ShareTrip } from "./components/share-trip";
 export {
   cancellationAlert,
   bookingTodoAlert,

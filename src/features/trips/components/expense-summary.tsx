@@ -1,9 +1,23 @@
-import { Card, EmptyState } from "@/components/ui";
+"use client";
+
+import { useState } from "react";
+import { Card, Chip, EmptyState } from "@/components/ui";
 import { BOOKING_KINDS } from "../domain/booking";
-import { costTotalsByCurrency, formatMoney, uncostedCount } from "../domain/expenses";
+import {
+  costTotalsByCurrency,
+  costedCities,
+  filterByCity,
+  formatMoney,
+  UNASSIGNED_CITY,
+  uncostedCount,
+} from "../domain/expenses";
 import type { Booking, BookingKind } from "../domain/booking";
 
 export function ExpenseSummary({ bookings }: { bookings: Booking[] }) {
+  // Null is "everything" — the state this opens in, and the only one where the
+  // totals describe the whole trip.
+  const [city, setCity] = useState<string | null>(null);
+
   if (bookings.length === 0) {
     return (
       <EmptyState
@@ -14,10 +28,9 @@ export function ExpenseSummary({ bookings }: { bookings: Booking[] }) {
     );
   }
 
-  const totals = costTotalsByCurrency(bookings);
-  const missing = uncostedCount(bookings);
+  const { cities, hasUnassigned } = costedCities(bookings);
 
-  if (totals.length === 0) {
+  if (cities.length === 0 && !hasUnassigned) {
     return (
       <EmptyState
         icon="💰"
@@ -27,8 +40,41 @@ export function ExpenseSummary({ bookings }: { bookings: Booking[] }) {
     );
   }
 
+  const shown = filterByCity(bookings, city);
+  const totals = costTotalsByCurrency(shown);
+  const missing = uncostedCount(shown);
+
+  // One destination and nothing unassigned means the filter can only ever say
+  // what the unfiltered view already says.
+  const showFilter = cities.length + (hasUnassigned ? 1 : 0) > 1;
+
   return (
     <div className="flex flex-col gap-3">
+      {showFilter && (
+        <div className="flex flex-wrap gap-2">
+          <Chip active={city === null} onClick={() => setCity(null)}>
+            כל הטיול
+          </Chip>
+          {cities.map((option) => (
+            <Chip
+              key={option}
+              active={city === option}
+              onClick={() => setCity(option)}
+            >
+              {option}
+            </Chip>
+          ))}
+          {hasUnassigned && (
+            <Chip
+              active={city === UNASSIGNED_CITY}
+              onClick={() => setCity(UNASSIGNED_CITY)}
+            >
+              כללי לטיול
+            </Chip>
+          )}
+        </div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2">
         {totals.map((entry) => (
           <Card key={entry.currency} className="flex flex-col gap-2">
@@ -53,12 +99,20 @@ export function ExpenseSummary({ bookings }: { bookings: Booking[] }) {
         ))}
       </div>
 
+      {/* A filter that lands on nothing priced is not an error — it just has
+          no total to show, and saying so beats an empty grid. */}
+      {totals.length === 0 && (
+        <p className="text-sm text-muted">
+          אין עדיין מחירים למה שסיננתם.
+        </p>
+      )}
+
       {missing > 0 && (
         <p className="text-caption text-muted">
           {missing === 1
             ? "להזמנה אחת אין עדיין מחיר — "
             : `ל-${missing} הזמנות אין עדיין מחיר — `}
-          הסכום למעלה הוא מה שהוזן עד כה, לא בהכרח העלות המלאה של הטיול.
+          הסכום למעלה הוא מה שהוזן עד כה, לא בהכרח העלות המלאה.
         </p>
       )}
     </div>

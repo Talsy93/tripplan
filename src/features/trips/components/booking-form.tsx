@@ -20,6 +20,7 @@ import {
   REMINDER_PRESETS,
   toDateTimeLocal,
 } from "../domain/booking";
+import { CURRENCIES, DEFAULT_CURRENCY } from "../domain/expenses";
 import type {
   Booking,
   BookingFormState,
@@ -332,15 +333,21 @@ export function BookingForm({
           </label>
           <label className="flex flex-col gap-1 text-sm">
             <span className="text-muted">מטבע</span>
-            <Input
+            {/* A picker, not a text field: a typed code is a typo waiting to
+                split one currency into two totals that never sum. Defaults to
+                shekels, which is what most of this trip is priced in. */}
+            <Select
               name="costCurrency"
-              maxLength={3}
-              dir="ltr"
-              placeholder="ILS"
-              className={cn("uppercase", fieldClass("costCurrency"))}
-              defaultValue={was("costCurrency")}
+              defaultValue={was("costCurrency") || DEFAULT_CURRENCY}
               aria-invalid={Boolean(errorFor("costCurrency"))}
-            />
+              className={fieldClass("costCurrency")}
+            >
+              {CURRENCIES.map((currency) => (
+                <option key={currency.code} value={currency.code}>
+                  {currency.symbol} {currency.label}
+                </option>
+              ))}
+            </Select>
             <FieldError message={errorFor("costCurrency")} />
           </label>
         </div>
