@@ -74,7 +74,7 @@ export function RouteMap({
             MAP_HEIGHT,
           )}
         >
-          <RouteMapCanvas stops={route.stops} />
+          <RouteMapCanvas stops={route.stops} places={route.places} />
         </div>
 
         {/* A pin that quietly moves between two visits is its own kind of

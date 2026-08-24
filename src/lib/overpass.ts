@@ -37,6 +37,11 @@ const USER_AGENT = "MyTrip/1.0 (https://github.com/Talsy93/tripplan)";
 // answers: measured, the same query 504'd at 2km and succeeded at 5km minutes
 // apart. See RETRY_DELAY_MS.
 const RADIUS_M = 5_000;
+// The ring around a named district, rather than around a whole city. A
+// neighbourhood is walkable end to end, so this is roughly its own size: wider
+// and the results are "things in the city near this district", which is what
+// searching the city already gives you.
+export const AREA_RADIUS_M = 1_500;
 // Overpass aborts server-side at this point rather than queueing forever.
 const QUERY_TIMEOUT_S = 25;
 // 429/504 from Overpass is momentary queue pressure, not a verdict on the
@@ -70,12 +75,18 @@ export async function searchPlaces({
   center,
   category,
   query,
+  radiusM = RADIUS_M,
 }: {
   center: { latitude: number; longitude: number };
   category?: PlaceCategory;
   query?: string;
+  // Overridden when the centre is a neighbourhood rather than a whole city.
+  // A district is walkable, so a city-wide 5km ring around it would return
+  // most of the city and bury what is actually in the district — the exact
+  // relevance problem the RADIUS_M note above describes, one scale down.
+  radiusM?: number;
 }): Promise<OverpassOutcome> {
-  const data = buildQuery({ center, category });
+  const data = buildQuery({ center, category, radiusM });
 
   const first = await runQuery(data, category, query, center);
   if (first.ok || first.reason !== "timeout") return first;
@@ -143,11 +154,13 @@ type OverpassElement = {
 function buildQuery({
   center,
   category,
+  radiusM,
 }: {
   center: { latitude: number; longitude: number };
   category?: PlaceCategory;
+  radiusM: number;
 }) {
-  const around = `around:${RADIUS_M},${center.latitude},${center.longitude}`;
+  const around = `around:${radiusM},${center.latitude},${center.longitude}`;
 
   // With no category chosen, free text searches across every category at once.
   const filters = category

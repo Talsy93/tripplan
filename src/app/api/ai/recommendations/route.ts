@@ -30,10 +30,23 @@ function buildPrompt({
   context,
   exclude = [],
   count = 4,
+  area,
 }: AiMoreRecommendationsRequest) {
   return [
     "אתה מדריך טיולים מקצועי.",
-    `הצע ${count} המלצות נוספות בקטגוריה "${CATEGORY_LABELS[category]}" בעיר ${city}.`,
+    area
+      ? `הצע ${count} המלצות בקטגוריה "${CATEGORY_LABELS[category]}" באזור ${area} שבעיר ${city}.`
+      : `הצע ${count} המלצות נוספות בקטגוריה "${CATEGORY_LABELS[category]}" בעיר ${city}.`,
+    // Said explicitly because the failure mode is quiet and plausible: asked
+    // for "Omotesando", a model will happily answer with the city's famous
+    // places instead, and the list looks right until you notice nothing on it
+    // is in the district that was asked about.
+    area
+      ? `חשוב: כל ההמלצות חייבות להיות ממש באזור ${area} או במרחק הליכה ממנו — לא במקומות אחרים בעיר. אם אין באזור מספיק מקומות בקטגוריה הזו, החזירו פחות המלצות במקום להרחיב לאזורים אחרים.`
+      : "",
+    area
+      ? `ציינו בתיאור מה מייחד את המקום דווקא באזור ${area}.`
+      : "",
     context ? `הקשר הטיול: "${context}".` : "",
     exclude.length
       ? `אל תכלול את ההמלצות הבאות שכבר הוצגו: ${exclude.join(", ")}.`

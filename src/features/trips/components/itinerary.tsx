@@ -36,6 +36,7 @@ import { cityByDay } from "../domain/route";
 import { cityToneClass, cityToneMap } from "../domain/tone";
 import { dateOfDay, dayLabel, itineraryOverrun } from "../domain/trip-days";
 import { NightStay } from "./night-stay";
+import type { Booking } from "../domain/booking";
 import type { CityDayPlan } from "../domain/city-days";
 import type { NightLodging } from "../domain/trip-days";
 import type { ItineraryDay } from "../domain/ai-suggestion";
@@ -65,6 +66,10 @@ type ItineraryProps = {
   cityDays?: CityDayPlan[];
   // Days the trip's own dates allow, or null when it has no dates yet.
   tripDayCount?: number | null;
+  // The day's flights, trains and check-ins. Bucketed on the server (see
+  // bookingsByDay) so both renders agree on which calendar day a 23:40
+  // departure belongs to.
+  bookingsByDay?: Record<number, Booking[]>;
 };
 
 export function Itinerary({
@@ -75,6 +80,7 @@ export function Itinerary({
   lodgingByDay = {},
   cityDays = [],
   tripDayCount = null,
+  bookingsByDay = {},
 }: ItineraryProps) {
   const [scheduled, setScheduled] = useState<ItineraryDay[]>(initialItinerary);
   const [view, setView] = useState<View>("timeline");
@@ -329,6 +335,8 @@ export function Itinerary({
                     onRemove={remove}
                     onEdit={setEditingId}
                     origin={origin}
+                    bookings={bookingsByDay[day.day] ?? []}
+                    date={dateOfDay(startDate, day.day)}
                   />
                 ) : (
                   <div className="flex flex-col gap-2">

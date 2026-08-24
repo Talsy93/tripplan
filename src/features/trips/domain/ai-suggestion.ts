@@ -171,6 +171,15 @@ export const aiMoreRecommendationsRequestSchema = z.object({
   context: z.string().trim().optional(),
   exclude: z.array(z.string()).optional(),
   count: z.number().int().min(1).max(8).optional(),
+  // A district inside the city, when the user is asking about one.
+  //
+  // This is the half of "search an area" that OpenStreetMap cannot do. The
+  // Overpass search finds what is tagged within a radius; it has no idea that
+  // Omotesando means fashion boutiques and a particular kind of café, or which
+  // of the places around it are the ones worth going for. The model does, so
+  // an area search offers both: real tagged places from OSM, and the model's
+  // sense of what the district is known for.
+  area: z.string().trim().max(120).optional(),
 });
 export type AiMoreRecommendationsRequest = z.infer<
   typeof aiMoreRecommendationsRequestSchema

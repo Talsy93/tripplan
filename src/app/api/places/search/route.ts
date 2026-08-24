@@ -4,8 +4,9 @@ import {
   getCityCenter,
   getTrip,
   placeSearchRequestSchema,
+  resolveAreaInCity,
 } from "@/features/trips";
-import { searchPlaces } from "@/lib/overpass";
+import { AREA_RADIUS_M, searchPlaces } from "@/lib/overpass";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { tripId, city, category, query, near } = parsed.data;
+  const { tripId, city, category, query, near, area } = parsed.data;
 
   // Reading the trip is also the authorisation check: RLS returns nothing for
   // a trip the caller doesn't own, so a stranger's tripId can't be searched.
@@ -63,14 +64,40 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  // `near` re-centres on a specific result instead of the city as a whole —
-  // no geocoding needed, the point is already known.
-  const center = near ?? (await getCityCenter(tripId, city, trip.name));
+  // Three ways to decide where to search, most specific first:
+  //
+  //   near  — an exact point the client already has (a result it is standing
+  //           on). No lookup at all.
+  //   area  — a district named by the user, resolved and verified to be
+  //           inside the city.
+  //   city  — the whole destination, which is what it has always been.
+  let center: { latitude: number; longitude: number } | null = near ?? null;
+  let radiusM: number | undefined;
+
+  if (!center && area) {
+    center = await resolveAreaInCity(tripId, city, area, trip.name);
+    // Told apart from city_not_located on purpose: "we cannot find Tokyo" and
+    // "we cannot find that district in Tokyo" call for different reactions,
+    // and the second one is usually a typo the user can fix.
+    if (!center) {
+      return NextResponse.json({ error: "area_not_located" }, { status: 422 });
+    }
+    radiusM = AREA_RADIUS_M;
+  }
+
+  if (!center) {
+    center = await getCityCenter(tripId, city, trip.name);
+  }
   if (!center) {
     return NextResponse.json({ error: "city_not_located" }, { status: 422 });
   }
 
-  const result = await searchPlaces({ center, category, query });
+  // A point handed over by the client is a single place, so it gets the
+  // district-sized ring too — "near this cafe" should not mean "in this half
+  // of the city".
+  if (near) radiusM = AREA_RADIUS_M;
+
+  const result = await searchPlaces({ center, category, query, radiusM });
   if (!result.ok) {
     // 503 rather than 502: the service is fine, it's just busy — the client
     // tells the user to retry instead of reporting a failure.

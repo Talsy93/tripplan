@@ -15,7 +15,7 @@ import {
   TileLayer,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { routeBounds, type RouteStop } from "../domain/route";
+import { routeBounds, type RoutePlace, type RouteStop } from "../domain/route";
 import { cityToneMap, toneByIndex, type Tone } from "../domain/tone";
 
 // Numbered pins, one colour per city, matching the chips and the schedule.
@@ -44,7 +44,37 @@ function numberedIcon(position: number, tone: Tone) {
   });
 }
 
-export default function RouteMapCanvas({ stops }: { stops: RouteStop[] }) {
+// A place, as opposed to a city. Small and unnumbered on purpose: it is not a
+// stop on the route, and giving it the same 32px numbered disc as a city would
+// make a trip with twelve restaurants unreadable.
+//
+// These are the map's *accurate* pins — straight from OpenStreetMap, never
+// geocoded from a name — so they are drawn on top of the city discs.
+function placeIcon(tone: Tone) {
+  return L.divIcon({
+    className: "",
+    html: `<div style="
+      width:0.75rem;height:0.75rem;border-radius:9999px;
+      background:var(--${tone}-ink);
+      border:2px solid var(--surface);
+      box-shadow:var(--elevation-soft);
+    "></div>`,
+    iconSize: [12, 12],
+    iconAnchor: [6, 6],
+    popupAnchor: [0, -8],
+  });
+}
+
+export default function RouteMapCanvas({
+  stops,
+  places = [],
+}: {
+  stops: RouteStop[];
+  places?: RoutePlace[];
+}) {
+  // Bounds are computed from the cities alone. The places sit inside them by
+  // definition, and including them would let one mis-tagged point zoom the
+  // whole map out to fit it.
   const bounds = routeBounds(stops);
   // Built from the same city list, in the same order, as every other surface —
   // that is what keeps a city one colour across the app.
@@ -79,6 +109,28 @@ export default function RouteMapCanvas({ stops }: { stops: RouteStop[] }) {
           }}
         />
       )}
+
+      {/* Places first, so a city's numbered disc always draws over them and
+          stays the thing you can read at a glance. */}
+      {places.map((place) => (
+        <Marker
+          key={`${place.city}|${place.name}`}
+          position={[place.latitude, place.longitude]}
+          icon={placeIcon(tones.get(place.city) ?? toneByIndex(0))}
+        >
+          <Popup>
+            <div dir="rtl" className="text-center">
+              <strong>{place.name}</strong>
+              {place.city && (
+                <>
+                  <br />
+                  {place.city}
+                </>
+              )}
+            </div>
+          </Popup>
+        </Marker>
+      ))}
 
       {stops.map((stop, index) => (
         <Marker

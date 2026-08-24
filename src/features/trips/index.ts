@@ -200,7 +200,7 @@ export type { Connection } from "./domain/booking";
 export { dominantCountry, stopsByCountry } from "./domain/route";
 export {
   resetTripLocations,
-  getCityCenter as getCityCentre,
+  resolveAreaInCity,
 } from "./infrastructure/route-service";
 export { resetLocations } from "./application/route-actions";
 export { ResetLocationsButton } from "./components/reset-locations-button";
