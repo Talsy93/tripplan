@@ -1,4 +1,8 @@
 import * as z from "zod";
+import { instantToWallClock } from "@/lib/datetime";
+// weather.ts imports nothing, so this direction cannot become a cycle — the
+// mistake that broke the build in phase E and was designed out in phase F.
+import { APP_TIME_ZONE } from "./weather";
 
 // The trip's logistics: how you get there and where you sleep.
 //
@@ -270,16 +274,16 @@ export function bookingAlert(
   return null;
 }
 
-// The reverse of the datetime-local input: recovers the "YYYY-MM-DDTHH:mm"
-// a form submitted, for pre-filling the edit form.
+// The reverse of the datetime-local input: the "YYYY-MM-DDTHH:mm" that a
+// stored instant reads as in the trip's zone, for pre-filling the edit form.
 //
-// Relies on the same assumption createBooking's write side does: the input
-// carries no timezone, and Postgres stores it verbatim under the database's
-// own (UTC) session zone rather than converting it — so the digits that come
-// back are the digits that were typed, and slicing off the seconds and the
-// offset Supabase adds is enough to reconstruct the original value exactly.
+// This used to be `iso.slice(0, 16)`, which was only correct while the write
+// side stored the typed digits verbatim — i.e. while the two-hour bug existed.
+// Now that a time is converted to a real instant on the way in, it has to be
+// converted back on the way out, or opening a booking for editing would show a
+// time shifted by the zone's offset and re-saving would shift it again.
 export function toDateTimeLocal(iso: string): string {
-  return iso.slice(0, 16);
+  return instantToWallClock(iso, APP_TIME_ZONE);
 }
 
 // A deadline is a calendar date, and it is stored as one (0011). Returns the

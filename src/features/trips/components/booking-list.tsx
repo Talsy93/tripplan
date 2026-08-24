@@ -24,6 +24,7 @@ import {
   findConnections,
   layoverLabel,
 } from "../domain/booking";
+import { formatInZone } from "@/lib/datetime";
 import { formatMoney } from "../domain/expenses";
 import { APP_TIME_ZONE } from "../domain/weather";
 import { removeBooking } from "../application/booking-actions";
@@ -387,13 +388,12 @@ function formatDay(value: string) {
   return match ? `${match[3]}.${match[2]}.${match[1]}` : value;
 }
 
+// Rendered in the trip's zone, not the reader's.
+//
+// It used to be a bare toLocaleString, which uses whatever zone the browser is
+// in — so the same booking read differently on a laptop abroad, and the value
+// never matched what was typed into the form. A departure happens at the time
+// it happens where it happens; that is the only reading that is stable.
 function formatWhen(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("he-IL", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatInZone(value, APP_TIME_ZONE);
 }
