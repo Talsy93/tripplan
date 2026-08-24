@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CredentialsForm, GoogleButton, login } from "@/features/auth";
 import { Banner, Card } from "@/components/ui";
 
-export const metadata = { title: "התחברות · TripPlan" };
+export const metadata = { title: "התחברות · MyTrip" };
 
 export default async function LoginPage({
   searchParams,

@@ -24,14 +24,14 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "TripPlan — תכנון טיולים",
+  title: "MyTrip — תכנון טיולים",
   description: "תכנון טיולים חכם: הצעות יעדים, בחירה, ולוח זמנים מסודר.",
   // The manifest is what makes the app installable — and on iOS, installing is
   // the only way push notifications work at all (see PushToggle).
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    title: "TripPlan",
+    title: "MyTrip",
     statusBarStyle: "default",
   },
   icons: {

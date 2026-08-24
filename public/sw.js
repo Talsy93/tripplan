@@ -28,7 +28,7 @@ self.addEventListener("push", (event) => {
     payload = {};
   }
 
-  const title = payload.title || "TripPlan";
+  const title = payload.title || "MyTrip";
   const options = {
     body: payload.body || "יש עדכון בטיול שלך.",
     // PNG, not SVG: several platforms silently show no icon for an SVG here.

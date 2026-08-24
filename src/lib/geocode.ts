@@ -25,7 +25,7 @@
 const NOMINATIM_ENDPOINT = "https://nominatim.openstreetmap.org/search";
 // Wikimedia and Nominatim both require a User-Agent that identifies the client
 // and offers a way to reach its author. A bare product name gets throttled.
-const USER_AGENT = "TripPlan/1.0 (https://github.com/Talsy93/tripplan)";
+const USER_AGENT = "MyTrip/1.0 (https://github.com/Talsy93/tripplan)";
 const MIN_INTERVAL_MS = 1_100;
 // Wikimedia has no published per-second figure, but it throttles bursts hard.
 // Resolving one city can take up to four searches (name/context × he/en), so

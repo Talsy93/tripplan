@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Compass } from "lucide-react";
 import { buttonClasses } from "@/components/ui";
 
-export const metadata = { title: "הדף לא נמצא · TripPlan" };
+export const metadata = { title: "הדף לא נמצא · MyTrip" };
 
 // Until phase D this file did not exist, so all seven notFound() calls in the
 // app fell through to Next's built-in 404: black on white, left-to-right, in

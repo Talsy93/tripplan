@@ -1,4 +1,4 @@
-# TripPlan — Architecture Rules
+# MyTrip — Architecture Rules
 
 > This file defines the non-negotiable structure of the project.
 > Every contributor (human or AI) must follow these rules.

@@ -44,7 +44,7 @@ export function AppHeader({
           className="flex shrink-0 items-center gap-1.5 font-bold text-brand"
         >
           <Plane className="h-5 w-5" aria-hidden="true" />
-          <span className="hidden sm:inline">TripPlan</span>
+          <span className="hidden sm:inline">MyTrip</span>
         </Link>
 
         {back}

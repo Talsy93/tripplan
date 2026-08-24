@@ -29,7 +29,7 @@ export default async function HomePage() {
       <header className="flex h-14 items-center gap-3 border-b border-border bg-surface px-4 md:px-6 lg:px-8">
         <span className="flex items-center gap-1.5 font-bold text-brand">
           <Plane className="h-5 w-5" aria-hidden="true" />
-          TripPlan
+          MyTrip
         </span>
         {user && (
           <span className="ms-auto">
@@ -44,7 +44,7 @@ export default async function HomePage() {
             לתכנן חכם. לטייל טוב יותר.
           </h1>
           <p className="mx-auto max-w-xl text-base text-muted">
-            מיעד ראשון ועד לוח זמנים מלא — TripPlan בונה איתכם את הטיול,
+            מיעד ראשון ועד לוח זמנים מלא — MyTrip בונה איתכם את הטיול,
             ואז מלווה אותו ביום־יום.
           </p>
 
