@@ -205,6 +205,9 @@ export {
 export { resetLocations } from "./application/route-actions";
 export { ResetLocationsButton } from "./components/reset-locations-button";
 export { DaySuggestionsDialog } from "./components/day-suggestions-dialog";
+export { WORKFLOW_STEPS } from "./domain/workflow";
+export type { WorkflowStep } from "./domain/workflow";
+export { WorkflowGuide } from "./components/workflow-guide";
 export { withEmptyDays, cityOfEmptyDay } from "./domain/itinerary-plan";
 export {
   redactBooking,

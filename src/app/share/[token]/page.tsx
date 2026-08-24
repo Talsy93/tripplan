@@ -2,7 +2,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CalendarDays, MapPin, Plane } from "lucide-react";
 import { Badge, Card, SectionHeading } from "@/components/ui";
+import { formatInZone } from "@/lib/datetime";
 import {
+  APP_TIME_ZONE,
   BOOKING_KINDS,
   dateOfDay,
   dayLabel,
@@ -202,14 +204,11 @@ export default async function SharedTripPage({
 // Rendered on the server for a reader whose timezone we do not know, so the
 // trip's own zone is used rather than the machine's. A shared plan says when
 // things happen *there*.
+//
+// This forced UTC until bookings started storing real instants, which was only
+// right while the write side stored the typed digits as though they were UTC.
+// APP_TIME_ZONE is the same zone the owner sees, so the shared page and the
+// trip now agree — they did not before.
 function formatMoment(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString("he-IL", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "UTC",
-  });
+  return formatInZone(value, APP_TIME_ZONE);
 }

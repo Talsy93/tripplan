@@ -184,25 +184,44 @@ export async function saveCityGuide(
     toRows(tripId, city, key, guide[key] ?? []),
   );
 
-  // Store the city overview (intro + getting-there) as one sentinel row.
-  rows.push({
-    trip_id: tripId,
-    city,
-    category: OVERVIEW_CATEGORY as AiCategoryKey,
-    name: city,
-    description: guide.intro,
-    tip: guide.getting_there,
-    source: "ai" as const,
-    selected: false,
-  });
-
   const supabase = await createClient();
+
+  // Items: ignoreDuplicates, so a row the user has already selected keeps its
+  // flag and its description instead of being reset by a fresh generation.
   const { error } = await supabase.from("suggested_destinations").upsert(rows, {
     onConflict: "trip_id,city,category,name",
     ignoreDuplicates: true,
   });
   if (error) {
     console.error("saveCityGuide failed:", error.message);
+  }
+
+  // The overview (intro + getting-there) is written separately, and unlike the
+  // items it *does* overwrite: a refresh should produce a new description of
+  // the city, and this row is not something the user can have chosen.
+  //
+  // latitude, longitude and country are deliberately absent from the payload.
+  // PostgREST only writes the columns it is given, so leaving them out
+  // preserves the geocoding cache this row carries — including them as
+  // undefined would blank it on every refresh, which is the bug
+  // deleteCityGuide above just stopped doing by a different route.
+  const { error: overviewError } = await supabase
+    .from("suggested_destinations")
+    .upsert(
+      {
+        trip_id: tripId,
+        city,
+        category: OVERVIEW_CATEGORY,
+        name: city,
+        description: guide.intro,
+        tip: guide.getting_there,
+        source: "ai" as const,
+        selected: false,
+      },
+      { onConflict: "trip_id,city,category,name", ignoreDuplicates: false },
+    );
+  if (overviewError) {
+    console.error("saveCityGuide overview failed:", overviewError.message);
   }
 }
 
@@ -223,15 +242,61 @@ export async function saveRecommendations(
     });
 }
 
-// Removes the saved AI guide for a city so it can be regenerated.
-export async function deleteCityGuide(tripId: string, city: string) {
+// 🐞 Clears the *regenerable* part of a city's saved guide.
+//
+// This used to delete every 'ai' row for the city, which destroyed two things
+// it had no business touching:
+//
+//   1. **Everything the user had added to the trip.** A row with
+//      selected = true is a decision the user made; "show me other
+//      suggestions" is not a request to undo it. Pressing refresh silently
+//      emptied the trip of every item picked in that city — it disappeared
+//      from "what you picked", from the route map, and from the next itinerary
+//      build. Nothing in the UI hinted that would happen, and nothing could
+//      bring it back.
+//
+//   2. **The overview row**, which is where the city's geocoded coordinates
+//      and country are cached (see route-service.ts). Refreshing a guide
+//      therefore threw away the map's cache for that city and forced a
+//      re-geocode — and after phase G derives a city's position from its
+//      places, deleting those places moved the pin as well.
+//
+// So the delete is now bounded on both sides: unselected items only, and never
+// the overview row. Selected items are re-listed by the next read with their
+// flag intact, because saveCityGuide upserts with ignoreDuplicates and so
+// leaves an existing row alone.
+//
+// Returns how many items were kept, so the screen can say so rather than
+// leaving the user to wonder why the list did not fully change.
+export async function deleteCityGuide(
+  tripId: string,
+  city: string,
+): Promise<number> {
   const supabase = await createClient();
-  await supabase
+
+  const { count: kept } = await supabase
+    .from("suggested_destinations")
+    .select("id", { count: "exact", head: true })
+    .eq("trip_id", tripId)
+    .eq("city", city)
+    .eq("selected", true)
+    .neq("category", OVERVIEW_CATEGORY);
+
+  const { error } = await supabase
     .from("suggested_destinations")
     .delete()
     .eq("trip_id", tripId)
     .eq("city", city)
-    .eq("source", "ai");
+    .eq("source", "ai")
+    // The two guards that make this safe. `selected` is the user's decision;
+    // the overview row is the map's cache and is not a suggestion at all.
+    .eq("selected", false)
+    .neq("category", OVERVIEW_CATEGORY);
+
+  if (error) {
+    console.error("deleteCityGuide failed:", error.message);
+  }
+  return kept ?? 0;
 }
 
 // ---- Level 1: the trip's suggested cities --------------------------------
@@ -352,6 +417,12 @@ export async function appendCities(
 }
 
 // Replaces the trip's suggested cities with a freshly generated set.
+//
+// The delete below is bounded to `category is null`, which is the level-1 city
+// *cards* and nothing else. Those cannot be selected — setDestinationSelected
+// requires a city and a category — so unlike deleteCityGuide above this cannot
+// throw away anything the user added. The per-city guide items, and everything
+// selected within them, carry a category and are untouched.
 export async function saveCities(tripId: string, cities: AiCitySuggestion[]) {
   const supabase = await createClient();
   await supabase

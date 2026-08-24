@@ -104,6 +104,7 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
   const [guide, setGuide] = useState<CityGuideData | null>(initialGuide);
   const [loading, setLoading] = useState(!initialGuide);
   const [refreshing, setRefreshing] = useState(false);
+  const [keptNotice, setKeptNotice] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState<AiCategoryKey[]>([]);
 
@@ -122,8 +123,12 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
       }
 
       const data: AiCityGuide = await res.json();
-      await saveGuide(tripId, city, data);
-      setGuide(toGuideData(data));
+      // The saved guide, not the AI response: it carries the selected flags of
+      // anything already in the trip, which the response cannot know about.
+      // Falling back to the raw response keeps the screen working if the
+      // read-back fails for any reason.
+      const saved = await saveGuide(tripId, city, data);
+      setGuide(saved ?? toGuideData(data));
     } catch {
       setError("שגיאת רשת. נסו שוב.");
     }
@@ -139,9 +144,12 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
 
   async function handleRefresh() {
     setRefreshing(true);
-    await refreshGuide(tripId, city);
+    const kept = await refreshGuide(tripId, city);
     setGuide(null);
     await generate();
+    // Said out loud, because the list will not look wholly new and that is the
+    // point: refreshing replaces the suggestions, never what is in the trip.
+    setKeptNotice(kept);
     setRefreshing(false);
   }
 
@@ -246,14 +254,26 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
 
       {error && <Banner tone="danger">{error}</Banner>}
 
-      <div className="flex items-center">
+      {keptNotice !== null && keptNotice > 0 && (
+        <Banner tone="info">
+          {keptNotice === 1
+            ? "פריט אחד שהוספתם לטיול נשמר"
+            : `${keptNotice} פריטים שהוספתם לטיול נשמרו`}{" "}
+          — רענון מחליף רק את ההצעות, לא את מה שבחרתם.
+        </Banner>
+      )}
+
+      <div className="flex items-center gap-3">
+        <p className="text-caption text-muted">
+          רענון מביא הצעות חדשות. מה שהוספתם לטיול נשאר.
+        </p>
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={handleRefresh}
           loading={refreshing}
-          className="ms-auto"
+          className="ms-auto shrink-0"
         >
           רענון הצעות
         </Button>

@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { wallClockToInstant } from "@/lib/datetime";
 import { deadlineDate, parseCost } from "../domain/booking";
+import { APP_TIME_ZONE } from "../domain/weather";
 import type {
   Booking,
   CreateBookingInput,
@@ -22,7 +24,29 @@ export async function listBookings(tripId: string): Promise<Booking[]> {
   return data as Booking[];
 }
 
+// 🐞 The form's times are wall-clock readings with no zone, and the column is
+// `timestamptz`. Writing one straight into the other let Postgres read it in
+// the session's zone — UTC on Supabase — so a departure typed as 22:20 was
+// stored as 22:20 UTC and read back in Asia/Jerusalem as 00:20 the next day.
+//
+// The shift was visible in the list, and it also moved the booking to the wrong
+// calendar day everywhere that buckets by date (bookingsByDay, lodgingByDay,
+// travelDayCount). Converting here, at the one boundary where a typed time
+// becomes an instant, fixes all of them at once. See lib/datetime.ts.
+function toInstant(wall: string): string | null {
+  return wallClockToInstant(wall, APP_TIME_ZONE);
+}
+
 export async function createBooking(input: CreateBookingInput) {
+  const startsAt = toInstant(input.startsAt);
+  // The schema guarantees a well-formed string, so this is unreachable in
+  // practice — but storing an unconverted value would silently reintroduce the
+  // two-hour shift, which is worse than refusing the write.
+  if (!startsAt) {
+    console.error("createBooking: unparseable startsAt", input.startsAt);
+    return false;
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("trip_bookings").insert({
     trip_id: input.tripId,
@@ -32,8 +56,8 @@ export async function createBooking(input: CreateBookingInput) {
     origin: input.origin || null,
     destination: input.destination || null,
     city: input.city || null,
-    starts_at: input.startsAt,
-    ends_at: input.endsAt || null,
+    starts_at: startsAt,
+    ends_at: input.endsAt ? toInstant(input.endsAt) : null,
     address: input.address || null,
     confirmation: input.confirmation || null,
     note: input.note || null,
@@ -72,6 +96,12 @@ export async function createBooking(input: CreateBookingInput) {
 // matches no row — checked the same way updateItineraryEntry checks it,
 // because Postgres calls an update that matched nothing a success.
 export async function updateBooking(input: UpdateBookingInput) {
+  const startsAt = toInstant(input.startsAt);
+  if (!startsAt) {
+    console.error("updateBooking: unparseable startsAt", input.startsAt);
+    return { error: "invalid-time" };
+  }
+
   const supabase = await createClient();
   const { error, count } = await supabase
     .from("trip_bookings")
@@ -82,8 +112,8 @@ export async function updateBooking(input: UpdateBookingInput) {
         origin: input.origin || null,
         destination: input.destination || null,
         city: input.city || null,
-        starts_at: input.startsAt,
-        ends_at: input.endsAt || null,
+        starts_at: startsAt,
+        ends_at: input.endsAt ? toInstant(input.endsAt) : null,
         address: input.address || null,
         confirmation: input.confirmation || null,
         note: input.note || null,
