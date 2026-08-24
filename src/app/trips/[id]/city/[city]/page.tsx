@@ -11,7 +11,7 @@ export async function generateMetadata({
   params: Promise<{ city: string }>;
 }) {
   const { city } = await params;
-  return { title: `${decodeURIComponent(city)} · TripPlan` };
+  return { title: `${decodeURIComponent(city)} · MyTrip` };
 }
 
 export default async function CityPage({

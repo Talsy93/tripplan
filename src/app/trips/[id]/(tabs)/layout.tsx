@@ -16,7 +16,7 @@ import {
 
 // The trip's name becomes the title template for every tab under it, so a tab
 // only has to name itself ("היום") and the browser shows
-// "היום · איטליה · TripPlan". Every route in the app used to show the same
+// "היום · איטליה · MyTrip". Every route in the app used to show the same
 // title, which made five open tabs indistinguishable.
 //
 // This costs one extra getTrip per navigation: generateMetadata runs separately
@@ -33,8 +33,8 @@ export async function generateMetadata({
 
   return {
     title: {
-      default: `${name} · TripPlan`,
-      template: `%s · ${name} · TripPlan`,
+      default: `${name} · MyTrip`,
+      template: `%s · ${name} · MyTrip`,
     },
   };
 }

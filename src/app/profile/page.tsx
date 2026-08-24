@@ -16,7 +16,7 @@ import {
 } from "@/features/trips";
 import { getPlaceImage } from "@/lib/place-image";
 
-export const metadata = { title: "הטיולים שלי · TripPlan" };
+export const metadata = { title: "הטיולים שלי · MyTrip" };
 
 export default async function ProfilePage() {
   const [user, trips] = await Promise.all([getCurrentUser(), listTrips()]);

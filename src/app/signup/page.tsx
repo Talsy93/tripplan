@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CredentialsForm, GoogleButton, signup } from "@/features/auth";
 import { Card } from "@/components/ui";
 
-export const metadata = { title: "הרשמה · TripPlan" };
+export const metadata = { title: "הרשמה · MyTrip" };
 
 export default function SignupPage() {
   return (

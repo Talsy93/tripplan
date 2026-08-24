@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# TripPlan — הנחיות עבודה ל-Claude
+# MyTrip — הנחיות עבודה ל-Claude
 
 ## מהות הפרויקט והסטאק
 

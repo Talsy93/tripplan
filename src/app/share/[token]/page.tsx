@@ -25,7 +25,7 @@ export async function generateMetadata({
   const trip = await getSharedTrip(token);
 
   return {
-    title: trip ? `${trip.name} · TripPlan` : "טיול לא נמצא · TripPlan",
+    title: trip ? `${trip.name} · MyTrip` : "טיול לא נמצא · MyTrip",
     // A shared itinerary should not turn up in a search engine. The token is
     // the only thing protecting it, and an indexed page hands it to everyone.
     robots: { index: false, follow: false },
@@ -52,7 +52,7 @@ export default async function SharedTripPage({
       <header className="flex h-14 items-center gap-3 border-b border-border bg-surface px-4 md:px-6 lg:px-8">
         <span className="flex items-center gap-1.5 font-bold text-brand">
           <Plane className="h-5 w-5" aria-hidden="true" />
-          TripPlan
+          MyTrip
         </span>
         <Badge tone="neutral" className="ms-auto">
           לצפייה בלבד
@@ -191,7 +191,7 @@ export default async function SharedTripPage({
         <footer className="mt-auto border-t border-border pt-4 text-caption text-muted">
           נבנה ב-
           <Link href="/" className="font-semibold underline">
-            TripPlan
+            MyTrip
           </Link>
         </footer>
       </div>

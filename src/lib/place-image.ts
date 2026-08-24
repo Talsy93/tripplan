@@ -37,8 +37,13 @@ async function fetchWikiThumb(
 
   try {
     const res = await fetch(endpoint, {
-      // Wikimedia asks API clients to identify themselves.
-      headers: { "User-Agent": "TripPlan/1.0 (portfolio project)" },
+      // Wikimedia asks API clients to identify themselves, and prefers a way
+      // to reach the author — so this carries the repo URL, matching the
+      // agent string lib/geocode.ts and lib/overpass.ts already send. It said
+      // "portfolio project" until the rename, which identified nobody.
+      headers: {
+        "User-Agent": "MyTrip/1.0 (https://github.com/Talsy93/tripplan)",
+      },
       // A place's lead photo rarely changes — cache for a day.
       next: { revalidate: 86_400 },
     });

@@ -26,7 +26,7 @@ import {
 import type { Place, PlaceCategory } from "@/features/trips/domain/place";
 
 const ENDPOINT = "https://overpass-api.de/api/interpreter";
-const USER_AGENT = "TripPlan/1.0 (https://github.com/Talsy93/tripplan)";
+const USER_AGENT = "MyTrip/1.0 (https://github.com/Talsy93/tripplan)";
 // Covers a city centre and the walkable ring around it. Deliberately not
 // wider: a dense city has more matches than FETCH_LIMIT within a few
 // kilometres, and Overpass has no way to ask for "the nearest N" — so a wider
