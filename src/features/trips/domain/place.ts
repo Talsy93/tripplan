@@ -165,6 +165,18 @@ export const placeSearchRequestSchema = z.object({
   near: z
     .object({ latitude: z.number(), longitude: z.number() })
     .optional(),
+  // A neighbourhood or district *inside* the city — "Omotesando" in Tokyo.
+  //
+  // This is the fix for a whole class of searches that returned nothing.
+  // `query` is matched against a place's *name*, in process, after Overpass
+  // has filtered by category tag — so it can only ever find something called
+  // Omotesando. The area itself is not a restaurant or a temple, so no
+  // category holds it and the search came back empty, which reads as "there
+  // is nothing there" for one of the busiest districts in Tokyo.
+  //
+  // Resolved to a point server-side and used as the search centre instead, so
+  // "cafes" + "Omotesando" means cafes *in* Omotesando.
+  area: z.string().trim().max(120).optional(),
 });
 export type PlaceSearchRequest = z.infer<typeof placeSearchRequestSchema>;
 

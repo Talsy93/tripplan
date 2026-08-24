@@ -10,8 +10,11 @@ import {
   X,
 } from "lucide-react";
 import { Card, IconButton, Surface } from "@/components/ui";
+import { cn } from "@/lib/cn";
 import { googleMapsDirectionsUrl, googleMapsSearchUrl } from "@/lib/maps";
+import { BOOKING_KINDS, bookingWhere } from "../domain/booking";
 import { entryDestination } from "../domain/directions";
+import { APP_TIME_ZONE } from "../domain/weather";
 import {
   axisHours,
   buildDayTimeline,
@@ -20,6 +23,7 @@ import {
   formatMinutes,
   positionPercent,
 } from "../domain/timeline";
+import type { Booking } from "../domain/booking";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 
 // One hour of the day, in pixels. Fixed rather than proportional so a long day
@@ -50,6 +54,12 @@ export function DayTimeline({
   // lodging, and then no directions link is offered: a route from nowhere is
   // not a route.
   origin = null,
+  // The day's flights, trains and check-ins, drawn on the same axis. These are
+  // the only blocks here with a real timestamp behind them, so they anchor the
+  // day: an activity scheduled at 09:00 next to a 07:40 departure is visibly
+  // impossible, which is the whole reason for showing them together.
+  bookings = [],
+  date = null,
 }: {
   day: ItineraryDay;
   onRemove?: (entryId: string) => void;
@@ -57,13 +67,60 @@ export function DayTimeline({
   // component (the day pager on the "today" tab) stay read-only.
   onEdit?: (entryId: string) => void;
   origin?: string | null;
+  bookings?: Booking[];
+  date?: string | null;
 }) {
-  const timeline = buildDayTimeline(day);
+  const timeline = buildDayTimeline(day, {
+    bookings,
+    date,
+    zone: APP_TIME_ZONE,
+  });
   const hours = axisHours(timeline);
   const spanHours = (timeline.endMinutes - timeline.startMinutes) / 60;
 
   return (
     <div className="flex flex-col gap-3">
+      {/* The lane on the axis is a position marker; this is the part you can
+          actually read. Above the graphic because a departure time is the
+          thing that constrains everything below it. */}
+      {timeline.bookings.length > 0 && (
+        <ul className="flex flex-col gap-1.5">
+          {timeline.bookings.map(
+            ({ booking, startMinutes, endMinutes, continuesNextDay }) => {
+              const kind = BOOKING_KINDS[booking.kind];
+              const where = bookingWhere(booking);
+              return (
+                <li
+                  key={booking.id}
+                  className="flex items-center gap-2 rounded-control bg-action-tint px-2.5 py-1.5 text-sm text-action-ink"
+                >
+                  <span aria-hidden="true">{kind.emoji}</span>
+                  <span className="min-w-0 flex-1 truncate font-semibold">
+                    {booking.title}
+                    {where && (
+                      <span className="font-normal"> · {where}</span>
+                    )}
+                  </span>
+                  <span dir="ltr" className="shrink-0 tabular-nums">
+                    {formatMinutes(startMinutes)}
+                    {/* The arrival only reads as an arrival when it is on this
+                        day. A flight that lands tomorrow says so instead. */}
+                    {continuesNextDay
+                      ? " →"
+                      : endMinutes > startMinutes
+                        ? `–${formatMinutes(endMinutes)}`
+                        : ""}
+                  </span>
+                  {continuesNextDay && (
+                    <span className="shrink-0 text-caption">מחר</span>
+                  )}
+                </li>
+              );
+            },
+          )}
+        </ul>
+      )}
+
       <div
         className="relative [--hour-px:76px] lg:[--hour-px:92px]"
         style={{ height: `calc(${spanHours} * var(--hour-px))` }}
@@ -83,8 +140,52 @@ export function DayTimeline({
           </div>
         ))}
 
-        {/* The entries, positioned over the grid. */}
-        <div className="absolute inset-y-0 start-12 end-0">
+        {/* Bookings, in their own narrow lane down the start edge.
+            A lane rather than the main column, because a flight and an
+            activity are not alternatives competing for the same slot — the
+            flight is a fact the day is built around. Overlapping them in one
+            column would also make a long-haul flight cover every activity
+            beneath it. */}
+        {timeline.bookings.length > 0 && (
+          <div className="absolute inset-y-0 start-12 w-7">
+            {timeline.bookings.map(
+              ({ booking, startMinutes, endMinutes, continuesNextDay }) => {
+                const kind = BOOKING_KINDS[booking.kind];
+                const top = positionPercent(timeline, startMinutes);
+                const bottom = positionPercent(timeline, endMinutes);
+                return (
+                  <div
+                    key={booking.id}
+                    title={`${booking.title} · ${formatMinutes(startMinutes)}${
+                      continuesNextDay ? " — ממשיך למחר" : ""
+                    }`}
+                    className="absolute inset-x-0 flex flex-col items-center gap-1 rounded-control bg-action-tint py-1 text-action-ink"
+                    style={{
+                      top: `${top}%`,
+                      height: `${Math.max(bottom - top, 2)}%`,
+                    }}
+                  >
+                    <span className="text-sm leading-none" aria-hidden="true">
+                      {kind.emoji}
+                    </span>
+                    <span className="sr-only">
+                      {kind.label}: {booking.title}
+                    </span>
+                  </div>
+                );
+              },
+            )}
+          </div>
+        )}
+
+        {/* The entries, positioned over the grid. Shifted clear of the
+            booking lane only when there is one. */}
+        <div
+          className={cn(
+            "absolute inset-y-0 end-0",
+            timeline.bookings.length > 0 ? "start-20" : "start-12",
+          )}
+        >
           {timeline.entries.map(({ entry, startMinutes, endMinutes }) => {
             const top = positionPercent(timeline, startMinutes);
             const bottom = positionPercent(timeline, endMinutes);

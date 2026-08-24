@@ -7,7 +7,8 @@
 // the graphic. Losing an item the user picked would be worse than not placing
 // it on the axis.
 
-import { distanceKm } from "./place";
+import { distanceKm } from "@/lib/geo";
+import type { Booking } from "./booking";
 import type { ItineraryDay, ItineraryEntry } from "./ai-suggestion";
 
 const MINUTES_PER_HOUR = 60;
@@ -44,12 +45,32 @@ const MAX_WALK_KM = 2.5;
 // Straight-line distance understates real walking, which follows streets.
 const STREET_DETOUR_FACTOR = 1.3;
 
+// A booking drawn on the day's axis: a flight, a train, a hotel check-in.
+//
+// Kept apart from TimelineEntry rather than converted into one, because the
+// two are different kinds of fact and the difference matters on screen. An
+// itinerary entry is a suggestion with a free-text time the model wrote and
+// the user can edit; a booking has a real timestamp that was paid for. It is
+// not editable here, it cannot be removed here, and — most importantly — a
+// 07:40 departure is the one thing on the day that genuinely cannot move.
+export type TimelineBooking = {
+  booking: Booking;
+  startMinutes: number;
+  endMinutes: number;
+  // True when the booking runs past midnight into the next day — a long-haul
+  // flight, most often. The block is clipped at the axis and says so, rather
+  // than being drawn with a negative height.
+  continuesNextDay: boolean;
+};
+
 export type DayTimeline = {
   day: number;
   // The axis, snapped out to whole hours so the gridlines are round numbers.
   startMinutes: number;
   endMinutes: number;
   entries: TimelineEntry[];
+  // Bookings that fall on this day, on the same axis as the entries.
+  bookings: TimelineBooking[];
   // Gaps between consecutive entries — the only travel information available
   // without coordinates for every item.
   transitions: Transition[];
@@ -79,7 +100,104 @@ export function formatMinutes(minutes: number) {
 // A gap shorter than this is just the schedule breathing, not a journey.
 const MIN_TRANSITION_MIN = 10;
 
-export function buildDayTimeline(day: ItineraryDay): DayTimeline {
+// Where a booking sits on one day's axis.
+//
+// `zone` is a parameter for the same reason it is one in bookingsByDay: the
+// hour a 23:40 flight departs depends on whose calendar you ask, and the
+// server and the browser must not disagree about it across hydration.
+//
+// A booking that started on an earlier day and is still running (an overnight
+// flight) is clamped to midnight, so the block covers the part of it that
+// actually belongs to this day.
+function toTimelineBooking(
+  booking: Booking,
+  date: string,
+  zone: string,
+): TimelineBooking | null {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: zone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const at = (iso: string) => {
+    const moment = new Date(iso);
+    if (Number.isNaN(moment.getTime())) return null;
+    const parts = formatter.formatToParts(moment);
+    const get = (type: string) =>
+      Number(parts.find((part) => part.type === type)?.value ?? NaN);
+    const day = `${parts.find((p) => p.type === "year")?.value}-${
+      parts.find((p) => p.type === "month")?.value
+    }-${parts.find((p) => p.type === "day")?.value}`;
+    const hour = get("hour");
+    const minute = get("minute");
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+    // Intl renders midnight as 24:00 with hour12:false in some environments.
+    return { day, minutes: (hour % 24) * MINUTES_PER_HOUR + minute };
+  };
+
+  const start = at(booking.starts_at);
+  if (!start) return null;
+  const end = booking.ends_at ? at(booking.ends_at) : null;
+
+  const startsToday = start.day === date;
+  const endsToday = end?.day === date;
+
+  // Neither end touches this day — but it may still span it entirely (day 2 of
+  // a three-day rail journey). Covered rather than dropped.
+  if (!startsToday && !endsToday) {
+    if (!end || start.day > date || end.day < date) return null;
+    return {
+      booking,
+      startMinutes: 0,
+      endMinutes: MINUTES_PER_DAY,
+      continuesNextDay: true,
+    };
+  }
+
+  const startMinutes = startsToday ? start.minutes : 0;
+
+  // Three different situations, and conflating the first two drew a flight
+  // with no arrival time as a nine-hour block running to midnight:
+  //
+  //   no end at all   — unknown duration. A short readable block, because the
+  //                     honest statement is "departs at 20:00", not "occupies
+  //                     the rest of the day".
+  //   end on a later day — genuinely still going at midnight. Runs to the edge
+  //                     and is flagged as continuing.
+  //   end today       — the real duration, floored so a zero-length block is
+  //                     still visible.
+  const endMinutes =
+    end === null
+      ? startMinutes + MIN_BOOKING_MIN
+      : endsToday
+        ? Math.max(end.minutes, startMinutes + MIN_BOOKING_MIN)
+        : MINUTES_PER_DAY;
+
+  return {
+    booking,
+    startMinutes,
+    endMinutes: Math.min(endMinutes, MINUTES_PER_DAY),
+    continuesNextDay: end !== null && !endsToday,
+  };
+}
+
+// A booking with no end time still needs a block tall enough to read. Also the
+// floor for one whose end is the same minute as its start.
+const MIN_BOOKING_MIN = 45;
+
+export function buildDayTimeline(
+  day: ItineraryDay,
+  // The bookings that fall on this day, and the calendar date it is — both
+  // needed to place a booking's real timestamp on the axis. Omitted by callers
+  // that have neither, which is what the "today" tab did before flights were
+  // drawn here.
+  options: { bookings?: Booking[]; date?: string | null; zone?: string } = {},
+): DayTimeline {
   const scheduled: TimelineEntry[] = [];
   const unscheduled: ItineraryEntry[] = [];
 
@@ -130,14 +248,41 @@ export function buildDayTimeline(day: ItineraryDay): DayTimeline {
     });
   }
 
-  const first = scheduled[0]?.startMinutes ?? 9 * MINUTES_PER_HOUR;
-  const last = scheduled.at(-1)?.endMinutes ?? 18 * MINUTES_PER_HOUR;
+  // Bookings are placed before the axis is sized, because a 06:00 flight has
+  // to widen the axis — otherwise the day would start at the first activity
+  // and the flight would sit clamped at the top edge, reading as though it
+  // left at the same time as breakfast.
+  const bookings: TimelineBooking[] = [];
+  if (options.date && options.bookings?.length) {
+    for (const booking of options.bookings) {
+      const placed = toTimelineBooking(
+        booking,
+        options.date,
+        options.zone ?? "UTC",
+      );
+      if (placed) bookings.push(placed);
+    }
+    bookings.sort((a, b) => a.startMinutes - b.startMinutes);
+  }
+
+  const starts = [
+    ...scheduled.map((entry) => entry.startMinutes),
+    ...bookings.map((entry) => entry.startMinutes),
+  ];
+  const ends = [
+    ...scheduled.map((entry) => entry.endMinutes),
+    ...bookings.map((entry) => entry.endMinutes),
+  ];
+
+  const first = starts.length > 0 ? Math.min(...starts) : 9 * MINUTES_PER_HOUR;
+  const last = ends.length > 0 ? Math.max(...ends) : 18 * MINUTES_PER_HOUR;
 
   return {
     day: day.day,
     startMinutes: floorToHour(first),
     endMinutes: ceilToHour(last),
     entries: scheduled,
+    bookings,
     transitions,
     unscheduled,
   };

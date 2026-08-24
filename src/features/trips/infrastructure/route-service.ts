@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { geocodePlace, geocodePlaces, reverseCountries } from "@/lib/geocode";
-import { orderByProximity } from "@/lib/geo";
+import { medianPoint, orderByProximity } from "@/lib/geo";
+import { isSameDestination } from "../domain/ai-suggestion";
 import { dominantCountry, itineraryStops } from "../domain/route";
 import { isSchemaOutOfDate } from "./itinerary-service";
-import type { RouteStop, TripRoute } from "../domain/route";
+import type { RoutePlace, RouteStop, TripRoute } from "../domain/route";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 import type { CountryInfo, Coordinates } from "@/lib/geocode";
 
@@ -32,11 +33,33 @@ export async function getTripRoute(
 ): Promise<TripRoute> {
   const cities = orderCities(await getRouteCities(tripId), itinerary);
   if (cities.length === 0) {
-    return { stops: [], unlocatedCities: [], repairedCities: [] };
+    return { stops: [], places: [], unlocatedCities: [], repairedCities: [] };
   }
 
   const cityNames = cities.map((c) => c.city);
   const cached = await getCachedLocations(tripId, cityNames);
+
+  // Before geocoding anything: the trip may already *know* where a city is.
+  //
+  // Every place added from the attractions search carries the exact
+  // coordinates OpenStreetMap gave for it — the only rows in the table that
+  // were never geocoded, and therefore the only ones that cannot be wrong.
+  // Deriving the city's position from them replaces a guess with an
+  // observation, and it is what fixes the pins that kept landing in the wrong
+  // place: a name lookup can put "Hakone" in Los Angeles, but five real Tokyo
+  // restaurants cannot average out to anywhere except Tokyo.
+  //
+  // Only used for cities that have no cached position yet, so a city the user
+  // has deliberately re-resolved is not quietly overridden on the next render.
+  const derived = new Map(
+    [...(await deriveCityCentresFromPlaces(tripId, cityNames))].filter(
+      ([city]) => !cached.has(city),
+    ),
+  );
+  for (const [city, point] of derived) {
+    cached.set(city, { ...point, country: null, countryCode: null });
+  }
+  await cacheCoordinates(tripId, derived);
 
   const missing = cityNames.filter((city) => !cached.has(city));
   if (missing.length > 0) {
@@ -74,9 +97,48 @@ export async function getTripRoute(
   }
   return {
     stops: withProximityOrderedTail(stops),
+    places: await getSelectedPlacePoints(tripId),
     unlocatedCities,
     repairedCities,
   };
+}
+
+// The trip's selected places that have real coordinates, for pinning
+// individually. Only `selected` rows: the table also holds everything the
+// guide ever suggested, and drawing all of it would bury the actual plan.
+async function getSelectedPlacePoints(tripId: string): Promise<RoutePlace[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("suggested_destinations")
+    .select("name, city, latitude, longitude")
+    .eq("trip_id", tripId)
+    .eq("selected", true)
+    .neq("category", OVERVIEW_CATEGORY)
+    .not("latitude", "is", null)
+    .not("longitude", "is", null);
+
+  if (error || !data) {
+    if (error) console.error("getSelectedPlacePoints failed:", error.message);
+    return [];
+  }
+
+  const places: RoutePlace[] = [];
+  for (const row of data) {
+    if (
+      typeof row.latitude !== "number" ||
+      typeof row.longitude !== "number" ||
+      !row.name
+    ) {
+      continue;
+    }
+    places.push({
+      name: row.name,
+      city: row.city ?? "",
+      latitude: row.latitude,
+      longitude: row.longitude,
+    });
+  }
+  return places;
 }
 
 // Cities the itinerary has scheduled keep their day order untouched — those
@@ -107,6 +169,58 @@ type CityLocation = Coordinates & {
   country: string | null;
   countryCode: string | null;
 };
+
+// A city's position, taken from the places the user actually added in it.
+//
+// These rows come from the attractions search, so their coordinates are
+// OpenStreetMap's own — never geocoded, and therefore never subject to the
+// name-matching failure that misplaces pins.
+//
+// The *median* of the points, not the mean: one place tagged at the wrong
+// coordinates in OSM would drag a mean across the map, and a single outlier is
+// exactly what this is meant to be robust against. Overview rows are excluded
+// because their coordinates are the guess this function exists to replace.
+async function deriveCityCentresFromPlaces(
+  tripId: string,
+  cities: string[],
+): Promise<Map<string, Coordinates>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("suggested_destinations")
+    .select("city, latitude, longitude")
+    .eq("trip_id", tripId)
+    .neq("category", OVERVIEW_CATEGORY)
+    .in("city", cities)
+    .not("latitude", "is", null)
+    .not("longitude", "is", null);
+
+  const byCity = new Map<string, Coordinates[]>();
+  if (error || !data) {
+    if (error) console.error("deriveCityCentresFromPlaces failed:", error.message);
+    return new Map();
+  }
+
+  for (const row of data) {
+    if (
+      !row.city ||
+      typeof row.latitude !== "number" ||
+      typeof row.longitude !== "number"
+    ) {
+      continue;
+    }
+    byCity.set(row.city, [
+      ...(byCity.get(row.city) ?? []),
+      { latitude: row.latitude, longitude: row.longitude },
+    ]);
+  }
+
+  const centres = new Map<string, Coordinates>();
+  for (const [city, points] of byCity) {
+    const centre = medianPoint(points);
+    if (centre) centres.set(city, centre);
+  }
+  return centres;
+}
 
 // Reverse-geocodes any city that has coordinates but no country yet, and
 // caches the answer. Cheap over time: it runs once per city, ever.
@@ -285,6 +399,42 @@ export async function getCityCenter(
   return coords;
 }
 
+// Resolves a district name inside a city to a point — "Omotesando" in Tokyo.
+//
+// The city name is the geocoding context, which is exactly the case
+// lib/geocode.ts describes context as being for: a district name is obscure
+// and ambiguous on its own, and "Omotesando" alone could resolve anywhere.
+//
+// The answer is then *checked against the city it is supposed to be in*, and
+// discarded when it is too far away. Without that check this feature would be
+// a new way to produce the wrong-pin bug: a mistyped district would silently
+// re-centre the search on another continent and return a confident list of
+// cafes in the wrong country. Returning null instead lets the caller say "we
+// could not find that area", which is true and useful.
+export async function resolveAreaInCity(
+  tripId: string,
+  city: string,
+  area: string,
+  tripName?: string,
+): Promise<Coordinates | null> {
+  const cityCenter = await getCityCenter(tripId, city, tripName);
+  if (!cityCenter) return null;
+
+  // The city carries more signal than the trip name here, so it leads; the
+  // trip name is appended because a city name alone can be ambiguous too.
+  const context = tripName ? `${city} ${tripName}` : city;
+  const point = await geocodePlace(area, context);
+  if (!point) return null;
+
+  if (!isSameDestination(cityCenter, point)) {
+    console.warn(
+      `[route] area "${area}" resolved outside ${city} and was rejected`,
+    );
+    return null;
+  }
+  return point;
+}
+
 async function getCachedLocations(tripId: string, cities: string[]) {
   const supabase = await createClient();
 
@@ -374,6 +524,20 @@ export async function resetTripLocations(tripId: string) {
   return true;
 }
 
+// 🐞 The overview row is where a city's coordinates are cached — and it is
+// only *created* by saveCityGuide, i.e. when the user opens that city's guide
+// page. A city that entered the trip through the attractions search or the
+// manual form has no overview row at all.
+//
+// This used to be a bare `update`, which Postgres reports as a success when it
+// matches nothing. So for those cities the cache silently never filled: every
+// render re-geocoded them (paced at ~1 request/second, on the shared Nominatim
+// service), and phase F's country lookup and wrong-pin repair wrote their
+// results into the void — which is why a corrected pin kept coming back wrong.
+//
+// Upserting creates the row when it is missing. `ignoreDuplicates: false` is
+// the point: an existing row must be *updated*, not skipped, or the fix does
+// nothing for exactly the cities that already have a guide.
 async function cacheCoordinates(
   tripId: string,
   coords: Map<string, { latitude: number; longitude: number }>,
@@ -381,16 +545,26 @@ async function cacheCoordinates(
   if (coords.size === 0) return;
 
   const supabase = await createClient();
-  for (const [city, { latitude, longitude }] of coords) {
-    const { error } = await supabase
-      .from("suggested_destinations")
-      .update({ latitude, longitude })
-      .eq("trip_id", tripId)
-      .eq("category", OVERVIEW_CATEGORY)
-      .eq("city", city);
-    if (error) {
-      // Caching is best-effort: the map still renders from the fresh lookup.
-      console.error(`cacheCoordinates failed for ${city}:`, error.message);
-    }
+  const { error } = await supabase.from("suggested_destinations").upsert(
+    [...coords].map(([city, { latitude, longitude }]) => ({
+      trip_id: tripId,
+      city,
+      category: OVERVIEW_CATEGORY,
+      // The overview row's name is the city's own — the convention
+      // saveCityGuide established, and getEntryCoordinates relies on it by
+      // skipping this category so an item sharing the city's name is not
+      // placed at the centre of town.
+      name: city,
+      latitude,
+      longitude,
+      source: "ai" as const,
+      selected: false,
+    })),
+    { onConflict: "trip_id,city,category,name", ignoreDuplicates: false },
+  );
+
+  if (error) {
+    // Caching is best-effort: the map still renders from the fresh lookup.
+    console.error("cacheCoordinates failed:", error.message);
   }
 }

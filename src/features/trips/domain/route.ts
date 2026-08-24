@@ -148,10 +148,28 @@ export function itineraryStops(
   return [...stops.values()];
 }
 
+// An individual place on the map, as opposed to a whole city.
+//
+// These are the trip's most accurate coordinates by a wide margin: they come
+// straight from OpenStreetMap with the search result, so unlike a city pin
+// they were never geocoded from a name and cannot have been misplaced by one.
+// Showing them is what makes the map say where things actually are rather than
+// which towns are roughly involved.
+export type RoutePlace = {
+  name: string;
+  city: string;
+  latitude: number;
+  longitude: number;
+};
+
 // Cities the user added things in but that couldn't be geocoded. Surfaced so
 // the map can say so instead of silently dropping them.
 export type TripRoute = {
   stops: RouteStop[];
+  // Exact points for the places that have them. A trip's AI-guide items are
+  // names only, so this is a subset — normally the things found through the
+  // attractions search.
+  places: RoutePlace[];
   unlocatedCities: string[];
   // Cities whose pin was automatically moved this render because it had landed
   // in the wrong country. Reported rather than fixed silently: a pin that

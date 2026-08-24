@@ -2,15 +2,8 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import {
-  EmptyState,
-  IconButton,
-  ListRow,
-  Surface,
-  ToneDot,
-} from "@/components/ui";
+import { EmptyState, IconButton, Surface, ToneDot } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { BOOKING_KINDS, bookingWhere } from "../domain/booking";
 import { lodgingOrigin } from "../domain/directions";
 import { cityByDay } from "../domain/route";
 import { cityToneClass, cityToneMap } from "../domain/tone";
@@ -148,46 +141,25 @@ export function DayPager({
         })}
       </div>
 
-      {bookings.length > 0 && (
-        <ul className="flex flex-col gap-2">
-          {bookings.map((booking) => {
-            const kind = BOOKING_KINDS[booking.kind];
-            const where = bookingWhere(booking);
-            const at = new Date(booking.starts_at);
-            return (
-              <li key={booking.id}>
-                <ListRow
-                  accent="action"
-                  leading={
-                    <span className="text-xl leading-none" aria-hidden="true">
-                      {kind.emoji}
-                    </span>
-                  }
-                  title={booking.title}
-                  subtitle={where ?? undefined}
-                  trailing={
-                    <span
-                      dir="ltr"
-                      className="text-sm font-semibold tabular-nums text-muted"
-                    >
-                      {String(at.getHours()).padStart(2, "0")}:
-                      {String(at.getMinutes()).padStart(2, "0")}
-                    </span>
-                  }
-                />
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
+      {/* The bookings used to be listed here as well as on the timeline
+          below. They are the timeline's now — it is the component that knows
+          where they sit in the day, and it was rendering the same three facts
+          (emoji, title, time) a second time directly underneath.
+          The time was also read with getHours(), i.e. the *viewer's* clock,
+          while the timeline resolves it in the trip's zone. Two different
+          answers for one departure was the real reason to pick one. */}
       <NightStay stay={stayAlreadyListed ? null : stay} />
 
       {/* Directions run from where you slept, so the timeline can offer a
           route to each of the day's places. */}
+      {/* The bookings are listed above as cards already, so the timeline gets
+          them only to place them on the axis — `bookings` there also widens
+          the axis so an early departure is not clamped to the top edge. */}
       <DayTimeline
         day={active}
         origin={stay ? lodgingOrigin(stay.booking) : null}
+        bookings={bookings}
+        date={date}
       />
     </div>
   );
