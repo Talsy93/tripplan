@@ -12,19 +12,39 @@ import { selectableCategorySchema } from "../domain/place";
 import {
   appendCities,
   deleteCityGuide,
+  getSavedCityGuide,
   saveCities as saveCitiesToDb,
   saveCityGuide,
   saveRecommendations,
   setDestinationSelected,
 } from "../infrastructure/guide-service";
-import type { AiCitySuggestion } from "../domain/ai-suggestion";
+import type { AiCitySuggestion, CityGuideData } from "../domain/ai-suggestion";
 
 // Persist a freshly generated guide. Validated so a client can't write junk;
 // RLS additionally restricts writes to the user's own trips.
-export async function saveGuide(tripId: string, city: string, guide: unknown) {
+//
+// Returns the guide as it now stands *in the database*, which is not the same
+// as what was passed in: an item the user had already added keeps its
+// selected flag (saveCityGuide upserts with ignoreDuplicates), and items
+// added in earlier rounds are still there. Reading it back is what lets the
+// screen show "נוסף" on those instead of offering to add them again — the AI
+// response itself has no idea what is in the trip.
+export async function saveGuide(
+  tripId: string,
+  city: string,
+  guide: unknown,
+): Promise<CityGuideData | null> {
   const parsed = aiCityGuideSchema.safeParse(guide);
-  if (!parsed.success) return;
+  if (!parsed.success) return null;
+
   await saveCityGuide(tripId, city, parsed.data);
+
+  // The whole layout, because the additions reach "what you picked", the
+  // route map and the itinerary builder — all separate routes under it.
+  if (z.uuid().safeParse(tripId).success) {
+    revalidatePath(`/trips/${tripId}`, "layout");
+  }
+  return getSavedCityGuide(tripId, city);
 }
 
 export async function saveMore(
@@ -44,8 +64,17 @@ export async function saveMore(
   );
 }
 
-export async function refreshGuide(tripId: string, city: string) {
-  await deleteCityGuide(tripId, city);
+// Clears the suggestions for a city so a fresh set can be generated, and
+// reports how many items were kept because they are in the trip.
+//
+// It keeps them on purpose — see deleteCityGuide. "Show me other suggestions"
+// must not undo "add this to my trip"; the only thing that removes an item is
+// removing it.
+export async function refreshGuide(
+  tripId: string,
+  city: string,
+): Promise<number> {
+  return deleteCityGuide(tripId, city);
 }
 
 export async function saveCities(tripId: string, cities: unknown) {

@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { ChevronLeft, MessageCircle, Languages, Luggage } from "lucide-react";
+import {
+  ChevronLeft,
+  Compass,
+  MessageCircle,
+  Languages,
+  Luggage,
+} from "lucide-react";
 import { Card, SectionHeading } from "@/components/ui";
 
 // A menu, not a pile. The five sections used to stack on one page, which on a
@@ -10,6 +16,12 @@ const ENTRIES = [
     label: "פרטי הטיול",
     hint: "תאריכים, טיסות, רכבות ולינה",
     Icon: Luggage,
+  },
+  {
+    segment: "guide",
+    label: "איך זה עובד",
+    hint: "שלבי העבודה, עם קישור לכל מסך",
+    Icon: Compass,
   },
   {
     segment: "phrases",
@@ -38,10 +50,11 @@ export default async function MorePage({
     <>
       <SectionHeading level="page">עוד</SectionHeading>
 
-      {/* Three full-width 72px rows in a 1024px column was the most obviously
+      {/* Full-width 72px rows in a 1024px column was the most obviously
           phone-only screen in the app. A card each, side by side, once there is
-          room for them. */}
-      <ul className="grid gap-3 sm:grid-cols-3">
+          room for them. Two across at sm so four entries pair up rather than
+          leaving one stranded on its own row. */}
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {ENTRIES.map(({ segment, label, hint, Icon }) => (
           <li key={segment}>
             <Link
