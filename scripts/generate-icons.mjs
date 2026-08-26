@@ -42,57 +42,26 @@ const PLANE =
 // The drawing, without a background. Kept separate so the maskable variant can
 // scale it into the safe zone without touching the background.
 //
-// The wordmark is a <path>, not a <text> element, on purpose: librsvg (what
-// sharp rasterises with) resolves fonts through fontconfig, and on a machine
-// where the named family is missing it silently substitutes or drops the text
-// altogether. A logo that depends on the build machine's installed fonts is a
-// logo that renders differently on CI. Outlines have no such dependency.
+// No wordmark, deliberately. An earlier version set "MyTrip" under the plane;
+// at the size this is actually seen — roughly 60px on a home screen — the
+// letters smear, and iOS already prints the app's name directly beneath the
+// icon. The name was appearing twice and one of the two was unreadable. The
+// mark alone is what survives at that size, so it is the whole icon.
+//
+// The plane sits slightly above centre and the route arc below it, which
+// leaves the optical weight balanced now that nothing follows underneath.
+// The two elements are sized so the plane's tail clears the arc's apex rather
+// than crossing it. With the wordmark gone there is room to separate them, and
+// dots running through the tail's outline read as noise at small sizes — the
+// one place this icon has to work hardest.
 const artwork = `
-    <path d="M112 330 C 180 272, 332 272, 400 330"
-          fill="none" stroke="${WHITE}" stroke-width="13"
-          stroke-linecap="round" stroke-dasharray="3 32" opacity="0.8" />
-    <g transform="translate(256 196) scale(10.4) translate(-12 -12)">
+    <path d="M96 392 C 172 320, 340 320, 416 392"
+          fill="none" stroke="${WHITE}" stroke-width="15"
+          stroke-linecap="round" stroke-dasharray="3 36" opacity="0.8" />
+    <g transform="translate(256 222) scale(12) translate(-12 -12)">
       <path d="${PLANE}" fill="none" stroke="${WHITE}" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round" />
-    </g>
-    <g transform="translate(256 428)">
-      ${wordmark()}
     </g>`;
-
-// "MyTrip" as outlines, drawn on a 100-unit cap height and centred on (0,0).
-// Geometric sans forms, matched to the header's weight rather than to a
-// specific typeface — at icon size the letterforms read as a shape, not as
-// type, and a webfont would be a dependency for six glyphs.
-function wordmark() {
-  // Each glyph is authored on a baseline of 0, growing upward, then the whole
-  // run is shifted so its optical centre sits at the origin.
-  const glyphs = [
-    // M
-    "M0 0 v-96 h20 l24 58 24-58 h20 v96 h-19 v-62 l-19 46 h-12 l-19-46 v62 z",
-    // y
-    "M96 26 q10 3 16-1 5-3 8-12 l3-8 -29-71 h20 l18 48 17-48 h20 l-32 82 q-7 18-17 24 -9 5-24 2 z",
-    // T
-    "M170 0 v-79 h-28 v-17 h75 v17 h-28 v79 z",
-    // r
-    "M228 0 v-70 h18 v11 q6-13 22-12 v18 q-22-3-22 18 v35 z",
-    // i
-    "M283 0 v-70 h19 v70 z M283-82 v-19 h19 v19 z",
-    // p
-    "M317 26 v-96 h18 v9 q7-11 21-11 22 0 30 20 4 9 4 18 0 22-13 31 -7 5-18 5 -14 0-23-10 v34 z M335-35 q0 12 7 18 5 4 12 4 18 0 18-22 0-22-18-22 -7 0-12 4 -7 6-7 18 z",
-  ];
-
-  // Measured from the outlines above: the run spans 0..390 horizontally and
-  // sits between -101 and +26 vertically. Centring on the cap height rather
-  // than the full extent keeps the descender of "y" and "p" from pushing the
-  // word visually high.
-  const width = 390;
-  const capCentre = -48;
-  const scale = 0.86;
-
-  return `<g transform="scale(${scale}) translate(${-width / 2} ${-capCentre})">
-        <path d="${glyphs.join(" ")}" fill="${WHITE}" fill-rule="evenodd" />
-      </g>`;
-}
 
 function svg({ rounded = false, inset = 1 } = {}) {
   const corner = rounded ? ' rx="112"' : "";
