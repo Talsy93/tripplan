@@ -4,6 +4,7 @@ import { getCurrentUser, LogoutButton } from "@/features/auth";
 import {
   APP_TIME_ZONE,
   CountdownHero,
+  HowItWorks,
   NewTripButton,
   getItinerary,
   getPrimaryDestination,
@@ -65,6 +66,14 @@ export default async function ProfilePage() {
       >
         הטיולים שלי
       </SectionHeading>
+
+      {/* Above the trip list, and expanded only for someone who has no trips
+          yet — the point at which "what am I supposed to do here" is an actual
+          question. It stays reachable, collapsed, for everyone else. */}
+      <HowItWorks
+        defaultOpen={trips.length === 0}
+        tripId={upcoming?.id ?? trips[0]?.id ?? null}
+      />
 
       {upcoming && (
         <section className="flex flex-col gap-3">

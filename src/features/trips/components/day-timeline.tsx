@@ -206,7 +206,7 @@ export function DayTimeline({
                 style={{ top: `${top}%`, height: `${bottom - top}%` }}
               >
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="truncate text-sm font-semibold">
+                  <span className="min-w-0 truncate text-sm font-semibold">
                     {entry.title}
                   </span>
                   <div className="flex shrink-0 items-center gap-1">
@@ -253,7 +253,7 @@ export function DayTimeline({
                       </span>
                     )}
                     {entry.travelNote && (
-                      <span className="truncate">{entry.travelNote}</span>
+                      <span className="min-w-0 truncate">{entry.travelNote}</span>
                     )}
                   </p>
                 )}
@@ -340,7 +340,7 @@ export function DayTimeline({
                 key={entry.id}
                 className="flex items-center justify-between gap-2 rounded-control bg-surface px-2 py-1.5 text-sm"
               >
-                <span className="truncate">{entry.title}</span>
+                <span className="min-w-0 truncate">{entry.title}</span>
                 {onRemove && (
                   <IconButton
                     label="הסרה מהלוח"

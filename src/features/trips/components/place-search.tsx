@@ -366,7 +366,7 @@ export function PlaceSearch({
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-1.5 text-sm font-bold">
             <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-            <span className="truncate">
+            <span className="min-w-0 truncate">
               {near
                 ? `ליד ${near.label}`
                 : activeArea
@@ -558,7 +558,7 @@ export function PlaceSearch({
                       onClick={() => setOpen(place)}
                       className="flex min-w-0 items-center gap-2 rounded text-start hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      <span className="truncate">{place.name}</span>
+                      <span className="min-w-0 truncate">{place.name}</span>
                       {place.notable && (
                         <Badge
                           tone="action"

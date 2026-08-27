@@ -8,7 +8,14 @@ import { NextResponse, type NextRequest } from "next/server";
 // must stay reachable without one — redirecting it to /login would defeat the
 // entire feature. The page itself reads through a redacting service and
 // renders nothing a stranger should not see; see infrastructure/share-service.ts.
-const PUBLIC_ROUTES = ["/login", "/signup", "/auth", "/share"];
+//
+// `/invite` is an invitation to join a trip (migration 0018), and it exists
+// precisely for someone who does not have an account yet. Sending it to /login
+// would show them a sign-in form with no explanation of what they were invited
+// to — so the page states what the invitation is for first, then sends them on
+// with ?next= pointing back at itself. It discloses only the trip's name and the
+// offered role, and only to someone already holding a 128-bit token.
+const PUBLIC_ROUTES = ["/login", "/signup", "/auth", "/share", "/invite"];
 
 function isPublicRoute(pathname: string) {
   if (pathname === "/") return true;

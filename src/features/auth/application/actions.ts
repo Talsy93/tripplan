@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import * as z from "zod";
 import { credentialsSchema, type AuthFormState } from "../domain/schemas";
+import { safeNext } from "../domain/redirect";
 import {
   signInWithGoogle,
   signInWithPassword,
@@ -71,7 +72,7 @@ export async function signup(
   }
 
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect(safeNext(formData.get("next")));
 }
 
 export async function login(
@@ -91,12 +92,20 @@ export async function login(
   }
 
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect(safeNext(formData.get("next")));
 }
 
-export async function loginWithGoogle() {
+// Takes FormData because it is used as a form action, and that form carries the
+// invite's ?next= in a hidden field. Google cannot be told where to send the
+// visitor afterwards, so the destination rides along on the callback URL and
+// /auth/callback reads it back off — where it is validated again, because by then
+// it has been outside our control.
+export async function loginWithGoogle(formData?: FormData) {
   const origin = await getRequestOrigin();
-  const { url, error } = await signInWithGoogle(`${origin}/auth/callback`);
+  const next = safeNext(formData?.get("next"));
+  const { url, error } = await signInWithGoogle(
+    `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
+  );
 
   if (error || !url) {
     redirect("/login?error=oauth");

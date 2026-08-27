@@ -87,7 +87,7 @@ export function ShareTrip({
               value={url ?? ""}
               dir="ltr"
               onFocus={(event) => event.currentTarget.select()}
-              className="flex-1"
+              className="min-w-0 flex-1"
               aria-label="קישור השיתוף"
             />
             <Button
