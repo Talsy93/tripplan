@@ -19,7 +19,7 @@ export function BottomNav({ items }: { items: NavItem[] }) {
     >
       <ul className="flex items-stretch justify-around px-1 pt-1.5">
         {items.map((item) => (
-          <li key={item.href} className="flex-1">
+          <li key={item.href} className="min-w-0 flex-1">
             <Link
               href={item.href}
               aria-current={item.active ? "page" : undefined}

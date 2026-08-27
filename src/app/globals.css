@@ -283,6 +283,29 @@ body {
   font-family: var(--font-heebo), Arial, Helvetica, sans-serif;
 }
 
+/* A backstop, not a fix.
+   ---------------------------------------------------------------------------
+   One un-shrinkable element — a `truncate` flex child missing `min-w-0`, a long
+   airport name in a ticket row — used to widen the whole document, so every
+   screen on the phone scrolled sideways and the fixed bottom nav detached from
+   the right edge. The individual causes are fixed at their source; this makes
+   the *class* of bug non-fatal, because on a phone a clipped element is a much
+   smaller failure than a page that no longer fits its viewport.
+
+   `clip`, never `hidden`. `overflow-x: hidden` makes the element a scroll
+   container, and a scroll container between a `position: sticky` element and its
+   intended scrollport silently kills the stickiness — which this app relies on
+   in at least three places (the day index, the destination name in the
+   attractions search, the segmented filters). `clip` clips without ever
+   becoming a scroll container, so sticky keeps working.
+
+   Deliberately on `html` and not `body`: the guard has to sit above the element
+   that establishes the scrollport, or it just moves the sideways scroll one
+   level down instead of removing it. */
+html {
+  overflow-x: clip;
+}
+
 /* Nothing in the app animates for someone who asked it not to. */
 @media (prefers-reduced-motion: reduce) {
   *,

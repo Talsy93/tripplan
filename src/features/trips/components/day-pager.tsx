@@ -95,7 +95,7 @@ export function DayPager({
         <div className="flex min-w-0 flex-col items-center text-center">
           <p className="flex min-w-0 items-center gap-2 text-title font-bold">
             <ToneDot />
-            <span className="truncate">{city ?? "הטיול"}</span>
+            <span className="min-w-0 truncate">{city ?? "הטיול"}</span>
           </p>
           <p className="text-caption font-semibold text-muted">
             {dayOfTripLabel(active.day, dayCount, date)}

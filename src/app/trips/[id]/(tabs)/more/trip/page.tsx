@@ -1,17 +1,18 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChevronLeft, Share2 } from "lucide-react";
 import { SectionHeading, Skeleton } from "@/components/ui";
 import {
   BookingForm,
   BookingList,
   ExpenseSummary,
   getSelectedDestinations,
-  getShareToken,
   getTrip,
   listBookings,
+  listMembers,
   MoreBackLink,
   PushToggle,
-  ShareTrip,
   TripDatesForm,
   WeatherPanel,
 } from "@/features/trips";
@@ -27,11 +28,14 @@ export default async function TripDetailsPage({
   const trip = await getTrip(id);
   if (!trip) notFound();
 
-  const [selected, bookings, shareToken] = await Promise.all([
+  const [selected, bookings, members] = await Promise.all([
     getSelectedDestinations(id),
     listBookings(id),
-    getShareToken(id),
+    listMembers(id),
   ]);
+
+  // The owner is in that list, and is not somebody the trip is shared *with*.
+  const shared = members.filter((member) => !member.is_owner).length;
 
   const cities = [...new Set(selected.map((item) => item.city))].filter(Boolean);
 
@@ -86,14 +90,37 @@ export default async function TripDetailsPage({
         <ExpenseSummary bookings={bookings} />
       </section>
 
+      {/* Sharing used to be a panel at the bottom of this page. It now has a
+          screen of its own — it grew members, roles and pending invitations, and
+          none of that belongs under the expense summary. What stays here is a
+          pointer, because this is where people had learned to look. */}
       <section className="flex flex-col gap-3">
-        <SectionHeading
-          level="section"
-          description="קישור לצפייה בלבד, בלי אפשרות לערוך"
+        <SectionHeading level="section">שיתוף הטיול</SectionHeading>
+        <Link
+          href={`/trips/${trip.id}/more/share`}
+          className="flex min-w-0 items-center gap-3 rounded-card border border-border bg-surface p-4 shadow-soft transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          שיתוף הטיול
-        </SectionHeading>
-        <ShareTrip tripId={trip.id} initialToken={shareToken} />
+          <span
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary-ink"
+            aria-hidden="true"
+          >
+            <Share2 className="h-5 w-5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-base font-semibold">
+              {shared
+                ? `${shared} אנשים יכולים להיכנס לטיול`
+                : "הזמנת אנשים לטיול"}
+            </span>
+            <span className="block text-sm text-muted">
+              צפייה בלבד או עריכה, לפי אימייל — או קישור פומבי בלי חשבון
+            </span>
+          </span>
+          <ChevronLeft
+            className="h-5 w-5 shrink-0 text-muted"
+            aria-hidden="true"
+          />
+        </Link>
       </section>
     </>
   );

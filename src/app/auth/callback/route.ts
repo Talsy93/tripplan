@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
-import { exchangeCodeForSession } from "@/features/auth";
+import { exchangeCodeForSession, safeNext } from "@/features/auth";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+  // Validated rather than trusted: this value survived a round trip through
+  // Google and arrives as a query parameter, which makes it attacker-controlled
+  // exactly like the form field. safeNext refuses anything that is not a plain
+  // in-app path.
+  const next = safeNext(searchParams.get("next"));
 
   if (code) {
     const { error } = await exchangeCodeForSession(code);

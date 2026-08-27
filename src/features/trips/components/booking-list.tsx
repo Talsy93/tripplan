@@ -24,6 +24,7 @@ import {
   findConnections,
   layoverLabel,
 } from "../domain/booking";
+import { cn } from "@/lib/cn";
 import { formatInZone } from "@/lib/datetime";
 import { formatMoney } from "../domain/expenses";
 import { APP_TIME_ZONE } from "../domain/weather";
@@ -147,7 +148,15 @@ export function BookingList({
       )}
 
       {/* Two abreast at xl. A boarding-pass card is wide but not 1200px wide,
-          and a trip with six bookings was six full-width bands before. */}
+          and a trip with six bookings was six full-width bands before.
+
+          `min-w-0` on the items is what actually keeps this inside the viewport.
+          A `1fr` track is `minmax(auto, 1fr)`, and that `auto` floors the column
+          at the item's min-content width — so one un-breakable string in one
+          card sized the whole track, and measuring showed a 744px column inside
+          a 320px phone. Removing the floor lets the track take the space it is
+          given; `wrap-anywhere` below is what then makes the text fit into it.
+          Both halves are needed, and neither is sufficient alone. */}
       <ul className="grid gap-3 xl:grid-cols-2">
         {shown.map((booking, index) => {
           const kind = BOOKING_KINDS[booking.kind];
@@ -175,7 +184,7 @@ export function BookingList({
           ].filter((entry): entry is BookingAlert => entry !== null);
 
           return (
-            <li key={booking.id}>
+            <li key={booking.id} className="min-w-0">
               <Card padding="none" className="h-full overflow-hidden">
                 <div className="flex items-start justify-between gap-3 p-4 pb-2">
                   {/* Wraps rather than squeezing: an alert like "departing in
@@ -183,7 +192,15 @@ export function BookingList({
                       truncated flight number is worse than a second line. */}
                   <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                     <span aria-hidden="true">{kind.emoji}</span>
-                    <span className="truncate text-base font-semibold">
+                    {/* `min-w-0` is not optional on a truncating flex child.
+                        Without it the item keeps its automatic minimum size —
+                        the full width of the un-wrapped string, because
+                        `truncate` sets `white-space: nowrap` — so it refuses to
+                        shrink, pushes the row past the card, and widens the
+                        page instead of ellipsing. The parent having `min-w-0`
+                        does not help: the constraint has to be on the item that
+                        cannot wrap. */}
+                    <span className="min-w-0 truncate text-base font-semibold">
                       {booking.title}
                     </span>
                     {clashing && (
@@ -244,7 +261,11 @@ export function BookingList({
                   booking.free_cancellation_until ||
                   booking.cost_amount !== null ||
                   (!booking.booked && booking.book_by)) && (
-                  <div className="flex flex-col gap-1 border-t border-dashed border-border px-4 py-3 text-caption text-muted">
+                  // `wrap-anywhere` on the container rather than on each line:
+                  // overflow-wrap is inherited, and every field here is a string
+                  // the provider chose — a 36-character confirmation code has no
+                  // spaces to break at.
+                  <div className="flex flex-col gap-1 border-t border-dashed border-border px-4 py-3 text-caption text-muted wrap-anywhere">
                     {booking.confirmation && (
                       <span dir="ltr" className="tabular-nums">
                         קוד הזמנה: {booking.confirmation}
@@ -311,12 +332,24 @@ export function BookingList({
 // A flight or train, laid out the way a ticket is: where you leave, where you
 // land, and the line between them. Forced LTR because origin → destination
 // reads left to right on every ticket in the world, including Hebrew ones.
+// A flight or train, laid out the way a ticket is: where you leave, where you
+// land, and the line between them. Forced LTR because origin → destination
+// reads left to right on every ticket in the world, including Hebrew ones.
+//
+// The endpoints are `basis-0 flex-1`, not auto-width. An airport written out in
+// full ("Ben Gurion International Airport") is far wider than a phone, and an
+// auto-width flex item is floored at its own min-content — so the row grew, the
+// grid column grew with it, and the whole page went wider than the viewport.
+// That was the report: one long flight card widening every screen on mobile.
+// Equal flexible thirds instead, each free to shrink and wrap its own text.
 function TransportLeg({ booking }: { booking: Booking }) {
   return (
-    <div dir="ltr" className="flex items-center gap-3 px-4 pb-4">
+    <div dir="ltr" className="flex items-start gap-2 px-4 pb-4 sm:gap-3">
       <Endpoint place={booking.origin} when={booking.starts_at} />
 
-      <div className="flex flex-1 flex-col items-center gap-1">
+      {/* Never the part that gives way: the connector is decorative, so it
+          shrinks to its icon before either place name loses a character. */}
+      <div className="flex min-w-8 shrink flex-col items-center gap-1 pt-1.5">
         <div className="flex w-full items-center gap-1">
           <span className="h-px flex-1 border-t border-dashed border-border" />
           <Plane className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
@@ -339,8 +372,29 @@ function Endpoint({
   align?: "start" | "end";
 }) {
   return (
-    <div className={align === "end" ? "text-right" : "text-left"}>
-      <p className="text-title font-bold">{place ?? "—"}</p>
+    <div
+      className={cn(
+        // basis-0 so the two endpoints split the row evenly regardless of how
+        // long either name is, and min-w-0 so `break-words` below is actually
+        // allowed to take effect.
+        "min-w-0 flex-1 basis-0",
+        align === "end" ? "text-right" : "text-left",
+      )}
+    >
+      {/* Wraps rather than truncates. A half-shown airport name is not a
+          smaller version of the information — "Ben Gurion Internat…" and
+          "Ben Gurion" are both fine to read, but an ellipsis on a two-word
+          city name loses which city it is.
+
+          `wrap-anywhere`, not `break-words`. They look interchangeable and are
+          not: `overflow-wrap: break-word` permits a mid-word break to avoid
+          overflow, but leaves the element's *min-content contribution* at the
+          width of its longest word — so the grid track above still sized itself
+          to the whole unbroken string. `overflow-wrap: anywhere` is the one that
+          reduces min-content, which is the property this layout depends on. */}
+      <p className="text-title font-bold wrap-anywhere hyphens-auto">
+        {place ?? "—"}
+      </p>
       {when && (
         <p
           className="text-caption tabular-nums text-muted"
@@ -362,8 +416,12 @@ function StayLeg({
 }) {
   const where = bookingWhere(booking);
   return (
-    <div className="flex flex-col gap-1 px-4 pb-4">
-      {where && <span className="truncate text-sm text-muted">{where}</span>}
+    <div className="flex min-w-0 flex-col gap-1 px-4 pb-4">
+      {/* min-w-0 for the same reason as the title: `truncate` sets nowrap, and a
+          nowrap flex item without it keeps the full address as its minimum. */}
+      {where && (
+        <span className="min-w-0 truncate text-sm text-muted">{where}</span>
+      )}
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted">
         {/* Times render in the viewer's timezone and locale, which the server
             doesn't share — the first client render can legitimately differ. */}

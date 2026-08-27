@@ -372,3 +372,75 @@ export { PlaceSearch } from "./components/place-search";
 export { PlaceDetails } from "./components/place-details";
 export { ManualPlaceForm } from "./components/manual-place-form";
 export { RouteMapPanel } from "./components/route-map-panel";
+export {
+  gearCategorySchema,
+  gearItemSchema,
+  gearFormSchema,
+  GEAR_CATEGORIES,
+  GEAR_CATEGORY_ORDER,
+  GEAR_STARTERS,
+  normalizeCategory,
+  groupGear,
+  gearProgress,
+  starterSuggestions,
+} from "./domain/gear";
+export type {
+  GearCategory,
+  GearItem,
+  GearGroup,
+  GearProgress,
+  GearFormValues,
+  GearFormState,
+} from "./domain/gear";
+export { listGear } from "./infrastructure/gear-service";
+export {
+  addGearItem,
+  addGearItems,
+  toggleGearItem,
+  removeGearItem,
+  uncheckAllGear,
+} from "./application/gear-actions";
+export { GearList } from "./components/gear-list";
+export { WorkflowSummary, HowItWorks } from "./components/workflow-summary";
+export {
+  tripRoleSchema,
+  tripMemberSchema,
+  tripInviteSchema,
+  inviteFormSchema,
+  TRIP_ROLES,
+  TRIP_ROLE_ORDER,
+  inviteUrl,
+  inviteMessage,
+  normalizePhone,
+  whatsappUrl,
+  smsUrl,
+  splitMembers,
+  memberLabel,
+} from "./domain/membership";
+export type {
+  TripRole,
+  TripMember,
+  TripInvite,
+  InvitePreview,
+  InviteFormValues,
+  InviteFormState,
+  InviteActionState,
+} from "./domain/membership";
+export {
+  listMembers,
+  listOpenInvites,
+  peekInvite,
+  canEditTrip,
+  isTripOwner,
+} from "./infrastructure/membership-service";
+export {
+  inviteToTrip,
+  cancelInvite,
+  changeMemberRole,
+  revokeMember,
+  redeemInvite,
+} from "./application/membership-actions";
+export { InviteForm } from "./components/invite-form";
+export { MemberList } from "./components/member-list";
+export { ShareButton } from "./components/share-button";
+export { AcceptInvite } from "./components/accept-invite";

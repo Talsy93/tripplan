@@ -1,10 +1,12 @@
 import Link from "next/link";
 import {
+  Backpack,
   ChevronLeft,
   Compass,
   MessageCircle,
   Languages,
   Luggage,
+  Share2,
 } from "lucide-react";
 import { Card, SectionHeading } from "@/components/ui";
 
@@ -16,6 +18,18 @@ const ENTRIES = [
     label: "פרטי הטיול",
     hint: "תאריכים, טיסות, רכבות ולינה",
     Icon: Luggage,
+  },
+  {
+    segment: "gear",
+    label: "ציוד",
+    hint: "רשימת אריזה שאתם ממלאים בעצמכם",
+    Icon: Backpack,
+  },
+  {
+    segment: "share",
+    label: "שיתוף",
+    hint: "הזמנת אנשים, הרשאות, וקישור פומבי",
+    Icon: Share2,
   },
   {
     segment: "guide",
@@ -52,9 +66,13 @@ export default async function MorePage({
 
       {/* Full-width 72px rows in a 1024px column was the most obviously
           phone-only screen in the app. A card each, side by side, once there is
-          room for them. Two across at sm so four entries pair up rather than
-          leaving one stranded on its own row. */}
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          room for them.
+
+          Three across at lg rather than five: at 1024px the content column is
+          about 720px once the rail and the gutters are taken out, and five cards
+          in that leaves 144px each — not enough for a label and its hint without
+          the hint truncating to nothing. Five only at 2xl, where they fit. */}
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
         {ENTRIES.map(({ segment, label, hint, Icon }) => (
           <li key={segment}>
             <Link

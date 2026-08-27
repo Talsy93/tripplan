@@ -242,7 +242,7 @@ export function Itinerary({
                   )}
                 >
                   <ToneDot className="h-2 w-2" />
-                  <span className="truncate">
+                  <span className="min-w-0 truncate">
                     <span className="font-semibold">יום {day.day}</span>
                     {city && <span className="text-muted"> · {city}</span>}
                   </span>

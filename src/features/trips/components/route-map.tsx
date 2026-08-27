@@ -182,7 +182,7 @@ export function RouteMap({
                         <span className="shrink-0 text-caption tabular-nums text-muted">
                           {item.startLabel}
                         </span>
-                        <span className="truncate">{item.title}</span>
+                        <span className="min-w-0 truncate">{item.title}</span>
                       </li>
                     ))}
                   </ul>

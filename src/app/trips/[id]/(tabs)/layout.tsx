@@ -6,8 +6,11 @@ import { Badge } from "@/components/ui";
 import {
   APP_TIME_ZONE,
   getItineraryDayCount,
+  getShareToken,
   getTrip,
+  listMembers,
   phaseLabel,
+  ShareButton,
   todayIn,
   TripNav,
   TripSideNav,
@@ -61,7 +64,17 @@ export default async function TripTabsLayout({
 
   // Derived, not stored — see ARCHITECTURE.md #6. The day count only changes
   // the answer for a trip with a start date and no end date.
-  const dayCount = await getItineraryDayCount(trip.id);
+  //
+  // The member list and share token are read here rather than inside
+  // ShareButton so the app bar can say whether the trip is shared without being
+  // opened. They ride along on a layout that already awaits a query, and this
+  // layout does not re-render when switching tabs, so it is one read per trip
+  // rather than one per navigation.
+  const [dayCount, members, shareToken] = await Promise.all([
+    getItineraryDayCount(trip.id),
+    listMembers(trip.id),
+    getShareToken(trip.id),
+  ]);
   const phase = tripPhase(
     trip.start_date,
     trip.end_date,
@@ -86,9 +99,29 @@ export default async function TripTabsLayout({
             </Link>
           }
           trailing={
-            <Badge tone={phase.kind === "during" ? "success" : "neutral"}>
-              {phaseLabel(phase)}
-            </Badge>
+            <>
+              {/* Sharing, in the app bar of every trip screen. It used to be the
+                  last section of "עוד → פרטי הטיול", below the dates, the
+                  weather, every booking and the expense summary — findable only
+                  by someone who already knew it was there. */}
+              <ShareButton
+                tripId={trip.id}
+                // The owner is in this list, and they are not "shared with".
+                memberCount={members.filter((member) => !member.is_owner).length}
+                isShared={shareToken !== null}
+              />
+              {/* Hidden on phones: the bar already holds the back link, the trip
+                  name and now the share control, and the phase is restated on
+                  the day screen itself. sm and not a custom xs — this project
+                  defines no breakpoints beyond Tailwind's own, and an undefined
+                  `xs:` variant compiles to nothing at all rather than to a
+                  narrower rule. */}
+              <span className="hidden sm:inline-flex">
+                <Badge tone={phase.kind === "during" ? "success" : "neutral"}>
+                  {phaseLabel(phase)}
+                </Badge>
+              </span>
+            </>
           }
         />
       }

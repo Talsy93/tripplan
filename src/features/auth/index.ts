@@ -12,3 +12,4 @@ export {
   exchangeCodeForSession,
   getCurrentUser,
 } from "./infrastructure/auth-service";
+export { safeNext } from "./domain/redirect";

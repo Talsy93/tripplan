@@ -7,28 +7,39 @@ import { WORKFLOW_STEPS } from "../domain/workflow";
 //
 // A server component: it renders text and links and holds no state, so there
 // is no reason to ship it to the browser.
-export function WorkflowGuide({ tripId }: { tripId: string }) {
+//
+// `tripId` is nullable because the guide is also shown on the home screen,
+// before any trip exists — that is where someone first needs to know what the
+// app expects of them. With no trip there is nothing for a step to link to, so
+// the links are dropped rather than pointed somewhere invented; the wording is
+// the same either way, which is the reason WORKFLOW_STEPS is data in the domain.
+export function WorkflowGuide({ tripId }: { tripId: string | null }) {
   return (
     <ol className="flex flex-col gap-3">
       {WORKFLOW_STEPS.map((step) => {
-        const href = step.subPath
-          ? `/trips/${tripId}/${step.tab}/${step.subPath}`
-          : `/trips/${tripId}/${step.tab}`;
+        const href = !tripId
+          ? null
+          : step.subPath
+            ? `/trips/${tripId}/${step.tab}/${step.subPath}`
+            : `/trips/${tripId}/${step.tab}`;
 
         return (
           <li key={step.id}>
             <Card className="flex flex-col gap-3">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="text-base font-bold">{step.title}</h3>
+                <h3 className="min-w-0 text-base font-bold">{step.title}</h3>
                 {/* The link is the point of the guide — a step you have to go
-                    and find is a step you read and forget. */}
-                <Link
-                  href={href}
-                  className="flex shrink-0 items-center gap-1 rounded-control text-sm font-semibold text-primary-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {step.action}
-                  <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                </Link>
+                    and find is a step you read and forget. Absent only on the
+                    home screen, where there is no trip yet to link into. */}
+                {href && (
+                  <Link
+                    href={href}
+                    className="flex shrink-0 items-center gap-1 rounded-control text-sm font-semibold text-primary-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {step.action}
+                    <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                )}
               </div>
 
               <p className="text-sm text-muted">{step.body}</p>

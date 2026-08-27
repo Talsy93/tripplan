@@ -1,9 +1,12 @@
 import { buttonClasses } from "@/components/ui";
 import { loginWithGoogle } from "../application/actions";
 
-export function GoogleButton() {
+export function GoogleButton({ next }: { next?: string }) {
   return (
     <form action={loginWithGoogle} className="w-full">
+      {/* Same hidden field as the credentials form, so signing in with Google
+          from an invite link comes back to the invite rather than to "/". */}
+      {next && <input type="hidden" name="next" value={next} />}
       <button type="submit" className={buttonClasses("outline", "md", "w-full")}>
         <svg aria-hidden="true" viewBox="0 0 18 18" className="h-4 w-4">
           <path
