@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import * as z from "zod";
 import { credentialsSchema, type AuthFormState } from "../domain/schemas";
-import { safeNext } from "../domain/redirect";
+import { OAUTH_NEXT_COOKIE, safeNext } from "../domain/redirect";
 import {
   signInWithGoogle,
   signInWithPassword,
@@ -96,16 +96,40 @@ export async function login(
 }
 
 // Takes FormData because it is used as a form action, and that form carries the
-// invite's ?next= in a hidden field. Google cannot be told where to send the
-// visitor afterwards, so the destination rides along on the callback URL and
-// /auth/callback reads it back off — where it is validated again, because by then
-// it has been outside our control.
+// invite's ?next= in a hidden field.
+//
+// The destination travels in a short-lived cookie, **not** on the callback URL.
+// The first version of this appended `?next=…` to the redirectTo, which broke
+// Google sign-in in production: Supabase validates redirectTo against the
+// project's Redirect URLs allow-list, and the configured entry is the bare
+// `/auth/callback` with no wildcard. A URL carrying a query string does not
+// match it, so Supabase fell back to the Site URL — which never exchanges the
+// code for a session, so the visitor arrived back logged out and any protected
+// page bounced them to /login. It looked exactly like "I sign in and it returns
+// me to the login page".
+//
+// A cookie avoids the allow-list entirely, and keeps the redirect target off a
+// URL that gets logged by two other parties on its way through Google.
 export async function loginWithGoogle(formData?: FormData) {
   const origin = await getRequestOrigin();
   const next = safeNext(formData?.get("next"));
-  const { url, error } = await signInWithGoogle(
-    `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
-  );
+
+  // Only written when there is somewhere specific to go, so the ordinary
+  // sign-in path sets no cookie at all.
+  if (next !== "/") {
+    const cookieStore = await cookies();
+    cookieStore.set(OAUTH_NEXT_COOKIE, next, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      // Long enough to pick a Google account, short enough that a stale value
+      // cannot resurface on an unrelated sign-in days later.
+      maxAge: 600,
+    });
+  }
+
+  const { url, error } = await signInWithGoogle(`${origin}/auth/callback`);
 
   if (error || !url) {
     redirect("/login?error=oauth");

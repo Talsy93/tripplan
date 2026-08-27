@@ -56,3 +56,19 @@ export function safeNext(value: unknown): string {
 
   return trimmed;
 }
+
+// The cookie that carries the post-sign-in destination across an OAuth round
+// trip.
+//
+// It lives here, and not next to loginWithGoogle, because a `"use server"`
+// module may only export async functions — exporting a string constant from one
+// is a build error. The callback route reads it too, so a shared module is the
+// right home regardless.
+//
+// Why a cookie at all: the destination used to be appended to the Supabase
+// `redirectTo` as `?next=…`, and that broke Google sign-in in production.
+// Supabase matches redirectTo against the project's Redirect URLs allow-list,
+// whose entry is the bare `/auth/callback`; a URL with a query string does not
+// match, so Supabase fell back to the Site URL, the code was never exchanged for
+// a session, and the visitor came back signed out.
+export const OAUTH_NEXT_COOKIE = "mytrip-oauth-next";
