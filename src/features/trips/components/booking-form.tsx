@@ -215,7 +215,7 @@ export function BookingForm({
           ))}
         </div>
 
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex min-w-0 flex-col gap-1 text-sm">
           <span className="text-muted">
             {isTransport ? "מספר טיסה / רכבת" : "שם המלון"}
           </span>
@@ -232,7 +232,7 @@ export function BookingForm({
 
         {isTransport ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
               <span className="text-muted">מ־</span>
               <Input
                 name="origin"
@@ -240,7 +240,7 @@ export function BookingForm({
                 defaultValue={was("origin")}
               />
             </label>
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
               <span className="text-muted">אל־</span>
               <Input
                 name="destination"
@@ -250,7 +250,7 @@ export function BookingForm({
             </label>
           </div>
         ) : (
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex min-w-0 flex-col gap-1 text-sm">
             <span className="text-muted">כתובת</span>
             <Input
               name="address"
@@ -261,7 +261,7 @@ export function BookingForm({
         )}
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex min-w-0 flex-col gap-1 text-sm">
             <span className="text-muted">
               {isTransport ? "יציאה" : "צ׳ק-אין"}
             </span>
@@ -276,7 +276,7 @@ export function BookingForm({
             />
             <FieldError message={errorFor("startsAt")} />
           </label>
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex min-w-0 flex-col gap-1 text-sm">
             <span className="text-muted">
               {isTransport ? "הגעה (לא חובה)" : "צ׳ק-אאוט"}
             </span>
@@ -293,7 +293,7 @@ export function BookingForm({
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex min-w-0 flex-col gap-1 text-sm">
             <span className="text-muted">יעד בטיול (לא חובה)</span>
             <Select name="city" defaultValue={was("city")}>
               <option value="">—</option>
@@ -304,7 +304,7 @@ export function BookingForm({
               ))}
             </Select>
           </label>
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex min-w-0 flex-col gap-1 text-sm">
             <span className="text-muted">מספר אישור (לא חובה)</span>
             <Input
               name="confirmation"
@@ -316,7 +316,7 @@ export function BookingForm({
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex min-w-0 flex-col gap-1 text-sm">
             <span className="text-muted">עלות (לא חובה)</span>
             <Input
               type="number"
@@ -331,7 +331,7 @@ export function BookingForm({
             />
             <FieldError message={errorFor("costAmount")} />
           </label>
-          <label className="flex flex-col gap-1 text-sm">
+          <label className="flex min-w-0 flex-col gap-1 text-sm">
             <span className="text-muted">מטבע</span>
             {/* A picker, not a text field: a typed code is a typo waiting to
                 split one currency into two totals that never sum. Defaults to
@@ -352,7 +352,7 @@ export function BookingForm({
           </label>
         </div>
 
-        <label className="flex flex-col gap-1 text-sm">
+        <label className="flex min-w-0 flex-col gap-1 text-sm">
           <span className="text-muted">הערות (לא חובה)</span>
           <Textarea
             name="note"
@@ -392,7 +392,7 @@ export function BookingForm({
                 and hiding it keeps the form from asking a question that has no
                 answer for a ticket already in hand. */}
             {!booked && (
-              <label className="flex flex-col gap-1 text-sm">
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
                 <span className="text-muted">להזמין עד</span>
                 <Input
                   type="date"
@@ -406,7 +406,7 @@ export function BookingForm({
               </label>
             )}
 
-            <label className="flex flex-col gap-1 text-sm">
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
               <span className="text-muted">
                 ביטול חינם עד{" "}
                 <span className="text-xs">(אם יש)</span>
@@ -452,7 +452,7 @@ export function BookingForm({
             </div>
 
             {leadChoice === CUSTOM ? (
-              <label className="flex flex-col gap-1 text-sm">
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
                 <span className="text-muted">כמה ימים מראש</span>
                 <Input
                   type="number"

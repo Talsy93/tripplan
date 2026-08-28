@@ -7,7 +7,15 @@ import { cn } from "@/lib/cn";
 // exactly what booking-form looked like before phase D (rounded-lg select next
 // to a rounded-control input).
 const control = cn(
-  "w-full rounded-control border border-border-strong bg-surface text-foreground",
+  // `min-w-0` alongside `w-full`, and the two are not the same thing.
+  // `w-full` is `width: 100%`, which says nothing about how small the box may
+  // get: a flex or grid item keeps `min-width: auto`, floored at its own
+  // min-content. For an <input> that floor is the width implied by the `size`
+  // attribute — roughly 20 characters — and for date/datetime-local it is wider
+  // still, because the box has to fit "dd/mm/yyyy --:--" plus a picker glyph.
+  // So a single date field could hold a whole grid track open wider than the
+  // phone it was being read on.
+  "w-full min-w-0 rounded-control border border-border-strong bg-surface text-foreground",
   "placeholder:text-muted",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
   "disabled:opacity-50 disabled:pointer-events-none",
@@ -39,7 +47,10 @@ export function Select({
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <div className="relative">
+    // min-w-0 on the wrapper too: it is the element that becomes the flex/grid
+    // item, so the select's own min-w-0 cannot help unless its wrapper can also
+    // be squeezed.
+    <div className="relative min-w-0">
       <select
         className={cn(control, "h-10 appearance-none ps-3 pe-9", className)}
         {...props}
@@ -67,7 +78,11 @@ type FieldProps = {
 // cannot go stale.
 export function Field({ label, hint, error, children, className }: FieldProps) {
   return (
-    <label className={cn("flex flex-col gap-1.5", className)}>
+    // min-w-0 by default: a Field is very often a flex item in a `sm:flex-row`
+    // of two, and without it the row is floored at the sum of the two controls'
+    // intrinsic widths. Several call sites had learned to pass `min-w-0`
+    // themselves, which is a sign it belonged here.
+    <label className={cn("flex min-w-0 flex-col gap-1.5", className)}>
       <span className="text-sm font-semibold">{label}</span>
       {children}
       {error ? (
