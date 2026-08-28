@@ -1,6 +1,11 @@
 import { AppHeader, AppShell } from "@/components/layout";
 import { SectionHeading } from "@/components/ui";
-import { getCurrentUser, LogoutButton } from "@/features/auth";
+import {
+  getCurrentUser,
+  hasPasswordIdentity,
+  LogoutButton,
+  PasswordSettings,
+} from "@/features/auth";
 import {
   APP_TIME_ZONE,
   CountdownHero,
@@ -20,7 +25,14 @@ import { getPlaceImage } from "@/lib/place-image";
 export const metadata = { title: "הטיולים שלי · MyTrip" };
 
 export default async function ProfilePage() {
-  const [user, trips] = await Promise.all([getCurrentUser(), listTrips()]);
+  const [user, trips, hasPassword] = await Promise.all([
+    getCurrentUser(),
+    listTrips(),
+    // Whether the account has a password identity at all. A Google-only account
+    // has none — Supabase creates no password for a provider sign-in — so the
+    // section below offers to set one rather than to change one.
+    hasPasswordIdentity(),
+  ]);
 
   // Feature the soonest upcoming trip: a photo of its destination, the
   // countdown, and the route as coloured chips.
@@ -94,6 +106,14 @@ export default async function ProfilePage() {
           <SectionHeading level="sub">כל הטיולים · {trips.length}</SectionHeading>
         )}
         <TripList trips={trips} today={todayIn(APP_TIME_ZONE, new Date())} />
+      </section>
+
+      {/* Last on the page, collapsed, because it is an account setting and not
+          something anyone came here to do — except a Google-only account, which
+          has no other way to obtain a password. */}
+      <section className="flex flex-col gap-3">
+        <SectionHeading level="sub">החשבון</SectionHeading>
+        <PasswordSettings hasPassword={hasPassword} />
       </section>
     </AppShell>
   );

@@ -4,13 +4,22 @@ import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import * as z from "zod";
-import { credentialsSchema, type AuthFormState } from "../domain/schemas";
+import {
+  credentialsSchema,
+  newPasswordSchema,
+  resetRequestSchema,
+  type AuthFormState,
+  type NewPasswordState,
+  type ResetRequestState,
+} from "../domain/schemas";
 import { OAUTH_NEXT_COOKIE, safeNext } from "../domain/redirect";
 import {
+  sendPasswordReset,
   signInWithGoogle,
   signInWithPassword,
   signOut,
   signUpWithPassword,
+  updatePassword,
 } from "../infrastructure/auth-service";
 
 async function getRequestOrigin() {
@@ -142,4 +151,81 @@ export async function logout() {
   await signOut();
   revalidatePath("/", "layout");
   redirect("/login");
+}
+
+// ---- Password recovery ----------------------------------------------------
+
+// Asks Supabase to email a recovery link.
+//
+// **Always reports the same outcome**, whether or not the address is registered.
+// Reporting "no such user" would turn this form into a way to test whether any
+// given person has an account here, which is exactly what an enumeration oracle
+// is. The one exception is the rate limit, which is a fact about the caller's own
+// request rather than about somebody else's account — and staying silent there
+// would leave them re-submitting a form that cannot work yet.
+export async function requestPasswordReset(
+  _state: ResetRequestState,
+  formData: FormData,
+): Promise<ResetRequestState> {
+  const parsed = resetRequestSchema.safeParse({ email: formData.get("email") });
+
+  if (!parsed.success) {
+    return { errors: z.flattenError(parsed.error).fieldErrors };
+  }
+
+  const origin = await getRequestOrigin();
+  const { error } = await sendPasswordReset(
+    parsed.data.email,
+    `${origin}/reset/confirm`,
+  );
+
+  // Supabase's built-in mailer allows only a few messages an hour on the free
+  // tier, so this is a state real users will hit rather than a theoretical one.
+  if (error && /rate limit|too many/i.test(error)) {
+    return {
+      message:
+        "נשלחו יותר מדי בקשות. השירות החינמי מגביל את מספר המיילים בשעה — נסו שוב בעוד כמה דקות.",
+    };
+  }
+
+  if (error) console.error("requestPasswordReset failed:", error);
+
+  return { sent: true };
+}
+
+// Sets the new password. Requires a session, which the recovery link creates
+// when /reset/confirm exchanges its code — so an unauthenticated caller here has
+// no link, and gets told to start over rather than being handed a form to fill.
+export async function setNewPassword(
+  _state: NewPasswordState,
+  formData: FormData,
+): Promise<NewPasswordState> {
+  const parsed = newPasswordSchema.safeParse({
+    password: formData.get("password"),
+    confirm: formData.get("confirm"),
+  });
+
+  if (!parsed.success) {
+    return { errors: z.flattenError(parsed.error).fieldErrors };
+  }
+
+  const { error } = await updatePassword(parsed.data.password);
+
+  if (error) {
+    // The most common real failure is an expired or already-used link, which
+    // reaches here as a missing session rather than as a password problem.
+    if (/session|jwt|token/i.test(error)) {
+      return {
+        message:
+          "הקישור פג או שכבר נעשה בו שימוש. בקשו קישור חדש ונסו שוב.",
+      };
+    }
+    if (/should be different|same as/i.test(error)) {
+      return { message: "הסיסמה החדשה זהה לקודמת. בחרו סיסמה אחרת." };
+    }
+    return { message: "עדכון הסיסמה נכשל. נסו שוב." };
+  }
+
+  revalidatePath("/", "layout");
+  return { done: true };
 }

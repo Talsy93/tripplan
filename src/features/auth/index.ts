@@ -13,3 +13,20 @@ export {
   getCurrentUser,
 } from "./infrastructure/auth-service";
 export { safeNext, OAUTH_NEXT_COOKIE } from "./domain/redirect";
+export {
+  requestPasswordReset,
+  setNewPassword,
+} from "./application/actions";
+export {
+  resetRequestSchema,
+  newPasswordSchema,
+} from "./domain/schemas";
+export type {
+  NewPassword,
+  ResetRequestState,
+  NewPasswordState,
+} from "./domain/schemas";
+export { hasPasswordIdentity } from "./infrastructure/auth-service";
+export { ResetRequestForm } from "./components/reset-request-form";
+export { NewPasswordForm } from "./components/new-password-form";
+export { PasswordSettings } from "./components/password-settings";
