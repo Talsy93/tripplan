@@ -7,20 +7,15 @@ import { Banner, Button, Field, Input, buttonClasses } from "@/components/ui";
 import { setNewPassword } from "../application/actions";
 import type { NewPasswordState } from "../domain/schemas";
 
-// Setting a password.
+// Setting a new password, at the end of the emailed recovery link.
 //
-// Serves two situations that are the same form and different sentences: arriving
-// from a recovery link, and adding a password to an account that has only ever
-// signed in with Google. `mode` picks the wording; the action is identical.
-export function NewPasswordForm({
-  mode,
-  onDoneHref,
-}: {
-  mode: "recover" | "add" | "change";
-  // Where to go afterwards. The recovery flow sends people into the app; the
-  // in-app version stays where it is and just confirms.
-  onDoneHref?: string;
-}) {
+// This is the *only* way a password changes in this app. There is no
+// change-password screen behind a session, and no way to add a password to a
+// Google account — both were removed on purpose. The consequence is worth
+// stating plainly: every password change is authorised by proving control of the
+// mailbox, so a stolen session cannot quietly change the password and lock the
+// real owner out.
+export function NewPasswordForm() {
   const [state, action, pending] = useActionState<NewPasswordState, FormData>(
     setNewPassword,
     undefined,
@@ -35,42 +30,28 @@ export function NewPasswordForm({
               className="mt-0.5 h-4 w-4 shrink-0"
               aria-hidden="true"
             />
-            {mode === "add"
-              ? "הסיסמה נקבעה. מעכשיו אפשר להיכנס גם עם אימייל וסיסמה, וגם דרך Google."
-              : "הסיסמה עודכנה."}
+            הסיסמה עודכנה. אפשר להיכנס איתה מעכשיו.
           </span>
         </Banner>
-        {onDoneHref && (
-          <Link
-            href={onDoneHref}
-            className={buttonClasses("primary", "md", "self-start")}
-          >
-            להמשיך לאפליקציה
-          </Link>
-        )}
+        <Link
+          href="/profile"
+          className={buttonClasses("primary", "md", "self-start")}
+        >
+          להמשיך לאפליקציה
+        </Link>
       </div>
     );
   }
 
   return (
     <form action={action} className="flex w-full flex-col gap-4">
-      {mode === "recover" && (
-        <>
-          <h1 className="text-heading font-bold">סיסמה חדשה</h1>
-          <p className="text-sm text-muted">
-            בחרו סיסמה חדשה. הקישור שהגעתם דרכו תקף לשימוש אחד.
-          </p>
-        </>
-      )}
-      {mode === "add" && (
-        <p className="text-sm text-muted">
-          נרשמתם דרך Google, ולכן אין לחשבון סיסמה. קביעת סיסמה כאן תוסיף דרך
-          כניסה שנייה — Google ימשיך לעבוד בדיוק כמו עד עכשיו.
-        </p>
-      )}
+      <h1 className="text-heading font-bold">סיסמה חדשה</h1>
+      <p className="text-sm text-muted">
+        בחרו סיסמה חדשה. הקישור שהגעתם דרכו תקף לשימוש אחד.
+      </p>
 
       <Field
-        label={mode === "add" ? "סיסמה חדשה" : "סיסמה"}
+        label="סיסמה"
         hint="לפחות 8 תווים."
         error={state?.errors?.password?.join(" ")}
       >
@@ -101,13 +82,8 @@ export function NewPasswordForm({
 
       {state?.message && <Banner tone="danger">{state.message}</Banner>}
 
-      <Button
-        type="submit"
-        loading={pending}
-        size={mode === "recover" ? "lg" : "md"}
-        className={mode === "recover" ? "w-full" : "self-start"}
-      >
-        {mode === "add" ? "קביעת סיסמה" : "עדכון הסיסמה"}
+      <Button type="submit" loading={pending} size="lg" className="w-full">
+        עדכון הסיסמה
       </Button>
     </form>
   );

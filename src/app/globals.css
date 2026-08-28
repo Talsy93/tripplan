@@ -306,6 +306,35 @@ html {
   overflow-x: clip;
 }
 
+/* Form controls never smaller than 16px on a touch device.
+   ---------------------------------------------------------------------------
+   iOS Safari zooms the whole viewport in when a control it is about to focus has
+   a font-size under 16px — and it does not zoom back out afterwards. The page
+   then genuinely is too wide, the fixed bottom nav detaches, and every following
+   tap lands in the wrong place. It reads as "the inputs are broken on mobile",
+   which is exactly how it was reported.
+
+   The controls had no font-size of their own and inherited it, so the ones
+   inside a dense form (`text-sm` on the wrapping label) were 14px: text,
+   datetime-local, number, select and textarea. Measured, not assumed — email,
+   password and date happened to sit in containers that left them at 16px, which
+   is why the bug looked arbitrary.
+
+   `pointer: coarse` rather than a width breakpoint: the trigger is touch, not
+   screen size, so a 768px iPad needs this and a 375px desktop window does not.
+   That keeps the 14px control text of the desktop design exactly as it was.
+
+   An element selector, so it loses to any deliberate utility class on the
+   control itself — there are none today, and if one is ever added on purpose it
+   should win. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 1rem;
+  }
+}
+
 /* Nothing in the app animates for someone who asked it not to. */
 @media (prefers-reduced-motion: reduce) {
   *,

@@ -287,7 +287,7 @@ export function PushToggle() {
       )}
 
       {state.kind === "unconfigured" && (
-        <Surface tone="sunken" padding="sm" className="flex flex-col gap-1 text-sm">
+        <Surface tone="sunken" padding="sm" className="flex min-w-0 flex-col gap-1 text-sm">
           <p className="font-semibold text-danger-ink">
             התראות לא הוגדרו בשרת
           </p>

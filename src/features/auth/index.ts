@@ -29,4 +29,3 @@ export type {
 export { hasPasswordIdentity } from "./infrastructure/auth-service";
 export { ResetRequestForm } from "./components/reset-request-form";
 export { NewPasswordForm } from "./components/new-password-form";
-export { PasswordSettings } from "./components/password-settings";
