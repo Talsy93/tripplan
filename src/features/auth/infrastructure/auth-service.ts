@@ -47,3 +47,42 @@ export async function getCurrentUser() {
 
   return data.user;
 }
+
+// ---- Password recovery ----------------------------------------------------
+
+// Sends the recovery email. `redirectTo` must be registered in the Supabase
+// project's Redirect URLs allow-list, or Supabase silently falls back to the
+// Site URL — the same trap that broke Google sign-in in phase K.
+export async function sendPasswordReset(email: string, redirectTo: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo,
+  });
+
+  return { error: error?.message ?? null };
+}
+
+// Sets a password on the current session's user.
+//
+// This is the only way a Google account gains a password: signing in with a
+// provider creates a user with no password at all, so "email + password" for
+// that account has nothing to compare against until this runs.
+export async function updatePassword(password: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.updateUser({ password });
+
+  return { error: error?.message ?? null };
+}
+
+// Whether the caller has a password identity, so the UI can say "set a password"
+// to a Google-only account and "change password" to one that already has one.
+//
+// Read from the identities array rather than from a column: Supabase does not
+// expose "has a password" directly, but an email/password account always carries
+// an identity with provider "email".
+export async function hasPasswordIdentity() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  const identities = data.user?.identities ?? [];
+  return identities.some((identity) => identity.provider === "email");
+}

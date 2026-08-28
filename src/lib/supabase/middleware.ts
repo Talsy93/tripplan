@@ -15,7 +15,20 @@ import { NextResponse, type NextRequest } from "next/server";
 // to — so the page states what the invitation is for first, then sends them on
 // with ?next= pointing back at itself. It discloses only the trip's name and the
 // offered role, and only to someone already holding a 128-bit token.
-const PUBLIC_ROUTES = ["/login", "/signup", "/auth", "/share", "/invite"];
+//
+// `/reset` is password recovery, which by definition belongs to somebody who
+// cannot sign in. `/reset/confirm` is under it and must stay public too: it
+// arrives with a code in the URL and mints its own session by exchanging it, so
+// at the moment the request hits this middleware there is genuinely no session
+// yet — sending it to /login would break the flow one step before it works.
+const PUBLIC_ROUTES = [
+  "/login",
+  "/signup",
+  "/auth",
+  "/share",
+  "/invite",
+  "/reset",
+];
 
 function isPublicRoute(pathname: string) {
   if (pathname === "/") return true;

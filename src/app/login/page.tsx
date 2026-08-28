@@ -39,6 +39,17 @@ export default async function LoginPage({
           </div>
 
           <GoogleButton next={carry ?? undefined} />
+
+          {/* Below the sign-in options rather than beside the password field:
+              somebody who knows their password should not be offered a reset on
+              the way to typing it. Until phase K there was no recovery flow at
+              all, which meant a forgotten password locked the account for good. */}
+          <Link
+            href="/reset"
+            className="self-center rounded-control text-caption text-muted hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            שכחתם סיסמה? או שנרשמתם דרך Google ורוצים לקבוע אחת
+          </Link>
         </div>
 
         <p className="border-t border-border bg-surface-2 p-4 text-center text-sm text-muted">

@@ -169,15 +169,33 @@ as $$
   );
 $$;
 
--- anon is not granted execute: every one of these answers a question about
--- auth.uid(), which is null for anon, so the only possible answer is false. The
--- public share page reads through the service-role client instead (0015).
-revoke all on function public.is_trip_owner(uuid) from public, anon;
-revoke all on function public.can_view_trip(uuid) from public, anon;
-revoke all on function public.can_edit_trip(uuid) from public, anon;
-grant execute on function public.is_trip_owner(uuid) to authenticated;
-grant execute on function public.can_view_trip(uuid) to authenticated;
-grant execute on function public.can_edit_trip(uuid) to authenticated;
+-- Executable by every role that can reach the tables, `anon` included.
+--
+-- This originally revoked EXECUTE from PUBLIC and anon, on the reasoning that
+-- these answer a question about auth.uid() and anon has no business asking. That
+-- was wrong, it broke production, and migration 0019 fixed it — the correction
+-- is kept here so a fresh install does not reintroduce it.
+--
+-- **An RLS policy is evaluated as the role running the query.** So `anon`
+-- selecting from `trips` executes the policy body, which calls can_view_trip().
+-- Without EXECUTE, PostgreSQL does not return false — it raises
+-- `42501: permission denied for function can_view_trip` and fails the whole
+-- query. All eight trip-scoped tables started erroring instead of returning no
+-- rows.
+--
+-- Granting to anon is safe: auth.uid() is null for anon, both EXISTS clauses are
+-- false, and the answer is false. The protection is the policy returning false,
+-- not the caller being unable to ask.
+--
+-- service_role is included deliberately. It bypasses RLS today, so nothing
+-- breaks without it, but the public share page and the notifications cron both
+-- run through it and should not depend on `bypassrls` remaining true.
+grant execute on function public.is_trip_owner(uuid)
+  to anon, authenticated, service_role;
+grant execute on function public.can_view_trip(uuid)
+  to anon, authenticated, service_role;
+grant execute on function public.can_edit_trip(uuid)
+  to anon, authenticated, service_role;
 
 -- 5. Rewrite every trip-scoped policy ----------------------------------------
 -- The old policies were all `for all` with one ownership test. They are split
@@ -483,8 +501,12 @@ as $$
   order by listed.is_owner desc, listed.joined_at asc;
 $$;
 
+-- Safe to restrict, unlike the three helpers above: this one is called directly
+-- over RPC and is never referenced by a policy, so a missing EXECUTE means "you
+-- cannot call it" rather than "every query against the table fails".
 revoke all on function public.list_trip_members(uuid) from public, anon;
-grant execute on function public.list_trip_members(uuid) to authenticated;
+grant execute on function public.list_trip_members(uuid)
+  to authenticated, service_role;
 
 -- 10. The owner column cannot be reassigned -----------------------------------
 -- A hole RLS on its own does not close, found by re-reading section 5.
