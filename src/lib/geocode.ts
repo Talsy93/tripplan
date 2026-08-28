@@ -93,10 +93,29 @@ export async function geocodePlace(
     }
   }
 
-  // Only fall back to Nominatim when we have context to constrain it. Bare
-  // Hebrew names match wildly unrelated places — "האקונה" alone resolves to an
-  // office in Los Angeles — and a confidently wrong pin is worse than none.
+  // Nominatim, on the bare name first and then with context.
+  //
+  // The bare query used to be forbidden, with a correct observation behind it:
+  // "האקונה" on its own resolves to an office in Los Angeles, and a confidently
+  // wrong pin is worse than none. What has changed is that the answer is now
+  // *verified* — fetchNominatimCoordinates keeps only candidates whose
+  // `addresstype` is somewhere a person could travel to, and that office comes
+  // back as `addresstype=office` and is rejected.
+  //
+  // Allowing it matters, because Wikipedia cannot resolve every place: the
+  // he.wikipedia article "טאקיאמה" exists but carries no coordinates, so the
+  // Wikipedia path can only ever miss on it, while Nominatim answers
+  // 36.1396,137.2510 — the right city — from the Hebrew name alone.
+  //
+  // Bare name before context: context narrows a search that is already precise,
+  // and Nominatim resolved every city measured (Osaka, Kyoto, Nara, Hiroshima,
+  // Takayama) without it while "קנזאווה יפן" found nothing that "קנזאווה" did
+  // not.
+  const bare = await fetchNominatimCoordinates(trimmed);
+  if (bare) return bare;
+
   if (!cleaned) return null;
+  await sleep(MIN_INTERVAL_MS);
   return fetchNominatimCoordinates(trimmed, cleaned);
 }
 
@@ -179,14 +198,78 @@ async function fetchWikiCoordinates(
     }
     if (places.length === 0) return null;
 
-    // Search ranks by relevance to "<name> <context>", so a nearby place can
-    // outrank the one asked for. Prefer a title that actually names it.
-    const best = places.find((page) => page.title.includes(name)) ?? places[0];
+    // The article's title must actually name the place asked for. If none does,
+    // this is a miss.
+    //
+    // This used to end in `?? places[0]` — prefer a title match, otherwise take
+    // the top-ranked article that happens to have coordinates. That is what put
+    // pins in the wrong country, and the failure is worth spelling out because
+    // it looks so reasonable:
+    //
+    //   `generator=search` is *full-text* search, not a place lookup. Searching
+    //   he.wikipedia for "טאקיאמה" returns "פרס גראמי לאלבום השנה" (no
+    //   coordinates), then "איסהאיה" — a different Japanese city 700km away —
+    //   and the old code pinned Takayama onto Isahaya. Searching "טוקיו" ranks
+    //   "פאלה דה טוקיו" second, which is a building in Paris; had Tokyo's own
+    //   article been missing, Tokyo would have been pinned in France.
+    //
+    // A miss is the correct answer here. No pin is honest; a confidently wrong
+    // pin is worse than none, and downstream country-correction can only repair
+    // the cases where the wrong answer happened to land abroad.
+    const wanted = normalizeName(name);
+    const best = places.find((page) => {
+      const title = normalizeName(page.title);
+      // Prefix rather than equality: he.wikipedia titles a place with its
+      // disambiguator attached — "שירקאווה-גו וגוקאיאמה" is the article for
+      // "שירקאווה-גו", and rejecting it would lose a place we can resolve.
+      return title === wanted || title.startsWith(wanted);
+    });
+    if (!best) return null;
+
     return { latitude: best.latitude, longitude: best.longitude };
   } catch {
     return null;
   }
 }
+
+// Compared with punctuation and Hebrew diacritics removed, because a title and a
+// query rarely agree on them: "שירקאווה-גו" vs "שירקאווה גו", or a name written
+// with gershayim. Whitespace goes too, so a hyphen/space difference cannot
+// reject a real match.
+function normalizeName(value: string): string {
+  return value
+    .replace(/[֑-ׇ]/g, "")
+    .replace(/["'׳״‘’“”()־-]/g, "")
+    .replace(/\s+/g, "")
+    .toLowerCase();
+}
+
+// Address types that can be a trip destination.
+//
+// This is what makes Nominatim safe to query on a bare Hebrew name, and it is
+// the whole reason the bare query is allowed at all now. Measured against the
+// real API:
+//
+//   "טאקיאמה"  → addresstype=city,     jp  ✅ the city
+//   "האקונה"   → addresstype=office,   us  ❌ an immigrant-rights office in LA
+//   "ניקו"     → addresstype=highway,      ❌ a road
+//
+// `province` and `state` are included because Japan's city-prefectures are
+// mapped that way — "טוקיו" is addresstype=province in OSM, and excluding it
+// would reject the single most common destination in the app's data.
+const DESTINATION_ADDRESS_TYPES = new Set([
+  "city",
+  "town",
+  "village",
+  "municipality",
+  "hamlet",
+  "suburb",
+  "borough",
+  "district",
+  "county",
+  "province",
+  "state",
+]);
 
 async function fetchNominatimCoordinates(
   name: string,
@@ -195,7 +278,11 @@ async function fetchNominatimCoordinates(
   const params = new URLSearchParams({
     q: context ? `${name}, ${context}` : name,
     format: "jsonv2",
-    limit: "1",
+    // More than one, because the first hit is not always a settlement and the
+    // filter below needs candidates to choose from.
+    limit: "5",
+    // Gives us `addresstype`, which is the discriminator.
+    addressdetails: "1",
     // Lets Nominatim match Hebrew place names where OSM has them.
     "accept-language": "he,en",
   });
@@ -210,10 +297,34 @@ async function fetchNominatimCoordinates(
     const json: unknown = await res.json();
     if (!Array.isArray(json) || json.length === 0) return null;
 
+    const candidates = json as {
+      lat?: string;
+      lon?: string;
+      addresstype?: string;
+      display_name?: string;
+    }[];
+
+    // Highest-ranked candidate that is actually a place someone could travel
+    // to. No fallback to candidates[0] — that is the same mistake the Wikipedia
+    // path was making, and an office in Los Angeles is not a better answer than
+    // no answer.
+    const best = candidates.find(
+      (candidate) =>
+        candidate.addresstype !== undefined &&
+        DESTINATION_ADDRESS_TYPES.has(candidate.addresstype),
+    );
+
+    if (!best) {
+      console.warn(
+        `[geocode] nominatim had results for "${name}" but none were a place: ` +
+          candidates.map((c) => c.addresstype ?? "?").join(", "),
+      );
+      return null;
+    }
+
     // Nominatim returns lat/lon as strings.
-    const { lat, lon } = json[0] as { lat?: string; lon?: string };
-    const latitude = Number(lat);
-    const longitude = Number(lon);
+    const latitude = Number(best.lat);
+    const longitude = Number(best.lon);
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
 
     return { latitude, longitude };
