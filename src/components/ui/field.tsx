@@ -16,6 +16,25 @@ const control = cn(
   // So a single date field could hold a whole grid track open wider than the
   // phone it was being read on.
   "w-full min-w-0 rounded-control border border-border-strong bg-surface text-foreground",
+  // 16px on touch devices, inherited size everywhere else.
+  //
+  // iOS Safari zooms the whole viewport when it focuses a control whose
+  // font-size is under 16px, and never zooms back out. The controls carry no
+  // size of their own and inherit one, so those in a dense form (`text-sm` on
+  // the wrapping label) were 14px and triggered it.
+  //
+  // A Tailwind variant and not a raw `@media (pointer: coarse)` block in
+  // globals.css, which is where this started. That rule was present in a local
+  // production build and **absent from the one Vercel served** — the two use
+  // different build pipelines (local emits static/chunks, Vercel
+  // static/immutable/chunks), and the hand-written at-rule did not survive
+  // theirs. `min-w-0` on this same line did survive, so a utility is the
+  // mechanism that demonstrably reaches production.
+  //
+  // `pointer-coarse` and not a width breakpoint: the trigger is touch, so a
+  // 768px iPad needs it and a 375px desktop window does not. Desktop keeps the
+  // 14px it was designed with.
+  "pointer-coarse:text-base",
   "placeholder:text-muted",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
   "disabled:opacity-50 disabled:pointer-events-none",
