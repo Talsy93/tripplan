@@ -27,6 +27,7 @@ export default async function SignupPage({
             title="הרשמה"
             submitLabel="הרשמה"
             next={carry ?? undefined}
+            requirePrivacy
           />
 
           <div className="flex items-center gap-3 text-caption text-muted">
@@ -36,6 +37,26 @@ export default async function SignupPage({
           </div>
 
           <GoogleButton next={carry ?? undefined} />
+
+          {/* The Google path never sees the checkbox above — it leaves the site
+              before any form is submitted, so there is nothing to validate. The
+              consent is stated as a consequence of the action instead, which is
+              the usual pattern for provider sign-in. Gating the button itself
+              would mean lifting the checkbox out of the credentials form and
+              sharing its state, and would also block returning users who are
+              signing in rather than signing up. */}
+          <p className="text-caption text-muted">
+            בהמשך דרך Google אתם מאשרים את{" "}
+            <Link
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-primary-ink hover:underline"
+            >
+              מדיניות הפרטיות
+            </Link>
+            .
+          </p>
         </div>
 
         <p className="border-t border-border bg-surface-2 p-4 text-center text-sm text-muted">

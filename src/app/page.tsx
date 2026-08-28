@@ -84,6 +84,17 @@ export default async function HomePage() {
           ))}
         </ul>
       </div>
+
+      {/* The policy has to be findable without starting a signup — somebody
+          deciding whether to sign up at all is exactly who wants to read it. */}
+      <footer className="border-t border-border px-4 py-6 text-center md:px-6">
+        <Link
+          href="/privacy"
+          className="rounded-control text-caption text-muted hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          מדיניות פרטיות
+        </Link>
+      </footer>
     </main>
   );
 }

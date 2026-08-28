@@ -8,12 +8,14 @@ import {
   credentialsSchema,
   newPasswordSchema,
   resetRequestSchema,
+  signupSchema,
   type AuthFormState,
   type NewPasswordState,
   type ResetRequestState,
 } from "../domain/schemas";
 import { OAUTH_NEXT_COOKIE, safeNext } from "../domain/redirect";
 import {
+  hasPasswordIdentity,
   sendPasswordReset,
   signInWithGoogle,
   signInWithPassword,
@@ -62,22 +64,38 @@ export async function signup(
   _state: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const parsed = parseCredentials(formData);
+  const parsed = signupSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+    // An unticked checkbox is absent from FormData, so presence is the value.
+    // Mapped here rather than in the schema so the schema stays a statement
+    // about the domain and not about how HTML forms serialise.
+    acceptedPrivacy: formData.get("acceptedPrivacy") !== null,
+  });
 
   if (!parsed.success) {
     return { errors: z.flattenError(parsed.error).fieldErrors };
   }
 
-  const { error, needsEmailConfirmation } = await signUpWithPassword(
-    parsed.data,
-  );
+  const { error, needsEmailConfirmation } = await signUpWithPassword({
+    email: parsed.data.email,
+    password: parsed.data.password,
+  });
 
   if (error) {
     return { message: toHebrewAuthError(error) };
   }
 
+  // The account exists but cannot be used until the address is confirmed.
+  // Returned as its own flag with the address echoed back, so the form can
+  // replace itself with "check your mail" rather than leaving someone staring at
+  // a form that looks like it did nothing.
+  //
+  // Whether this happens at all is a Supabase project setting
+  // (Authentication → Providers → Email → Confirm email). The code handles both
+  // states, so turning it on or off needs no deploy.
   if (needsEmailConfirmation) {
-    return { message: "נשלח אליכם מייל לאישור הכתובת. בדקו את תיבת הדואר." };
+    return { awaitingConfirmation: parsed.data.email };
   }
 
   revalidatePath("/", "layout");
@@ -207,6 +225,22 @@ export async function setNewPassword(
 
   if (!parsed.success) {
     return { errors: z.flattenError(parsed.error).fieldErrors };
+  }
+
+  // A Google account has no password, and is not given one here.
+  //
+  // Checked at this point and not on the request form: on the form it would be
+  // an oracle — type any address and learn whether that person has an account
+  // and how they sign in. Here the caller has already proved control of the
+  // mailbox by following the emailed link, so telling them how their own account
+  // works discloses nothing they could not already see, and is the only useful
+  // thing to say. Somebody who forgot they signed up with Google is otherwise
+  // stuck at a form that keeps failing.
+  if (!(await hasPasswordIdentity())) {
+    return {
+      message:
+        "החשבון הזה נכנס דרך Google ואין לו סיסמה. חזרו לדף ההתחברות ובחרו ״המשך עם Google״.",
+    };
   }
 
   const { error } = await updatePassword(parsed.data.password);

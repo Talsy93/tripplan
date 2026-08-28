@@ -1,11 +1,6 @@
 import { AppHeader, AppShell } from "@/components/layout";
 import { SectionHeading } from "@/components/ui";
-import {
-  getCurrentUser,
-  hasPasswordIdentity,
-  LogoutButton,
-  PasswordSettings,
-} from "@/features/auth";
+import { getCurrentUser, LogoutButton } from "@/features/auth";
 import {
   APP_TIME_ZONE,
   CountdownHero,
@@ -25,14 +20,7 @@ import { getPlaceImage } from "@/lib/place-image";
 export const metadata = { title: "הטיולים שלי · MyTrip" };
 
 export default async function ProfilePage() {
-  const [user, trips, hasPassword] = await Promise.all([
-    getCurrentUser(),
-    listTrips(),
-    // Whether the account has a password identity at all. A Google-only account
-    // has none — Supabase creates no password for a provider sign-in — so the
-    // section below offers to set one rather than to change one.
-    hasPasswordIdentity(),
-  ]);
+  const [user, trips] = await Promise.all([getCurrentUser(), listTrips()]);
 
   // Feature the soonest upcoming trip: a photo of its destination, the
   // countdown, and the route as coloured chips.
@@ -108,13 +96,13 @@ export default async function ProfilePage() {
         <TripList trips={trips} today={todayIn(APP_TIME_ZONE, new Date())} />
       </section>
 
-      {/* Last on the page, collapsed, because it is an account setting and not
-          something anyone came here to do — except a Google-only account, which
-          has no other way to obtain a password. */}
-      <section className="flex flex-col gap-3">
-        <SectionHeading level="sub">החשבון</SectionHeading>
-        <PasswordSettings hasPassword={hasPassword} />
-      </section>
+      {/* No password settings here, deliberately.
+          A password can only be changed through the emailed link at
+          /reset — which means every password change is authorised by proving
+          control of the mailbox, and a stolen session cannot silently change the
+          password and lock the owner out. Adding a password to a Google account
+          was also removed: those accounts sign in with Google, and offering a
+          second credential only widens what can be stolen. */}
     </AppShell>
   );
 }

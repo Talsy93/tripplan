@@ -28,6 +28,7 @@ const PUBLIC_ROUTES = [
   "/share",
   "/invite",
   "/reset",
+  "/privacy",
 ];
 
 function isPublicRoute(pathname: string) {

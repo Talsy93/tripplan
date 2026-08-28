@@ -47,7 +47,7 @@ export default async function ResetConfirmPage({
       <Card padding="none" className="w-full max-w-sm">
         <div className="flex flex-col gap-4 p-6 sm:p-8">
           {user ? (
-            <NewPasswordForm mode="recover" onDoneHref="/profile" />
+            <NewPasswordForm />
           ) : (
             <>
               <h1 className="text-heading font-bold">הקישור לא תקף</h1>

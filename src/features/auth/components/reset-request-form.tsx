@@ -42,8 +42,9 @@ export function ResetRequestForm() {
     <form action={action} className="flex w-full flex-col gap-4">
       <h1 className="text-heading font-bold">איפוס סיסמה</h1>
       <p className="text-sm text-muted">
-        נשלח קישור לקביעת סיסמה חדשה. אם נרשמתם דרך Google ואין לכם סיסמה בכלל —
-        זו גם הדרך לקבוע אחת בפעם הראשונה.
+        נשלח קישור לקביעת סיסמה חדשה. זו הדרך היחידה להחליף סיסמה — האישור עובר
+        דרך המייל ולא מתוך האפליקציה, כך שגם מי שנכנס לחשבון שלכם לא יכול לשנות
+        אותה.
       </p>
 
       <Field label="אימייל" error={state?.errors?.email?.join(" ")}>
