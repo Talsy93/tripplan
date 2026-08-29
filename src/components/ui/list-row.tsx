@@ -59,10 +59,22 @@ export function ListRow({
           />
         )}
         {leading}
+        {/* `min-w-0` on the truncating spans themselves, not only on the column
+            that holds them.
+            A column flex container does not protect its children from this the
+            way it looks like it should: the width is the cross axis, so the
+            children stretch — but each child still contributes its own
+            min-content width to the container's, and `truncate` sets
+            `white-space: nowrap`, whose min-content is the entire string. So one
+            long title held this row, its card, and the grid track around it open
+            far past the phone. ListRow is used in about ten places, which is why
+            the fix belongs here. */}
         <div className="flex min-w-0 flex-col">
-          <span className="truncate text-sm font-semibold">{title}</span>
+          <span className="min-w-0 truncate text-sm font-semibold">{title}</span>
           {subtitle && (
-            <span className="truncate text-caption text-muted">{subtitle}</span>
+            <span className="min-w-0 truncate text-caption text-muted">
+              {subtitle}
+            </span>
           )}
         </div>
         {trailing && (

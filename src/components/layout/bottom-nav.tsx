@@ -50,7 +50,7 @@ export function BottomNav({ items }: { items: NavItem[] }) {
               >
                 {item.icon}
               </span>
-              <span className="max-w-full truncate px-0.5">{item.label}</span>
+              <span className="min-w-0 max-w-full truncate px-0.5">{item.label}</span>
             </Link>
           </li>
         ))}

@@ -58,20 +58,23 @@ export function SelectedList({
   return (
     // Cities side by side once there is room. A single column of full-width
     // rows was the whole screen at every width before phase D.
-    <div className="grid gap-5 lg:grid-cols-2">
+    <div className="grid min-w-0 gap-5 lg:grid-cols-2">
       {[...byCity.entries()].map(([city, list]) => (
+        // A grid track is minmax(auto, 1fr), and that auto floors the column at
+        // the min-content of its item. Without min-w-0 here, one long place
+        // name in the list below held the column open past the phone's width.
         <div
           key={city}
-          className={`flex flex-col gap-2 ${toneClass(tones.get(city)!)}`}
+          className={`flex min-w-0 flex-col gap-2 ${toneClass(tones.get(city)!)}`}
         >
           <SectionHeading level="sub" leading={<ToneDot />}>
             {city}
             <span className="font-normal text-muted"> · {list.length}</span>
           </SectionHeading>
 
-          <ul className="flex flex-col gap-2">
+          <ul className="flex min-w-0 flex-col gap-2">
             {list.map((item) => (
-              <li key={keyOf(item)}>
+              <li key={keyOf(item)} className="min-w-0">
                 <ListRow
                   accent="tone"
                   title={item.name}

@@ -139,24 +139,31 @@ export function Phrasebook({
               two-week phrasebook stops being a single scrolling column. */}
           <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {section.phrases.map((phrase) => (
-              <li key={`${section.title}|${phrase.he}`}>
-                <Card padding="sm" className="flex h-full flex-col gap-1">
-                  <span className="text-sm font-semibold">{phrase.he}</span>
+              <li key={`${section.title}|${phrase.he}`} className="min-w-0">
+                {/* wrap-anywhere on every line here: a transliteration or a
+                    local script is often one long token with nowhere to break,
+                    and a single phrase used to hold the grid column open. */}
+                <Card padding="sm" className="flex h-full min-w-0 flex-col gap-1">
+                  <span className="text-sm font-semibold wrap-anywhere">
+                    {phrase.he}
+                  </span>
 
                   {/* The local script is set LTR-neutral with dir="auto" so a
                       language written right-to-left renders correctly too. */}
-                  <span dir="auto" className="text-sm">
+                  <span dir="auto" className="text-sm wrap-anywhere">
                     {phrase.local}
                   </span>
 
                   {/* The row that makes the feature usable: how to actually
                       say it, in letters the reader knows. */}
-                  <span className="flex items-center gap-1.5 text-sm font-semibold text-primary-ink">
+                  <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-primary-ink">
                     <Volume2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    {phrase.pronunciation}
+                    <span className="min-w-0 wrap-anywhere">
+                      {phrase.pronunciation}
+                    </span>
                   </span>
 
-                  <span dir="ltr" className="text-caption text-muted">
+                  <span dir="ltr" className="text-caption text-muted wrap-anywhere">
                     {phrase.en}
                   </span>
                 </Card>

@@ -31,10 +31,15 @@ export function EmptyState({
           {icon}
         </span>
       )}
-      <div className="flex flex-col gap-1">
-        <p className="text-base font-semibold">{title}</p>
+      {/* Both strings can carry a name the user or the AI wrote, so both must be
+          able to break mid-word. `max-w-sm` caps the line length but does not
+          stop a single long token from pushing past it. */}
+      <div className="flex min-w-0 max-w-full flex-col gap-1">
+        <p className="text-base font-semibold wrap-anywhere">{title}</p>
         {description && (
-          <p className="max-w-sm text-sm text-muted">{description}</p>
+          <p className="max-w-sm text-sm text-muted wrap-anywhere">
+            {description}
+          </p>
         )}
       </div>
       {action}

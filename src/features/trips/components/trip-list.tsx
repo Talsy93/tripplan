@@ -30,7 +30,7 @@ export function TripList({ trips, today }: { trips: Trip[]; today: string }) {
         const phase = tripPhase(trip.start_date, trip.end_date, today, 0);
 
         return (
-          <li key={trip.id}>
+          <li key={trip.id} className="min-w-0">
             {/* The card is not wrapped in the link any more: it holds a delete
                 button too, and a <button> inside an <a> is invalid HTML and
                 gives a screen reader two controls where there is one link.
@@ -39,12 +39,12 @@ export function TripList({ trips, today }: { trips: Trip[]; today: string }) {
                 button — which sits above it on the z axis — does not. */}
             <Card
               variant="interactive"
-              className="relative flex h-full items-center gap-2"
+              className="relative flex h-full min-w-0 items-center gap-2"
             >
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <Link
                   href={`/trips/${trip.id}`}
-                  className="truncate text-base font-semibold after:absolute after:inset-0 after:rounded-card focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-offset-2 focus-visible:after:ring-offset-background"
+                  className="min-w-0 truncate text-base font-semibold after:absolute after:inset-0 after:rounded-card focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-offset-2 focus-visible:after:ring-offset-background"
                 >
                   {trip.name}
                 </Link>
