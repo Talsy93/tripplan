@@ -1,106 +1,163 @@
-// Generates every app icon from one definition.
+// Generates every app icon from one source image.
 //
-// Run with: node scripts/generate-icons.mjs
+// Run with: npm run icons
 //
-// The SVGs in public/ are OUTPUTS of this script, not sources — editing them
-// by hand puts them out of step with the PNGs, and the PNGs are what iOS and
-// Android actually use. Change the artwork here and re-run.
+// The files in public/ are OUTPUTS of this script, not sources. Editing one by
+// hand is what caused the bug this version exists to fix — see below.
 //
-// Three shapes come out of the same drawing, because the platforms want
-// different things:
+// ## The source
 //
-//   rounded    — icon.svg, icon-192.png, icon-512.png. Shown as-is by browsers
-//                and by the PWA install prompt, so it carries its own corner
-//                radius.
-//   square     — apple-touch-icon.png. iOS applies its own squircle mask, so
-//                this must be full-bleed with NO rounding of its own; a
-//                pre-rounded source gets masked twice and shows dark corners.
-//   maskable   — icon-maskable-512.png. Android crops to whatever shape the
-//                launcher uses, so the artwork sits inside the middle 80% and
-//                only the background runs to the edge.
+// `assets/logo-source.png`, the artwork as supplied: a blue rounded square with
+// white travel marks, on a transparent canvas with a wide transparent margin.
+// Both of those properties are wrong for an app icon and are corrected here
+// rather than in the artwork, so the original stays editable.
+//
+// ## What went wrong before, and why each platform gets a different shape
+//
+// A previous change replaced `public/apple-touch-icon.png` directly with the
+// artwork above. Two consequences, and the first is the one that was reported:
+//
+//   1. **iOS composites a transparent icon onto black.** 65% of that file was
+//      not fully opaque, so the home screen showed a blue square floating on a
+//      black tile. An apple-touch-icon must be fully opaque, edge to edge.
+//   2. **It was pre-rounded.** iOS applies its own squircle mask, so rounded
+//      artwork is masked twice and loses its corners into dark wedges.
+//
+// And because only that one file was replaced, the other icons still carried
+// the previous design — Android and the browser tab showed a different logo
+// from the iOS home screen. Deriving all of them from one source is what stops
+// that recurring.
+//
+//   square    — apple-touch-icon.png. Full-bleed, fully opaque, no rounding of
+//               its own. iOS rounds it.
+//   rounded   — icon-192.png, icon-512.png. Shown as-is by browsers and by the
+//               install prompt, so it keeps the artwork's own rounded corners
+//               and the transparency outside them.
+//   maskable  — icon-maskable-512.png. Android crops to whatever shape the
+//               launcher uses, so the artwork sits inside the middle 80% and
+//               only the background reaches the edge. Fully opaque.
 
-import { writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import sharp from "sharp";
 
-const PUBLIC = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "public",
-);
+const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+const PUBLIC = path.join(ROOT, "public");
+const SOURCE = path.join(ROOT, "assets", "logo-source.png");
 
-// --primary from globals.css. Written literally because an icon is fetched by
-// the operating system, which has no stylesheet to resolve a token against.
-const BLUE = "#0071c2";
-const WHITE = "#ffffff";
+// The source is a detailed raster, not flat vector art, so the default PNG
+// encoder produced a 358KB 512px icon. A palette cuts that by roughly 4x with
+// no visible loss on artwork that uses a handful of flat colours — and these
+// files are fetched by an operating system on a phone.
+const PNG = { compressionLevel: 9, palette: true, quality: 90 };
 
-// The same mark the header uses: lucide's `plane`, on a 24x24 grid.
-const PLANE =
-  "M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z";
+// The artwork's own background, sampled rather than hard-coded so a new source
+// image does not silently keep the old colour. Used to fill the transparency:
+// blue on blue makes the rounded corners disappear, which is exactly what
+// "full-bleed" means here.
+async function backgroundColour(image) {
+  const { data, info } = await image
+    .clone()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
 
-// The drawing, without a background. Kept separate so the maskable variant can
-// scale it into the safe zone without touching the background.
-//
-// No wordmark, deliberately. An earlier version set "MyTrip" under the plane;
-// at the size this is actually seen — roughly 60px on a home screen — the
-// letters smear, and iOS already prints the app's name directly beneath the
-// icon. The name was appearing twice and one of the two was unreadable. The
-// mark alone is what survives at that size, so it is the whole icon.
-//
-// The plane sits slightly above centre and the route arc below it, which
-// leaves the optical weight balanced now that nothing follows underneath.
-// The two elements are sized so the plane's tail clears the arc's apex rather
-// than crossing it. With the wordmark gone there is room to separate them, and
-// dots running through the tail's outline read as noise at small sizes — the
-// one place this icon has to work hardest.
-const artwork = `
-    <path d="M96 392 C 172 320, 340 320, 416 392"
-          fill="none" stroke="${WHITE}" stroke-width="15"
-          stroke-linecap="round" stroke-dasharray="3 36" opacity="0.8" />
-    <g transform="translate(256 222) scale(12) translate(-12 -12)">
-      <path d="${PLANE}" fill="none" stroke="${WHITE}" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round" />
-    </g>`;
+  const counts = new Map();
+  for (let i = 0; i < data.length; i += info.channels) {
+    // Fully opaque pixels only: a semi-transparent edge pixel is a blend of the
+    // background with nothing, and would drag the average toward white.
+    if (info.channels > 3 && data[i + 3] < 255) continue;
+    const key = `${data[i]},${data[i + 1]},${data[i + 2]}`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
 
-function svg({ rounded = false, inset = 1 } = {}) {
-  const corner = rounded ? ' rx="112"' : "";
-  const scaled =
-    inset === 1
-      ? artwork
-      : `<g transform="translate(256 256) scale(${inset}) translate(-256 -256)">${artwork}</g>`;
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MyTrip">
-  <!-- Generated by scripts/generate-icons.mjs. Do not edit by hand. -->
-  <rect width="512" height="512"${corner} fill="${BLUE}" />${scaled}
-</svg>
-`;
+  const [best] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+  const [r, g, b] = best.split(",").map(Number);
+  return { r, g, b };
 }
 
-const rounded = svg({ rounded: true });
-const square = svg({ rounded: false });
-// 0.8 is the maskable safe zone: Android may crop anything outside the middle
-// 80% of the canvas.
-const maskable = svg({ rounded: false, inset: 0.8 });
-
-async function png(source, size, name) {
-  await sharp(Buffer.from(source), { density: 512 })
-    .resize(size, size)
-    .png()
-    .toFile(path.join(PUBLIC, name));
-  console.log(`  ${name} (${size}x${size})`);
+// The artwork with its transparent margin removed — the rounded square itself,
+// filling the frame.
+function artwork() {
+  return sharp(SOURCE).trim();
 }
 
-console.log("writing SVGs");
-await writeFile(path.join(PUBLIC, "icon.svg"), rounded, "utf8");
-await writeFile(path.join(PUBLIC, "icon-maskable.svg"), maskable, "utf8");
-console.log("  icon.svg, icon-maskable.svg");
+async function main() {
+  const trimmed = await artwork().toBuffer({ resolveWithObject: true });
+  const background = await backgroundColour(sharp(trimmed.data));
 
-console.log("rasterising PNGs");
-await png(rounded, 192, "icon-192.png");
-await png(rounded, 512, "icon-512.png");
-await png(maskable, 512, "icon-maskable-512.png");
-// Full-bleed square: iOS rounds it itself.
-await png(square, 180, "apple-touch-icon.png");
+  const hex = `#${[background.r, background.g, background.b]
+    .map((n) => n.toString(16).padStart(2, "0"))
+    .join("")}`;
+  console.log(`source ${trimmed.info.width}x${trimmed.info.height}, background ${hex}`);
 
-console.log("done");
+  // --- iOS: opaque, full-bleed, unrounded ---------------------------------
+  // `flatten` is what fixes the black tile: it replaces the alpha channel with
+  // the background colour, so the rounded corners fill in and nothing is left
+  // for iOS to composite onto black.
+  //
+  // 180x180 to match the size declared in app/layout.tsx. It was previously
+  // 1024x1024 and 525KB, which every iOS device downloaded and downscaled.
+  await sharp(trimmed.data)
+    .resize(180, 180)
+    .flatten({ background })
+    .png(PNG)
+    .toFile(path.join(PUBLIC, "apple-touch-icon.png"));
+  console.log("  apple-touch-icon.png (180x180, opaque)");
+
+  // --- Browsers and the install prompt: keep the artwork's own shape -------
+  for (const size of [192, 512]) {
+    await sharp(trimmed.data)
+      .resize(size, size)
+      .png(PNG)
+      .toFile(path.join(PUBLIC, `icon-${size}.png`));
+    console.log(`  icon-${size}.png (${size}x${size}, rounded)`);
+  }
+
+  // --- Android maskable: artwork in the middle 80%, background to the edge --
+  const SAFE = 0.8;
+  const inner = Math.round(512 * SAFE);
+  const pad = Math.round((512 - inner) / 2);
+
+  await sharp({
+    create: {
+      width: 512,
+      height: 512,
+      channels: 4,
+      background: { ...background, alpha: 1 },
+    },
+  })
+    .composite([
+      {
+        input: await sharp(trimmed.data).resize(inner, inner).png().toBuffer(),
+        top: pad,
+        left: pad,
+      },
+    ])
+    .png(PNG)
+    .toFile(path.join(PUBLIC, "icon-maskable-512.png"));
+  console.log(`  icon-maskable-512.png (512x512, artwork at ${SAFE * 100}%)`);
+
+  // --- Browser tab --------------------------------------------------------
+  // The tab icon used to be create-next-app's default favicon.ico, untouched
+  // since the project was scaffolded, while the home screen showed the real
+  // logo — three different marks in one app.
+  //
+  // PNG rather than .ico: every browser in use supports it, and a
+  // multi-resolution .ico cannot be written by sharp, which is part of why the
+  // stale one survived so long. Opaque, because a tab strip can be dark.
+  //
+  // 32 only: a 180px favicon came out byte-identical to apple-touch-icon.png,
+  // which is the same image at the same size for a different purpose.
+  for (const size of [32]) {
+    await sharp(trimmed.data)
+      .resize(size, size)
+      .flatten({ background })
+      .png(PNG)
+      .toFile(path.join(PUBLIC, `favicon-${size}.png`));
+    console.log(`  favicon-${size}.png (${size}x${size}, opaque)`);
+  }
+
+  console.log("done");
+}
+
+await main();
