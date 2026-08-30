@@ -41,8 +41,14 @@ export function RouteHero({
       {/* Darken the lower half so the text stays legible over any photo. */}
       <div className="absolute inset-0 bg-gradient-to-t from-scrim-strong via-scrim-soft to-transparent" />
 
-      <div className="absolute inset-0 flex flex-col justify-end gap-1 p-5 text-white">
-        <h2 className="text-title font-bold sm:text-heading">{tripName}</h2>
+      {/* min-w-0 on the overlay and wrap-anywhere on the name: this is the trip
+          name as the user typed it, and a single long token used to push the
+          whole hero wider than the screen. The overlay is absolutely positioned,
+          so nothing above it could absorb that. */}
+      <div className="absolute inset-0 flex min-w-0 flex-col justify-end gap-1 p-5 text-white">
+        <h2 className="min-w-0 text-title font-bold wrap-anywhere sm:text-heading">
+          {tripName}
+        </h2>
         <span className="text-sm font-semibold text-white/90">
           {parts.join(" · ")}
         </span>

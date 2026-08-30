@@ -91,7 +91,7 @@ export default async function MorePage({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-base font-semibold">{label}</span>
-                  <span className="block truncate text-sm text-muted sm:whitespace-normal">
+                  <span className="block min-w-0 truncate text-sm text-muted sm:whitespace-normal">
                     {hint}
                   </span>
                 </span>

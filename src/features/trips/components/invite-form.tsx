@@ -48,9 +48,15 @@ import { inviteToTrip } from "../application/membership-actions";
 export function InviteForm({
   tripId,
   tripName,
+  origin,
 }: {
   tripId: string;
   tripName: string;
+  // Passed from the server rather than read from `window`. DeliverInvite below
+  // only ever renders after a client-side action today, so reading window there
+  // happens to work — but that is a property of this call site and not of the
+  // component, and the identical pattern in ShareTrip crashed production.
+  origin: string;
 }) {
   const [state, action, pending] = useActionState<InviteActionState, FormData>(
     inviteToTrip,
@@ -128,6 +134,7 @@ export function InviteForm({
           token={token}
           tripName={tripName}
           role={role}
+          origin={origin}
         />
       )}
     </Card>
@@ -140,20 +147,22 @@ function DeliverInvite({
   token,
   tripName,
   role,
+  origin,
 }: {
   token: string;
   tripName: string;
   role: TripRole;
+  origin: string;
 }) {
   const [phone, setPhone] = useState("");
   const [copied, setCopied] = useState(false);
   const { showToast } = useToast();
 
-  // Built in the browser so the link is right on localhost, on a preview
-  // deployment and in production without any of them being configured — the same
-  // reasoning as the public share link. This component only renders client-side
-  // after an action, so `window` is available.
-  const url = inviteUrl(window.location.origin, token);
+  // The origin comes from the request on the server, which keeps the link right
+  // on localhost, on a preview deployment and in production with nothing to
+  // configure — without depending on this component never being rendered on the
+  // server. That dependency is what broke ShareTrip.
+  const url = inviteUrl(origin, token);
   const message = inviteMessage(tripName, url, role);
   const wa = whatsappUrl(phone, message);
   const sms = smsUrl(phone, message);

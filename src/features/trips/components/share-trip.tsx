@@ -8,20 +8,36 @@ import { disableSharing, enableSharing } from "../application/share-actions";
 export function ShareTrip({
   tripId,
   initialToken,
+  origin,
 }: {
   tripId: string;
   // The token the trip already has, or null when it is not shared.
   initialToken: string | null;
+  // The site's own origin, resolved on the server from the request. See below
+  // for why this is not read from `window`.
+  origin: string;
 }) {
   const [token, setToken] = useState(initialToken);
   const [working, setWorking] = useState(false);
   const [copied, setCopied] = useState(false);
   const { showToast } = useToast();
 
-  // Built in the browser rather than passed from the server, so the link is
-  // correct on localhost, on a preview deployment and in production without
-  // any of them needing to be configured.
-  const url = token ? `${window.location.origin}/share/${token}` : null;
+  // 🐞 This used to be `window.location.origin`, and it crashed the page.
+  //
+  // A "use client" component is still rendered on the server for the initial
+  // HTML, and this expression sits in the component body rather than in an
+  // event handler — so it ran during SSR, where `window` does not exist, and
+  // threw `ReferenceError: window is not defined`.
+  //
+  // It never showed up in testing because of the `token ?` in front of it: with
+  // no share link issued the branch is never evaluated. It broke for exactly
+  // the users who *had* already shared a trip — the ones for whom this screen
+  // matters — and it broke on load, not on click.
+  //
+  // The origin now comes from the request on the server, which keeps the
+  // property the old comment was protecting: the link is right on localhost, on
+  // a preview deployment and in production, with nothing to configure.
+  const url = token ? `${origin}/share/${token}` : null;
 
   async function enable() {
     setWorking(true);

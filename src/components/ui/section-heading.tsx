@@ -51,12 +51,18 @@ export function SectionHeading({
   return (
     <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-1", className)}>
       <div className="flex min-w-0 flex-col">
-        <Tag className={cn("flex items-center gap-2", levels[level])}>
+        <Tag className={cn("flex min-w-0 items-center gap-2", levels[level])}>
           {leading}
-          <span className="min-w-0">{children}</span>
+          {/* wrap-anywhere, not just min-w-0. A heading is very often a trip
+              name or a city the user typed, and `min-w-0` only permits the box
+              to shrink — it does nothing about text that has no break
+              opportunity in it. Without this a single long unbroken word held
+              the heading, and therefore the whole page column, open past the
+              viewport. */}
+          <span className="min-w-0 wrap-anywhere">{children}</span>
         </Tag>
         {description && (
-          <p className="text-sm text-muted">{description}</p>
+          <p className="min-w-0 text-sm text-muted wrap-anywhere">{description}</p>
         )}
       </div>
       {actions && <div className="ms-auto flex items-center gap-2">{actions}</div>}

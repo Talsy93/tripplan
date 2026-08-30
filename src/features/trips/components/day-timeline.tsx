@@ -237,7 +237,7 @@ export function DayTimeline({
                   </div>
                 </div>
                 {entry.note && (
-                  <p className="truncate text-caption text-muted">
+                  <p className="min-w-0 truncate text-caption text-muted">
                     {entry.note}
                   </p>
                 )}

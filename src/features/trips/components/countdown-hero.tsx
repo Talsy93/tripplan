@@ -44,7 +44,9 @@ export function CountdownHero({
           and the two heroes in the app used to disagree on their stops. */}
       <div className="absolute inset-0 bg-gradient-to-t from-scrim-strong via-scrim to-scrim-soft" />
 
-      <div className="absolute inset-0 flex flex-col items-start justify-end gap-2 p-5 text-white sm:p-6">
+      {/* Same reasoning as RouteHero: user-authored names sit here over a
+          photo, and the overlay cannot be widened by anything above it. */}
+      <div className="absolute inset-0 flex min-w-0 flex-col items-start justify-end gap-2 p-5 text-white sm:p-6">
         {days !== null && days >= 0 && (
           <p className="text-caption font-semibold text-white/85">
             עד ההמראה · {formatShortDate(startDate!)}
@@ -53,7 +55,9 @@ export function CountdownHero({
 
         {days === null ? (
           <>
-            <p className="text-title font-bold sm:text-heading">{name}</p>
+            <p className="min-w-0 text-title font-bold wrap-anywhere sm:text-heading">
+              {name}
+            </p>
             <p className="text-sm text-white/85">עוד לא נקבע תאריך יציאה</p>
           </>
         ) : (
@@ -77,23 +81,34 @@ export function CountdownHero({
         )}
 
         {tones.size > 0 && (
-          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-2">
+          // `flex-wrap` moves whole chips onto the next line but cannot break
+          // one that is wider than the row on its own — and a city name here is
+          // whatever the user or the AI called the place. So the chip itself is
+          // capped and its label truncates. Truncation rather than wrapping is
+          // right for a chip specifically: it is a compact marker in a row of
+          // markers, and one grown to three lines would break the rhythm the
+          // colour coding depends on. The full name is on the map and in the
+          // itinerary.
+          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-x-1.5 gap-y-2">
             {[...tones.keys()].map((city, i) => (
               <span
                 key={city}
                 className={cn(
-                  "flex items-center gap-1.5",
+                  "flex min-w-0 max-w-full items-center gap-1.5",
                   toneClass(tones.get(city)!),
                 )}
               >
                 {i > 0 && (
-                  <span aria-hidden="true" className="text-caption text-white/60">
+                  <span
+                    aria-hidden="true"
+                    className="shrink-0 text-caption text-white/60"
+                  >
                     ←
                   </span>
                 )}
-                <span className="flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-caption font-semibold text-foreground">
-                  <span className="h-2 w-2 rounded-full bg-tone-dot" />
-                  {city}
+                <span className="flex min-w-0 items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1 text-caption font-semibold text-foreground">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-tone-dot" />
+                  <span className="min-w-0 truncate">{city}</span>
                 </span>
               </span>
             ))}

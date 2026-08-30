@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Banner, SectionHeading } from "@/components/ui";
 import { getCurrentUser } from "@/features/auth";
+import { requestOrigin } from "@/lib/origin";
 import {
   InviteForm,
   MemberList,
@@ -24,7 +25,7 @@ export default async function SharePage({
   const trip = await getTrip(id);
   if (!trip) notFound();
 
-  const [user, owner, members, invites, shareToken] = await Promise.all([
+  const [user, owner, members, invites, shareToken, origin] = await Promise.all([
     getCurrentUser(),
     isTripOwner(id),
     listMembers(id),
@@ -32,6 +33,11 @@ export default async function SharePage({
     // error — which is the right shape for a section that then does not render.
     listOpenInvites(id),
     getShareToken(id),
+    // Resolved on the server. A "use client" component is still rendered on the
+    // server for the initial HTML, so reading `window` in its body throws —
+    // which is exactly how ShareTrip crashed for anyone who had already issued a
+    // link.
+    requestOrigin(),
   ]);
 
   return (
@@ -63,7 +69,7 @@ export default async function SharePage({
           >
             הזמנת אדם
           </SectionHeading>
-          <InviteForm tripId={trip.id} tripName={trip.name} />
+          <InviteForm tripId={trip.id} tripName={trip.name} origin={origin} />
         </section>
       ) : (
         <Banner tone="info">
@@ -78,7 +84,7 @@ export default async function SharePage({
         >
           קישור פומבי לצפייה
         </SectionHeading>
-        <ShareTrip tripId={trip.id} initialToken={shareToken} />
+        <ShareTrip tripId={trip.id} initialToken={shareToken} origin={origin} />
       </section>
     </>
   );

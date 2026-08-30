@@ -34,14 +34,21 @@ export const metadata: Metadata = {
     title: "MyTrip",
     statusBarStyle: "default",
   },
+  // Every entry is generated from one source by scripts/generate-icons.mjs.
+  //
+  // The SVG that used to lead this list is gone. It was still drawing the
+  // previous plane mark, and being first it was the one browsers picked — so the
+  // tab showed one logo while the home screen showed another. The source is now
+  // a raster image, so there is nothing honest to put in an SVG.
   icons: {
     icon: [
-      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
-    // Must be PNG. iOS ignores an SVG apple-touch-icon entirely and falls back
-    // to a screenshot of the page for the home-screen tile — which is also the
-    // icon shown next to a push notification.
+    // Must be PNG, and must be fully opaque. iOS ignores an SVG apple-touch-icon
+    // entirely, and it composites a transparent one onto black — which is
+    // exactly the black tile that was reported on the home screen.
     apple: { url: "/apple-touch-icon.png", sizes: "180x180" },
   },
 };
