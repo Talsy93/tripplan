@@ -204,6 +204,8 @@ export {
 } from "./infrastructure/route-service";
 export { resetLocations } from "./application/route-actions";
 export { ResetLocationsButton } from "./components/reset-locations-button";
+export { UnlocatedCities } from "./components/unlocated-cities";
+export { locateCity } from "./application/route-actions";
 export { DaySuggestionsDialog } from "./components/day-suggestions-dialog";
 export { WORKFLOW_STEPS } from "./domain/workflow";
 export type { WorkflowStep } from "./domain/workflow";

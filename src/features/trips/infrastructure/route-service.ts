@@ -568,3 +568,50 @@ async function cacheCoordinates(
     console.error("cacheCoordinates failed:", error.message);
   }
 }
+
+// Places a city the geocoder could not resolve, using a name the user supplies.
+//
+// This is the escape hatch for the case the geocoder is now honest about. Since
+// the fix that made it verify its answers, a name it cannot confirm returns
+// nothing rather than a confidently wrong pin — correct, but from the map it
+// looks like the destination simply vanished. "קנזאווה" is the live example:
+// neither Wikipedia nor OpenStreetMap has that Hebrew spelling indexed, while
+// "Kanazawa" resolves immediately.
+//
+// So the repair asked of the user is "what is it called in English or in the
+// local script", not "type in coordinates". That is a question a traveller can
+// answer, and it fixes the actual cause — the spelling, not the arithmetic.
+//
+// The city's own name is unchanged; only its position is written. The trip
+// keeps calling it what the user calls it.
+export async function locateCityByName(
+  tripId: string,
+  city: string,
+  alternateName: string,
+  tripName?: string,
+): Promise<Coordinates | null> {
+  const point = await geocodePlace(alternateName, tripName);
+  if (!point) return null;
+
+  await cacheCoordinates(tripId, new Map([[city, point]]));
+
+  // The country is derived from the new coordinates, not carried over: it is
+  // what the country grouping and the misplaced-pin check both read, and a
+  // stale one would be worse than none.
+  await clearCityCountry(tripId, city);
+  return point;
+}
+
+// Drops the cached country for one city, so the next render reverse-geocodes it
+// from whatever position it now has.
+async function clearCityCountry(tripId: string, city: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("suggested_destinations")
+    .update({ country: null })
+    .eq("trip_id", tripId)
+    .eq("city", city)
+    .eq("category", OVERVIEW_CATEGORY);
+
+  if (error) console.error("clearCityCountry failed:", error.message);
+}

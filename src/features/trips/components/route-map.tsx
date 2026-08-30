@@ -6,6 +6,7 @@ import { Badge, Banner, EmptyState, ListRow, SectionHeading } from "@/components
 import { cn } from "@/lib/cn";
 import { stopsByCountry } from "../domain/route";
 import { ResetLocationsButton } from "./reset-locations-button";
+import { UnlocatedCities } from "./unlocated-cities";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 import type { TripRoute } from "../domain/route";
 import { cityToneClass, cityToneMap } from "../domain/tone";
@@ -31,19 +32,33 @@ export function RouteMap({
   tripId,
   route,
   itinerary,
+  // Passed to the geocoder as context when the user re-names a city that could
+  // not be placed.
+  tripName,
 }: {
   tripId: string;
   route: TripRoute;
   itinerary: ItineraryDay[];
+  tripName?: string;
 }) {
   if (route.stops.length === 0) {
     return (
-      <EmptyState
-        icon="🗺️"
-        title="המפה תתמלא כשתבחרו יעדים"
-        description="הוסיפו דברים לטיול מתוך מדריכי הערים, והתחנות יופיעו כאן לפי הסדר."
-        className={MAP_HEIGHT + " justify-center"}
-      />
+      <div className="flex flex-col gap-4">
+        <EmptyState
+          icon="🗺️"
+          title="המפה תתמלא כשתבחרו יעדים"
+          description="הוסיפו דברים לטיול מתוך מדריכי הערים, והתחנות יופיעו כאן לפי הסדר."
+          className={MAP_HEIGHT + " justify-center"}
+        />
+        {/* The case where every city failed to resolve: without this the screen
+            says "add some destinations" to somebody who already has several, and
+            offers no way out of it. */}
+        <UnlocatedCities
+          tripId={tripId}
+          cities={route.unlocatedCities}
+          tripName={tripName}
+        />
+      </div>
     );
   }
 
@@ -86,11 +101,14 @@ export function RouteMap({
           </Banner>
         )}
 
-        {route.unlocatedCities.length > 0 && (
-          <p className="text-sm text-muted">
-            לא הצלחנו למקם על המפה: {route.unlocatedCities.join(", ")}
-          </p>
-        )}
+        {/* Replaced a grey dead-end sentence that named the cities and offered
+            nothing to do about them. See UnlocatedCities for why the question it
+            asks is about the spelling rather than the coordinates. */}
+        <UnlocatedCities
+          tripId={tripId}
+          cities={route.unlocatedCities}
+          tripName={tripName}
+        />
 
         <ResetLocationsButton tripId={tripId} />
       </div>
