@@ -55,7 +55,13 @@ export function Banner({
       ) : (
         icon
       )}
-      <div className="min-w-0">{children}</div>
+      {/* `wrap-anywhere` as well as `min-w-0`, and the two do different jobs.
+          min-w-0 lets the box shrink; it does nothing for a string with no break
+          opportunity inside it, and almost everything a Banner says quotes
+          something the user or a provider wrote — a booking title, a city name,
+          an error message from an API. One of those with no space in it pushed
+          the "היום" screen to 510px wide inside a 375px phone. */}
+      <div className="min-w-0 wrap-anywhere">{children}</div>
     </div>
   );
 }

@@ -29,6 +29,8 @@ const PUBLIC_ROUTES = [
   "/invite",
   "/reset",
   "/privacy",
+  // Development-only harness; the pages themselves 404 outside development.
+  "/preview",
 ];
 
 function isPublicRoute(pathname: string) {

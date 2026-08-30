@@ -51,6 +51,22 @@ export function SegmentedControl({
       aria-label={ariaLabel}
       className={cn(
         "flex self-start rounded-full border border-border bg-surface-2",
+        // Scrolls sideways instead of pushing the page wider.
+        //
+        // The control sizes itself to its segments, and the count is data: the
+        // bookings filter grows a tab per booking kind present, so a trip with
+        // flights, trains and lodging has four. At 320px that was 18px wider
+        // than the screen — found by the preview harness, because the control
+        // only renders above two segments and no earlier fixture had three
+        // kinds of booking in one trip.
+        //
+        // `max-w-full` so it can be narrower than its content, and the pill
+        // shape is kept by letting the row scroll rather than wrap: a wrapped
+        // segmented control stops reading as one track.
+        "max-w-full overflow-x-auto",
+        // Chrome and Safari still paint a scrollbar over the pill on hover
+        // otherwise, which on a control this short is louder than the content.
+        "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
         tracks[size],
         className,
       )}
