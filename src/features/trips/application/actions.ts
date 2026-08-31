@@ -12,13 +12,21 @@ export async function createTrip(
   _state: TripFormState,
   formData: FormData,
 ): Promise<TripFormState> {
-  const parsed = createTripSchema.safeParse({ name: formData.get("name") });
+  const parsed = createTripSchema.safeParse({
+    name: formData.get("name"),
+    start_date: formData.get("start_date"),
+    end_date: formData.get("end_date"),
+  });
 
   if (!parsed.success) {
     return { errors: z.flattenError(parsed.error).fieldErrors };
   }
 
-  const { error } = await insertTrip(parsed.data.name);
+  const { error } = await insertTrip(
+    parsed.data.name,
+    parsed.data.start_date ?? null,
+    parsed.data.end_date ?? null,
+  );
 
   if (error) {
     return { message: "יצירת הטיול נכשלה. נסו שוב." };

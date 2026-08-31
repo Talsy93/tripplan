@@ -7,7 +7,12 @@ import { cn } from "@/lib/cn";
 import { lodgingOrigin } from "../domain/directions";
 import { cityByDay } from "../domain/route";
 import { cityToneClass, cityToneMap } from "../domain/tone";
-import { clampDay, dateOfDay, dayOfTripLabel } from "../domain/trip-days";
+import {
+  clampDay,
+  dateOfDay,
+  dayOfTripLabel,
+  dayPillLabel,
+} from "../domain/trip-days";
 import { DayTimeline } from "./day-timeline";
 import { NightStay } from "./night-stay";
 import type { Booking } from "../domain/booking";
@@ -118,6 +123,7 @@ export function DayPager({
         {days.map((day) => {
           const isActive = day.day === active.day;
           const isToday = day.day === currentDay;
+          const pill = dayPillLabel(startDate, day.day);
           return (
             <button
               key={day.day}
@@ -128,15 +134,30 @@ export function DayPager({
                 "flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control text-caption transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isActive
-                  ? "bg-primary font-bold text-primary-foreground"
+                  // Ink, not the action blue. Blue means "press this" everywhere
+                  // in this app, and a selected day is a state rather than an
+                  // invitation — which is the same call the phone's tab bar
+                  // already makes for its own selected pill.
+                  ? "bg-foreground font-bold text-surface"
                   : "border border-border-strong bg-surface text-muted hover:bg-surface-2 hover:text-foreground",
                 // A ring rather than a fill, so "today" and "selected" can be
                 // true at once and still be told apart.
                 isToday && !isActive && "ring-2 ring-primary",
               )}
             >
-              <span className="text-caption opacity-70">יום</span>
-              <span className="font-bold">{day.day}</span>
+              {/* The weekday, not the word "יום". Every pill said the same
+                  word, so the only thing telling them apart was a number that
+                  means nothing on its own — "יום 9" is not a date anyone holds
+                  in their head. A weekday and a day-of-month are how a person
+                  actually finds Saturday in a row of pills. Falls back to the
+                  old label when the trip has no start date and there is no
+                  calendar to reckon by. */}
+              <span className="text-caption opacity-70">
+                {pill?.weekday ?? "יום"}
+              </span>
+              <span className="font-bold tabular-nums">
+                {pill?.dayOfMonth ?? day.day}
+              </span>
             </button>
           );
         })}

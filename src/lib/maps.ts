@@ -27,3 +27,40 @@ export function googleMapsDirectionsUrl(
   });
   return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
+
+// A whole route in one link: first stop, last stop, and everything between as
+// waypoints. Free and keyless like the two above — the Maps URLs scheme, not
+// the Directions API.
+//
+// Google caps `waypoints` at nine for an unauthenticated URL, so a longer trip
+// is trimmed to its first nine intermediate stops rather than silently
+// producing a link that errors. A ten-city trip is not the common case and half
+// a route is more useful than none.
+//
+// Transit, not walking, and that is a correction to the design rather than a
+// shortcut: the stops on this map are cities, and a walking route from Tokyo to
+// Kyoto is not a thing anyone wants. Within a city the day view already offers
+// per-item directions from the night's lodging.
+const MAX_WAYPOINTS = 9;
+
+export function googleMapsRouteUrl(
+  stops: string[],
+  travelMode: TravelMode = "transit",
+): string | null {
+  const named = stops.map((stop) => stop.trim()).filter(Boolean);
+  if (named.length < 2) return null;
+
+  const origin = named[0];
+  const destination = named[named.length - 1];
+  const waypoints = named.slice(1, -1).slice(0, MAX_WAYPOINTS);
+
+  const params = new URLSearchParams({
+    api: "1",
+    origin,
+    destination,
+    travelmode: travelMode,
+  });
+  if (waypoints.length > 0) params.set("waypoints", waypoints.join("|"));
+
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
+}

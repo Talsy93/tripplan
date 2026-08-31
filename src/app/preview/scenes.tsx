@@ -24,6 +24,8 @@ import {
   BookingList,
   CityDaysEditor,
 
+  CreateTripForm,
+  DayPager,
   DayTimeline,
   ExpenseSummary,
   GearList,
@@ -34,6 +36,7 @@ import {
 
   RouteMap,
   ShareButton,
+  StartHere,
   ShareTrip,
   TripDatesForm,
   TripAuraBand,
@@ -456,6 +459,36 @@ export const SCENES: Scene[] = [
 
   // ---- itinerary -----------------------------------------------------------
   {
+    slug: "day-pager",
+    title: "רצועת הימים",
+    note: "יום בשבוע מעל תאריך, לא ״יום N״ — והנבחר בדיו ולא בכחול הפעולה. היום הנוכחי מסומן בטבעת, כדי ש״היום״ ו״נבחר״ יוכלו להיות נכונים בו-זמנית",
+    render: () => (
+      <DayPager
+        days={f.ITINERARY}
+        initialDay={1}
+        startDate="2026-09-11"
+        currentDay={2}
+        bookingsByDay={{ 1: f.BOOKINGS }}
+        lodgingByDay={{}}
+      />
+    ),
+  },
+  {
+    slug: "day-pager-undated",
+    title: "רצועת הימים · בלי תאריך התחלה",
+    note: "אין לוח שנה להתייחס אליו, אז הגלולות חוזרות ל״יום N״ — הנפילה לאחור שהיא הסיבה שהעוזר בדומיין מחזיר null",
+    render: () => (
+      <DayPager
+        days={f.ITINERARY}
+        initialDay={1}
+        startDate={null}
+        currentDay={null}
+        bookingsByDay={{}}
+        lodgingByDay={{}}
+      />
+    ),
+  },
+  {
     slug: "day-timeline",
     title: "ציר הזמן של היום",
     note: "שלוש פעילויות והזמנות על אותו ציר",
@@ -670,6 +703,18 @@ export const SCENES: Scene[] = [
         ))}
       </div>
     ),
+  },
+  {
+    slug: "start-here",
+    title: "בואו נתחיל מהמקום",
+    note: "מה שמופיע מתחת לגיבור חסר-האור: שתי הדרכים לבחור יעד — לבקש הצעות, או להוסיף עיר בעצמך",
+    render: () => <StartHere tripId={f.TRIP_ID} />,
+  },
+  {
+    slug: "create-trip",
+    title: "טופס טיול חדש",
+    note: "שם ותאריכים — התאריכים עברו ליצירה כי כמעט הכול באפליקציה נגזר מהם. הם עדיין אופציונליים",
+    render: () => <CreateTripForm />,
   },
   {
     slug: "primitives",

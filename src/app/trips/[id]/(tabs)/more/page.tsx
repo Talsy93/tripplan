@@ -8,6 +8,7 @@ import {
   Languages,
   Luggage,
   Share2,
+  type LucideIcon,
 } from "lucide-react";
 import { Card, SectionHeading } from "@/components/ui";
 import {
@@ -17,6 +18,8 @@ import {
   listBookings,
   listGear,
   listMembers,
+  toneClass,
+  type Tone,
 } from "@/features/trips";
 
 // A menu, not a pile. The five sections used to stack on one page, which on a
@@ -36,38 +39,50 @@ const ENTRIES = [
     label: "פרטי הטיול",
     hint: "תאריכים, טיסות, רכבות ולינה",
     Icon: Luggage,
+    tone: "sky",
   },
   {
     segment: "gear",
     label: "ציוד",
     hint: "רשימת אריזה שאתם ממלאים בעצמכם",
     Icon: Backpack,
+    tone: "amber",
   },
   {
     segment: "share",
     label: "שיתוף",
     hint: "הזמנת אנשים, הרשאות, וקישור פומבי",
     Icon: Share2,
+    tone: "rose",
   },
   {
     segment: "guide",
     label: "איך זה עובד",
     hint: "שלבי העבודה, עם קישור לכל מסך",
     Icon: Compass,
+    tone: "lilac",
   },
   {
     segment: "phrases",
     label: "מילים שימושיות",
     hint: "שיחון בשפת היעד, עם תעתיק",
     Icon: Languages,
+    tone: "mint",
   },
   {
     segment: "chat",
     label: "שיחה",
     hint: "לתכנן את הטיול בשיחה חופשית",
     Icon: MessageCircle,
+    tone: "peach",
   },
-] as const;
+] as const satisfies readonly {
+  segment: string;
+  label: string;
+  hint: string;
+  Icon: LucideIcon;
+  tone: Tone;
+}[];
 
 export const metadata = { title: "עוד" };
 
@@ -132,27 +147,33 @@ export default async function MorePage({
     <>
       <SectionHeading level="page">עוד</SectionHeading>
 
-      {/* Full-width 72px rows in a 1024px column was the most obviously
-          phone-only screen in the app. A card each, side by side, once there is
-          room for them.
+      {/* One card, one row per destination, dividers between — not a grid of
+          cards. The grid was a phone screen stretched: at 1024px six cards sat
+          three across and each was mostly empty, and on a phone they were a
+          single column of cards with a card's worth of padding around a row's
+          worth of content.
 
-          Three across at lg rather than five: at 1024px the content column is
-          about 720px once the rail and the gutters are taken out, and five cards
-          in that leaves 144px each — not enough for a label and its hint without
-          the hint truncating to nothing. Five only at 2xl, where they fit. */}
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
-        {ENTRIES.map(({ segment, label, hint, Icon }) => (
-          <li key={segment}>
-            <Link
-              href={`/trips/${id}/more/${segment}`}
-              className="block h-full rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              <Card
-                variant="interactive"
-                className="flex h-full items-center gap-3 sm:flex-col sm:items-start sm:gap-2"
+          A menu is a list. What a wide screen buys it is a comfortable measure,
+          not more columns, so the card caps and centres instead of spreading. */}
+      {/* Capped, not spread: a menu row does not get better at 1200px, it just
+          gets a longer line between its label and its chevron. */}
+      <Card padding="none" className="w-full max-w-2xl overflow-hidden">
+        <ul className="flex flex-col">
+          {ENTRIES.map(({ segment, label, hint, Icon, tone }, index) => (
+            <li key={segment} className={toneClass(tone)}>
+              <Link
+                href={`/trips/${id}/more/${segment}`}
+                className={cn(
+                  "flex min-w-0 items-center gap-3 px-4 py-3.5 transition-colors hover:bg-surface-2",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                  index < ENTRIES.length - 1 && "border-b border-border",
+                )}
               >
+                {/* The city palette, used here for the one job it does well
+                    outside a route: telling six near-identical rows apart at a
+                    glance. Every row was the same blue circle before. */}
                 <span
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary-ink"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-tone text-tone-ink"
                   aria-hidden="true"
                 >
                   <Icon className="h-5 w-5" />
@@ -160,29 +181,28 @@ export default async function MorePage({
                 <span className="min-w-0 flex-1">
                   <span className="block text-base font-semibold">{label}</span>
                   {/* The live line replaces the fixed one rather than joining
-                      it: two lines of subtitle in a card this size pushes the
-                      row past the height its neighbours settled on, and the
-                      state is the more useful of the two. */}
+                      it: two lines of subtitle push the row past the height its
+                      neighbours settled on, and the state is the more useful of
+                      the two. */}
                   <span
                     className={cn(
-                      "block min-w-0 truncate text-sm sm:whitespace-normal",
+                      "block min-w-0 truncate text-sm",
                       state[segment]?.urgent ? "text-warning-ink" : "text-muted",
                     )}
                   >
                     {state[segment]?.text ?? hint}
                   </span>
                 </span>
-                {/* RTL: "forward" points left. Only useful in the row layout;
-                    in the card layout the whole card is the affordance. */}
+                {/* RTL: "forward" points left. */}
                 <ChevronLeft
-                  className="h-5 w-5 shrink-0 text-muted sm:hidden"
+                  className="h-5 w-5 shrink-0 text-border-strong"
                   aria-hidden="true"
                 />
-              </Card>
-            </Link>
-          </li>
-        ))}
-      </ul>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </Card>
     </>
   );
 }

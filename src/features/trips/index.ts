@@ -268,6 +268,7 @@ export {
   nightStayLabel,
   dayLabel,
   dayOfTripLabel,
+  dayPillLabel,
   phaseLabel,
 } from "./domain/trip-days";
 export type { TripPhase, NightLodging } from "./domain/trip-days";
@@ -365,11 +366,14 @@ export { DomainIcon } from "./components/domain-icon";
 export type { DomainIconName } from "./domain/icons";
 export { AuraHero } from "./components/aura-hero";
 export { TripAuraBand } from "./components/trip-aura-band";
+export { TripBandSlot } from "./components/trip-band-slot";
+export { StartHere } from "./components/start-here";
 export { TripList } from "./components/trip-list";
 export { PlanningPanel } from "./components/planning-panel";
 export { CityGuide } from "./components/city-guide";
 export { SelectedList } from "./components/selected-list";
 export { Itinerary } from "./components/itinerary";
+export { MapSheet } from "./components/map-sheet";
 export { RouteMap } from "./components/route-map";
 
 export { DayTimeline } from "./components/day-timeline";

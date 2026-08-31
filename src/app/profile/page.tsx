@@ -13,6 +13,7 @@ import {
   itineraryStops,
   listTrips,
   pickUpcomingTrip,
+  StartHere,
   todayIn,
   TripList,
 } from "@/features/trips";
@@ -105,6 +106,13 @@ export default async function ProfilePage() {
           to say what it is. */}
       {!upcoming && (
         <SectionHeading level="page">הטיולים שלי</SectionHeading>
+      )}
+
+      {/* When the featured trip has nowhere to go, the next move is one
+          decision and the screen should be about making it — not about the
+          workflow in general. The two are mutually exclusive on purpose. */}
+      {upcoming && upcomingCities.length === 0 && (
+        <StartHere tripId={upcoming.id} />
       )}
 
       {/* Above the trip list, and expanded only for someone who has no trips

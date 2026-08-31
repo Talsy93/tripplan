@@ -138,6 +138,41 @@ function weekdayAfterDayNumber(date: string): string {
   return weekdayLabel(date).replace(/^יום\s+/, "");
 }
 
+// The two lines of a day pill in the pager: a weekday over a day-of-month.
+//
+// Both null when the trip has no start date — there is no calendar to reckon
+// by, and the caller falls back to the day number it already has. Kept here
+// rather than in the component because weekdayAfterDayNumber is private to this
+// module, and it is private for a reason worth preserving (see above).
+export function dayPillLabel(
+  startDate: string | null,
+  dayNumber: number,
+): { weekday: string; dayOfMonth: string } | null {
+  const date = dateOfDay(startDate, dayNumber);
+  if (!date) return null;
+
+  const short = new Date(`${date}T00:00:00Z`).toLocaleDateString("he-IL", {
+    weekday: "short",
+    timeZone: "UTC",
+  });
+
+  return {
+    // The weekday alone. Not weekdayAfterDayNumber, which is built on the
+    // forecast's formatter and returns "ו׳, 11.09" — weekday *and* date — which
+    // stacked over a day-of-month would print the date twice in one 48px pill.
+    //
+    // he-IL renders five of the seven as "יום ו׳" and Saturday as "שבת", so the
+    // prefix is dropped when it is there. slice+trim rather than a regex on
+    // purpose: the separator is a plain space in Node's ICU and U+00A0 in the
+    // browser's, trim() handles both, and a character class that has to spell
+    // them out is the kind of thing that silently stops matching.
+    weekday: short.startsWith("יום") ? short.slice(3).trim() : short,
+    // The day of the month, without a leading zero: these sit at 12px in a 48px
+    // pill and "09" is wider than it is informative.
+    dayOfMonth: String(Number(date.slice(8, 10))),
+  };
+}
+
 // "יום 3 · ג׳, 14.08", or just "יום 3" when the trip has no dates.
 export function dayLabel(dayNumber: number, date: string | null): string {
   return date
