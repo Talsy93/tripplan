@@ -21,6 +21,7 @@ import {
   ShareButton,
   todayIn,
   TripAuraBand,
+  TripBandSlot,
   TripNav,
   TripSideNav,
   tripPhase,
@@ -192,14 +193,19 @@ export default async function TripTabsLayout({
       // up, those margins would run sideways into the pane instead of off the
       // screen.
       banner={
-        <TripAuraBand
-          name={trip.name}
-          startDate={trip.start_date}
-          phase={phase}
-          dayCount={dayCount}
-          cities={cities}
-          hues={hues}
-        />
+        // Every tab but the map. There the map is the content and runs
+        // full-bleed from the app bar down — an 11rem band above it would take
+        // a third of the screen to repeat a name the app bar already shows.
+        <TripBandSlot>
+          <TripAuraBand
+            name={trip.name}
+            startDate={trip.start_date}
+            phase={phase}
+            dayCount={dayCount}
+            cities={cities}
+            hues={hues}
+          />
+        </TripBandSlot>
       }
     >
       {/* The trip's light, published to every tab under it as CSS variables.

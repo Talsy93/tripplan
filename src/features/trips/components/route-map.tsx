@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { Globe, Map as MapIcon } from "lucide-react";
+import { Crosshair, Globe, Map as MapIcon, Route } from "lucide-react";
 import {
   Badge,
   Banner,
@@ -12,7 +12,9 @@ import {
   SectionHeading,
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
+import { googleMapsRouteUrl } from "@/lib/maps";
 import { stopsByCountry } from "../domain/route";
+import { MapSheet } from "./map-sheet";
 import { ResetLocationsButton } from "./reset-locations-button";
 import { UnlocatedCities } from "./unlocated-cities";
 import type { ItineraryDay } from "../domain/ai-suggestion";
@@ -22,7 +24,16 @@ import { cityToneClass, cityToneMap } from "../domain/tone";
 // The map's height at each window class. It used to be a flat h-[26rem] at
 // every width, repeated in four places — a phone-sized map centred in a 1440px
 // screen. The canvas fills its frame now, so this is the only place it is set.
-const MAP_HEIGHT = "h-[20rem] sm:h-[24rem] lg:h-[calc(100dvh-14rem)] lg:min-h-[26rem]";
+// The map's height at each window class.
+//
+// Below lg it is the whole viewport under the app bar: on a phone this tab is
+// the map, the chips float on it and the stops arrive on a sheet over it, so
+// there is nothing else to leave room for. AppHeader is 3.5rem.
+//
+// From lg it goes back to sharing the row with the stops pane, which is the
+// desktop layout and does not want a sheet.
+const MAP_HEIGHT =
+  "h-[calc(100dvh-3.5rem)] lg:h-[calc(100dvh-14rem)] lg:min-h-[26rem]";
 
 // Leaflet has no server rendering — it needs a real DOM. Loading the canvas
 // only in the browser keeps the rest of the page server-rendered.
@@ -95,6 +106,12 @@ export function RouteMap({
 
   // Numbers stay global across the groups below — a stop's number matches its
   // pin on the map, and restarting the count per country would break that.
+  // The whole route as one Google Maps link. Null under two stops, where a
+  // "route" is a single pin.
+  const walkingRouteUrl = googleMapsRouteUrl(
+    route.stops.map((stop) => stop.city),
+  );
+
   const countryGroups = stopsByCountry(route.stops);
   const showCountries = countryGroups.length > 1;
 
@@ -104,14 +121,18 @@ export function RouteMap({
     // had. Below lg it stacks, map first.
     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
       <div className="flex min-w-0 flex-1 flex-col gap-3">
-        <div className="relative">
+        {/* Full-bleed on a phone: the negative margins undo AppShell's padding
+            at each of its breakpoints, and -mt-5 cancels the top padding so the
+            map meets the app bar. The band above it is hidden on this tab —
+            see TripBandSlot. From lg it is a card in a column again. */}
+        <div className="relative -mx-4 -mt-5 md:-mx-6 lg:mx-0 lg:mt-0">
           {/* Leaflet's zoom and attribution controls are laid out LTR; the map
               is a viewport rather than text, so it opts out of the app's RTL
               direction. The chips above it do not — they are text. */}
           <div
             dir="ltr"
             className={cn(
-              "overflow-hidden rounded-card border border-border shadow-soft",
+              "overflow-hidden border-border lg:rounded-card lg:border lg:shadow-soft",
               MAP_HEIGHT,
             )}
           >
@@ -159,6 +180,60 @@ export function RouteMap({
               ))}
             </div>
           )}
+
+          {/* The stops, on a sheet over the map — phone only. From lg they are
+              the pane on the right, which is the same list and does not need a
+              second presentation on the same screen. */}
+          <MapSheet
+            title={`התחנות של ${tripName ?? "הטיול"}`}
+            action={
+              walkingRouteUrl ? (
+                <a
+                  href={walkingRouteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex shrink-0 items-center gap-1 text-caption font-bold text-primary-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  // The header is a button that toggles the sheet, and this sits
+                  // inside it. Without this a tap on the link also toggles.
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <Route className="h-3.5 w-3.5" aria-hidden="true" />
+                  המסלול במפות
+                </a>
+              ) : null
+            }
+            items={route.stops.map((stop) => (
+                <div
+                  key={stop.city}
+                  className={cn(
+                    "flex min-w-0 items-center gap-2.5 py-2",
+                    cityToneClass(tones, stop.city),
+                  )}
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tone-dot text-caption font-black tabular-nums text-white">
+                    {stopNumberByCity.get(stop.city)}
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="min-w-0 truncate text-sm font-bold">
+                      {stop.city}
+                    </span>
+                    <span className="min-w-0 truncate text-caption text-muted">
+                      {stop.days.length > 0
+                        ? `ימים ${stop.days.join(", ")}${stop.nights > 0 ? ` · ${nightsLabel(stop.nights)}` : ""}`
+                        : "עוד לא בלו״ז"}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setFocusCity(stop.city)}
+                    aria-label={`הצג את ${stop.city} במפה`}
+                    className="shrink-0 rounded-control p-1 text-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Crosshair className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+              ))}
+          />
         </div>
 
         {/* A pin that quietly moves between two visits is its own kind of
@@ -184,7 +259,7 @@ export function RouteMap({
 
       <aside
         className={cn(
-          "flex w-full flex-col gap-4 lg:w-pane lg:shrink-0",
+          "hidden w-full flex-col gap-4 lg:flex lg:w-pane lg:shrink-0",
           // Scrolls independently of the map, which is what makes this a pane
           // rather than a long column next to a short one.
           "lg:sticky lg:top-20 lg:max-h-[calc(100dvh-14rem)] lg:overflow-y-auto lg:pe-1",
