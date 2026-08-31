@@ -4,7 +4,6 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { EmptyState, IconButton, Surface, ToneDot } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { lodgingOrigin } from "../domain/directions";
 import { cityByDay } from "../domain/route";
 import { cityToneClass, cityToneMap } from "../domain/tone";
 import {
@@ -177,12 +176,18 @@ export function DayPager({
       {/* The bookings are listed above as cards already, so the timeline gets
           them only to place them on the axis — `bookings` there also widens
           the axis so an early departure is not clamped to the top edge. */}
-      <DayTimeline
+      {/* The compact list — this is the screen the design draws it for: a
+          reference you glance at after the card above has said what to do.
+          scroll-mt clears the sticky app bar when NowCard's "הבא בתור" jumps
+          here, so the first row does not land underneath it. */}
+      <div id="day-schedule" className="scroll-mt-20">
+        <DayTimeline
         day={active}
-        origin={stay ? lodgingOrigin(stay.booking) : null}
-        bookings={bookings}
-        date={date}
-      />
+          variant="compact"
+          bookings={bookings}
+          date={date}
+        />
+      </div>
     </div>
   );
 }

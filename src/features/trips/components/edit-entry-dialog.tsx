@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Trash2 } from "lucide-react";
 import {
   Banner,
   Button,
@@ -29,6 +30,7 @@ export function EditEntryDialog({
   dayCount,
   open,
   onClose,
+  onRemove,
 }: {
   entry: ItineraryEntry;
   dayNumber: number;
@@ -37,6 +39,10 @@ export function EditEntryDialog({
   dayCount: number;
   open: boolean;
   onClose: () => void;
+  // Removing the entry. It lives here rather than on the row because the row is
+  // a list item people scroll past, and this is a dialog they opened on purpose
+  // — the same move the trips list made with its delete.
+  onRemove?: (entryId: string) => void;
 }) {
   const [start, setStart] = useState(entry.startLabel);
   const [end, setEnd] = useState(entry.endLabel);
@@ -176,7 +182,24 @@ export function EditEntryDialog({
 
         {message && <Banner tone="danger">{message}</Banner>}
 
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {/* First in the DOM and pushed to the far end, so it is reachable in
+              tab order without sitting next to "save" where a mis-tap lands. */}
+          {onRemove && (
+            <Button
+              type="button"
+              variant="danger"
+              disabled={pending}
+              className="me-auto"
+              onClick={() => {
+                onRemove(entry.id);
+                onClose();
+              }}
+            >
+              <Trash2 className="h-4 w-4" aria-hidden="true" />
+              הסרה מהלוח
+            </Button>
+          )}
           <Button
             type="button"
             variant="outline"

@@ -339,8 +339,7 @@ export const SCENES: Scene[] = [
         <DayTimeline
           day={f.ITINERARY[0]}
           date="2026-09-11"
-          origin="מלון שינג׳וקו גרנד"
-        />
+          />
       </TwoPane>
     ),
   },
@@ -497,7 +496,6 @@ export const SCENES: Scene[] = [
         day={f.ITINERARY[0]}
         bookings={f.BOOKINGS}
         date="2026-09-11"
-        origin="מלון שינג׳וקו גרנד"
       />
     ),
   },
@@ -509,7 +507,6 @@ export const SCENES: Scene[] = [
       <DayTimeline
         day={f.ITINERARY[0]}
         date="2026-09-11"
-        origin="מלון שינג׳וקו גרנד"
       />
     ),
   },

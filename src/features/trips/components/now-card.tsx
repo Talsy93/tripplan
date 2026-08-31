@@ -175,17 +175,21 @@ export function NowCard({
             ניווט
           </a>
         )}
-        {/* Only when it is a different thing. While `next` is already the focus
-            there is nothing for this to point at. */}
+        {/* Equal width beside "ניווט", and an anchor rather than a panel: the
+            design's second control is a button, and the thing it should do is
+            take you to the rest of the day — which is the list directly below
+            this card. A panel naming the next item said more and did nothing,
+            and on the screen someone opens while walking, doing is the point.
+
+            Only when there is a next and it is not already what this card is
+            showing. */}
         {isNow && next && (
-          <span className="flex min-w-0 flex-1 flex-col justify-center rounded-control border border-white/20 bg-white/10 px-3 py-2">
-            <span className="text-caption font-semibold text-white/60">
-              אחר כך
-            </span>
-            <span className="min-w-0 truncate text-sm font-bold">
-              {itemTitle(next)}
-            </span>
-          </span>
+          <a
+            href="#day-schedule"
+            className="flex min-w-0 flex-1 items-center justify-center rounded-control border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold transition-colors duration-press hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-aura-veil"
+          >
+            הבא בתור
+          </a>
         )}
       </div>
     </section>
