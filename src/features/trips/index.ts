@@ -331,7 +331,7 @@ export { CityDaysEditor } from "./components/city-days-editor";
 export { EditEntryDialog } from "./components/edit-entry-dialog";
 export { DeleteTripButton } from "./components/delete-trip-button";
 export { TripDatesForm } from "./components/trip-dates-form";
-export { CountdownHero } from "./components/countdown-hero";
+
 export { UpNext } from "./components/up-next";
 export { MoreBackLink } from "./components/more-back-link";
 export { TripNav, TripSideNav } from "./components/trip-nav";
@@ -354,13 +354,14 @@ export type { AuraTrip } from "./domain/aura";
 export { AURA_PALETTES } from "./domain/aura-palette";
 export type { AuraPalette } from "./domain/aura-palette";
 export { AuraHero } from "./components/aura-hero";
+export { TripAuraBand } from "./components/trip-aura-band";
 export { TripList } from "./components/trip-list";
 export { PlanningPanel } from "./components/planning-panel";
 export { CityGuide } from "./components/city-guide";
 export { SelectedList } from "./components/selected-list";
 export { Itinerary } from "./components/itinerary";
 export { RouteMap } from "./components/route-map";
-export { RouteHero } from "./components/route-hero";
+
 export { DayTimeline } from "./components/day-timeline";
 export {
   parseTimeLabel,

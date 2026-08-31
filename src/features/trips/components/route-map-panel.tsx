@@ -1,7 +1,5 @@
-import { getPlaceImage } from "@/lib/place-image";
 import { getItinerary } from "../infrastructure/itinerary-service";
 import { getTripRoute } from "../infrastructure/route-service";
-import { RouteHero } from "./route-hero";
 import { RouteMap } from "./route-map";
 
 // Server component: resolves the route (which may need to geocode new cities,
@@ -20,20 +18,17 @@ export async function RouteMapPanel({
   const itinerary = await getItinerary(tripId);
   const route = await getTripRoute(tripId, tripName, itinerary);
 
-  // The trip's opening image is the first place it goes. Null when Wikipedia
-  // has no photo — RouteHero falls back to a gradient.
-  const firstStop = route.stops[0]?.city;
-  const imageUrl = firstStop ? await getPlaceImage(firstStop) : null;
+  // RouteHero used to open this panel with the trip's name over a photo of its
+  // first stop. TripAuraBand now does exactly that at the top of every screen
+  // inside a trip, so on this tab there were two dark panels stacked, both
+  // naming the trip and both showing the same photo. The band is the one that
+  // belongs — it is on all ten tabs, so removing it here would have left the
+  // map as the only screen that opened differently.
+  //
+  // This also drops a getPlaceImage call from the tab: the band already made it.
 
   return (
     <div className="flex flex-col gap-5">
-      {route.stops.length > 0 && (
-        <RouteHero
-          tripName={tripName}
-          stops={route.stops}
-          imageUrl={imageUrl}
-        />
-      )}
       <RouteMap
         tripId={tripId}
         route={route}
