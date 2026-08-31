@@ -6,6 +6,7 @@ import { SectionHeading, Skeleton } from "@/components/ui";
 import {
   BookingForm,
   BookingList,
+  DeleteTripButton,
   ExpenseSummary,
   getSelectedDestinations,
   getTrip,
@@ -121,6 +122,21 @@ export default async function TripDetailsPage({
             aria-hidden="true"
           />
         </Link>
+      </section>
+
+      {/* Last on the page, and separated, because that is what it is. Deleting
+          the trip used to be an icon on every card in the trips list — an
+          irreversible action sitting one mis-tap from the thumb on the screen
+          people scroll most. It belongs inside the trip it destroys, at the
+          bottom, under its own heading. */}
+      <section className="flex flex-col gap-3 border-t border-border pt-6">
+        <SectionHeading
+          level="section"
+          description="הפעולה הזאת לא ניתנת לביטול."
+        >
+          מחיקה
+        </SectionHeading>
+        <DeleteTripButton tripId={trip.id} tripName={trip.name} />
       </section>
     </>
   );

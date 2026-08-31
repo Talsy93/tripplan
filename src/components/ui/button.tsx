@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-type Variant = "primary" | "soft" | "outline" | "ghost" | "danger";
+type Variant = "primary" | "soft" | "outline" | "ghost" | "danger" | "onLight";
 type Size = "sm" | "md" | "lg";
 
 // One focus treatment for the whole app. Before phase D this ring existed here
@@ -41,6 +41,16 @@ const variants: Record<Variant, string> = {
   // layer. The token says the same thing and survives a theme change.
   danger:
     "bg-danger-tint text-danger-ink hover:bg-danger hover:text-primary-foreground",
+  // For a button sitting on the trip's light rather than on the app canvas.
+  //
+  // White, and not the action blue, for the reason the rail's selected item is
+  // white: it has to hold against whichever of eight palettes is behind it, and
+  // only the extremes do that across all of them. Its focus ring also has to
+  // offset against the dark panel rather than the light page, which is why this
+  // is a variant rather than a className at the call site — focusRing hardcodes
+  // ring-offset-background and would vanish into the field.
+  onLight:
+    "bg-white text-foreground hover:bg-white/90 focus-visible:ring-white focus-visible:ring-offset-aura-base",
 };
 
 const sizes: Record<Size, string> = {

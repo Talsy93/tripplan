@@ -26,12 +26,16 @@ import type {
   GuideItem,
   SavedCityGuide,
 } from "../domain/ai-suggestion";
+import { Building2, MapPin, Sparkles, Utensils, type LucideIcon } from "lucide-react";
 
-const SECTIONS: { key: AiCategoryKey; label: string; icon: string }[] = [
-  { key: "areas", label: "אזורי לינה", icon: "🏘️" },
-  { key: "restaurants", label: "מסעדות", icon: "🍽️" },
-  { key: "attractions", label: "אטרקציות ואתרים", icon: "📍" },
-  { key: "experiences", label: "חוויות ודברים לעשות", icon: "✨" },
+// The icon is the component, not a rendered element: a section header and a
+// chip want it at different sizes, and a stored element would fix the size at
+// the point of declaration.
+const SECTIONS: { key: AiCategoryKey; label: string; Icon: LucideIcon }[] = [
+  { key: "areas", label: "אזורי לינה", Icon: Building2 },
+  { key: "restaurants", label: "מסעדות", Icon: Utensils },
+  { key: "attractions", label: "אטרקציות ואתרים", Icon: MapPin },
+  { key: "experiences", label: "חוויות ודברים לעשות", Icon: Sparkles },
 ];
 
 function withSelected(items: AiRecommendation[]): GuideItem[] {
@@ -279,7 +283,7 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
         </Button>
       </div>
 
-      {SECTIONS.map(({ key, label, icon }) => {
+      {SECTIONS.map(({ key, label, Icon }) => {
         const items = guide.sections[key] ?? [];
         if (items.length === 0) return null;
         const isLoadingMore = loadingMore.includes(key);
@@ -287,7 +291,7 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
           <section key={key} className="flex flex-col gap-3">
             <SectionHeading
               level="section"
-              leading={<span aria-hidden="true">{icon}</span>}
+              leading={<Icon className="h-5 w-5 shrink-0" aria-hidden="true" />}
             >
               {label}
             </SectionHeading>

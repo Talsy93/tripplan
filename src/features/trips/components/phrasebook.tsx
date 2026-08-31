@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Search, Volume2 } from "lucide-react";
+import { Languages, Search, Volume2 } from "lucide-react";
 import {
   Banner,
   Button,
@@ -113,7 +113,7 @@ export function Phrasebook({
 
       {!phrasebook && !building && !error && (
         <EmptyState
-          icon="🗣️"
+          icon={<Languages />}
           title="אין עדיין שיחון"
           description="נזהה את שפת היעד לפי הערים בטיול ונבנה שיחון בסיסי, כולל איך להגות כל ביטוי."
           action={
@@ -126,7 +126,7 @@ export function Phrasebook({
 
       {phrasebook && query.trim() && sections.length === 0 && (
         <EmptyState
-          icon="🔍"
+          icon={<Search />}
           title="אין ביטוי כזה בשיחון"
           description="נסו מילה אחרת, או בנו את השיחון מחדש כדי להרחיב אותו."
         />

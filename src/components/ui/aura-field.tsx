@@ -10,22 +10,28 @@ import { cn } from "@/lib/cn";
 // serves them. All were arrived at by measuring, and the notes below say what
 // the measurement was:
 //
-//   solid — a hero with no photo. Opaque base, blooms spread wide, a gradient
+//   solid — a hero or a band. Opaque base, blooms spread wide, a gradient
 //           floor on top to hold the text band down.
-//   wash  — a hero over a photo. No base; the floor goes *under* the blooms so
-//           the light lands on the darkened band and leaves the photo alone.
+//   rail  — the desktop navigation column. Tall and narrow, and unlike a hero
+//           it carries text down its whole height rather than in a band at the
+//           bottom, so its floor covers everything and its blooms are stacked
+//           vertically instead of spread across a width it does not have.
 //   chip  — a small decorative tile (the 44px trip signatures). No text sits on
 //           it, so it needs no floor at all, and the blooms move inside the box
 //           because at 44px anything hung off the edge never appears.
+//
+// There was a third, `wash`, for a hero drawn over a photograph: no base, and
+// the floor *under* the blooms so the light landed on the darkened band and left
+// the photo alone. It went with the photo — see trip-aura-band.tsx.
 
-type Variant = "solid" | "wash" | "chip";
+type Variant = "solid" | "chip" | "rail";
 
 type Bloom = { style: string; drift: string; opacity: number };
 
 // Fixed positions rather than random, and in percentages so the same field
 // composes at any size. The two drift tracks alternate, so blooms sharing a
 // field never move as one block.
-const LAYOUTS: Record<"hero" | "chip", readonly Bloom[]> = {
+const LAYOUTS: Record<"hero" | "chip" | "rail", readonly Bloom[]> = {
   hero: [
     { style: "top-[-32%] right-[-18%] w-[78%]", drift: "aura-drift-a", opacity: 0.9 },
     { style: "top-[14%] left-[-26%] w-[72%]", drift: "aura-drift-b", opacity: 0.78 },
@@ -38,6 +44,15 @@ const LAYOUTS: Record<"hero" | "chip", readonly Bloom[]> = {
     { style: "top-[-14%] right-[-10%] w-[95%]", drift: "aura-drift-a", opacity: 1 },
     { style: "bottom-[-18%] left-[-14%] w-[90%]", drift: "aura-drift-b", opacity: 0.95 },
     { style: "top-[22%] right-[26%] w-[80%]", drift: "aura-drift-b", opacity: 0.9 },
+  ],
+  // Stacked down the column, and far wider than it. A 240px rail is narrow
+  // enough that a bloom sized to its width is a small dot two thirds of the way
+  // down; sized to 190% of it, the visible slice is a broad wash — which is what
+  // reads as light rather than as three circles.
+  rail: [
+    { style: "top-[-10%] right-[-45%] w-[190%]", drift: "aura-drift-a", opacity: 0.85 },
+    { style: "top-[28%] left-[-50%] w-[180%]", drift: "aura-drift-b", opacity: 0.8 },
+    { style: "bottom-[-12%] right-[-40%] w-[200%]", drift: "aura-drift-a", opacity: 0.75 },
   ],
 };
 
@@ -53,9 +68,21 @@ const LAYOUTS: Record<"hero" | "chip", readonly Bloom[]> = {
 // screen, black is the identity, so #000 costs nothing and there is no dark band
 // anywhere — and two blooms overlapping brighten each other instead of covering
 // each other. That is what lets three saturated hues share one small box.
+// The hue holds to 32% before it starts falling off, and that stop is the
+// difference between light and a stain. A gradient that leaves the hue at 0%
+// gives it a single bright pixel at the centre; blur then spreads that one pixel
+// across the whole bloom, and what lands on screen is a dim smear. Raising the
+// palettes without this changes almost nothing — measured, brightening all eight
+// trios and the base moved the rendered swatches barely at all, because the
+// limiter was never the hue, it was how little of the bloom was actually that
+// hue.
+//
+// Still ending at #000 rather than `transparent`, for the reason above: under
+// `screen` black is the identity, so the falloff costs nothing and adds no
+// muddy midpoint.
 function bloomStyle(blur: number, hue: string, opacity: number) {
   return {
-    background: `radial-gradient(circle, ${hue} 0%, #000 70%)`,
+    background: `radial-gradient(circle, ${hue} 0%, ${hue} 32%, #000 78%)`,
     filter: `blur(${blur}px)`,
     mixBlendMode: "screen" as const,
     opacity,
@@ -82,7 +109,8 @@ export function AuraField({
   blur?: number;
   className?: string;
 }) {
-  const layout = LAYOUTS[variant === "chip" ? "chip" : "hero"];
+  const layout =
+    LAYOUTS[variant === "chip" ? "chip" : variant === "rail" ? "rail" : "hero"];
 
   const blooms = hues.slice(0, layout.length).map((hue, i) => (
     <span
@@ -92,13 +120,7 @@ export function AuraField({
         layout[i].style,
         animate && layout[i].drift,
       )}
-      style={bloomStyle(
-        blur,
-        hue,
-        // Dimmer over a photo: there the blooms tint rather than paint, and at
-        // full strength they bury whatever the photo was showing.
-        variant === "wash" ? layout[i].opacity * 0.7 : layout[i].opacity,
-      )}
+      style={bloomStyle(blur, hue, layout[i].opacity)}
     />
   ));
 
@@ -106,23 +128,30 @@ export function AuraField({
   // none: nothing is ever written on a 44px signature tile, so a floor there
   // only costs light.
   //
+  // Made of --aura-veil rather than --aura-base, and that split is what let the
+  // base be raised at all. While the floor was the base, brightening the base to
+  // make the light glow also lightened the cover under the text — so the field
+  // gained colour and lost its captions in the same edit. Two tokens, two jobs:
+  // the base says how deep the field sits, the veil says how hard the bottom
+  // band is held down. The stops here are the second half of that change: with
+  // brighter blooms, the old 25% midpoint left a 12px white caption sitting on
+  // lit orange.
+  //
   // Where it does appear, stops matter as much as opacity. The first version ran
   // the gradient over the full height in `solid` too, which dimmed the blooms at
   // the top as well and was half of why the field read as a dark box.
+  // `rail` covers its whole height rather than tailing off, because nav items
+  // run top to bottom and the topmost one would otherwise sit on open light. It
+  // still darkens downward, so the column has a direction rather than reading as
+  // a flat tinted panel.
   const floor =
     variant === "chip" ? null : (
       <span
         className={cn(
           "absolute inset-0",
-          variant === "wash"
-            ? // Never reaches zero, and that is not caution. Measured: a floor
-              // that ran out at 72% left "עד ההמראה" on a sunlit building with
-              // nothing behind it. These stops match what the old neutral scrim
-              // covered — 0.74 / 0.42 / 0.18 across the full height, readable
-              // over every photo the app had — so this changes the colour of
-              // that cover, not how much of it there is.
-              "bg-gradient-to-t from-aura-base/95 via-aura-base/70 via-40% to-aura-base/20"
-            : "bg-gradient-to-t from-aura-base/85 via-aura-base/25 via-38% to-transparent to-64%",
+          variant === "rail"
+            ? "bg-gradient-to-b from-aura-veil/40 via-aura-veil/65 to-aura-veil/85"
+            : "bg-gradient-to-t from-aura-veil/90 via-aura-veil/55 via-34% to-transparent to-78%",
         )}
       />
     );
@@ -132,36 +161,14 @@ export function AuraField({
       aria-hidden="true"
       className={cn(
         "pointer-events-none absolute inset-0 overflow-hidden",
-        // `isolate` wherever there is an opaque base: it stops `screen` from
-        // reaching past the field to the page behind it. `wash` must not
-        // isolate — there the blend has to reach the photo below, which is the
-        // whole point of that variant.
-        variant !== "wash" && "isolate bg-aura-base",
+        // `isolate` because there is an opaque base: it stops `screen` from
+        // reaching past the field to the page behind it.
+        "isolate bg-aura-base",
         className,
       )}
     >
-      {/* The order flips in `wash`, and that is the mechanism rather than a
-          detail. Measured: with the floor on top, `wash` tinted nothing at all
-          — a photo of a bright sky came out under a plain neutral gradient.
-          That is `screen` behaving correctly: it lifts darks and leaves brights
-          alone, so over a bright photo it has nothing to do.
-
-          Putting the floor underneath uses the same physics instead of fighting
-          it. The floor darkens the bottom band; the blooms then screen over
-          that band, where colour shows plainly — and still do almost nothing to
-          the bright photo above, which is what should happen to someone's photo
-          of Tokyo. One rule, both outcomes. */}
-      {variant === "wash" ? (
-        <>
-          {floor}
-          {blooms}
-        </>
-      ) : (
-        <>
-          {blooms}
-          {floor}
-        </>
-      )}
+      {blooms}
+      {floor}
     </div>
   );
 }

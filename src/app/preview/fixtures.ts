@@ -76,15 +76,6 @@ export const TRIP_CITIES = new Map<string, string[]>([
   [id("d2"), ["רומא"]],
 ]);
 
-// A real Wikimedia photo, on the host next.config.ts already allow-lists —
-// because the hero's aura behaves differently over a photo (it tints) than on
-// its own (it paints), and the case worth checking is whether white text stays
-// readable over a bright, busy image. A flat placeholder would prove nothing.
-// Verified 200 image/jpeg. The un-thumbed path on purpose: upload.wikimedia.org
-// serves /thumb/ URLs only at widths it has already rendered.
-export const PHOTO =
-  "https://upload.wikimedia.org/wikipedia/commons/b/b2/Skyscrapers_of_Shinjuku_2009_January.jpg";
-
 // ---- bookings -------------------------------------------------------------
 
 const bookingBase = {

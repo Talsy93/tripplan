@@ -332,6 +332,14 @@ export { EditEntryDialog } from "./components/edit-entry-dialog";
 export { DeleteTripButton } from "./components/delete-trip-button";
 export { TripDatesForm } from "./components/trip-dates-form";
 
+export { AuraPanel } from "./components/aura-panel";
+export { tripHueStyle } from "./domain/aura-vars";
+export { NowCard } from "./components/now-card";
+export { TodayStats } from "./components/today-stats";
+export {
+  RailTripProgress,
+  RailTripSwitcher,
+} from "./components/rail-trip";
 export { UpNext } from "./components/up-next";
 export { MoreBackLink } from "./components/more-back-link";
 export { TripNav, TripSideNav } from "./components/trip-nav";
@@ -353,6 +361,8 @@ export { tripAura, assignTripAuras, auraHues } from "./domain/aura";
 export type { AuraTrip } from "./domain/aura";
 export { AURA_PALETTES } from "./domain/aura-palette";
 export type { AuraPalette } from "./domain/aura-palette";
+export { DomainIcon } from "./components/domain-icon";
+export type { DomainIconName } from "./domain/icons";
 export { AuraHero } from "./components/aura-hero";
 export { TripAuraBand } from "./components/trip-aura-band";
 export { TripList } from "./components/trip-list";
@@ -367,8 +377,10 @@ export {
   parseTimeLabel,
   formatMinutes,
   buildDayTimeline,
-  axisHours,
-  positionPercent,
+  dayNow,
+  daySequence,
+  isEndingSoon,
+  isNightGap,
   durationLabel,
   distanceLabel,
 } from "./domain/timeline";

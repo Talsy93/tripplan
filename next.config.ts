@@ -1,16 +1,7 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  images: {
-    // Free place photos come from Wikipedia (see src/lib/place-image.ts).
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "upload.wikimedia.org",
-        pathname: "/**",
-      },
-    ],
-  },
-};
+// Nothing to configure. The images.remotePatterns entry for upload.wikimedia.org
+// went with the destination photos — see trip-aura-band.tsx.
+const nextConfig: NextConfig = {};
 
 export default nextConfig;

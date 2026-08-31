@@ -27,6 +27,7 @@ import type {
   BookingKind,
   CreateBookingInput,
 } from "../domain/booking";
+import { DomainIcon } from "./domain-icon";
 
 const KINDS = Object.keys(BOOKING_KINDS) as BookingKind[];
 
@@ -209,7 +210,7 @@ export function BookingForm({
               active={kind === key}
               onClick={() => setKind(key)}
             >
-              <span aria-hidden="true">{BOOKING_KINDS[key].emoji}</span>
+              <DomainIcon name={BOOKING_KINDS[key].icon} />
               {BOOKING_KINDS[key].label}
             </Chip>
           ))}

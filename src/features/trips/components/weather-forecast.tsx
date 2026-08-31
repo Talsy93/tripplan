@@ -2,6 +2,8 @@ import { Banner, Card, SectionHeading, Surface, ToneDot } from "@/components/ui"
 import { describeWeather, weekdayLabel } from "../domain/weather";
 import { cityToneClass, cityToneMap } from "../domain/tone";
 import type { CityWeather, ForecastWindow } from "../domain/weather";
+import { DomainIcon } from "./domain-icon";
+import { Droplet } from "lucide-react";
 
 // Presentational: the panel resolves the window and the data, this draws it.
 export function WeatherForecast({
@@ -59,7 +61,7 @@ export function WeatherForecast({
               stays one row per city instead of a grid that hides the shape. */}
           <ul className="flex gap-2 overflow-x-auto pb-1">
             {city.days.map((day) => {
-              const { emoji, label } = describeWeather(day.code);
+              const { icon, label } = describeWeather(day.code);
               return (
                 <li key={day.date} className="shrink-0">
                   <Card
@@ -74,14 +76,15 @@ export function WeatherForecast({
                       title={label}
                       aria-label={label}
                     >
-                      {emoji}
+                      <DomainIcon name={icon} className="h-6 w-6" />
                     </span>
                     <span className="text-sm font-semibold tabular-nums">
                       {Math.round(day.maxC)}° / {Math.round(day.minC)}°
                     </span>
                     {day.rainChance !== null && day.rainChance > 0 && (
                       <span className="text-caption tabular-nums text-muted">
-                        💧 {day.rainChance}%
+                        <Droplet className="inline h-3 w-3 align-[-1px]" aria-hidden="true" />{" "}
+                        {day.rainChance}%
                       </span>
                     )}
                   </Card>

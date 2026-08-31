@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronRight, MapPin, Search, Sparkles, X } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  Compass,
+  MapPin,
+  Search,
+  Sparkles,
+  X,
+} from "lucide-react";
 import {
   Badge,
   Banner,
@@ -23,6 +31,8 @@ import type { PlaceCategory } from "../domain/place";
 import type { Place } from "../domain/place";
 import type { AddedPlace } from "../infrastructure/place-service";
 import { PlaceDetails } from "./place-details";
+import { AuraPanel } from "./aura-panel";
+import { DomainIcon } from "./domain-icon";
 
 const CATEGORY_KEYS = Object.keys(PLACE_CATEGORIES) as PlaceCategory[];
 
@@ -290,7 +300,7 @@ export function PlaceSearch({
   if (cities.length === 0) {
     return (
       <EmptyState
-        icon="🧭"
+        icon={<Compass />}
         title="קודם בחרו יעדים"
         description="החיפוש עובד סביב ערי הטיול, אז הוסיפו יעד אחד לפחות."
       />
@@ -321,7 +331,7 @@ export function PlaceSearch({
               )}
             >
               <span className="text-display leading-none" aria-hidden="true">
-                {meta.emoji}
+                <DomainIcon name={meta.icon} className="h-5 w-5 shrink-0" />
               </span>
               <span className="flex flex-col">
                 <span className="text-sm font-bold">{meta.label}</span>
@@ -352,7 +362,7 @@ export function PlaceSearch({
 
       <SectionHeading
         level="section"
-        leading={<span aria-hidden="true">{meta.emoji}</span>}
+        leading={<DomainIcon name={meta.icon} />}
       >
         {meta.label}
       </SectionHeading>
@@ -479,17 +489,34 @@ export function PlaceSearch({
           for. Both are worth having, so the button sits beside the results
           rather than replacing them. */}
       {(area.trim() || activeArea) && status.kind !== "searching" && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => void askAiAboutArea()}
-          loading={askingAi}
-          className="self-start"
-        >
-          <Sparkles className="h-4 w-4" aria-hidden="true" />
-          מה ה-AI ממליץ ב{area.trim() || activeArea}?
-        </Button>
+        // The one lit element on the discovery screen. OSM's results are facts
+        // and look like facts — white rows on grey; this is the thing being
+        // offered, and it is the only place here where the trip's own light
+        // does any work. See AuraPanel for why exactly one.
+        <AuraPanel>
+          <span className="flex min-w-0 items-center gap-1.5 text-caption font-extrabold text-white/75">
+            <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            הצעות בשבילכם
+          </span>
+          <p className="min-w-0 text-title font-bold wrap-anywhere">
+            מה ה-AI ממליץ ב{area.trim() || activeArea}?
+          </p>
+          <p className="min-w-0 text-caption text-white/75">
+            OpenStreetMap יודע אילו מקומות יש ומתי הם פתוחים. את מה שהאזור עצמו
+            שווה בשבילו — לא.
+          </p>
+          <Button
+            type="button"
+            variant="onLight"
+            size="sm"
+            onClick={() => void askAiAboutArea()}
+            loading={askingAi}
+            className="mt-1 self-start"
+          >
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+            בקשו הצעות
+          </Button>
+        </AuraPanel>
       )}
 
       {status.kind === "ai" && (
@@ -534,7 +561,7 @@ export function PlaceSearch({
 
       {status.kind === "results" && status.places.length === 0 && (
         <EmptyState
-          icon="🔍"
+          icon={<Search />}
           title="לא נמצאו תוצאות"
           description={
             activeArea

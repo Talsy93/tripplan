@@ -2,15 +2,21 @@
 
 import { useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
-import { Banner, Button, Dialog, IconButton } from "@/components/ui";
+import { Banner, Button, Dialog } from "@/components/ui";
 import { deleteTrip } from "../application/actions";
 
 // Deleting a trip takes its destinations, itinerary, bookings, phrasebook and
 // chat with it — the database cascades, see deleteTrip in trips-service.ts. So
 // the dialog names what goes, rather than asking a bare "are you sure?".
 //
-// A separate client component instead of making the whole list interactive: the
-// trips list stays a server component and only this button ships JS.
+// A separate client component instead of making the page interactive: the page
+// around it stays a server component and only this button ships JS.
+//
+// It used to be an icon on every card in the trips list, which put an
+// irreversible action one mis-tap from the thumb on the screen people scroll
+// most. Now it lives at the bottom of the trip's own details page, which is
+// where an action that destroys that trip belongs — and being there, it can
+// afford to say what it is in words.
 export function DeleteTripButton({
   tripId,
   tripName,
@@ -39,16 +45,26 @@ export function DeleteTripButton({
 
   return (
     <>
-      <IconButton
-        label={`מחיקת הטיול ${tripName}`}
-        variant="danger"
-        size="sm"
-        // Above the stretched link that makes the whole card clickable.
-        className="relative z-10"
+      <button
+        type="button"
         onClick={() => setOpen(true)}
+        className="flex min-w-0 items-center gap-3 rounded-card border border-danger/25 bg-surface p-4 text-start shadow-soft transition-colors hover:border-danger/60 hover:bg-danger-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
       >
-        <Trash2 className="h-4 w-4" aria-hidden="true" />
-      </IconButton>
+        <span
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger-tint text-danger-ink"
+          aria-hidden="true"
+        >
+          <Trash2 className="h-5 w-5" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-base font-semibold text-danger-ink">
+            מחיקת הטיול
+          </span>
+          <span className="block text-sm text-muted">
+            היעדים, לוח הזמנים, ההזמנות, השיחון והשיחה יימחקו איתו
+          </span>
+        </span>
+      </button>
 
       <Dialog
         open={open}

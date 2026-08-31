@@ -1,8 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import dynamic from "next/dynamic";
-import { Globe } from "lucide-react";
-import { Badge, Banner, EmptyState, ListRow, SectionHeading } from "@/components/ui";
+import { Globe, Map as MapIcon } from "lucide-react";
+import {
+  Badge,
+  Banner,
+  EmptyState,
+  glassClasses,
+  ListRow,
+  SectionHeading,
+} from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { stopsByCountry } from "../domain/route";
 import { ResetLocationsButton } from "./reset-locations-button";
@@ -41,11 +49,13 @@ export function RouteMap({
   itinerary: ItineraryDay[];
   tripName?: string;
 }) {
+  const [focusCity, setFocusCity] = useState<string | null>(null);
+
   if (route.stops.length === 0) {
     return (
       <div className="flex flex-col gap-4">
         <EmptyState
-          icon="🗺️"
+          icon={<MapIcon />}
           title="המפה תתמלא כשתבחרו יעדים"
           description="הוסיפו דברים לטיול מתוך מדריכי הערים, והתחנות יופיעו כאן לפי הסדר."
           className={MAP_HEIGHT + " justify-center"}
@@ -69,6 +79,20 @@ export function RouteMap({
   );
   const tones = cityToneMap(route.stops.map((stop) => stop.city));
 
+  // Which city the map is looking at. Null is "the whole route", which is where
+  // it starts and what the first chip goes back to.
+  //
+  // Held as a city name rather than a coordinate pair so the chip that is lit
+  // and the place the map flew to cannot disagree — a pair would have to be
+  // compared by value to work out which chip is active.
+  const focus =
+    focusCity === null
+      ? null
+      : (() => {
+          const stop = route.stops.find((candidate) => candidate.city === focusCity);
+          return stop ? ([stop.latitude, stop.longitude] as [number, number]) : null;
+        })();
+
   // Numbers stay global across the groups below — a stop's number matches its
   // pin on the map, and restarting the count per country would break that.
   const countryGroups = stopsByCountry(route.stops);
@@ -80,16 +104,61 @@ export function RouteMap({
     // had. Below lg it stacks, map first.
     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
       <div className="flex min-w-0 flex-1 flex-col gap-3">
-        {/* Leaflet's zoom/attribution controls are laid out LTR; the map is a
-            viewport, not text, so it opts out of the app's RTL direction. */}
-        <div
-          dir="ltr"
-          className={cn(
-            "overflow-hidden rounded-card border border-border shadow-soft",
-            MAP_HEIGHT,
+        <div className="relative">
+          {/* Leaflet's zoom and attribution controls are laid out LTR; the map
+              is a viewport rather than text, so it opts out of the app's RTL
+              direction. The chips above it do not — they are text. */}
+          <div
+            dir="ltr"
+            className={cn(
+              "overflow-hidden rounded-card border border-border shadow-soft",
+              MAP_HEIGHT,
+            )}
+          >
+            <RouteMapCanvas
+              stops={route.stops}
+              places={route.places}
+              focus={focus}
+            />
+          </div>
+
+          {/* Floating over the map rather than sitting above it, and that is the
+              point: the map is the content on this tab, so the controls belong
+              on top of it. Glass because there is a moving photographic surface
+              underneath — this is one of the three places in the app where
+              translucency does something an opaque fill cannot.
+
+              z-[500]: Leaflet puts its own panes at z-index 400 and its controls
+              at 800, so anything below 400 is drawn under the tiles. */}
+          {route.stops.length > 1 && (
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] flex gap-1.5 overflow-x-auto p-2">
+              <button
+                type="button"
+                onClick={() => setFocusCity(null)}
+                className={cn(
+                  glassClasses("light"),
+                  "pointer-events-auto shrink-0 rounded-full px-3.5 py-1.5 text-caption font-bold",
+                  focusCity === null && "bg-foreground text-surface",
+                )}
+              >
+                כל המסלול
+              </button>
+              {route.stops.map((stop) => (
+                <button
+                  key={stop.city}
+                  type="button"
+                  onClick={() => setFocusCity(stop.city)}
+                  className={cn(
+                    glassClasses("light"),
+                    "pointer-events-auto min-w-0 shrink-0 rounded-full px-3.5 py-1.5 text-caption font-bold",
+                    focusCity === stop.city && "bg-foreground text-surface",
+                  )}
+                >
+                  <span className="block max-w-32 truncate">{stop.city}</span>
+                </button>
+              ))}
+            </div>
           )}
-        >
-          <RouteMapCanvas stops={route.stops} places={route.places} />
         </div>
 
         {/* A pin that quietly moves between two visits is its own kind of

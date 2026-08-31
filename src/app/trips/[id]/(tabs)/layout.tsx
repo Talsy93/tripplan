@@ -15,6 +15,9 @@ import {
   listMembers,
   listTrips,
   phaseLabel,
+  RailTripProgress,
+  RailTripSwitcher,
+  tripHueStyle,
   ShareButton,
   todayIn,
   TripAuraBand,
@@ -22,7 +25,6 @@ import {
   TripSideNav,
   tripPhase,
 } from "@/features/trips";
-import { getPlaceImage } from "@/lib/place-image";
 
 // The trip's name becomes the title template for every tab under it, so a tab
 // only has to name itself ("היום") and the browser shows
@@ -120,7 +122,6 @@ export default async function TripTabsLayout({
       })),
     ).get(trip.id) ?? [];
 
-  const image = await getPlaceImage(cities[0] ?? trip.name);
 
   return (
     <AppShell
@@ -165,25 +166,49 @@ export default async function TripTabsLayout({
           }
         />
       }
-      sidebar={<TripSideNav tripId={trip.id} />}
+      sidebar={
+        <TripSideNav
+          tripId={trip.id}
+          hues={hues}
+          header={<RailTripSwitcher name={trip.name} phase={phase} />}
+          footer={
+            <RailTripProgress
+              phase={phase}
+              dayCount={dayCount}
+              startDate={trip.start_date}
+            />
+          }
+        />
+      }
       nav={<TripNav tripId={trip.id} />}
+      // Above every tab's own content, because the trip is the thing all ten of
+      // them are about. The sticky bar carries the small title for when this has
+      // scrolled away — the same large-title-collapses pattern both mobile
+      // platforms use, and the reason the name appearing twice is not a
+      // duplication.
+      //
+      // The `banner` slot rather than the first child: it bleeds to the viewport
+      // edge with negative margins, and inside the two-pane grid a tab may set
+      // up, those margins would run sideways into the pane instead of off the
+      // screen.
+      banner={
+        <TripAuraBand
+          name={trip.name}
+          startDate={trip.start_date}
+          phase={phase}
+          dayCount={dayCount}
+          cities={cities}
+          hues={hues}
+        />
+      }
     >
-      {/* Above every tab's own content, because the trip is the thing all ten
-          of them are about. The sticky bar carries the small title for when
-          this has scrolled away — the same large-title-collapses pattern both
-          mobile platforms use, and the reason the name appearing twice is not
-          a duplication. */}
-      <TripAuraBand
-        name={trip.name}
-        startDate={trip.start_date}
-        phase={phase}
-        dayCount={dayCount}
-        imageUrl={image}
-        cities={cities}
-        hues={hues}
-      />
-
-      {children}
+      {/* The trip's light, published to every tab under it as CSS variables.
+          `contents` so this wrapper changes no layout — custom properties
+          inherit down the DOM tree whatever the box does. See
+          domain/aura-vars.ts for why this is not props. */}
+      <div className="contents" style={tripHueStyle(hues)}>
+        {children}
+      </div>
     </AppShell>
   );
 }

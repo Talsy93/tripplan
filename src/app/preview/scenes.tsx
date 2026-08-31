@@ -18,6 +18,8 @@ import {
   AURA_PALETTES,
   assignTripAuras,
   AuraHero,
+  AuraPanel,
+  tripHueStyle,
   BookingForm,
   BookingList,
   CityDaysEditor,
@@ -38,14 +40,31 @@ import {
   TripList,
   tripAura,
   UnlocatedCities,
+  NowCard,
+  RailTripProgress,
+  RailTripSwitcher,
   UpNext,
   WeatherForecast,
   WorkflowGuide,
   WorkflowSummary,
 } from "@/features/trips";
-import { AuraField, Card, EmptyState, SectionHeading } from "@/components/ui";
-import { BottomNav } from "@/components/layout";
-import { CalendarDays, Compass, Map as MapIcon, Menu, Sun } from "lucide-react";
+import {
+  AuraField,
+  Button,
+  Card,
+  EmptyState,
+  SectionHeading,
+  Skeleton,
+} from "@/components/ui";
+import { BottomNav, SideNav, TwoPane } from "@/components/layout";
+import {
+  CalendarDays,
+  Compass,
+  Luggage,
+  Map as MapIcon,
+  Menu,
+  Sun,
+} from "lucide-react";
 import * as f from "./fixtures";
 
 export type Scene = {
@@ -203,9 +222,46 @@ export const SCENES: Scene[] = [
   // band is in the (tabs) layout, so a mistake in it is a mistake on ten
   // screens at once.
   {
+    slug: "side-nav",
+    title: "הרַיל של הדסקטופ",
+    note: "שלוש פלטות ושלושה שלבים — האם הפריט הנבחר מנצח את האור מאחוריו, והאם המחליף למעלה והספירה למטה קריאים על כל אחת",
+    render: () => (
+      <div className="flex gap-4">
+        {(
+          [
+            { cities: ["טוקיו", "קיוטו", "אוסקה", "נארה"], name: "יפן בסתיו", phase: { kind: "during", dayNumber: 3 } as const },
+            { cities: ["רומא", "פירנצה"], name: "איטליה באביב", phase: { kind: "before", daysUntilStart: 24 } as const },
+            { cities: ["פראג"], name: f.LONG, phase: { kind: "undated" } as const },
+          ]
+        ).map(({ cities, name, phase }, index) => (
+          <div key={index} className="h-[30rem] w-60 overflow-hidden rounded-tile">
+            <SideNav
+              hues={tripAura(cities)}
+              header={<RailTripSwitcher name={name} phase={phase} />}
+              footer={
+                <RailTripProgress
+                  phase={phase}
+                  dayCount={14}
+                  startDate="2026-09-24"
+                />
+              }
+              items={[
+                { href: "#1", label: "היום", icon: <Sun className="h-5 w-5" />, active: index === 0 },
+                { href: "#2", label: "ימים", icon: <CalendarDays className="h-5 w-5" />, active: index === 1 },
+                { href: "#3", label: "מה עושים?", icon: <Compass className="h-5 w-5" /> },
+                { href: "#4", label: "מפה", icon: <MapIcon className="h-5 w-5" />, active: index === 2 },
+                { href: "#5", label: "עוד", icon: <Menu className="h-5 w-5" /> },
+              ]}
+            />
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
     slug: "trip-band-before",
     title: "פס הטיול · לפני היציאה",
-    note: "ספירה לאחור מעל תמונה של היעד, צבועה באור של הטיול",
+    note: "ספירה לאחור על האור של הטיול — בלי תמונה, שזה מה שהשתנה",
     render: () => (
       <div className="pt-5">
         <TripAuraBand
@@ -213,7 +269,6 @@ export const SCENES: Scene[] = [
           startDate="2026-09-24"
           phase={{ kind: "before", daysUntilStart: 13 }}
           dayCount={14}
-          imageUrl={f.PHOTO}
           cities={["טוקיו", "קיוטו", "אוסקה", "נארה"]}
           hues={tripAura(["טוקיו", "קיוטו", "אוסקה", "נארה"])}
         />
@@ -231,7 +286,6 @@ export const SCENES: Scene[] = [
           startDate="2026-09-10"
           phase={{ kind: "during", dayNumber: 3 }}
           dayCount={14}
-          imageUrl={f.PHOTO}
           cities={["טוקיו", "קיוטו"]}
           hues={tripAura(["טוקיו", "קיוטו"])}
         />
@@ -240,8 +294,8 @@ export const SCENES: Scene[] = [
   },
   {
     slug: "trip-band-bare",
-    title: "פס הטיול · בלי תמונה, בלי תאריך, בלי יעדים",
-    note: "טיול חדש לגמרי, ובלי תמונה מוויקיפדיה — האם השם נשאר קריא על הבסיס",
+    title: "פס הטיול · בלי תאריך ובלי יעדים",
+    note: "טיול חדש לגמרי — בסיס עמוק בלי אור, והאם השם נשאר קריא עליו",
     render: () => (
       <div className="pt-5">
         <TripAuraBand
@@ -249,7 +303,6 @@ export const SCENES: Scene[] = [
           startDate={null}
           phase={{ kind: "undated" }}
           dayCount={0}
-          imageUrl={null}
           cities={[]}
           hues={[]}
         />
@@ -258,6 +311,89 @@ export const SCENES: Scene[] = [
   },
 
   // ---- today ---------------------------------------------------------------
+  {
+    slug: "two-pane",
+    title: "שתי חלוניות",
+    note: "מה שקורה ב-1280 ומעלה: הלו״ז בטור הראשי, ״מה קרוב״ בחלונית. מתחת ל-1280 החלונית פשוט יורדת מתחת לתוכן — כלום לא נעלם, רק זז",
+    render: () => (
+      <TwoPane
+        aside={
+          <>
+            <SectionHeading level="section">מה קרוב</SectionHeading>
+            <UpNext
+              bookings={f.BOOKINGS}
+              now="2026-09-11T05:00:00Z"
+              cities={["טוקיו", "קיוטו"]}
+            />
+          </>
+        }
+      >
+        <NowCard
+          day={f.ITINERARY[0]}
+          date="2026-09-11"
+          now="2026-09-11T07:10:00Z"
+        />
+        <DayTimeline
+          day={f.ITINERARY[0]}
+          date="2026-09-11"
+          origin="מלון שינג׳וקו גרנד"
+        />
+      </TwoPane>
+    ),
+  },
+  {
+    slug: "today-stats",
+    title: "רצועת הנתונים",
+    note: "שלוש המשבצות מתחת לכרטיס ״עכשיו״. הן נבנות בשרת מול Open-Meteo, ולכן כאן מוצג המצב שאי אפשר להגיע אליו בחשבון אמיתי — טעינה, ואין תשובה",
+    render: () => (
+      <div className="flex flex-col gap-4">
+        <p className="text-caption text-muted">
+          בזמן טעינה — מה שרואים לפני שהתחזית חוזרת
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-[4.75rem] rounded-card" />
+          ))}
+        </div>
+      </div>
+    ),
+  },
+  {
+    slug: "now-card",
+    title: "כרטיס ״עכשיו״",
+    note: "אמצע היום — מה קורה עכשיו, כמה נשאר, ומה אחר כך",
+    render: () => (
+      <NowCard
+        day={f.ITINERARY[0]}
+        date="2026-09-11"
+        now="2026-09-11T07:10:00Z"
+      />
+    ),
+  },
+  {
+    slug: "now-card-soon",
+    title: "כרטיס ״עכשיו״ · נגמר בקרוב",
+    note: "פחות מ-45 דקות לסוף — התג עובר לצבע ההתראה",
+    render: () => (
+      <NowCard
+        day={f.ITINERARY[0]}
+        date="2026-09-11"
+        now="2026-09-11T07:50:00Z"
+      />
+    ),
+  },
+  {
+    slug: "now-card-next",
+    title: "כרטיס ״עכשיו״ · בין פריטים",
+    note: "שום דבר לא קורה כרגע, אז הכרטיס מדבר על הבא בתור",
+    render: () => (
+      <NowCard
+        day={f.ITINERARY[0]}
+        date="2026-09-11"
+        now="2026-09-11T09:00:00Z"
+      />
+    ),
+  },
   {
     slug: "up-next",
     title: "מה מתקרב",
@@ -327,6 +463,18 @@ export const SCENES: Scene[] = [
       <DayTimeline
         day={f.ITINERARY[0]}
         bookings={f.BOOKINGS}
+        date="2026-09-11"
+        origin="מלון שינג׳וקו גרנד"
+      />
+    ),
+  },
+  {
+    slug: "day-timeline-gaps",
+    title: "ציר הזמן · הפערים",
+    note: "אותו יום בלי הטיסה שמכסה אותו — כאן שורות הפער נראות, וזה מה שהחליף את רשת השעות",
+    render: () => (
+      <DayTimeline
+        day={f.ITINERARY[0]}
         date="2026-09-11"
         origin="מלון שינג׳וקו גרנד"
       />
@@ -493,6 +641,37 @@ export const SCENES: Scene[] = [
 
   // ---- primitives ----------------------------------------------------------
   {
+    slug: "aura-panel",
+    title: "הפאנל המואר",
+    note: "האלמנט המואר היחיד במסך גילוי. הצבע מגיע ממשתני CSS שהלייאאוט מפרסם, לא מ-props — כאן הם מוגדרים ידנית כדי לבדוק שתי פלטות",
+    render: () => (
+      <div className="grid gap-3 sm:grid-cols-2">
+        {[
+          ["טוקיו", "קיוטו", "אוסקה", "נארה"],
+          ["רומא", "פירנצה"],
+        ].map((cities, index) => (
+          <div key={index} style={tripHueStyle(tripAura(cities))}>
+            <AuraPanel>
+              <span className="text-caption font-extrabold text-white/75">
+                הצעות בשבילכם
+              </span>
+              <p className="text-title font-bold">
+                מה ה-AI ממליץ בשינג׳וקו?
+              </p>
+              <p className="text-caption text-white/75">
+                OpenStreetMap יודע אילו מקומות יש ומתי הם פתוחים. את מה שהאזור
+                עצמו שווה בשבילו — לא.
+              </p>
+              <Button variant="onLight" size="sm" className="mt-1 self-start">
+                בקשו הצעות
+              </Button>
+            </AuraPanel>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
     slug: "primitives",
     title: "פרימיטיבים תחת לחץ",
     note: "כותרת ומצב ריק עם טקסט שלא נשבר",
@@ -501,7 +680,7 @@ export const SCENES: Scene[] = [
         <SectionHeading level="page" description={f.LONG}>
           {f.UNBREAKABLE}
         </SectionHeading>
-        <EmptyState icon="🧳" title={f.LONG} description={f.UNBREAKABLE} />
+        <EmptyState icon={<Luggage />} title={f.LONG} description={f.UNBREAKABLE} />
       </div>
     ),
   },

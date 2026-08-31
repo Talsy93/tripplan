@@ -33,12 +33,21 @@ export function AppShell({
   header,
   sidebar,
   nav,
+  // Full-bleed chrome above the content — today, the trip's light band.
+  //
+  // A slot rather than just the first child, and the two-pane layout below is
+  // why. The band reaches the viewport edge with negative margins that cancel
+  // this component's own padding; dropped inside a grid column it would bleed
+  // sideways into the pane next to it instead of off the screen. Rendered here
+  // it is always full width, whatever the columns underneath are doing.
+  banner,
   width = "wide",
   children,
 }: {
   header?: ReactNode;
   sidebar?: ReactNode;
   nav?: ReactNode;
+  banner?: ReactNode;
   width?: Width;
   children: ReactNode;
 }) {
@@ -78,6 +87,7 @@ export function AppShell({
                 : "pb-12",
             )}
           >
+            {banner}
             {children}
           </main>
         </div>

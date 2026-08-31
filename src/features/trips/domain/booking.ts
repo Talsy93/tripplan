@@ -1,4 +1,5 @@
 import * as z from "zod";
+import type { DomainIconName } from "./icons";
 import { instantToWallClock } from "@/lib/datetime";
 // weather.ts imports nothing, so this direction cannot become a cycle — the
 // mistake that broke the build in phase E and was designed out in phase F.
@@ -16,7 +17,7 @@ export const BOOKING_KINDS: Record<
   BookingKind,
   {
     label: string;
-    emoji: string;
+    icon: DomainIconName;
     isTransport: boolean;
     // Hebrew grammatical gender differs by kind (טיסה/רכבת are feminine,
     // מלון is masculine), so the toast's confirmation is data here rather
@@ -27,21 +28,21 @@ export const BOOKING_KINDS: Record<
 > = {
   flight: {
     label: "טיסה",
-    emoji: "✈️",
+    icon: "flight",
     isTransport: true,
     addedLabel: "הטיסה נוספה",
     updatedLabel: "הטיסה עודכנה",
   },
   train: {
     label: "רכבת",
-    emoji: "🚆",
+    icon: "train",
     isTransport: true,
     addedLabel: "הרכבת נוספה",
     updatedLabel: "הרכבת עודכנה",
   },
   lodging: {
     label: "לינה",
-    emoji: "🏨",
+    icon: "lodging",
     isTransport: false,
     addedLabel: "המלון נוסף",
     updatedLabel: "המלון עודכן",

@@ -4,6 +4,7 @@ import { googleMapsSearchUrl } from "@/lib/maps";
 import { BOOKING_KINDS } from "../domain/booking";
 import { nightStayLabel } from "../domain/trip-days";
 import type { NightLodging } from "../domain/trip-days";
+import { DomainIcon } from "./domain-icon";
 
 // "Where am I sleeping tonight" for one itinerary day.
 //
@@ -23,7 +24,11 @@ export function NightStay({ stay }: { stay: NightLodging | null }) {
   return (
     <ListRow
       accent="action"
-      leading={<Glyph>{BOOKING_KINDS.lodging.emoji}</Glyph>}
+      leading={
+        <Glyph>
+          <DomainIcon name={BOOKING_KINDS.lodging.icon} />
+        </Glyph>
+      }
       title={
         <>
           <span className="font-normal text-muted">

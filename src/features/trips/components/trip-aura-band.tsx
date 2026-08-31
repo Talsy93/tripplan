@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { AuraField, glassClasses } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { daysUntil, formatCountdown, formatShortDate } from "../domain/trip";
@@ -24,19 +23,24 @@ import type { TripPhase } from "../domain/trip-days";
 //   * it carries no buttons. The actions for a trip screen belong to that
 //     screen, and the sticky app bar above already holds back, share and phase.
 //
-// The photo is the destination's, from Wikipedia, washed in the trip's own light
-// — which is what `wash` was built and measured for. This is now the only place
-// in the app that shows it: the countdown card on the "today" tab used to, and
-// having both meant two dark panels stacked on one screen saying the same thing.
+// No photograph, and that is the point rather than an omission.
 //
-// Presentational. The layout resolves the photo, the cities and the light,
-// because all three need the server.
+// This band used to carry the destination's Wikipedia photo washed in the trip's
+// light, while the home hero carried light alone. Two answers to "whose trip is
+// this?" ran side by side, so neither became the thing you recognise the app by
+// — and the photo was the weaker of the two: a stock picture of a city says
+// where, not whose, and every trip to Tokyo looked identical.
+//
+// The cost is real and was accepted rather than overlooked: there is no picture
+// of the place in the app any more.
+//
+// Presentational. The layout resolves the cities and the light, because both
+// need the server.
 export function TripAuraBand({
   name,
   startDate,
   phase,
   dayCount,
-  imageUrl,
   cities = [],
   hues = [],
 }: {
@@ -44,7 +48,6 @@ export function TripAuraBand({
   startDate: string | null;
   phase: TripPhase;
   dayCount: number;
-  imageUrl: string | null;
   cities?: string[];
   hues?: string[];
 }) {
@@ -63,17 +66,7 @@ export function TripAuraBand({
     // to match AppShell's padding at each of its three breakpoints. The top
     // offset cancels the shell's pt-5 so the band meets the app bar.
     <div className="relative -mx-4 -mt-5 flex min-h-[11rem] flex-col overflow-hidden rounded-b-[1.75rem] bg-aura-base md:-mx-6 lg:-mx-8">
-      {imageUrl && (
-        <Image
-          src={imageUrl}
-          alt=""
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 70vw, 900px"
-          className="object-cover"
-          priority
-        />
-      )}
-      <AuraField hues={hues} variant={imageUrl ? "wash" : "solid"} />
+      <AuraField hues={hues} />
 
       <div className="relative mt-auto flex min-w-0 flex-col gap-2 px-5 pb-5 pt-8 text-white sm:px-7 sm:pb-6">
         <span className="min-w-0 text-caption font-extrabold text-white/75">

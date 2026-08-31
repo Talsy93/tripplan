@@ -15,6 +15,7 @@ import { setSelected } from "../application/guide-actions";
 import { categoryLabel } from "../domain/place";
 import { cityToneMap, toneClass } from "../domain/tone";
 import type { SelectedItem } from "../domain/ai-suggestion";
+import { MapPin } from "lucide-react";
 
 function keyOf(item: SelectedItem) {
   return `${item.city}|${item.category}|${item.name}`;
@@ -37,7 +38,7 @@ export function SelectedList({
   if (items.length === 0) {
     return (
       <EmptyState
-        icon="📍"
+        icon={<MapPin />}
         title="עדיין לא הוספתם פריטים"
         description="חפשו מקום למעלה, או היכנסו לעיר מתוך ״גילוי יעדים״ והוסיפו המלצות לטיול."
       />

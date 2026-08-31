@@ -40,6 +40,7 @@ import type { Booking } from "../domain/booking";
 import type { CityDayPlan } from "../domain/city-days";
 import type { NightLodging } from "../domain/trip-days";
 import type { ItineraryDay } from "../domain/ai-suggestion";
+import { CalendarDays } from "lucide-react";
 
 // The graphic is the point of the feature, but a plain list stays available:
 // it survives times the AI wrote in prose, and it's easier to scan on a phone.
@@ -210,7 +211,7 @@ export function Itinerary({
 
       {!hasItinerary && !building && !error && (
         <EmptyState
-          icon="🗓️"
+          icon={<CalendarDays />}
           title='עוד אין לו"ז'
           description="אחרי שהוספתם פריטים לטיול, בנו לוח זמנים יומי בלחיצה אחת."
           action={

@@ -8,6 +8,8 @@ import {
 } from "../domain/booking";
 import { cityToneClass, cityToneMap } from "../domain/tone";
 import type { Booking, BookingAlert } from "../domain/booking";
+import { DomainIcon } from "./domain-icon";
+import { Compass } from "lucide-react";
 
 const MAX_SHOWN = 3;
 
@@ -49,7 +51,7 @@ export function UpNext({
   if (upcoming.length === 0 && todo.length === 0) {
     return (
       <EmptyState
-        icon="🧭"
+        icon={<Compass />}
         title="אין עדיין מה לתזמן"
         description="טיסות, רכבות ולינה שתוסיפו בטאב ״עוד״ יופיעו כאן לפי הסדר."
       />
@@ -89,7 +91,11 @@ export function UpNext({
                 // colour, and a dot beside it said the same thing twice — two
                 // marks for one fact, which is how a row starts to look busy
                 // without saying more.
-                leading={<Glyph tone>{kind.emoji}</Glyph>}
+                leading={
+                  <Glyph tone>
+                    <DomainIcon name={kind.icon} />
+                  </Glyph>
+                }
                 title={booking.title}
                 subtitle={where ?? undefined}
               >

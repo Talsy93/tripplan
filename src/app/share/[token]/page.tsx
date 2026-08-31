@@ -8,6 +8,7 @@ import {
   BOOKING_KINDS,
   dateOfDay,
   dayLabel,
+  DomainIcon,
   formatShortDate,
   getSharedTrip,
   stopsByCountry,
@@ -127,7 +128,7 @@ export default async function SharedTripPage({
                   <li key={booking.id}>
                     <Card className="flex flex-col gap-1">
                       <span className="flex items-center gap-2 text-sm font-semibold">
-                        <span aria-hidden="true">{kind.emoji}</span>
+                        <DomainIcon name={kind.icon} />
                         {booking.title}
                       </span>
                       {where && (
