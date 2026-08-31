@@ -12,6 +12,8 @@ import {
   uncostedCount,
 } from "../domain/expenses";
 import type { Booking, BookingKind } from "../domain/booking";
+import { DomainIcon } from "./domain-icon";
+import { Wallet } from "lucide-react";
 
 export function ExpenseSummary({ bookings }: { bookings: Booking[] }) {
   // Null is "everything" — the state this opens in, and the only one where the
@@ -21,7 +23,7 @@ export function ExpenseSummary({ bookings }: { bookings: Booking[] }) {
   if (bookings.length === 0) {
     return (
       <EmptyState
-        icon="💰"
+        icon={<Wallet />}
         title="אין עדיין הוצאות"
         description="עלויות טיסות, רכבות ולינה שתזינו למעלה יופיעו כאן."
       />
@@ -33,7 +35,7 @@ export function ExpenseSummary({ bookings }: { bookings: Booking[] }) {
   if (cities.length === 0 && !hasUnassigned) {
     return (
       <EmptyState
-        icon="💰"
+        icon={<Wallet />}
         title="אין עדיין עלויות"
         description="הוסיפו סכום ומטבע להזמנות למעלה כדי לראות כאן סיכום."
       />
@@ -86,7 +88,7 @@ export function ExpenseSummary({ bookings }: { bookings: Booking[] }) {
               {(Object.keys(entry.byKind) as BookingKind[]).map((kind) => (
                 <span key={kind} className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-1.5">
-                    <span aria-hidden="true">{BOOKING_KINDS[kind].emoji}</span>
+                    <DomainIcon name={BOOKING_KINDS[kind].icon} />
                     {BOOKING_KINDS[kind].label}
                   </span>
                   <span dir="ltr" className="tabular-nums">

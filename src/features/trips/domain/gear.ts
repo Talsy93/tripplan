@@ -1,4 +1,5 @@
 import * as z from "zod";
+import type { DomainIconName } from "./icons";
 
 // The packing list.
 //
@@ -16,9 +17,10 @@ export const gearCategorySchema = z.enum([
 ]);
 export type GearCategory = z.infer<typeof gearCategorySchema>;
 
-// Emoji rather than lucide icons, per the project's split: lucide for interface
-// affordances, emoji for domain identity. A category is domain identity — the
-// same call the booking kinds and the weather codes already make.
+// Icon keys, not pictures: what a category looks like is the component layer's
+// business (see components/domain-icon.tsx). These used to be emoji, under the
+// rule "lucide for interface affordances, emoji for domain identity" — see
+// domain/icons.ts for the three measurements that retired it.
 //
 // Written in the order things get packed in practice: the documents you must not
 // forget first, the "anything else" bucket last. The UI renders groups in this
@@ -26,14 +28,14 @@ export type GearCategory = z.infer<typeof gearCategorySchema>;
 // itself as items are added.
 export const GEAR_CATEGORIES: Record<
   GearCategory,
-  { label: string; emoji: string }
+  { label: string; icon: DomainIconName }
 > = {
-  documents: { label: "מסמכים", emoji: "📄" },
-  clothing: { label: "ביגוד", emoji: "👕" },
-  toiletries: { label: "טואלטיקה", emoji: "🧴" },
-  electronics: { label: "אלקטרוניקה", emoji: "🔌" },
-  health: { label: "בריאות ותרופות", emoji: "💊" },
-  other: { label: "אחר", emoji: "🎒" },
+  documents: { label: "מסמכים", icon: "documents" },
+  clothing: { label: "ביגוד", icon: "clothing" },
+  toiletries: { label: "טואלטיקה", icon: "toiletries" },
+  electronics: { label: "אלקטרוניקה", icon: "electronics" },
+  health: { label: "בריאות ותרופות", icon: "health" },
+  other: { label: "אחר", icon: "other" },
 };
 
 export const GEAR_CATEGORY_ORDER = Object.keys(

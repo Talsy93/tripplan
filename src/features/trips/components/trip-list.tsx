@@ -5,6 +5,7 @@ import { DeleteTripButton } from "./delete-trip-button";
 import { formatShortDate } from "../domain/trip";
 import { phaseLabel, tripPhase } from "../domain/trip-days";
 import type { Trip } from "../domain/trip";
+import { Luggage } from "lucide-react";
 
 // `today` is passed in rather than read from the clock, so the label cannot
 // differ between the server render and hydration.
@@ -29,7 +30,7 @@ export function TripList({
   if (trips.length === 0) {
     return (
       <EmptyState
-        icon="🧳"
+        icon={<Luggage />}
         title="עדיין אין טיולים"
         description="צרו את הראשון ונתחיל לתכנן — יעדים, לוח זמנים והכול."
         action={<NewTripButton />}

@@ -22,6 +22,7 @@ import {
   toggleGearItem,
   uncheckAllGear,
 } from "../application/gear-actions";
+import { DomainIcon } from "./domain-icon";
 
 // The packing list.
 //
@@ -113,7 +114,9 @@ export function GearList({
                 className="flex min-w-0 flex-col"
               >
                 <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
-                  <Glyph>{GEAR_CATEGORIES[group.category].emoji}</Glyph>
+                  <Glyph>
+                    <DomainIcon name={GEAR_CATEGORIES[group.category].icon} />
+                  </Glyph>
                   <h3 className="min-w-0 flex-1 truncate text-sm font-bold">
                     {GEAR_CATEGORIES[group.category].label}
                   </h3>
@@ -192,9 +195,7 @@ export function GearList({
             {GEAR_CATEGORY_ORDER.map((category) => (
               <Card key={category} className="flex min-w-0 flex-col gap-2">
                 <span className="flex items-center gap-2 text-sm font-bold">
-                  <span aria-hidden="true">
-                    {GEAR_CATEGORIES[category].emoji}
-                  </span>
+                  <DomainIcon name={GEAR_CATEGORIES[category].icon} />
                   {GEAR_CATEGORIES[category].label}
                 </span>
                 <StarterRow tripId={tripId} category={category} items={[]} />
@@ -359,7 +360,7 @@ function GearForm({ tripId }: { tripId: string }) {
         >
           {GEAR_CATEGORY_ORDER.map((value) => (
             <option key={value} value={value}>
-              {GEAR_CATEGORIES[value].emoji} {GEAR_CATEGORIES[value].label}
+              {GEAR_CATEGORIES[value].label}
             </option>
           ))}
         </Select>

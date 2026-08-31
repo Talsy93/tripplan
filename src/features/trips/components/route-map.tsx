@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Globe } from "lucide-react";
+import { Globe, Map as MapIcon } from "lucide-react";
 import { Badge, Banner, EmptyState, ListRow, SectionHeading } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { stopsByCountry } from "../domain/route";
@@ -45,7 +45,7 @@ export function RouteMap({
     return (
       <div className="flex flex-col gap-4">
         <EmptyState
-          icon="🗺️"
+          icon={<MapIcon />}
           title="המפה תתמלא כשתבחרו יעדים"
           description="הוסיפו דברים לטיול מתוך מדריכי הערים, והתחנות יופיעו כאן לפי הסדר."
           className={MAP_HEIGHT + " justify-center"}

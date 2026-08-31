@@ -1,7 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronRight, MapPin, Search, Sparkles, X } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  Compass,
+  MapPin,
+  Search,
+  Sparkles,
+  X,
+} from "lucide-react";
 import {
   Badge,
   Banner,
@@ -23,6 +31,7 @@ import type { PlaceCategory } from "../domain/place";
 import type { Place } from "../domain/place";
 import type { AddedPlace } from "../infrastructure/place-service";
 import { PlaceDetails } from "./place-details";
+import { DomainIcon } from "./domain-icon";
 
 const CATEGORY_KEYS = Object.keys(PLACE_CATEGORIES) as PlaceCategory[];
 
@@ -290,7 +299,7 @@ export function PlaceSearch({
   if (cities.length === 0) {
     return (
       <EmptyState
-        icon="🧭"
+        icon={<Compass />}
         title="קודם בחרו יעדים"
         description="החיפוש עובד סביב ערי הטיול, אז הוסיפו יעד אחד לפחות."
       />
@@ -321,7 +330,7 @@ export function PlaceSearch({
               )}
             >
               <span className="text-display leading-none" aria-hidden="true">
-                {meta.emoji}
+                <DomainIcon name={meta.icon} className="h-5 w-5 shrink-0" />
               </span>
               <span className="flex flex-col">
                 <span className="text-sm font-bold">{meta.label}</span>
@@ -352,7 +361,7 @@ export function PlaceSearch({
 
       <SectionHeading
         level="section"
-        leading={<span aria-hidden="true">{meta.emoji}</span>}
+        leading={<DomainIcon name={meta.icon} />}
       >
         {meta.label}
       </SectionHeading>
@@ -534,7 +543,7 @@ export function PlaceSearch({
 
       {status.kind === "results" && status.places.length === 0 && (
         <EmptyState
-          icon="🔍"
+          icon={<Search />}
           title="לא נמצאו תוצאות"
           description={
             activeArea

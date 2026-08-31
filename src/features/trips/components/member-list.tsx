@@ -26,6 +26,7 @@ import {
   changeMemberRole,
   revokeMember,
 } from "../application/membership-actions";
+import { Users } from "lucide-react";
 
 // Who can reach this trip, and who has been asked but has not joined yet.
 //
@@ -197,7 +198,7 @@ export function MemberList({
 
       {visibleOthers.length === 0 && visibleInvites.length === 0 && (
         <EmptyState
-          icon="👥"
+          icon={<Users />}
           title="רק אתם על הטיול הזה"
           description={
             isOwner

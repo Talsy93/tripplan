@@ -3,14 +3,12 @@ import { cn } from "@/lib/cn";
 
 type Size = "sm" | "md";
 
-// An emoji at a fixed size, in a container.
+// A domain glyph at a fixed size, in a container.
 //
-// The project uses lucide for interface icons and emoji for domain identity — a
-// booking kind, a gear category, a weather state (CLAUDE.md). That decision is
-// good and this does not change it; what was missing was anywhere for the emoji
-// to live. Written bare, each one rendered at whatever its own font metrics
-// gave: the same row could carry a 20px ✈️ and a 17px 🏨, they sat on different
-// baselines, and no two rows in a list started at the same x.
+// The box exists because bare glyphs never lined up: the same row could carry a
+// 20px ✈️ and a 17px 🏨 on different baselines, and no two rows in a list
+// started at the same x. That reason still holds for icons, which is why the box
+// survived the change from emoji to lucide — see features/trips/domain/icons.ts.
 //
 // So the glyph gets a box. The box is what makes a list read as a list — every
 // row starts at the same place whatever glyph it carries — and it also stops the
@@ -20,6 +18,10 @@ type Size = "sm" | "md";
 // `tone` for a row that already sits inside a .tone-* subtree: the tile then
 // carries the city's colour instead of neutral grey, which is the cheapest way
 // to make a long list scannable by city.
+//
+// The glyph itself now takes that colour too, through currentColor. It could
+// not before: an emoji is a picture with its own palette, so a tinted tile got
+// a city-coloured background with an off-palette sticker sitting on it.
 //
 // Decorative by definition — a glyph is never the only thing saying what a row
 // is, so this is always aria-hidden and callers must not rely on it for meaning.
@@ -45,7 +47,7 @@ export function Glyph({
       aria-hidden="true"
       className={cn(
         "flex shrink-0 items-center justify-center rounded-control leading-none",
-        tone ? "bg-tone" : "bg-surface-2",
+        tone ? "bg-tone text-tone-ink" : "bg-surface-2 text-muted",
         sizes[size],
         className,
       )}

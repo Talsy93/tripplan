@@ -25,6 +25,7 @@ import {
 } from "../domain/timeline";
 import type { Booking } from "../domain/booking";
 import type { ItineraryDay } from "../domain/ai-suggestion";
+import { DomainIcon } from "./domain-icon";
 
 // One hour of the day, in pixels. Fixed rather than proportional so a long day
 // is a taller graphic instead of a denser one — the point of drawing it is
@@ -100,7 +101,7 @@ export function DayTimeline({
                   key={booking.id}
                   className="flex items-center gap-2 rounded-control bg-surface-2 px-2.5 py-1.5 text-sm text-foreground"
                 >
-                  <span aria-hidden="true">{kind.emoji}</span>
+                  <DomainIcon name={kind.icon} />
                   <span className="min-w-0 flex-1 truncate font-semibold">
                     {booking.title}
                     {where && (
@@ -174,9 +175,7 @@ export function DayTimeline({
                       height: `${Math.max(bottom - top, 2)}%`,
                     }}
                   >
-                    <span className="text-sm leading-none" aria-hidden="true">
-                      {kind.emoji}
-                    </span>
+                    <DomainIcon name={kind.icon} className="h-4 w-4 shrink-0" />
                     <span className="sr-only">
                       {kind.label}: {booking.title}
                     </span>

@@ -45,7 +45,14 @@ import {
 } from "@/features/trips";
 import { AuraField, Card, EmptyState, SectionHeading } from "@/components/ui";
 import { BottomNav } from "@/components/layout";
-import { CalendarDays, Compass, Map as MapIcon, Menu, Sun } from "lucide-react";
+import {
+  CalendarDays,
+  Compass,
+  Luggage,
+  Map as MapIcon,
+  Menu,
+  Sun,
+} from "lucide-react";
 import * as f from "./fixtures";
 
 export type Scene = {
@@ -501,7 +508,7 @@ export const SCENES: Scene[] = [
         <SectionHeading level="page" description={f.LONG}>
           {f.UNBREAKABLE}
         </SectionHeading>
-        <EmptyState icon="🧳" title={f.LONG} description={f.UNBREAKABLE} />
+        <EmptyState icon={<Luggage />} title={f.LONG} description={f.UNBREAKABLE} />
       </div>
     ),
   },

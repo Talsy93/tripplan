@@ -5,6 +5,8 @@
 // forecast, and the honest thing is to say when one will exist rather than
 // render an empty panel that looks broken.
 
+import type { DomainIconName } from "./icons";
+
 export type DailyWeather = {
   // ISO date, "2026-08-12".
   date: string;
@@ -73,22 +75,22 @@ export function forecastWindow(
 // something a traveller packs differently for.
 // Reference: https://open-meteo.com/en/docs
 
-const WEATHER_CODES: { max: number; emoji: string; label: string }[] = [
-  { max: 0, emoji: "☀️", label: "בהיר" },
-  { max: 3, emoji: "⛅", label: "מעונן חלקית" },
-  { max: 48, emoji: "🌫️", label: "ערפל" },
-  { max: 57, emoji: "🌦️", label: "טפטוף" },
-  { max: 67, emoji: "🌧️", label: "גשם" },
-  { max: 77, emoji: "❄️", label: "שלג" },
-  { max: 82, emoji: "🌧️", label: "ממטרים" },
-  { max: 86, emoji: "🌨️", label: "ממטרי שלג" },
-  { max: 99, emoji: "⛈️", label: "סופת רעמים" },
+const WEATHER_CODES: { max: number; icon: DomainIconName; label: string }[] = [
+  { max: 0, icon: "clear", label: "בהיר" },
+  { max: 3, icon: "partly-cloudy", label: "מעונן חלקית" },
+  { max: 48, icon: "fog", label: "ערפל" },
+  { max: 57, icon: "drizzle", label: "טפטוף" },
+  { max: 67, icon: "rain", label: "גשם" },
+  { max: 77, icon: "snow", label: "שלג" },
+  { max: 82, icon: "showers", label: "ממטרים" },
+  { max: 86, icon: "snow-showers", label: "ממטרי שלג" },
+  { max: 99, icon: "thunder", label: "סופת רעמים" },
 ];
 
 export function describeWeather(code: number) {
   return (
     WEATHER_CODES.find((entry) => code <= entry.max) ?? {
-      emoji: "🌡️",
+      icon: "unknown",
       label: "לא ידוע",
     }
   );

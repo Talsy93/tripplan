@@ -13,6 +13,7 @@ import { NightStay } from "./night-stay";
 import type { Booking } from "../domain/booking";
 import type { NightLodging } from "../domain/trip-days";
 import type { ItineraryDay } from "../domain/ai-suggestion";
+import { CalendarDays } from "lucide-react";
 
 // One day at a time, opened on the day you are actually living.
 //
@@ -48,7 +49,7 @@ export function DayPager({
   if (!active) {
     return (
       <EmptyState
-        icon="🗓️"
+        icon={<CalendarDays />}
         title="עוד אין לו״ז"
         description="בנו לו״ז יומי בטאב ״ימים״, והוא יופיע כאן לפי התאריך."
       />

@@ -1,4 +1,5 @@
 import * as z from "zod";
+import type { DomainIconName } from "./icons";
 import { distanceKm } from "@/lib/geo";
 import { aiCategoryKeySchema } from "./ai-suggestion";
 
@@ -23,36 +24,36 @@ export type PlaceCategory = z.infer<typeof placeCategorySchema>;
 // Tag reference: https://wiki.openstreetmap.org/wiki/Map_features
 export const PLACE_CATEGORIES: Record<
   PlaceCategory,
-  { label: string; emoji: string; filters: string[] }
+  { label: string; icon: DomainIconName; filters: string[] }
 > = {
   restaurants: {
     label: "מסעדות",
-    emoji: "🍜",
+    icon: "restaurant",
     filters: ["amenity=restaurant", "amenity=fast_food"],
   },
   cafes: {
     label: "בתי קפה",
-    emoji: "☕",
+    icon: "cafe",
     filters: ["amenity=cafe"],
   },
   bakeries: {
     label: "מאפיות",
-    emoji: "🥐",
+    icon: "bakery",
     filters: ["shop=bakery", "shop=pastry"],
   },
   shopping: {
     label: "שופינג",
-    emoji: "🛍️",
+    icon: "shopping",
     filters: ["shop=mall", "shop=department_store", "shop=clothes"],
   },
   temples: {
     label: "מקדשים",
-    emoji: "⛩️",
+    icon: "temple",
     filters: ["amenity=place_of_worship", "historic=shrine"],
   },
   attractions: {
     label: "אטרקציות",
-    emoji: "🗼",
+    icon: "attraction",
     filters: ["tourism=attraction", "tourism=museum", "tourism=viewpoint"],
   },
 };

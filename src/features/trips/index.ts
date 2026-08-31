@@ -353,6 +353,8 @@ export { tripAura, assignTripAuras, auraHues } from "./domain/aura";
 export type { AuraTrip } from "./domain/aura";
 export { AURA_PALETTES } from "./domain/aura-palette";
 export type { AuraPalette } from "./domain/aura-palette";
+export { DomainIcon } from "./components/domain-icon";
+export type { DomainIconName } from "./domain/icons";
 export { AuraHero } from "./components/aura-hero";
 export { TripAuraBand } from "./components/trip-aura-band";
 export { TripList } from "./components/trip-list";

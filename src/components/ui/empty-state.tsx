@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 type EmptyStateProps = {
-  // An emoji or an icon element. Decorative — the title carries the meaning.
+  // An icon element. Decorative — the title carries the meaning.
   icon?: ReactNode;
   title: string;
   description?: string;
@@ -31,12 +31,13 @@ export function EmptyState({
         className,
       )}
     >
-      {/* The glyph gets a container. Loose at 30px it floated with nothing
-          holding it; in a tile it reads as deliberate, and it gives the
-          column a fixed anchor whatever the emoji's own metrics are. */}
+      {/* The glyph gets a container. Loose it floats with nothing holding
+          it; in a tile it reads as deliberate, and it gives the column a fixed
+          anchor. Muted rather than coloured: an empty state is a calm first
+          state, and the `action` below it is the thing meant to be pressed. */}
       {icon && (
         <span
-          className="flex h-16 w-16 items-center justify-center rounded-tile bg-surface text-3xl leading-none shadow-soft"
+          className="flex h-16 w-16 items-center justify-center rounded-tile bg-surface leading-none text-muted shadow-soft [&>svg]:h-7 [&>svg]:w-7"
           aria-hidden="true"
         >
           {icon}

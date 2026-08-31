@@ -22,6 +22,8 @@ import { APP_TIME_ZONE } from "../domain/weather";
 import { removeBooking } from "../application/booking-actions";
 import { BookingForm } from "./booking-form";
 import type { Booking, BookingAlert, BookingKind } from "../domain/booking";
+import { DomainIcon } from "./domain-icon";
+import { Luggage } from "lucide-react";
 
 const ALERT_TONE: Record<BookingAlert["urgency"], "warning" | "action" | "neutral"> =
   {
@@ -77,7 +79,7 @@ export function BookingList({
   if (bookings.length === 0) {
     return (
       <EmptyState
-        icon="🧳"
+        icon={<Luggage />}
         title="עדיין אין הזמנות"
         description="הוסיפו טיסה, רכבת או לינה, והן יופיעו כאן ובמסך ״היום״ לפי התאריך."
       />
@@ -183,7 +185,9 @@ export function BookingList({
                       text: on a phone the badges wrapped and the glyph ended up
                       wherever the wrap left it, so no two cards in a list
                       started the same way. */}
-                  <Glyph size="md">{kind.emoji}</Glyph>
+                  <Glyph size="md">
+                    <DomainIcon name={kind.icon} />
+                  </Glyph>
 
                   {/* Wraps rather than squeezing: an alert like "departing in
                       2 hours" is wider than the title on a phone, and a

@@ -16,6 +16,7 @@ import { createManualPlace } from "../application/place-actions";
 import { PLACE_CATEGORIES } from "../domain/place";
 import type { ManualPlaceResult } from "../application/place-actions";
 import type { PlaceCategory } from "../domain/place";
+import { DomainIcon } from "./domain-icon";
 
 const CATEGORY_KEYS = Object.keys(PLACE_CATEGORIES) as PlaceCategory[];
 
@@ -145,7 +146,7 @@ export function ManualPlaceForm({
 
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-1 text-sm font-semibold">קטגוריה</legend>
-          {/* Radio inputs rather than a select: six options with an emoji each
+          {/* Radio inputs rather than a select: six options with an icon each
               read faster as chips, and they stay reachable by keyboard. The
               pill markup used to be copied by hand here and twice in
               booking-form; ChipRadio is now the one copy. */}
@@ -161,7 +162,7 @@ export function ManualPlaceForm({
                   onChange={() => setCategory(key)}
                   label={
                     <>
-                      <span aria-hidden="true">{meta.emoji}</span>
+                      <DomainIcon name={meta.icon} />
                       {meta.label}
                     </>
                   }

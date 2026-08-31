@@ -16,7 +16,7 @@
 - Zod — סכמה אחת לכל ישות, ממנה נגזר הכול
 - Gemini דרך שכבת הפשטה (`src/lib/ai`), תשובות ב-Structured Output + ולידציית Zod
 - Tailwind CSS v4 (CSS-first, בלי קובץ config) + רכיבי UI כתובים ביד ב-`src/components/ui`
-- `lucide-react` לאייקוני ממשק; אימוג'י לזהות דומיין (קטגוריה, הזמנה, מזג אוויר)
+- `lucide-react` לכל האייקונים — ממשק ודומיין כאחד. אימוג'י לזהות דומיין נוסה ובוטל ב-2026-08-31: הוא נראה אחרת בכל מערכת הפעלה, לא יכול לקבל את צבע העיר מהאריח שמתחתיו, ולצד גליף lucide בעובי 2 הוא נקרא כמדבקה. מפתחות הדומיין ב-`features/trips/domain/icons.ts`, המיפוי לתמונה ב-`components/domain-icon.tsx`
 - `clsx` + `tailwind-merge` דרך `src/lib/cn.ts`
 
 > **מה שלא בשימוש, בכוונה:** TanStack Query, Zustand ו-shadcn/ui נרשמו בתחילת הפרויקט

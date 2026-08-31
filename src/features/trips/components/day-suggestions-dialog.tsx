@@ -15,6 +15,7 @@ import {
 import { aiErrorFromResponse } from "../domain/ai-errors";
 import { saveMore, setSelected } from "../application/guide-actions";
 import type { AiCategoryKey, AiRecommendation } from "../domain/ai-suggestion";
+import { Search } from "lucide-react";
 
 // What an empty day is offered. Attractions and experiences rather than all
 // four guide categories: a blank afternoon needs something to *do*, and
@@ -163,7 +164,7 @@ export function DaySuggestionsDialog({
 
       {suggestions !== null && suggestions.length === 0 && (
         <EmptyState
-          icon="🔍"
+          icon={<Search />}
           title="לא נמצאו רעיונות חדשים"
           description="נראה שכבר הוספתם לטיול את רוב מה שיש להציע כאן."
         />
