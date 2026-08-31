@@ -110,6 +110,7 @@ export {
   getSavedCityGuide,
   getSavedCities,
   getSelectedDestinations,
+  getSelectedCitiesByTrip,
   getPrimaryDestination,
   appendCities,
 } from "./infrastructure/guide-service";
@@ -348,6 +349,7 @@ export {
   cityToneClass,
 } from "./domain/tone";
 export type { Tone } from "./domain/tone";
+export { tripAura } from "./domain/aura";
 export { TripList } from "./components/trip-list";
 export { PlanningPanel } from "./components/planning-panel";
 export { CityGuide } from "./components/city-guide";

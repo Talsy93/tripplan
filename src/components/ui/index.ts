@@ -1,3 +1,4 @@
+export { AuraField } from "./aura-field";
 export { Badge, ToneDot } from "./badge";
 export { Banner } from "./banner";
 export { Button, buttonClasses, focusRing } from "./button";
@@ -6,6 +7,8 @@ export { Chip, ChipRadio, chipClasses } from "./chip";
 export { Dialog } from "./dialog";
 export { EmptyState } from "./empty-state";
 export { Field, Input, Select, Textarea } from "./field";
+export { Glass, glassClasses } from "./glass";
+export type { GlassTone } from "./glass";
 export { IconButton, iconButtonClasses } from "./icon-button";
 export { ListRow } from "./list-row";
 export { SectionHeading } from "./section-heading";

@@ -78,20 +78,45 @@ function measure(doc: Document, win: Window) {
     }
   });
 
+  // The 16px rule lives behind @media (pointer: coarse), so it can only be
+  // observed where the pointer actually is coarse. In a desktop browser the
+  // query never matches, the controls render at their design size of 14px, and
+  // this check reported every form scene as failing.
+  //
+  // Measured on the booking form: with touch emulation on, every text, date,
+  // number, select and textarea control comes back at 16px or more — the guard
+  // in globals.css works. With it off they are all 14px. The finding was never
+  // about the app; checkbox and radio stay under 16 in both cases, which is why
+  // the selector excludes them — iOS does not zoom for a control you cannot
+  // type into.
+  //
+  // A check that cries wolf is worse than no check, because the next real
+  // failure gets read as the same noise. So where the rule cannot be seen, this
+  // says so instead of failing.
+  const fontRuleEvaluated = win.matchMedia(
+    "(pointer: coarse)",
+  ).matches;
+
   let minFont = Infinity;
-  doc
-    .querySelectorAll(
-      "input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea",
-    )
-    .forEach((el) => {
-      minFont = Math.min(minFont, parseFloat(win.getComputedStyle(el).fontSize));
-    });
+  if (fontRuleEvaluated) {
+    doc
+      .querySelectorAll(
+        "input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea",
+      )
+      .forEach((el) => {
+        minFont = Math.min(
+          minFont,
+          parseFloat(win.getComputedStyle(el).fontSize),
+        );
+      });
+  }
 
   return {
     escapes,
     worst: worst as { px: number; label: string } | null,
     scrollWidth: doc.documentElement.scrollWidth,
     minFont: Number.isFinite(minFont) ? minFont : null,
+    fontRuleEvaluated,
   };
 }
 
@@ -100,11 +125,15 @@ export function ResponsiveCheck({ slugs }: { slugs: string[] }) {
   const [progress, setProgress] = useState("");
   const [findings, setFindings] = useState<Finding[] | null>(null);
   const [detectorWorks, setDetectorWorks] = useState<boolean | null>(null);
+  // Whether the run was able to see the coarse-pointer rule at all. Reported
+  // rather than assumed, so a clean result never claims more than it checked.
+  const [fontRuleSeen, setFontRuleSeen] = useState(false);
 
   async function run() {
     setRunning(true);
     setFindings(null);
     setDetectorWorks(null);
+    setFontRuleSeen(false);
 
     const frame = document.createElement("iframe");
     frame.style.cssText =
@@ -129,6 +158,7 @@ export function ResponsiveCheck({ slugs }: { slugs: string[] }) {
 
         const result = measure(doc, win);
         if (!result) continue;
+        if (result.fontRuleEvaluated) setFontRuleSeen(true);
 
         if (
           result.escapes > 0 ||
@@ -200,8 +230,16 @@ export function ResponsiveCheck({ slugs }: { slugs: string[] }) {
 
       {findings !== null && detectorWorks && findings.length === 0 && (
         <Banner tone="success">
-          אין חריגות. כל הסצנות נכנסות ב-{WIDTHS.join(", ")}px, ואין שדה מתחת
-          ל-16px.
+          אין חריגות. כל הסצנות נכנסות ב-{WIDTHS.join(", ")}px
+          {fontRuleSeen ? ", ואין שדה מתחת ל-16px." : "."}
+        </Banner>
+      )}
+
+      {findings !== null && !fontRuleSeen && (
+        <Banner tone="callout">
+          כלל ה-16px לשדות לא נבדק: הוא יושב מאחורי @media (pointer: coarse), והדפדפן
+          הזה מדווח על מצביע מדויק. להרצה שבודקת גם אותו — לפתוח את הדף במכשיר מגע, או
+          להדליק אמולציית מגע ב-DevTools ולהריץ שוב.
         </Banner>
       )}
 

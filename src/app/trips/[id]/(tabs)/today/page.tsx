@@ -15,6 +15,7 @@ import {
   listBookings,
   lodgingByDay,
   todayIn,
+  tripAura,
   tripPhase,
   UpNext,
 } from "@/features/trips";
@@ -85,6 +86,7 @@ export default async function TodayPage({
           startDate={trip.start_date}
           imageUrl={await getPlaceImage(routeCities[0] ?? trip.name)}
           cities={routeCities}
+          hues={tripAura(routeCities)}
         />
       )}
 

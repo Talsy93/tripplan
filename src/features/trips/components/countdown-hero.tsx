@@ -1,19 +1,24 @@
 import Image from "next/image";
 import Link from "next/link";
+import { AuraField } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { daysUntil, formatCountdown, formatShortDate } from "../domain/trip";
 import { cityToneMap, toneClass } from "../domain/tone";
 
 // The countdown, as the loudest thing on the screen.
 //
-// Presentational: the page resolves the photo (free, may be null) and the route
-// cities, because both need the server.
+// Presentational: the page resolves the photo (free, may be null), the route
+// cities and the trip's light, because all three need the server.
 export function CountdownHero({
   tripId,
   name,
   startDate,
   imageUrl,
   cities = [],
+  // The trip's light, from domain/aura.ts. Empty for a trip with no
+  // destinations chosen yet, which renders as the bare deep base — a trip has
+  // no light until it has somewhere to go.
+  hues = [],
   href,
 }: {
   tripId: string;
@@ -21,6 +26,7 @@ export function CountdownHero({
   startDate: string | null;
   imageUrl: string | null;
   cities?: string[];
+  hues?: string[];
   // Omitted when the hero already sits on the trip's own page.
   href?: string;
 }) {
@@ -28,7 +34,7 @@ export function CountdownHero({
   const tones = cityToneMap(cities);
 
   const body = (
-    <div className="relative h-64 overflow-hidden rounded-tile bg-brand sm:h-72 lg:h-80">
+    <div className="relative h-72 overflow-hidden rounded-tile bg-aura-base lg:h-80">
       {imageUrl && (
         <Image
           src={imageUrl}
@@ -39,10 +45,21 @@ export function CountdownHero({
           priority
         />
       )}
-      {/* Dark enough, everywhere, that white text survives any photo. Tokens
-          rather than from-black/80: raw black is what would break a dark theme,
-          and the two heroes in the app used to disagree on their stops. */}
-      <div className="absolute inset-0 bg-gradient-to-t from-scrim-strong via-scrim to-scrim-soft" />
+
+      {/* This used to be from-scrim-strong via-scrim to-scrim-soft — a neutral
+          dark wash, which meant every trip's hero was the same colour whatever
+          it was a trip to. The aura does the same job (white text has to survive
+          any photo underneath) while carrying light of this trip's own, from the
+          deep counterparts of the same six-hue palette the cities use. Which hue
+          goes where is decided differently — see domain/aura.ts for why a trip
+          cannot borrow the city rule.
+
+          Two variants because there are two cases and one set of values cannot
+          serve both — `wash` keeps the photo visible above the text, `solid`
+          paints the whole box when there is no photo. Still tokens, not raw
+          black, for the reason the old comment gave: raw black is what breaks a
+          dark theme. */}
+      <AuraField hues={hues} variant={imageUrl ? "wash" : "solid"} />
 
       {/* Same reasoning as RouteHero: user-authored names sit here over a
           photo, and the overlay cannot be widened by anything above it. */}
@@ -63,8 +80,16 @@ export function CountdownHero({
         ) : (
           <>
             {days > 0 ? (
+              // Size contrast is the hierarchy here: the number is four steps
+              // up the ramp from its own unit. text-mega is 72px and exists for
+              // this one place, at every width — an sm: gate left phones on 48px,
+              // which is the one screen where the contrast had to land.
+              //
+              // Width is not the constraint: measured at 375px, three digits plus
+              // the unit come to 165px in the 303px available. Height was — the
+              // extra 24px of number is why the box is h-72 rather than h-64.
               <p className="flex items-baseline gap-2">
-                <span className="text-display font-bold leading-none sm:text-hero">
+                <span className="text-mega font-black">
                   {days}
                 </span>
                 <span className="text-base font-semibold text-white/90">
@@ -76,7 +101,12 @@ export function CountdownHero({
                 {formatCountdown(days)}
               </p>
             )}
-            <p className="text-title font-bold">{name}</p>
+            {/* Clamped: measured at 375px, the longest fixture name ran to three
+                lines and pushed "עד ההמראה" 12px past the top edge. A hero is a
+                summary — the full name is the page title behind it. */}
+            <p className="line-clamp-2 min-w-0 text-title font-bold wrap-anywhere">
+              {name}
+            </p>
           </>
         )}
 

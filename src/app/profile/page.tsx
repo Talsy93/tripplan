@@ -8,19 +8,31 @@ import {
   NewTripButton,
   getItinerary,
   getPrimaryDestination,
+  getSelectedCitiesByTrip,
   getSelectedDestinations,
   itineraryStops,
   listTrips,
   pickUpcomingTrip,
   todayIn,
   TripList,
+  tripAura,
 } from "@/features/trips";
 import { getPlaceImage } from "@/lib/place-image";
 
 export const metadata = { title: "הטיולים שלי · MyTrip" };
 
 export default async function ProfilePage() {
-  const [user, trips] = await Promise.all([getCurrentUser(), listTrips()]);
+  const [user, trips, citiesByTrip] = await Promise.all([
+    getCurrentUser(),
+    listTrips(),
+    // One query for every trip's cities, which is what each trip's light is
+    // derived from. Per-row it would have been one round trip per trip.
+    getSelectedCitiesByTrip(),
+  ]);
+
+  const auraByTrip = new Map(
+    [...citiesByTrip].map(([tripId, cities]) => [tripId, tripAura(cities)]),
+  );
 
   // Feature the soonest upcoming trip: a photo of its destination, the
   // countdown, and the route as coloured chips.
@@ -84,6 +96,13 @@ export default async function ProfilePage() {
             startDate={upcoming.start_date}
             imageUrl={upcomingImage}
             cities={upcomingCities}
+            // The light is a function of which cities, not how many times or in
+            // what order they appear — so this hero and the same trip's tile in
+            // the list below it come out identical, even though one gets its
+            // cities in itinerary order and the other in the order they were
+            // added. They would only diverge if the two sources disagreed about
+            // the set itself, which is a data question, not a colour one.
+            hues={tripAura(upcomingCities)}
             href={`/trips/${upcoming.id}`}
           />
         </section>
@@ -93,7 +112,11 @@ export default async function ProfilePage() {
         {trips.length > 0 && (
           <SectionHeading level="sub">כל הטיולים · {trips.length}</SectionHeading>
         )}
-        <TripList trips={trips} today={todayIn(APP_TIME_ZONE, new Date())} />
+        <TripList
+          trips={trips}
+          today={todayIn(APP_TIME_ZONE, new Date())}
+          auraByTrip={auraByTrip}
+        />
       </section>
 
       {/* No password settings here, deliberately.
