@@ -18,6 +18,8 @@ import {
   AURA_PALETTES,
   assignTripAuras,
   AuraHero,
+  AuraPanel,
+  tripHueStyle,
   BookingForm,
   BookingList,
   CityDaysEditor,
@@ -46,7 +48,13 @@ import {
   WorkflowGuide,
   WorkflowSummary,
 } from "@/features/trips";
-import { AuraField, Card, EmptyState, SectionHeading } from "@/components/ui";
+import {
+  AuraField,
+  Button,
+  Card,
+  EmptyState,
+  SectionHeading,
+} from "@/components/ui";
 import { BottomNav, SideNav, TwoPane } from "@/components/layout";
 import {
   CalendarDays,
@@ -614,6 +622,37 @@ export const SCENES: Scene[] = [
   },
 
   // ---- primitives ----------------------------------------------------------
+  {
+    slug: "aura-panel",
+    title: "הפאנל המואר",
+    note: "האלמנט המואר היחיד במסך גילוי. הצבע מגיע ממשתני CSS שהלייאאוט מפרסם, לא מ-props — כאן הם מוגדרים ידנית כדי לבדוק שתי פלטות",
+    render: () => (
+      <div className="grid gap-3 sm:grid-cols-2">
+        {[
+          ["טוקיו", "קיוטו", "אוסקה", "נארה"],
+          ["רומא", "פירנצה"],
+        ].map((cities, index) => (
+          <div key={index} style={tripHueStyle(tripAura(cities))}>
+            <AuraPanel>
+              <span className="text-caption font-extrabold text-white/75">
+                הצעות בשבילכם
+              </span>
+              <p className="text-title font-bold">
+                מה ה-AI ממליץ בשינג׳וקו?
+              </p>
+              <p className="text-caption text-white/75">
+                OpenStreetMap יודע אילו מקומות יש ומתי הם פתוחים. את מה שהאזור
+                עצמו שווה בשבילו — לא.
+              </p>
+              <Button variant="onLight" size="sm" className="mt-1 self-start">
+                בקשו הצעות
+              </Button>
+            </AuraPanel>
+          </div>
+        ))}
+      </div>
+    ),
+  },
   {
     slug: "primitives",
     title: "פרימיטיבים תחת לחץ",

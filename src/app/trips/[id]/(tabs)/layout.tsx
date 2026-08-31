@@ -17,6 +17,7 @@ import {
   phaseLabel,
   RailTripProgress,
   RailTripSwitcher,
+  tripHueStyle,
   ShareButton,
   todayIn,
   TripAuraBand,
@@ -201,7 +202,13 @@ export default async function TripTabsLayout({
         />
       }
     >
-      {children}
+      {/* The trip's light, published to every tab under it as CSS variables.
+          `contents` so this wrapper changes no layout — custom properties
+          inherit down the DOM tree whatever the box does. See
+          domain/aura-vars.ts for why this is not props. */}
+      <div className="contents" style={tripHueStyle(hues)}>
+        {children}
+      </div>
     </AppShell>
   );
 }

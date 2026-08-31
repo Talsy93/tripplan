@@ -332,6 +332,8 @@ export { EditEntryDialog } from "./components/edit-entry-dialog";
 export { DeleteTripButton } from "./components/delete-trip-button";
 export { TripDatesForm } from "./components/trip-dates-form";
 
+export { AuraPanel } from "./components/aura-panel";
+export { tripHueStyle } from "./domain/aura-vars";
 export { NowCard } from "./components/now-card";
 export {
   RailTripProgress,
