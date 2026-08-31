@@ -39,6 +39,8 @@ import {
   tripAura,
   UnlocatedCities,
   NowCard,
+  RailTripProgress,
+  RailTripSwitcher,
   UpNext,
   WeatherForecast,
   WorkflowGuide,
@@ -213,17 +215,27 @@ export const SCENES: Scene[] = [
   {
     slug: "side-nav",
     title: "הרַיל של הדסקטופ",
-    note: "שלוש פלטות זו לצד זו — האם הפריט הנבחר מנצח את האור מאחוריו בכל אחת מהן, והאם הלא-נבחרים עדיין קריאים",
+    note: "שלוש פלטות ושלושה שלבים — האם הפריט הנבחר מנצח את האור מאחוריו, והאם המחליף למעלה והספירה למטה קריאים על כל אחת",
     render: () => (
       <div className="flex gap-4">
-        {[
-          ["טוקיו", "קיוטו", "אוסקה", "נארה"],
-          ["רומא", "פירנצה"],
-          ["פראג"],
-        ].map((cities, index) => (
-          <div key={index} className="h-[26rem] w-60 overflow-hidden rounded-tile">
+        {(
+          [
+            { cities: ["טוקיו", "קיוטו", "אוסקה", "נארה"], name: "יפן בסתיו", phase: { kind: "during", dayNumber: 3 } as const },
+            { cities: ["רומא", "פירנצה"], name: "איטליה באביב", phase: { kind: "before", daysUntilStart: 24 } as const },
+            { cities: ["פראג"], name: f.LONG, phase: { kind: "undated" } as const },
+          ]
+        ).map(({ cities, name, phase }, index) => (
+          <div key={index} className="h-[30rem] w-60 overflow-hidden rounded-tile">
             <SideNav
               hues={tripAura(cities)}
+              header={<RailTripSwitcher name={name} phase={phase} />}
+              footer={
+                <RailTripProgress
+                  phase={phase}
+                  dayCount={14}
+                  startDate="2026-09-24"
+                />
+              }
               items={[
                 { href: "#1", label: "היום", icon: <Sun className="h-5 w-5" />, active: index === 0 },
                 { href: "#2", label: "ימים", icon: <CalendarDays className="h-5 w-5" />, active: index === 1 },

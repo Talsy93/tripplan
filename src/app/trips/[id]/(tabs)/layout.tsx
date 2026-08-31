@@ -15,6 +15,8 @@ import {
   listMembers,
   listTrips,
   phaseLabel,
+  RailTripProgress,
+  RailTripSwitcher,
   ShareButton,
   todayIn,
   TripAuraBand,
@@ -163,7 +165,20 @@ export default async function TripTabsLayout({
           }
         />
       }
-      sidebar={<TripSideNav tripId={trip.id} hues={hues} />}
+      sidebar={
+        <TripSideNav
+          tripId={trip.id}
+          hues={hues}
+          header={<RailTripSwitcher name={trip.name} phase={phase} />}
+          footer={
+            <RailTripProgress
+              phase={phase}
+              dayCount={dayCount}
+              startDate={trip.start_date}
+            />
+          }
+        />
+      }
       nav={<TripNav tripId={trip.id} />}
       // Above every tab's own content, because the trip is the thing all ten of
       // them are about. The sticky bar carries the small title for when this has

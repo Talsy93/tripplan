@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CalendarDays, Compass, Map as MapIcon, Menu, Sun } from "lucide-react";
@@ -79,9 +80,20 @@ export function TripNav({ tripId }: { tripId: string }) {
 export function TripSideNav({
   tripId,
   hues = [],
+  header,
+  footer,
 }: {
   tripId: string;
   hues?: string[];
+  header?: ReactNode;
+  footer?: ReactNode;
 }) {
-  return <SideNav items={useTripNavItems(tripId)} hues={hues} />;
+  return (
+    <SideNav
+      items={useTripNavItems(tripId)}
+      hues={hues}
+      header={header}
+      footer={footer}
+    />
+  );
 }

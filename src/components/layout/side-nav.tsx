@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { AuraField } from "@/components/ui";
 import { cn } from "@/lib/cn";
@@ -22,9 +23,16 @@ import type { NavItem } from "./bottom-nav";
 export function SideNav({
   items,
   hues = [],
+  header,
+  footer,
 }: {
   items: NavItem[];
   hues?: string[];
+  // Slots above and below the items. Domain-free like the rest of this
+  // component: it renders what it is handed and does not know that the thing
+  // above is a trip switcher or that the thing below is a countdown.
+  header?: ReactNode;
+  footer?: ReactNode;
 }) {
   return (
     <nav
@@ -35,6 +43,9 @@ export function SideNav({
           app on a desktop, and drift in permanent peripheral vision is the one
           place this effect stops being atmosphere and becomes a distraction. */}
       <AuraField hues={hues} variant="rail" animate={false} blur={54} />
+
+      {header && <div className="relative pb-3">{header}</div>}
+
       {items.map((item) => (
         <Link
           key={item.href}
@@ -57,6 +68,10 @@ export function SideNav({
           {item.label}
         </Link>
       ))}
+
+      {/* mt-auto, so the footer sits on the bottom edge however many items
+          there are — the same trick the hero uses for its own lower block. */}
+      {footer && <div className="relative mt-auto pt-4">{footer}</div>}
     </nav>
   );
 }
