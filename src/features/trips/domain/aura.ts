@@ -1,80 +1,134 @@
 // A trip's light.
 //
 // Every trip's hero used to be the same colour: a photo over a neutral dark
-// scrim. This gives each one a field of coloured light instead, drawn from the
-// same six-hue palette the cities use (the --*-aura tokens in globals.css are
-// the deep counterparts of the six .tone-* tints), so the app still speaks in
-// one set of colours.
+// scrim. This gives each one a field of coloured light instead, and which light
+// depends on where the trip goes.
 //
-// What it does *not* share with ./tone is the assignment rule, and that is
-// deliberate. cityToneMap assigns by position within a trip, which means every
-// trip's first city is rose — fine for its job, which is telling two stops of
-// one route apart, and useless for this one. Measured on the trip list: three
-// trips, three tiles, all led by the same rose. A signature that every trip
-// shares is not a signature.
+// The hues live in globals.css as --aura-<palette>-1..3. This module decides
+// which palette a trip gets.
 //
-// So the offset comes from the destinations themselves. ./tone rejects hashing
-// because a hash can hand two adjacent stops the same colour; that reason does
-// not carry here, because two trips in a list are not a route — nothing about
-// them is adjacent. What matters instead is that the light is a function of
-// where you are going, and stable: Tokyo-led trips always get the same light,
-// and it is a different one from Rome's.
+// Palettes rather than N hues off a ring, and that is a correction worth
+// recording. The first version took hues from the six city tones by position —
+// one colour language, in principle. In practice cityToneMap assigns by position
+// *within a trip*, so every trip's first city is rose, and measured on the trip
+// list three trips came out led by the same rose. Worse, the trios were
+// arbitrary: "Japan in autumn" got blue + orange + pink. A ring built to
+// separate two stops of one route says nothing about which three colours belong
+// together. The approved design never worked that way — each trip in it carried
+// a trio chosen as a trio.
 
-import { TONES, cityToneMap, toneByIndex, type Tone } from "./tone";
+import { AURA_PALETTES, type AuraPalette } from "./aura-palette";
 
-// Three is the ceiling, and not a stylistic preference: past three, blurred
-// blooms of different hues overlap into brown instead of glowing.
-const MAX_HUES = 3;
-
-function auraVar(tone: Tone): string {
-  return `var(--${tone}-aura)`;
+export function auraHues(palette: AuraPalette): string[] {
+  return [1, 2, 3].map((n) => `var(--aura-${palette}-${n})`);
 }
 
-// A small stable hash of the destination names.
+// Which palette a trip would like, before anyone else has a say.
 //
-// djb2, which is enough for choosing one of six and has the one property that
-// matters: the same cities always produce the same light, on the server and in
-// the browser, today and next month. Not a security or distribution concern —
-// if it were, this would not be a hash written inline.
+// A small stable hash of the destination names, so the same cities always
+// produce the same light — on the server and in the browser, today and next
+// month. Not a security or distribution concern; if it were, this would not be a
+// hash written inline.
 //
 // Order must not count, and that is a correctness requirement rather than a
-// nicety. The same trip reaches this from two directions with the cities in two
-// different orders: the hero on the home screen gets them in itinerary order,
-// and the tile in the list below it gets them in the order they were added. A
-// sequential hash gave those two different offsets, so one trip appeared in two
-// different colours on one screen. Sorting first makes the light a function of
-// *which* cities, which is what it was always meant to be.
-function offsetFromCities(cities: string[]): number {
+// nicety. The same trip reaches this from two directions with its cities in two
+// different orders: the hero gets them in itinerary order, the tile in the list
+// below it in the order they were added. A sequential hash gave those two
+// different palettes, so one trip appeared in two colours on one screen.
+//
+// The final mix is not decoration either. djb2's low bits are weak, and taking
+// them mod 8 put seven of twenty-four sample trips on one palette and two on
+// another. The avalanche step spreads them.
+function preferredIndex(cities: string[]): number {
   let hash = 5381;
   for (const city of [...cities].sort()) {
     for (let i = 0; i < city.length; i++) {
       hash = ((hash << 5) + hash + city.charCodeAt(i)) | 0;
     }
   }
-  return Math.abs(hash) % TONES.length;
+  let mixed = hash | 0;
+  mixed ^= mixed >>> 16;
+  mixed = Math.imul(mixed, 0x45d9f3b) | 0;
+  mixed ^= mixed >>> 16;
+
+  return Math.abs(mixed) % AURA_PALETTES.length;
 }
 
-// The light for a trip, from its cities.
-//
-// Returns an empty array when the trip has no destinations yet — deliberately,
-// not as a failure. AuraField with no hues renders the bare deep base, which is
-// what "nothing chosen yet" should look like: a trip has no light until it has
-// somewhere to go. Seeding off the trip id instead would hand a colour to a
-// trip that has not earned one.
-//
-// Two trips can still land on the same offset — six hues, and no attempt to
-// coordinate between trips. They are then told apart by how many hues each has
-// and by the order, which differs with the cities. Guaranteeing distinctness
-// would mean the list assigning light globally, and then a trip's light would
-// change when an unrelated trip was created, which is worse.
-export function tripAura(cities: string[]): string[] {
-  // cityToneMap for the deduping and ordering, which it already does correctly
-  // (a city revisited later keeps its first place); the offset is ours.
-  const count = cityToneMap(cities).size;
-  if (count === 0) return [];
+export type AuraTrip = {
+  id: string;
+  // The trip's cities, in any order. No cities means no light.
+  cities: string[];
+  // Used only for ordering, and only so that the assignment below is stable.
+  createdAt: string;
+};
 
-  const offset = offsetFromCities(cities);
-  return Array.from({ length: Math.min(count, MAX_HUES) }, (_, i) =>
-    auraVar(toneByIndex(offset + i)),
+// The light for every trip at once, keyed by trip id: `[]` for a trip with no
+// destinations yet, three CSS colours otherwise.
+//
+// Assigned as a set rather than one trip at a time, because the hash alone
+// collides too often to be useful. With eight palettes and three trips there is
+// a 34% chance two of them come out the same colour, and a signature two trips
+// share is not much of a signature. So a trip takes its preferred palette when
+// it is free and steps around the wheel when it is not.
+//
+// Ordered by creation, never by list order or by date, and that is what keeps it
+// stable: an older trip is always assigned before a newer one, so creating a
+// trip cannot change the colour of a trip that already existed. Renaming,
+// re-dating or re-sorting cannot either. Only editing a trip's own destinations
+// changes its own light, which is right — the light is what its destinations
+// are.
+//
+// Past eight trips the wheel is full, so it resets and repeats begin. Cycling
+// beats running out: the ninth trip gets the same treatment as the first rather
+// than falling back to a colour that is already on screen twice.
+//
+// A trip with no cities is skipped entirely and holds no palette — it is not
+// "assigned black", it simply has no light to reserve, and the next trip with
+// destinations gets the palette it would have had.
+export function assignTripAuras(trips: AuraTrip[]): Map<string, string[]> {
+  const assigned = new Map<string, string[]>();
+  const taken = new Set<AuraPalette>();
+
+  const oldestFirst = [...trips].sort((a, b) =>
+    a.createdAt.localeCompare(b.createdAt),
   );
+
+  for (const trip of oldestFirst) {
+    const cities = trip.cities.filter(Boolean);
+    if (cities.length === 0) {
+      assigned.set(trip.id, []);
+      continue;
+    }
+
+    if (taken.size === AURA_PALETTES.length) taken.clear();
+
+    const preferred = preferredIndex(cities);
+    let palette = AURA_PALETTES[preferred];
+    for (let step = 0; step < AURA_PALETTES.length; step++) {
+      const candidate =
+        AURA_PALETTES[(preferred + step) % AURA_PALETTES.length];
+      if (!taken.has(candidate)) {
+        palette = candidate;
+        break;
+      }
+    }
+
+    taken.add(palette);
+    assigned.set(trip.id, auraHues(palette));
+  }
+
+  return assigned;
+}
+
+// One trip's light, with nothing to deconflict against.
+//
+// For a screen that shows a single trip and has no list to compare it with — the
+// trip's own pages, and the preview harness. On the home screen, where the hero
+// and the list sit together, both take their hues from assignTripAuras so the
+// same trip cannot appear in two colours.
+export function tripAura(cities: string[]): string[] {
+  const named = cities.filter(Boolean);
+  if (named.length === 0) return [];
+
+  return auraHues(AURA_PALETTES[preferredIndex(named)]);
 }

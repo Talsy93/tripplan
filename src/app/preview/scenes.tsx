@@ -15,6 +15,9 @@
 
 import type { ReactNode } from "react";
 import {
+  AURA_PALETTES,
+  assignTripAuras,
+  AuraHero,
   BookingForm,
   BookingList,
   CityDaysEditor,
@@ -39,7 +42,7 @@ import {
   WorkflowGuide,
   WorkflowSummary,
 } from "@/features/trips";
-import { EmptyState, SectionHeading } from "@/components/ui";
+import { AuraField, EmptyState, SectionHeading } from "@/components/ui";
 import * as f from "./fixtures";
 
 export type Scene = {
@@ -51,6 +54,80 @@ export type Scene = {
 };
 
 export const SCENES: Scene[] = [
+  // ---- the home hero -------------------------------------------------------
+  //
+  // Full-bleed by design, so it is the one component whose scene wrapper is
+  // doing something: the harness renders scenes inside a padded column, and the
+  // hero undoes that padding with negative margins. Seen here it therefore
+  // reaches the edge of the frame, which is what it does on the real screen.
+  {
+    slug: "aura-hero",
+    title: "הגיבור · יפן בסתיו",
+    note: "ארבע תחנות, ספירה תלת־ספרתית קרובה, ואור מלא",
+    render: () => (
+      <AuraHero
+        tripId={f.TRIP_ID}
+        name="יפן בסתיו"
+        startDate="2026-09-24"
+        cities={["טוקיו", "קיוטו", "אוסקה", "נארה"]}
+        hues={tripAura(["טוקיו", "קיוטו", "אוסקה", "נארה"])}
+        initial="t"
+      />
+    ),
+  },
+  {
+    slug: "aura-hero-long",
+    title: "הגיבור · שם ארוך, עיר בלי שבירה",
+    note: "המצב ששבר את הגיבור הקודם: שם לשלוש שורות ושם עיר בלי נקודת שבירה",
+    render: () => (
+      <AuraHero
+        tripId={f.TRIP_ID}
+        name={f.LONG}
+        startDate="2027-03-02"
+        cities={["רומא", f.UNBREAKABLE]}
+        hues={tripAura(["רומא", f.UNBREAKABLE])}
+        initial="t"
+      />
+    ),
+  },
+  {
+    slug: "aura-hero-lightless",
+    title: "הגיבור · בלי יעדים ובלי תאריך",
+    note: "טיול חדש לגמרי — בסיס עמוק בלי אור, ובלי ספירה לאחור",
+    render: () => (
+      <AuraHero
+        tripId={f.TRIP_ID}
+        name="סופ״ש בפראג"
+        startDate={null}
+        cities={[]}
+        hues={[]}
+        initial="t"
+      />
+    ),
+  },
+  {
+    slug: "aura-palettes",
+    title: "הפלטות",
+    note: "כל פלטה בשדה מלא, זו ליד זו — לראות שאף שילוב לא נהפך לחום בוץ, ושאין שתיים דומות מדי",
+    render: () => (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {AURA_PALETTES.map((palette) => (
+          <div
+            key={palette}
+            className="relative h-40 min-w-0 overflow-hidden rounded-tile bg-aura-base"
+          >
+            <AuraField
+              hues={[1, 2, 3].map((n) => `var(--aura-${palette}-${n})`)}
+            />
+            <span className="absolute bottom-3 right-4 text-caption font-extrabold tracking-latin text-white">
+              {palette.toUpperCase()}
+            </span>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+
   // ---- the trip list -------------------------------------------------------
   {
     slug: "trip-list",
@@ -60,11 +137,14 @@ export const SCENES: Scene[] = [
       <TripList
         trips={f.TRIPS}
         today={f.TODAY}
-        auraByTrip={
-          new Map(
-            [...f.TRIP_CITIES].map(([id, cities]) => [id, tripAura(cities)]),
-          )
-        }
+        citiesByTrip={f.TRIP_CITIES}
+        auraByTrip={assignTripAuras(
+          f.TRIPS.map((trip) => ({
+            id: trip.id,
+            cities: f.TRIP_CITIES.get(trip.id) ?? [],
+            createdAt: trip.created_at,
+          })),
+        )}
       />
     ),
   },

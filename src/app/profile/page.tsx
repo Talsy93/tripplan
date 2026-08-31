@@ -3,11 +3,11 @@ import { SectionHeading } from "@/components/ui";
 import { getCurrentUser, LogoutButton } from "@/features/auth";
 import {
   APP_TIME_ZONE,
-  CountdownHero,
+  assignTripAuras,
+  AuraHero,
   HowItWorks,
   NewTripButton,
   getItinerary,
-  getPrimaryDestination,
   getSelectedCitiesByTrip,
   getSelectedDestinations,
   itineraryStops,
@@ -15,9 +15,7 @@ import {
   pickUpcomingTrip,
   todayIn,
   TripList,
-  tripAura,
 } from "@/features/trips";
-import { getPlaceImage } from "@/lib/place-image";
 
 export const metadata = { title: "הטיולים שלי · MyTrip" };
 
@@ -30,26 +28,34 @@ export default async function ProfilePage() {
     getSelectedCitiesByTrip(),
   ]);
 
-  const auraByTrip = new Map(
-    [...citiesByTrip].map(([tripId, cities]) => [tripId, tripAura(cities)]),
+
+  // One light per trip, assigned across the whole list rather than per trip, so
+  // no two trips on the screen come out the same colour while a palette is
+  // free. Oldest first, which is what keeps an existing trip's colour from
+  // moving when a new trip is created — see domain/aura.ts.
+  const auraByTrip = assignTripAuras(
+    trips.map((trip) => ({
+      id: trip.id,
+      cities: citiesByTrip.get(trip.id) ?? [],
+      createdAt: trip.created_at,
+    })),
   );
 
-  // Feature the soonest upcoming trip: a photo of its destination, the
-  // countdown, and the route as coloured chips.
+  // Feature the soonest upcoming trip: its countdown, its route, and its own
+  // light.
+  //
+  // No destination photo here any more. The hero this screen was designed for
+  // is a field of light, and a photo underneath it would be a third thing
+  // competing with the countdown and the route. getPlaceImage still serves the
+  // trip's own "today" tab, where a picture of the place is the subject.
   const upcoming = pickUpcomingTrip(trips);
-  let upcomingImage: string | null = null;
   let upcomingCities: string[] = [];
 
   if (upcoming) {
-    const [city, itinerary] = await Promise.all([
-      getPrimaryDestination(upcoming.id),
-      getItinerary(upcoming.id),
-    ]);
-    upcomingImage = await getPlaceImage(city ?? upcoming.name);
-
     // Route order comes from the itinerary when there is one. Before that,
     // fall back to the order cities were added — the chips are still right,
     // they just aren't in visiting order yet.
+    const itinerary = await getItinerary(upcoming.id);
     upcomingCities = itineraryStops(itinerary).map((stop) => stop.city);
     if (upcomingCities.length === 0) {
       const selected = await getSelectedDestinations(upcoming.id);
@@ -72,12 +78,34 @@ export default async function ProfilePage() {
         />
       }
     >
-      <SectionHeading
-        level="page"
-        description={user ? `מחובר כ-${user.email}` : undefined}
-      >
-        הטיולים שלי
-      </SectionHeading>
+      {/* The hero comes first and reaches the viewport edge — this screen has
+          no page title of its own any more, because the hero is it. The old
+          "הטיולים שלי" heading plus a "הטיול הקרוב" sub-heading above a card
+          was three levels of chrome introducing one trip. */}
+      {upcoming && (
+        <AuraHero
+          tripId={upcoming.id}
+          name={upcoming.name}
+          startDate={upcoming.start_date}
+          cities={upcomingCities}
+          // Straight from the list's assignment, not computed again from
+          // upcomingCities: the hero and this trip's tile in the list below it
+          // have to be the same colour, and only the assignment knows which
+          // palette this trip ended up with after deconfliction.
+          hues={auraByTrip.get(upcoming.id) ?? []}
+          initial={user?.email?.[0]}
+          // Cancels AppShell pt-5: the hero is the first thing in main and
+          // should meet the header. The component does not carry this itself —
+          // the harness renders it under a scene title, where it would be wrong.
+          className="-mt-5"
+        />
+      )}
+
+      {/* Without a trip to feature there is no hero, so the screen still needs
+          to say what it is. */}
+      {!upcoming && (
+        <SectionHeading level="page">הטיולים שלי</SectionHeading>
+      )}
 
       {/* Above the trip list, and expanded only for someone who has no trips
           yet — the point at which "what am I supposed to do here" is an actual
@@ -87,34 +115,19 @@ export default async function ProfilePage() {
         tripId={upcoming?.id ?? trips[0]?.id ?? null}
       />
 
-      {upcoming && (
-        <section className="flex flex-col gap-3">
-          <SectionHeading level="sub">הטיול הקרוב</SectionHeading>
-          <CountdownHero
-            tripId={upcoming.id}
-            name={upcoming.name}
-            startDate={upcoming.start_date}
-            imageUrl={upcomingImage}
-            cities={upcomingCities}
-            // The light is a function of which cities, not how many times or in
-            // what order they appear — so this hero and the same trip's tile in
-            // the list below it come out identical, even though one gets its
-            // cities in itinerary order and the other in the order they were
-            // added. They would only diverge if the two sources disagreed about
-            // the set itself, which is a data question, not a colour one.
-            hues={tripAura(upcomingCities)}
-            href={`/trips/${upcoming.id}`}
-          />
-        </section>
-      )}
-
       <section className="flex flex-col gap-3">
         {trips.length > 0 && (
-          <SectionHeading level="sub">כל הטיולים · {trips.length}</SectionHeading>
+          <SectionHeading
+            level="sub"
+            description={user ? `מחובר כ-${user.email}` : undefined}
+          >
+            כל הטיולים · {trips.length}
+          </SectionHeading>
         )}
         <TripList
           trips={trips}
           today={todayIn(APP_TIME_ZONE, new Date())}
+          citiesByTrip={citiesByTrip}
           auraByTrip={auraByTrip}
         />
       </section>

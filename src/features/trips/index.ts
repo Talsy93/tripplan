@@ -349,7 +349,11 @@ export {
   cityToneClass,
 } from "./domain/tone";
 export type { Tone } from "./domain/tone";
-export { tripAura } from "./domain/aura";
+export { tripAura, assignTripAuras, auraHues } from "./domain/aura";
+export type { AuraTrip } from "./domain/aura";
+export { AURA_PALETTES } from "./domain/aura-palette";
+export type { AuraPalette } from "./domain/aura-palette";
+export { AuraHero } from "./components/aura-hero";
 export { TripList } from "./components/trip-list";
 export { PlanningPanel } from "./components/planning-panel";
 export { CityGuide } from "./components/city-guide";
