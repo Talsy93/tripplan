@@ -26,7 +26,7 @@ export function iconButtonClasses(
   className?: string,
 ) {
   return cn(
-    "inline-flex shrink-0 items-center justify-center rounded-full transition-colors",
+    "inline-flex shrink-0 items-center justify-center rounded-full transition-[background-color,border-color,color,box-shadow,transform] duration-press ease-snap active:scale-[0.94]",
     focusRing,
     "disabled:opacity-50 disabled:pointer-events-none",
     variants[variant],
