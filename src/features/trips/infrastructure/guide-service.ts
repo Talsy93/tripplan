@@ -124,6 +124,47 @@ export async function getSelectedDestinations(
   }));
 }
 
+// The cities of every trip the user can see, in one query, keyed by trip.
+//
+// For the trip list, which draws each trip's light from its cities. Calling
+// getSelectedDestinations per row would be one round trip per trip — this is
+// one, and it selects two columns instead of five.
+//
+// RLS does the scoping: a bare select on suggested_destinations returns rows
+// only for trips the caller is a member of, so there is no trip id list to pass
+// in and no way to widen it by passing the wrong one.
+//
+// Order is the order cities were added, not itinerary order. The list has no
+// itineraries loaded and does not need them: the tone assignment only has to be
+// stable and distinct per trip, and profile/page.tsx already documents added
+// order as the accepted fallback for exactly this reason.
+export async function getSelectedCitiesByTrip(): Promise<Map<string, string[]>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("suggested_destinations")
+    .select("trip_id, city")
+    .eq("selected", true)
+    .not("category", "is", null)
+    .not("city", "is", null)
+    .order("created_at", { ascending: true });
+
+  const byTrip = new Map<string, string[]>();
+  if (error || !data) return byTrip;
+
+  for (const row of data) {
+    if (!row.trip_id || !row.city) continue;
+    const cities = byTrip.get(row.trip_id);
+    if (cities) {
+      // cityToneMap dedupes too, but keeping the array small matters when a
+      // trip has fifty saved places across four cities.
+      if (!cities.includes(row.city)) cities.push(row.city);
+    } else {
+      byTrip.set(row.trip_id, [row.city]);
+    }
+  }
+  return byTrip;
+}
+
 // A single city that best represents the trip, for illustrating it with a
 // photo. Prefers a city the user actually added; falls back to any suggested
 // city; null when planning hasn't produced any city yet.

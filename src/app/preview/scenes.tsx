@@ -32,6 +32,7 @@ import {
   ShareTrip,
   TripDatesForm,
   TripList,
+  tripAura,
   UnlocatedCities,
   UpNext,
   WeatherForecast,
@@ -55,7 +56,17 @@ export const SCENES: Scene[] = [
     slug: "trip-list",
     title: "רשימת הטיולים",
     note: "שלושה טיולים: רגיל, שם ארוך, ושם בלי נקודת שבירה",
-    render: () => <TripList trips={f.TRIPS} today={f.TODAY} />,
+    render: () => (
+      <TripList
+        trips={f.TRIPS}
+        today={f.TODAY}
+        auraByTrip={
+          new Map(
+            [...f.TRIP_CITIES].map(([id, cities]) => [id, tripAura(cities)]),
+          )
+        }
+      />
+    ),
   },
   {
     slug: "trip-list-empty",
@@ -74,6 +85,39 @@ export const SCENES: Scene[] = [
         startDate="2026-09-24"
         imageUrl={null}
         cities={["טוקיו", "קיוטו", f.UNBREAKABLE]}
+        hues={tripAura(["טוקיו", "קיוטו", f.UNBREAKABLE])}
+        href="#"
+      />
+    ),
+  },
+  {
+    slug: "countdown-hero-photo",
+    title: "הטיול הקרוב · עם תמונה",
+    note: "האור צובע את התמונה במקום scrim שחור — האם הטקסט הלבן נשאר קריא",
+    render: () => (
+      <CountdownHero
+        tripId={f.TRIP_ID}
+        name="יפן בסתיו"
+        startDate="2026-09-24"
+        imageUrl={f.PHOTO}
+        cities={["טוקיו", "קיוטו", "אוסקה"]}
+        hues={tripAura(["טוקיו", "קיוטו", "אוסקה"])}
+        href="#"
+      />
+    ),
+  },
+  {
+    slug: "countdown-hero-lightless",
+    title: "הטיול הקרוב · בלי יעדים",
+    note: "טיול שעוד לא נבחרו לו יעדים — בסיס עמוק בלי אור, לא רקע שבור",
+    render: () => (
+      <CountdownHero
+        tripId={f.TRIP_ID}
+        name="סופ״ש בפראג"
+        startDate={null}
+        imageUrl={null}
+        cities={[]}
+        hues={[]}
         href="#"
       />
     ),

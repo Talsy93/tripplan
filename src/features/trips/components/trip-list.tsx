@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CalendarDays, ChevronLeft } from "lucide-react";
-import { Badge, Card, EmptyState } from "@/components/ui";
+import { AuraField, Badge, Card, EmptyState } from "@/components/ui";
 import { NewTripButton } from "./create-trip-form";
 import { DeleteTripButton } from "./delete-trip-button";
 import { formatShortDate } from "../domain/trip";
@@ -9,7 +9,19 @@ import type { Trip } from "../domain/trip";
 
 // `today` is passed in rather than read from the clock, so the label cannot
 // differ between the server render and hydration.
-export function TripList({ trips, today }: { trips: Trip[]; today: string }) {
+//
+// `auraByTrip` is optional: without it the rows render exactly as before. The
+// page resolves it in one query, because a trip's light comes from its cities
+// and this component does not load data.
+export function TripList({
+  trips,
+  today,
+  auraByTrip,
+}: {
+  trips: Trip[];
+  today: string;
+  auraByTrip?: Map<string, string[]>;
+}) {
   if (trips.length === 0) {
     return (
       <EmptyState
@@ -39,8 +51,30 @@ export function TripList({ trips, today }: { trips: Trip[]; today: string }) {
                 button — which sits above it on the z axis — does not. */}
             <Card
               variant="interactive"
-              className="relative flex h-full min-w-0 items-center gap-2"
+              className="relative flex h-full min-w-0 items-center gap-3"
             >
+              {/* The trip's light, at 44px — the same hues as its own hero, so a
+                  trip is recognisable here by colour before its name is read.
+                  Empty hues render as the bare deep base, which is what a trip
+                  with no destinations chosen should look like.
+
+                  animate={false} is not an oversight: twenty rows each running
+                  two infinite animations is the one way this effect gets
+                  expensive, and at 44px the drift would not be visible anyway. */}
+              <span
+                aria-hidden="true"
+                className="relative h-11 w-11 shrink-0 overflow-hidden rounded-tile"
+              >
+                <AuraField
+                  hues={auraByTrip?.get(trip.id) ?? []}
+                  variant="chip"
+                  animate={false}
+                  // A quarter of the 44px box. The 42px default is sized for a
+                  // hero and blurs a bloom this small out of existence.
+                  blur={11}
+                />
+              </span>
+
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <Link
                   href={`/trips/${trip.id}`}

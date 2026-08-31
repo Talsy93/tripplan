@@ -153,6 +153,48 @@
   --tone-tint: var(--surface-2);
   --tone-ink: var(--foreground);
   --tone-dot: var(--muted);
+
+  /* --- aura: the trip's own light (v4, 2026-08-31) -----------------------
+     A trip's hero used to be a photo over a neutral dark scrim, so every
+     trip's hero was the same colour. These are the saturated counterparts of
+     the six tones above — same assignment, same order, so a city drawn amber
+     in the schedule contributes amber light to the hero. One colour language,
+     not two.
+
+     They are deliberately deep rather than pastel: they are seen through
+     blur at 40–60% opacity over --aura-base, where a pastel turns to grey.
+     Three at most per field. Four or more overlap into brown instead of
+     glowing, which is the failure mode every reference on this warns about.
+
+     --aura-base is the navy the brand already owns, taken down far enough
+     that white text clears AA on it without help from a scrim.
+     -------------------------------------------------------------------- */
+  --aura-base: #0b1020;
+  --rose-aura: #b5325f;
+  --amber-aura: #d9861f;
+  --lilac-aura: #6f45c4;
+  --mint-aura: #1f7a54;
+  --sky-aura: #1d5fa8;
+  --peach-aura: #d4562b;
+
+  /* --- glass ------------------------------------------------------------
+     Chrome that floats over content instead of framing it. Two variants,
+     because the thing behind it is either the aura (dark) or the app canvas
+     (light), and one set of values cannot serve both.
+
+     The highlight is the part that reads as glass rather than as "a panel at
+     40% opacity": a 1px inset top edge, which is where a real bevel catches
+     light. Without it the blur alone just looks like a rendering bug.
+
+     Used sparingly on purpose — only the tab bar, the chips, and the "now"
+     panel. Text that has to be read sits on an opaque surface, always.
+     -------------------------------------------------------------------- */
+  --glass-dark: rgba(11, 16, 32, 0.38);
+  --glass-dark-border: rgba(255, 255, 255, 0.18);
+  --glass-dark-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  --glass-light: rgba(255, 255, 255, 0.74);
+  --glass-light-border: rgba(255, 255, 255, 0.9);
+  --glass-light-highlight: inset 0 1px 0 #ffffff;
 }
 
 .tone-rose  { --tone-tint: var(--rose-tint);  --tone-ink: var(--rose-ink);  --tone-dot: var(--rose-dot); }
@@ -210,6 +252,15 @@
   --color-tone-ink: var(--tone-ink);
   --color-tone-dot: var(--tone-dot);
 
+  /* aura and glass — the individual --*-aura hues are read through var() by
+     domain/aura.ts rather than as utilities, because a field composes three
+     of them into one inline gradient and there is no utility shape for that. */
+  --color-aura-base: var(--aura-base);
+  --color-glass-dark: var(--glass-dark);
+  --color-glass-dark-border: var(--glass-dark-border);
+  --color-glass-light: var(--glass-light);
+  --color-glass-light-border: var(--glass-light-border);
+
   /* --- typography -------------------------------------------------------
      One family. Hierarchy comes from size and weight, not from a second
      face — that is what makes Booking's type read as a system. The display
@@ -240,6 +291,20 @@
   --text-display--line-height: 1.15;
   --text-hero: 3rem;
   --text-hero--line-height: 1;
+
+  /* v4: one step above hero, for the countdown and nothing else.
+     Hierarchy in the 2026 mobile languages comes from size contrast — a 72px
+     number beside a 12px label — rather than from another box. 4.5rem is the
+     largest a two-digit number can be at 390px and still leave room for its
+     unit on the same baseline.
+
+     No letter-spacing token for Hebrew, deliberately: the rule at the top of
+     this ramp still holds, and tracking out Hebrew damages it. --tracking-latin
+     exists for the wordmark and for airport codes, which are Latin. It must
+     never wrap Hebrew text. */
+  --text-mega: 4.5rem;
+  --text-mega--line-height: 0.85;
+  --tracking-latin: 0.2em;
 
   /* --- radii ------------------------------------------------------------
      Tightened from v1 (card was 1.25rem). Booking's corners are restrained;
@@ -273,9 +338,41 @@
   --container-pane: 22rem;
   --container-shell: 90rem;
 
-  /* motion */
+  /* motion
+     --ease-snap decelerates into place and is right for anything that moves a
+     distance. --ease-spring overshoots ~9% and settles, which is what makes an
+     element read as having mass; it is for things that appear or change shape,
+     never for a scroll or a slide (an overshoot on a long translate looks like
+     a bug, not like physics). */
   --ease-snap: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.46, 0.5, 1);
 }
+
+/* The aura's two drift tracks.
+   ---------------------------------------------------------------------------
+   Plain CSS rather than utilities, for the same reason .tone-* above is: this
+   is one specific effect, not a scale. Two tracks with different periods and
+   directions, so three blooms sharing them never move as one block — the point
+   is light that shifts, not a panel that slides.
+
+   Long and low-amplitude on purpose. The references converge on 8–18s: faster
+   reads as a pulse, and high amplitude near text is a motion-sickness problem.
+
+   The global prefers-reduced-motion block at the bottom of this file already
+   neutralises these, so there is no separate opt-out here. transform only, so
+   this stays on the compositor and never triggers layout. */
+@keyframes aura-drift-a {
+  from { transform: none; }
+  to { transform: translate3d(-6%, 4%, 0) scale(1.12); }
+}
+
+@keyframes aura-drift-b {
+  from { transform: none; }
+  to { transform: translate3d(5%, -3%, 0) scale(1.08); }
+}
+
+.aura-drift-a { animation: aura-drift-a 18s ease-in-out infinite alternate; }
+.aura-drift-b { animation: aura-drift-b 24s ease-in-out infinite alternate; }
 
 body {
   background: var(--background);

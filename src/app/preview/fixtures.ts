@@ -68,6 +68,23 @@ export const TRIPS: Trip[] = [
   },
 ];
 
+// Cities per trip, for the light each trip is drawn in. Deliberately uneven:
+// three cities, one city, and none at all — a trip with no destinations chosen
+// is the case that has to render as the bare base rather than as a broken tile.
+export const TRIP_CITIES = new Map<string, string[]>([
+  [id("d1"), ["טוקיו", "קיוטו", "אוסקה", "נארה"]],
+  [id("d2"), ["רומא"]],
+]);
+
+// A real Wikimedia photo, on the host next.config.ts already allow-lists —
+// because the hero's aura behaves differently over a photo (it tints) than on
+// its own (it paints), and the case worth checking is whether white text stays
+// readable over a bright, busy image. A flat placeholder would prove nothing.
+// Verified 200 image/jpeg. The un-thumbed path on purpose: upload.wikimedia.org
+// serves /thumb/ URLs only at widths it has already rendered.
+export const PHOTO =
+  "https://upload.wikimedia.org/wikipedia/commons/b/b2/Skyscrapers_of_Shinjuku_2009_January.jpg";
+
 // ---- bookings -------------------------------------------------------------
 
 const bookingBase = {
