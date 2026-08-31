@@ -54,6 +54,7 @@ import {
   Card,
   EmptyState,
   SectionHeading,
+  Skeleton,
 } from "@/components/ui";
 import { BottomNav, SideNav, TwoPane } from "@/components/layout";
 import {
@@ -338,6 +339,23 @@ export const SCENES: Scene[] = [
           origin="מלון שינג׳וקו גרנד"
         />
       </TwoPane>
+    ),
+  },
+  {
+    slug: "today-stats",
+    title: "רצועת הנתונים",
+    note: "שלוש המשבצות מתחת לכרטיס ״עכשיו״. הן נבנות בשרת מול Open-Meteo, ולכן כאן מוצג המצב שאי אפשר להגיע אליו בחשבון אמיתי — טעינה, ואין תשובה",
+    render: () => (
+      <div className="flex flex-col gap-4">
+        <p className="text-caption text-muted">
+          בזמן טעינה — מה שרואים לפני שהתחזית חוזרת
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-[4.75rem] rounded-card" />
+          ))}
+        </div>
+      </div>
     ),
   },
   {

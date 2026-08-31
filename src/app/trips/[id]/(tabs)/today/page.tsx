@@ -1,6 +1,7 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { TwoPane } from "@/components/layout";
-import { SectionHeading } from "@/components/ui";
+import { SectionHeading, Skeleton } from "@/components/ui";
 import {
   APP_TIME_ZONE,
   bookingsByDay,
@@ -15,6 +16,7 @@ import {
   lodgingByDay,
   NowCard,
   dateOfDay,
+  TodayStats,
   todayIn,
   tripPhase,
   UpNext,
@@ -112,6 +114,30 @@ export default async function TodayPage({
           date={live.date}
           now={now.toISOString()}
         />
+      )}
+
+      {live && (
+        <Suspense
+          fallback={
+            <div className="grid grid-cols-3 gap-2">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-[4.75rem] rounded-card" />
+              ))}
+            </div>
+          }
+        >
+          {/* The only thing on this screen that goes to the network. Behind its
+              own boundary so a slow forecast cannot hold up the card above it,
+              which is the part someone actually opened the app for. */}
+          <TodayStats
+            tripId={trip.id}
+            tripName={trip.name}
+            date={live.date}
+            city={live.day.items.find((item) => item.city)?.city ?? null}
+            bookings={bookings}
+            lodging={currentDay !== null ? (lodging[currentDay] ?? null) : null}
+          />
+        </Suspense>
       )}
 
       {showDay ? (
