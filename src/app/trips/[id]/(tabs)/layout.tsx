@@ -165,21 +165,27 @@ export default async function TripTabsLayout({
       }
       sidebar={<TripSideNav tripId={trip.id} hues={hues} />}
       nav={<TripNav tripId={trip.id} />}
+      // Above every tab's own content, because the trip is the thing all ten of
+      // them are about. The sticky bar carries the small title for when this has
+      // scrolled away — the same large-title-collapses pattern both mobile
+      // platforms use, and the reason the name appearing twice is not a
+      // duplication.
+      //
+      // The `banner` slot rather than the first child: it bleeds to the viewport
+      // edge with negative margins, and inside the two-pane grid a tab may set
+      // up, those margins would run sideways into the pane instead of off the
+      // screen.
+      banner={
+        <TripAuraBand
+          name={trip.name}
+          startDate={trip.start_date}
+          phase={phase}
+          dayCount={dayCount}
+          cities={cities}
+          hues={hues}
+        />
+      }
     >
-      {/* Above every tab's own content, because the trip is the thing all ten
-          of them are about. The sticky bar carries the small title for when
-          this has scrolled away — the same large-title-collapses pattern both
-          mobile platforms use, and the reason the name appearing twice is not
-          a duplication. */}
-      <TripAuraBand
-        name={trip.name}
-        startDate={trip.start_date}
-        phase={phase}
-        dayCount={dayCount}
-        cities={cities}
-        hues={hues}
-      />
-
       {children}
     </AppShell>
   );

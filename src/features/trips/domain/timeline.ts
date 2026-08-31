@@ -334,6 +334,67 @@ export function isNightGap(startMinutes: number, minutes: number) {
   return mid >= NIGHT_FROM || mid <= NIGHT_TO;
 }
 
+// Where the day is right now.
+//
+// The screen a traveller opens most is the one they open while standing on a
+// street, and the question is never "show me my schedule" — it is "what am I
+// supposed to be doing, and is it still open". This answers exactly that and
+// nothing else.
+//
+// `current` is what the clock is inside of; `next` is what follows it, which is
+// what you need when the answer to the first is "nothing". Both can be null: a
+// day that has not started yet has only a next, and a finished day has neither.
+export type DayNow = {
+  current: DayItem | null;
+  next: DayItem | null;
+  // Minutes until `current` ends, or until `next` starts when nothing is
+  // current. Null when there is nothing to count towards.
+  minutesLeft: number | null;
+};
+
+// Under this, "ends soon" is worth saying out loud — you would change what you
+// are doing. Above it, a countdown is just noise on a card.
+const ENDING_SOON_MINUTES = 45;
+
+export function isEndingSoon(minutesLeft: number | null) {
+  return minutesLeft !== null && minutesLeft >= 0 && minutesLeft <= ENDING_SOON_MINUTES;
+}
+
+export function dayNow(sequence: DayItem[], nowMinutes: number): DayNow {
+  // Gaps are the absence of an item, so they can never be what you are doing.
+  const items = sequence.filter((item) => item.kind !== "gap");
+
+  const bounds = (item: DayItem) =>
+    item.kind === "booking"
+      ? { start: item.booking.startMinutes, end: item.booking.endMinutes }
+      : item.kind === "entry"
+        ? { start: item.entry.startMinutes, end: item.entry.endMinutes }
+        : null;
+
+  let current: DayItem | null = null;
+  let next: DayItem | null = null;
+
+  for (const item of items) {
+    const at = bounds(item);
+    if (!at) continue;
+    // The last one that has started and not finished wins, so an entry that
+    // begins during a long flight reads as the thing you are actually doing.
+    if (at.start <= nowMinutes && nowMinutes < at.end) current = item;
+    if (at.start > nowMinutes && next === null) next = item;
+  }
+
+  const currentAt = current ? bounds(current) : null;
+  const nextAt = next ? bounds(next) : null;
+
+  const minutesLeft = currentAt
+    ? currentAt.end - nowMinutes
+    : nextAt
+      ? nextAt.start - nowMinutes
+      : null;
+
+  return { current, next, minutesLeft };
+}
+
 export function daySequence(timeline: DayTimeline): DayItem[] {
   const placed: {
     startMinutes: number;

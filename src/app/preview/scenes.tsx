@@ -38,13 +38,14 @@ import {
   TripList,
   tripAura,
   UnlocatedCities,
+  NowCard,
   UpNext,
   WeatherForecast,
   WorkflowGuide,
   WorkflowSummary,
 } from "@/features/trips";
 import { AuraField, Card, EmptyState, SectionHeading } from "@/components/ui";
-import { BottomNav, SideNav } from "@/components/layout";
+import { BottomNav, SideNav, TwoPane } from "@/components/layout";
 import {
   CalendarDays,
   Compass,
@@ -289,6 +290,72 @@ export const SCENES: Scene[] = [
   },
 
   // ---- today ---------------------------------------------------------------
+  {
+    slug: "two-pane",
+    title: "שתי חלוניות",
+    note: "מה שקורה ב-1280 ומעלה: הלו״ז בטור הראשי, ״מה קרוב״ בחלונית. מתחת ל-1280 החלונית פשוט יורדת מתחת לתוכן — כלום לא נעלם, רק זז",
+    render: () => (
+      <TwoPane
+        aside={
+          <>
+            <SectionHeading level="section">מה קרוב</SectionHeading>
+            <UpNext
+              bookings={f.BOOKINGS}
+              now="2026-09-11T05:00:00Z"
+              cities={["טוקיו", "קיוטו"]}
+            />
+          </>
+        }
+      >
+        <NowCard
+          day={f.ITINERARY[0]}
+          date="2026-09-11"
+          now="2026-09-11T07:10:00Z"
+        />
+        <DayTimeline
+          day={f.ITINERARY[0]}
+          date="2026-09-11"
+          origin="מלון שינג׳וקו גרנד"
+        />
+      </TwoPane>
+    ),
+  },
+  {
+    slug: "now-card",
+    title: "כרטיס ״עכשיו״",
+    note: "אמצע היום — מה קורה עכשיו, כמה נשאר, ומה אחר כך",
+    render: () => (
+      <NowCard
+        day={f.ITINERARY[0]}
+        date="2026-09-11"
+        now="2026-09-11T07:10:00Z"
+      />
+    ),
+  },
+  {
+    slug: "now-card-soon",
+    title: "כרטיס ״עכשיו״ · נגמר בקרוב",
+    note: "פחות מ-45 דקות לסוף — התג עובר לצבע ההתראה",
+    render: () => (
+      <NowCard
+        day={f.ITINERARY[0]}
+        date="2026-09-11"
+        now="2026-09-11T07:50:00Z"
+      />
+    ),
+  },
+  {
+    slug: "now-card-next",
+    title: "כרטיס ״עכשיו״ · בין פריטים",
+    note: "שום דבר לא קורה כרגע, אז הכרטיס מדבר על הבא בתור",
+    render: () => (
+      <NowCard
+        day={f.ITINERARY[0]}
+        date="2026-09-11"
+        now="2026-09-11T09:00:00Z"
+      />
+    ),
+  },
   {
     slug: "up-next",
     title: "מה מתקרב",

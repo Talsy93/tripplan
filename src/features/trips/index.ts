@@ -332,6 +332,7 @@ export { EditEntryDialog } from "./components/edit-entry-dialog";
 export { DeleteTripButton } from "./components/delete-trip-button";
 export { TripDatesForm } from "./components/trip-dates-form";
 
+export { NowCard } from "./components/now-card";
 export { UpNext } from "./components/up-next";
 export { MoreBackLink } from "./components/more-back-link";
 export { TripNav, TripSideNav } from "./components/trip-nav";
@@ -369,7 +370,9 @@ export {
   parseTimeLabel,
   formatMinutes,
   buildDayTimeline,
+  dayNow,
   daySequence,
+  isEndingSoon,
   isNightGap,
   durationLabel,
   distanceLabel,
