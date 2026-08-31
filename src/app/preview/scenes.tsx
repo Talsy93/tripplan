@@ -44,7 +44,7 @@ import {
   WorkflowSummary,
 } from "@/features/trips";
 import { AuraField, Card, EmptyState, SectionHeading } from "@/components/ui";
-import { BottomNav } from "@/components/layout";
+import { BottomNav, SideNav } from "@/components/layout";
 import {
   CalendarDays,
   Compass,
@@ -209,6 +209,33 @@ export const SCENES: Scene[] = [
   // headlines it can carry, and they are the reason it has a scene at all: the
   // band is in the (tabs) layout, so a mistake in it is a mistake on ten
   // screens at once.
+  {
+    slug: "side-nav",
+    title: "הרַיל של הדסקטופ",
+    note: "שלוש פלטות זו לצד זו — האם הפריט הנבחר מנצח את האור מאחוריו בכל אחת מהן, והאם הלא-נבחרים עדיין קריאים",
+    render: () => (
+      <div className="flex gap-4">
+        {[
+          ["טוקיו", "קיוטו", "אוסקה", "נארה"],
+          ["רומא", "פירנצה"],
+          ["פראג"],
+        ].map((cities, index) => (
+          <div key={index} className="h-[26rem] w-60 overflow-hidden rounded-tile">
+            <SideNav
+              hues={tripAura(cities)}
+              items={[
+                { href: "#1", label: "היום", icon: <Sun className="h-5 w-5" />, active: index === 0 },
+                { href: "#2", label: "ימים", icon: <CalendarDays className="h-5 w-5" />, active: index === 1 },
+                { href: "#3", label: "מה עושים?", icon: <Compass className="h-5 w-5" /> },
+                { href: "#4", label: "מפה", icon: <MapIcon className="h-5 w-5" />, active: index === 2 },
+                { href: "#5", label: "עוד", icon: <Menu className="h-5 w-5" /> },
+              ]}
+            />
+          </div>
+        ))}
+      </div>
+    ),
+  },
   {
     slug: "trip-band-before",
     title: "פס הטיול · לפני היציאה",

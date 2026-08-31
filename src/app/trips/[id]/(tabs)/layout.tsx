@@ -163,7 +163,7 @@ export default async function TripTabsLayout({
           }
         />
       }
-      sidebar={<TripSideNav tripId={trip.id} />}
+      sidebar={<TripSideNav tripId={trip.id} hues={hues} />}
       nav={<TripNav tripId={trip.id} />}
     >
       {/* Above every tab's own content, because the trip is the thing all ten

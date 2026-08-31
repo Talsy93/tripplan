@@ -76,6 +76,12 @@ export function TripNav({ tripId }: { tripId: string }) {
   );
 }
 
-export function TripSideNav({ tripId }: { tripId: string }) {
-  return <SideNav items={useTripNavItems(tripId)} />;
+export function TripSideNav({
+  tripId,
+  hues = [],
+}: {
+  tripId: string;
+  hues?: string[];
+}) {
+  return <SideNav items={useTripNavItems(tripId)} hues={hues} />;
 }
