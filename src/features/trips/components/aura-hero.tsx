@@ -19,10 +19,15 @@ import { cityToneMap } from "../domain/tone";
 //     opaque fill cannot;
 //   * the light is the trip's own, from domain/aura.ts.
 //
-// No photo, deliberately: the design is a field of light and this is the screen
-// it was drawn for. The destination photo lives in TripAuraBand instead, at the
-// top of every screen inside a trip — which is where a picture of the place
-// earns its space, because by then you have chosen to go there.
+// No photo. That used to be a statement about this screen only — the band inside
+// a trip carried the destination photograph — and it is now true of the whole
+// app: two answers to "whose trip is this?" ran side by side and the light won.
+// See trip-aura-band.tsx.
+//
+// From lg it is a band rather than a field: 13rem instead of 22rem, with the
+// countdown beside the name instead of above it. 22rem of light across 1440px is
+// a great deal of light, and moving the number sideways is the only way the
+// height comes down without shrinking the thing the hero is built around.
 //
 // Presentational: the page resolves the cities and the light, because both need
 // the server.
@@ -67,7 +72,7 @@ export function AuraHero({
     // list below it.
     <div
       className={cn(
-        "relative -mx-4 flex min-h-[22rem] flex-col overflow-hidden rounded-b-[1.75rem] bg-aura-base md:-mx-6 lg:-mx-8",
+        "relative -mx-4 flex min-h-[22rem] flex-col overflow-hidden rounded-b-[1.75rem] bg-aura-base md:-mx-6 lg:-mx-8 lg:min-h-[13rem]",
         className,
       )}
     >
@@ -95,8 +100,8 @@ export function AuraHero({
         {/* mt-auto, so everything below sits on the bottom edge whatever the
             height turns out to be: the identity row stays at the top and the gap
             between them absorbs the difference. */}
-        <div className="mt-auto flex min-w-0 flex-col gap-4 pt-8">
-          <div className="flex min-w-0 flex-col">
+        <div className="mt-auto flex min-w-0 flex-col gap-4 pt-8 lg:flex-row lg:items-center lg:gap-8 lg:pt-4">
+          <div className="flex min-w-0 flex-col lg:shrink-0 lg:text-center">
             {/* The departure date belongs on this line, not under the number.
                 Below it, it read as an orphan: a third size on its own row,
                 attached to nothing. */}
@@ -124,6 +129,14 @@ export function AuraHero({
 
           </div>
 
+          {/* Only from lg, where the three groups are actually side by side and
+              there is something to divide. */}
+          <span
+            aria-hidden="true"
+            className="hidden w-px self-stretch bg-white/25 lg:block"
+          />
+
+          <div className="flex min-w-0 flex-col gap-4 lg:flex-1">
           {/* Clamped to two lines: a hero is a summary, and the full name is the
               title of the page it opens. Measured at 375px, an unclamped long
               name ran to three lines and pushed the label past the top edge.
@@ -182,10 +195,12 @@ export function AuraHero({
             </div>
           )}
 
-          <div className="flex min-w-0 items-stretch gap-2 pt-1">
+          </div>
+
+          <div className="flex min-w-0 items-stretch gap-2 pt-1 lg:shrink-0 lg:pt-0">
             <Link
               href={`/trips/${tripId}`}
-              className="flex min-w-0 flex-1 items-center justify-center rounded-2xl bg-white px-4 py-3.5 text-sm font-bold text-foreground shadow-lift transition-transform duration-200 ease-spring hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-aura-base"
+              className="flex min-w-0 flex-1 items-center justify-center rounded-2xl bg-white px-4 py-3.5 text-sm font-bold text-foreground shadow-lift lg:min-w-44 transition-transform duration-200 ease-spring hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-aura-base"
             >
               פתח את הטיול
             </Link>
