@@ -525,6 +525,24 @@ html {
   }
 }
 
+/* The map's own controls, moved clear of the chips that float above them.
+   ---------------------------------------------------------------------------
+   Leaflet renders zoom into .leaflet-top.leaflet-left, which is where the city
+   chips overflow to: the chip row is RTL, so it starts at the right edge and
+   runs left, straight across the +/- buttons.
+
+   A CSS offset rather than <ZoomControl position="bottomleft" />, and that is
+   not a preference. The React component throws — it mounts before the map has
+   built its _controlCorners, Control.addTo indexes that object directly, and
+   the map lands in an error boundary with "Cannot read properties of undefined
+   (reading 'bottomleft')". A margin has no lifecycle to lose a race with.
+
+   3.25rem is the chip row: 0.5rem of padding, a 1.75rem chip, and 1rem of air
+   under it. */
+.leaflet-container .leaflet-top.leaflet-left {
+  margin-top: 3.25rem;
+}
+
 /* Nothing in the app animates for someone who asked it not to. */
 @media (prefers-reduced-motion: reduce) {
   *,

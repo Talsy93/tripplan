@@ -6,6 +6,7 @@
 // Tiles come from OpenStreetMap — free, no API key (project rule: no paid
 // services). Attribution is required by their tile usage policy.
 
+import { useEffect } from "react";
 import L from "leaflet";
 import {
   MapContainer,
@@ -13,6 +14,7 @@ import {
   Polyline,
   Popup,
   TileLayer,
+  useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { routeBounds, type RoutePlace, type RouteStop } from "../domain/route";
@@ -65,12 +67,37 @@ function placeIcon(tone: Tone) {
   });
 }
 
+// Moves the map when the chips above it pick a city.
+//
+// A child of MapContainer rather than a prop on it, because that is the only
+// way to reach the Leaflet instance: MapContainer's own `center` is read once
+// at mount and ignored afterwards, so re-rendering it with a new centre does
+// nothing at all. useMap() is react-leaflet's answer and this is the whole of
+// it.
+function MapFocus({ target }: { target: [number, number] | null }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!target) return;
+    // flyTo rather than setView: the chips are a way of looking around one
+    // route, and an instant jump between two cities loses which direction you
+    // just went. 1.1s is Leaflet's default and reads as deliberate rather than
+    // slow.
+    map.flyTo(target, Math.max(map.getZoom(), 9), { duration: 1.1 });
+  }, [map, target]);
+
+  return null;
+}
+
 export default function RouteMapCanvas({
   stops,
   places = [],
+  focus = null,
 }: {
   stops: RouteStop[];
   places?: RoutePlace[];
+  // Where to fly to. Null leaves the map wherever the user left it.
+  focus?: [number, number] | null;
 }) {
   // Bounds are computed from the cities alone. The places sit inside them by
   // definition, and including them would let one mis-tagged point zoom the
@@ -97,6 +124,8 @@ export default function RouteMapCanvas({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+
+      <MapFocus target={focus} />
 
       {line.length > 1 && (
         <Polyline
