@@ -268,6 +268,7 @@ export {
   nightStayLabel,
   dayLabel,
   dayOfTripLabel,
+  dayPillLabel,
   phaseLabel,
 } from "./domain/trip-days";
 export type { TripPhase, NightLodging } from "./domain/trip-days";

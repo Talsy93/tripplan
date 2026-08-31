@@ -154,9 +154,21 @@ export function AuraHero({
             {name}
           </p>
 
-          {days === null && (
+          {/* A trip with no destinations has no light — see domain/aura.ts,
+              which assigns it none rather than assigning it black. On screen
+              that is a deep navy panel with nothing in it, and without a line
+              of explanation it reads as a hero that failed to load rather than
+              as a trip that has not been decided yet.
+
+              The two facts are said separately because they are separately
+              fixable, and either one alone is a normal state. */}
+          {(days === null || hues.length === 0) && (
             <span className="text-caption text-white/70">
-              עוד לא נקבע תאריך יציאה
+              {hues.length === 0
+                ? days === null
+                  ? "עוד אין יעדים ואין תאריך — הטיול יקבל את הצבע שלו ברגע שתבחרו לאן"
+                  : "עוד אין יעדים — הטיול יקבל את הצבע שלו ברגע שתבחרו לאן"
+                : "עוד לא נקבע תאריך יציאה"}
             </span>
           )}
 

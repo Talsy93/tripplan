@@ -24,6 +24,7 @@ import {
   BookingList,
   CityDaysEditor,
 
+  DayPager,
   DayTimeline,
   ExpenseSummary,
   GearList,
@@ -455,6 +456,36 @@ export const SCENES: Scene[] = [
   },
 
   // ---- itinerary -----------------------------------------------------------
+  {
+    slug: "day-pager",
+    title: "רצועת הימים",
+    note: "יום בשבוע מעל תאריך, לא ״יום N״ — והנבחר בדיו ולא בכחול הפעולה. היום הנוכחי מסומן בטבעת, כדי ש״היום״ ו״נבחר״ יוכלו להיות נכונים בו-זמנית",
+    render: () => (
+      <DayPager
+        days={f.ITINERARY}
+        initialDay={1}
+        startDate="2026-09-11"
+        currentDay={2}
+        bookingsByDay={{ 1: f.BOOKINGS }}
+        lodgingByDay={{}}
+      />
+    ),
+  },
+  {
+    slug: "day-pager-undated",
+    title: "רצועת הימים · בלי תאריך התחלה",
+    note: "אין לוח שנה להתייחס אליו, אז הגלולות חוזרות ל״יום N״ — הנפילה לאחור שהיא הסיבה שהעוזר בדומיין מחזיר null",
+    render: () => (
+      <DayPager
+        days={f.ITINERARY}
+        initialDay={1}
+        startDate={null}
+        currentDay={null}
+        bookingsByDay={{}}
+        lodgingByDay={{}}
+      />
+    ),
+  },
   {
     slug: "day-timeline",
     title: "ציר הזמן של היום",
