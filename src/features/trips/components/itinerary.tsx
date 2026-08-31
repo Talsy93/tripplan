@@ -333,9 +333,7 @@ export function Itinerary({
                 {view === "timeline" ? (
                   <DayTimeline
                     day={day}
-                    onRemove={remove}
                     onEdit={setEditingId}
-                    origin={origin}
                     bookings={bookingsByDay[day.day] ?? []}
                     date={dateOfDay(startDate, day.day)}
                   />
@@ -454,6 +452,7 @@ export function Itinerary({
           dayCount={days.length}
           open
           onClose={() => setEditingId(null)}
+          onRemove={remove}
         />
       )}
 
