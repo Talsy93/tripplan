@@ -21,21 +21,49 @@ export const tripSchema = z.object({
 export type Trip = z.infer<typeof tripSchema>;
 
 // Input schema for creating a trip (thin slice — name only for now).
-export const createTripSchema = z.object({
-  name: z.string().trim().min(1, { error: "יש להזין שם לטיול." }),
-});
+// A calendar date in ISO form (YYYY-MM-DD), matching an <input type="date">.
+const isoDate = (error: string) =>
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error });
+
+export const createTripSchema = z
+  .object({
+    name: z.string().trim().min(1, { error: "יש להזין שם לטיול." }),
+    // Optional at creation, and that is the point of asking here rather than
+    // requiring here: dates are what most of the app derives from, so the form
+    // should offer them — but "I know I want to go to Japan" is a real place to
+    // start and must not be blocked.
+    //
+    // The empty string is what a blank <input type="date"> submits, so it is
+    // accepted and normalised to null rather than failing the regex.
+    start_date: isoDate("תאריך יציאה לא תקין.")
+      .nullish()
+      .or(z.literal("").transform(() => null)),
+    end_date: isoDate("תאריך חזרה לא תקין.")
+      .nullish()
+      .or(z.literal("").transform(() => null)),
+  })
+  .refine((v) => !v.end_date || !v.start_date || v.end_date >= v.start_date, {
+    error: "תאריך החזרה חייב להיות באותו יום או אחרי היציאה.",
+    path: ["end_date"],
+  })
+  // A return date with no departure has nothing to be after, and the trip would
+  // land in the same undated state with one field quietly ignored.
+  .refine((v) => !v.end_date || !!v.start_date, {
+    error: "כדי לקבוע חזרה צריך קודם תאריך יציאה.",
+    path: ["end_date"],
+  });
 export type CreateTripInput = z.infer<typeof createTripSchema>;
 
 export type TripFormState =
   | {
-      errors?: { name?: string[] };
+      errors?: {
+        name?: string[];
+        start_date?: string[];
+        end_date?: string[];
+      };
       message?: string;
     }
   | undefined;
-
-// A calendar date in ISO form (YYYY-MM-DD), matching an <input type="date">.
-const isoDate = (error: string) =>
-  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { error });
 
 // Input schema for setting a trip's departure / return dates.
 export const setTripDatesSchema = z

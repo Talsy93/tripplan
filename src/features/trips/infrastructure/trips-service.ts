@@ -3,7 +3,11 @@ import * as z from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { tripSchema, type Trip } from "../domain/trip";
 
-export async function createTrip(name: string) {
+export async function createTrip(
+  name: string,
+  startDate: string | null = null,
+  endDate: string | null = null,
+) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -15,7 +19,12 @@ export async function createTrip(name: string) {
 
   const { error } = await supabase
     .from("trips")
-    .insert({ user_id: user.id, name });
+    .insert({
+      user_id: user.id,
+      name,
+      start_date: startDate,
+      end_date: endDate,
+    });
 
   return { error: error?.message ?? null };
 }

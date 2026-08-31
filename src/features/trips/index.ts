@@ -367,6 +367,7 @@ export type { DomainIconName } from "./domain/icons";
 export { AuraHero } from "./components/aura-hero";
 export { TripAuraBand } from "./components/trip-aura-band";
 export { TripBandSlot } from "./components/trip-band-slot";
+export { StartHere } from "./components/start-here";
 export { TripList } from "./components/trip-list";
 export { PlanningPanel } from "./components/planning-panel";
 export { CityGuide } from "./components/city-guide";

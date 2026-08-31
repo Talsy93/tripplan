@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { CalendarDays, MapPin } from "lucide-react";
 import { AuraField, Glass, glassClasses } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { daysUntil, formatCountdown, formatShortDate } from "../domain/trip";
@@ -55,6 +55,12 @@ export function AuraHero({
   className?: string;
 }) {
   const days = startDate ? daysUntil(startDate) : null;
+  // A trip with nowhere to go is not ready to be opened — it is waiting for one
+  // decision, and the hero should ask for that decision instead of offering a
+  // door into a set of screens that all have nothing to show. The secondary
+  // control follows: a map of no places is not worth a button, and the other
+  // thing this trip is missing is a date.
+  const unplanned = cities.length === 0;
   // Deduped and in route order — cityToneMap already does both, and a city
   // revisited later in the trip keeps its first position.
   const stops = [...cityToneMap(cities).keys()];
@@ -211,20 +217,30 @@ export function AuraHero({
 
           <div className="flex min-w-0 items-stretch gap-2 pt-1 lg:shrink-0 lg:pt-0">
             <Link
-              href={`/trips/${tripId}`}
+              href={unplanned ? `/trips/${tripId}/explore` : `/trips/${tripId}`}
               className="flex min-w-0 flex-1 items-center justify-center rounded-2xl bg-white px-4 py-3.5 text-sm font-bold text-foreground shadow-lift lg:min-w-44 transition-transform duration-200 ease-spring hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-aura-base"
             >
-              פתח את הטיול
+              {unplanned ? "בחרו יעדים" : "פתח את הטיול"}
             </Link>
             <Link
-              href={`/trips/${tripId}/map`}
-              aria-label={`המפה של ${name}`}
+              href={
+                unplanned
+                  ? `/trips/${tripId}/more/trip`
+                  : `/trips/${tripId}/map`
+              }
+              aria-label={
+                unplanned ? `התאריכים של ${name}` : `המפה של ${name}`
+              }
               className={cn(
                 glassClasses("dark"),
                 "flex w-14 shrink-0 items-center justify-center rounded-2xl transition-transform duration-200 ease-spring hover:scale-[1.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-aura-base",
               )}
             >
-              <MapPin className="h-5 w-5" aria-hidden="true" />
+              {unplanned ? (
+                <CalendarDays className="h-5 w-5" aria-hidden="true" />
+              ) : (
+                <MapPin className="h-5 w-5" aria-hidden="true" />
+              )}
             </Link>
           </div>
         </div>

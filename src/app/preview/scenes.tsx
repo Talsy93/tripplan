@@ -24,6 +24,7 @@ import {
   BookingList,
   CityDaysEditor,
 
+  CreateTripForm,
   DayPager,
   DayTimeline,
   ExpenseSummary,
@@ -35,6 +36,7 @@ import {
 
   RouteMap,
   ShareButton,
+  StartHere,
   ShareTrip,
   TripDatesForm,
   TripAuraBand,
@@ -701,6 +703,18 @@ export const SCENES: Scene[] = [
         ))}
       </div>
     ),
+  },
+  {
+    slug: "start-here",
+    title: "בואו נתחיל מהמקום",
+    note: "מה שמופיע מתחת לגיבור חסר-האור: שתי הדרכים לבחור יעד — לבקש הצעות, או להוסיף עיר בעצמך",
+    render: () => <StartHere tripId={f.TRIP_ID} />,
+  },
+  {
+    slug: "create-trip",
+    title: "טופס טיול חדש",
+    note: "שם ותאריכים — התאריכים עברו ליצירה כי כמעט הכול באפליקציה נגזר מהם. הם עדיין אופציונליים",
+    render: () => <CreateTripForm />,
   },
   {
     slug: "primitives",
