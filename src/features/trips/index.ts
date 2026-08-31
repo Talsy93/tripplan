@@ -369,8 +369,8 @@ export {
   parseTimeLabel,
   formatMinutes,
   buildDayTimeline,
-  axisHours,
-  positionPercent,
+  daySequence,
+  isNightGap,
   durationLabel,
   distanceLabel,
 } from "./domain/timeline";

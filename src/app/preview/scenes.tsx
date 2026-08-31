@@ -340,6 +340,18 @@ export const SCENES: Scene[] = [
     ),
   },
   {
+    slug: "day-timeline-gaps",
+    title: "ציר הזמן · הפערים",
+    note: "אותו יום בלי הטיסה שמכסה אותו — כאן שורות הפער נראות, וזה מה שהחליף את רשת השעות",
+    render: () => (
+      <DayTimeline
+        day={f.ITINERARY[0]}
+        date="2026-09-11"
+        origin="מלון שינג׳וקו גרנד"
+      />
+    ),
+  },
+  {
     slug: "day-timeline-empty",
     title: "ציר הזמן · יום ריק",
     note: "יום בלי פעילויות — המצב שמציע רעיונות",

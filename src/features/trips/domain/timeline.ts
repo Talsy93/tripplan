@@ -8,6 +8,7 @@
 // it on the axis.
 
 import { distanceKm } from "@/lib/geo";
+import { BOOKING_KINDS } from "./booking";
 import type { Booking } from "./booking";
 import type { ItineraryDay, ItineraryEntry } from "./ai-suggestion";
 
@@ -288,36 +289,150 @@ export function buildDayTimeline(
   };
 }
 
-// The whole hours the axis should draw a line at.
-export function axisHours(timeline: DayTimeline): number[] {
-  const hours: number[] = [];
-  for (
-    let minute = timeline.startMinutes;
-    minute <= timeline.endMinutes;
-    minute += MINUTES_PER_HOUR
-  ) {
-    hours.push(minute);
+// A day as an ordered list, which is what a day actually is.
+//
+// The hour axis this replaces asked the screen to be a calendar: 24 hours of
+// height, entries positioned into it by percentage. On a phone that meant the
+// first real item of a day starting at 09:00 sat below eight screens of empty
+// grid, and a red-eye flight became a 40px-wide sliver in a lane. The graphic
+// was answering "when, proportionally" — a question nobody asked — at the cost
+// of "what, in what order", which is the only one they did.
+//
+// So: bookings and entries merged into one sequence by start time, with the
+// empty stretches collapsed to a single labelled row. Time stops being the axis
+// and becomes a caption.
+//
+// Bookings and entries stay distinct item kinds rather than being flattened
+// into one shape, for the same reason TimelineBooking exists at all: a booking
+// is a fact that was paid for and cannot move, an entry is an editable
+// suggestion, and the screen says so differently.
+export type DayItem =
+  | { kind: "booking"; key: string; booking: TimelineBooking }
+  | { kind: "entry"; key: string; entry: TimelineEntry }
+  | {
+      kind: "gap";
+      key: string;
+      startMinutes: number;
+      minutes: number;
+      // The walk/distance detail, when this gap falls between two entries that
+      // both came from the attractions search. Null is the common case.
+      transition: Transition | null;
+    };
+
+// Below this a gap is just the join between two things and drawing it would add
+// a row per item. 45 minutes is roughly where "the next thing is later" starts
+// being information rather than noise.
+const GAP_MIN_MINUTES = 45;
+
+// A gap whose middle falls in here reads as night rather than as waiting, and
+// the label says so — "7 שעות" on its own invites the question the word answers.
+const NIGHT_FROM = 23 * 60;
+const NIGHT_TO = 6 * 60;
+
+export function isNightGap(startMinutes: number, minutes: number) {
+  const mid = (startMinutes + minutes / 2) % MINUTES_PER_DAY;
+  return mid >= NIGHT_FROM || mid <= NIGHT_TO;
+}
+
+export function daySequence(timeline: DayTimeline): DayItem[] {
+  const placed: {
+    startMinutes: number;
+    endMinutes: number;
+    item: DayItem;
+  }[] = [
+    ...timeline.bookings.map((booking) => ({
+      startMinutes: booking.startMinutes,
+      endMinutes: booking.endMinutes,
+      item: {
+        kind: "booking" as const,
+        key: `booking-${booking.booking.id}`,
+        booking,
+      },
+    })),
+    ...timeline.entries.map((entry) => ({
+      startMinutes: entry.startMinutes,
+      endMinutes: entry.endMinutes,
+      item: { kind: "entry" as const, key: `entry-${entry.entry.id}`, entry },
+    })),
+  ];
+
+  // By start, then by end, so a long flight that starts at the same minute as a
+  // short entry is listed first rather than by whichever array came first.
+  placed.sort(
+    (a, b) => a.startMinutes - b.startMinutes || a.endMinutes - b.endMinutes,
+  );
+
+  // Keyed by the entry the gap follows, which is how Transition already
+  // identifies itself.
+  const transitions = new Map(
+    timeline.transitions.map((transition) => [transition.afterId, transition]),
+  );
+
+  // How long an item actually occupies you, which is not the same as how long
+  // it is drawn. A hotel booking runs from check-in to check-out — four days,
+  // in the common case — and treating that as occupied time meant nothing after
+  // 18:00 on the first night could ever show a gap. Lodging is a moment you
+  // arrive at; transport is a stretch you are inside of.
+  const occupiesUntil = (item: DayItem, start: number, end: number) =>
+    item.kind === "booking" &&
+    !BOOKING_KINDS[item.booking.booking.kind].isTransport
+      ? start
+      : end;
+
+  const out: DayItem[] = [];
+  let previousEnd: number | null = null;
+  let previousEntryId: string | null = null;
+
+  for (const { startMinutes, endMinutes, item } of placed) {
+    if (previousEnd !== null) {
+      const minutes = startMinutes - previousEnd;
+      if (minutes >= GAP_MIN_MINUTES) {
+        out.push({
+          kind: "gap",
+          key: `gap-${previousEnd}-${startMinutes}`,
+          startMinutes: previousEnd,
+          minutes,
+          transition:
+            previousEntryId !== null
+              ? (transitions.get(previousEntryId) ?? null)
+              : null,
+        });
+      }
+    }
+    out.push(item);
+    // A running maximum, so overlapping items cannot make the next gap
+    // negative — an entry that starts during a flight would otherwise produce
+    // one.
+    const until = occupiesUntil(item, startMinutes, endMinutes);
+    previousEnd = previousEnd === null ? until : Math.max(previousEnd, until);
+    previousEntryId = item.kind === "entry" ? item.entry.entry.id : null;
   }
-  return hours;
+
+  return out;
 }
 
 // Where a moment sits on the axis, 0–100.
-export function positionPercent(timeline: DayTimeline, minutes: number) {
-  const span = timeline.endMinutes - timeline.startMinutes;
-  if (span <= 0) return 0;
-  const clamped = Math.min(
-    Math.max(minutes, timeline.startMinutes),
-    timeline.endMinutes,
-  );
-  return ((clamped - timeline.startMinutes) / span) * 100;
-}
-
+// A length of time, in words.
+//
+// It used to render 90 minutes as "1:30 שעות", which is a clock reading with a
+// unit stapled to it. That was tolerable while the only caller suffixed it
+// ("1:30 שעות מעבר"); now it is the whole label on the gap rows, and a gap row
+// is read at a glance.
+//
+// Hebrew has a dual, so two hours is "שעתיים" and never "2 שעות" — the kind of
+// thing that reads as machine output the moment it is wrong.
 export function durationLabel(minutes: number) {
   const hours = Math.floor(minutes / MINUTES_PER_HOUR);
   const rest = minutes % MINUTES_PER_HOUR;
+
   if (hours === 0) return `${rest} דק׳`;
-  if (rest === 0) return hours === 1 ? "שעה" : `${hours} שעות`;
-  return `${hours}:${String(rest).padStart(2, "0")} שעות`;
+
+  const hoursLabel =
+    hours === 1 ? "שעה" : hours === 2 ? "שעתיים" : `${hours} שעות`;
+
+  if (rest === 0) return hoursLabel;
+  if (rest === 30) return `${hoursLabel} וחצי`;
+  return `${hoursLabel} ו-${rest} דק׳`;
 }
 
 function straightLineKm(from: ItineraryEntry, to: ItineraryEntry) {
