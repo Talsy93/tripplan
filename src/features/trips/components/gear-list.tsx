@@ -3,17 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useActionState } from "react";
 import { Plus, RotateCcw, X } from "lucide-react";
-import {
-  Badge,
-  Button,
-  Card,
-  Field,
-  IconButton,
-  Input,
-  SectionHeading,
-  Select,
-  useToast,
-} from "@/components/ui";
+import { Badge, Button, Card, Field, Glyph, IconButton, Input, SectionHeading, Select, useToast } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import {
   GEAR_CATEGORIES,
@@ -122,10 +112,8 @@ export function GearList({
                 padding="none"
                 className="flex min-w-0 flex-col"
               >
-                <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-                  <span aria-hidden="true">
-                    {GEAR_CATEGORIES[group.category].emoji}
-                  </span>
+                <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
+                  <Glyph>{GEAR_CATEGORIES[group.category].emoji}</Glyph>
                   <h3 className="min-w-0 flex-1 truncate text-sm font-bold">
                     {GEAR_CATEGORIES[group.category].label}
                   </h3>

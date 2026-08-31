@@ -80,10 +80,17 @@ export function SegmentedControl({
             aria-pressed={active}
             onClick={() => onChange(item.id)}
             className={cn(
-              "rounded-full font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "rounded-full font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "transition-[background-color,color,transform] duration-press ease-snap active:scale-[0.96]",
               segments[size],
+              // Ink, not a white pill on a grey track. The white-on-surface-2
+              // pair is 1.16:1 — enough to see a card edge, not enough to make
+              // a selected filter obvious at a glance, which is the one job
+              // this control has. It also matches the phone nav, so
+              // "selected" looks the same everywhere in the app; and ink
+              // says state where the action blue would say press me.
               active
-                ? "bg-surface text-foreground shadow-soft"
+                ? "bg-foreground text-surface"
                 : "text-muted hover:text-foreground",
             )}
           >

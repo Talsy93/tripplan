@@ -20,14 +20,25 @@ export function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
+    // The dashed outline is gone. A dashed border is the convention for
+    // "something belongs here and is missing" — a drop target, a
+    // placeholder — and an empty state is not broken, it is the normal first
+    // state of a real screen. Drawn as a fault it made a new account look
+    // like a fault. A soft filled surface says the same thing calmly.
     <div
       className={cn(
-        "flex flex-col items-center gap-3 rounded-card border border-dashed border-border-strong bg-surface-2 px-6 py-10 text-center",
+        "flex flex-col items-center gap-4 rounded-tile bg-surface-2 px-6 py-12 text-center",
         className,
       )}
     >
+      {/* The glyph gets a container. Loose at 30px it floated with nothing
+          holding it; in a tile it reads as deliberate, and it gives the
+          column a fixed anchor whatever the emoji's own metrics are. */}
       {icon && (
-        <span className="text-3xl leading-none" aria-hidden="true">
+        <span
+          className="flex h-16 w-16 items-center justify-center rounded-tile bg-surface text-3xl leading-none shadow-soft"
+          aria-hidden="true"
+        >
           {icon}
         </span>
       )}

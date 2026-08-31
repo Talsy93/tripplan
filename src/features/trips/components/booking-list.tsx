@@ -2,16 +2,7 @@
 
 import { useState } from "react";
 import { ArrowDown, Pencil, Plane, X } from "lucide-react";
-import {
-  Badge,
-  Banner,
-  Card,
-  Dialog,
-  EmptyState,
-  IconButton,
-  SegmentedControl,
-  type SegmentedItem,
-} from "@/components/ui";
+import { Badge, Banner, Card, Dialog, EmptyState, Glyph, IconButton, SegmentedControl, type SegmentedItem } from "@/components/ui";
 import {
   BOOKING_KINDS,
   bookingAlert,
@@ -186,12 +177,18 @@ export function BookingList({
           return (
             <li key={booking.id} className="min-w-0">
               <Card padding="none" className="h-full overflow-hidden">
-                <div className="flex items-start justify-between gap-3 p-4 pb-2">
+                <div className="flex items-start gap-3 p-4 pb-2">
+                  {/* The kind glyph leads the card as its own tile rather than
+                      sitting inline before the title. Inline it moved with the
+                      text: on a phone the badges wrapped and the glyph ended up
+                      wherever the wrap left it, so no two cards in a list
+                      started the same way. */}
+                  <Glyph size="md">{kind.emoji}</Glyph>
+
                   {/* Wraps rather than squeezing: an alert like "departing in
                       2 hours" is wider than the title on a phone, and a
                       truncated flight number is worse than a second line. */}
-                  <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                    <span aria-hidden="true">{kind.emoji}</span>
+                  <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 pt-1.5">
                     {/* `min-w-0` is not optional on a truncating flex child.
                         Without it the item keeps its automatic minimum size —
                         the full width of the un-wrapped string, because

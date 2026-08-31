@@ -90,9 +90,15 @@ export function DayTimeline({
               const kind = BOOKING_KINDS[booking.kind];
               const where = bookingWhere(booking);
               return (
+                // Neutral, not the action tint it used to wear. Blue is the
+                // app's “press this” colour everywhere else, and these rows are
+                // not pressable — a departure time you can only read should not
+                // look like the button next to it. Reserving the action colour
+                // for actions is most of what makes the rest of a screen
+                // legible at a glance.
                 <li
                   key={booking.id}
-                  className="flex items-center gap-2 rounded-control bg-action-tint px-2.5 py-1.5 text-sm text-action-ink"
+                  className="flex items-center gap-2 rounded-control bg-surface-2 px-2.5 py-1.5 text-sm text-foreground"
                 >
                   <span aria-hidden="true">{kind.emoji}</span>
                   <span className="min-w-0 flex-1 truncate font-semibold">
@@ -159,7 +165,10 @@ export function DayTimeline({
                     title={`${booking.title} · ${formatMinutes(startMinutes)}${
                       continuesNextDay ? " — ממשיך למחר" : ""
                     }`}
-                    className="absolute inset-x-0 flex flex-col items-center gap-1 rounded-control bg-action-tint py-1 text-action-ink"
+                    // Same reasoning as the rows above, and here it also has to
+                    // stay visible against the axis behind it — hence the
+                    // hairline rather than a louder fill.
+                    className="absolute inset-x-0 flex flex-col items-center gap-1 rounded-control border border-border-strong bg-surface-2 py-1 text-foreground"
                     style={{
                       top: `${top}%`,
                       height: `${Math.max(bottom - top, 2)}%`,
