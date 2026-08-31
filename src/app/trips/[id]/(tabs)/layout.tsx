@@ -5,17 +5,24 @@ import { AppHeader, AppShell } from "@/components/layout";
 import { Badge } from "@/components/ui";
 import {
   APP_TIME_ZONE,
+  assignTripAuras,
+  getItinerary,
   getItineraryDayCount,
+  getSelectedCitiesByTrip,
   getShareToken,
   getTrip,
+  itineraryStops,
   listMembers,
+  listTrips,
   phaseLabel,
   ShareButton,
   todayIn,
+  TripAuraBand,
   TripNav,
   TripSideNav,
   tripPhase,
 } from "@/features/trips";
+import { getPlaceImage } from "@/lib/place-image";
 
 // The trip's name becomes the title template for every tab under it, so a tab
 // only has to name itself ("היום") and the browser shows
@@ -70,17 +77,50 @@ export default async function TripTabsLayout({
   // opened. They ride along on a layout that already awaits a query, and this
   // layout does not re-render when switching tabs, so it is one read per trip
   // rather than one per navigation.
-  const [dayCount, members, shareToken] = await Promise.all([
-    getItineraryDayCount(trip.id),
-    listMembers(trip.id),
-    getShareToken(trip.id),
-  ]);
+  // The band's own inputs ride along here, and that placement is the point:
+  // App Router does not re-render a layout when navigating between its own
+  // children, so this is one read per trip rather than one per tab switch.
+  //
+  // listTrips + getSelectedCitiesByTrip look like more than the band needs,
+  // and they are deliberate. A trip's light is assigned across the whole list
+  // (domain/aura.ts) so that no two trips on the home screen share a palette —
+  // which means the only way for this band to show the same colour as that
+  // trip's tile on the home screen is to run the same assignment. Deriving it
+  // from this trip's cities alone would give it a different palette whenever
+  // deconfliction had moved it, and one trip in two colours is the bug that
+  // sorting the hash was introduced to kill.
+  const [dayCount, members, shareToken, itinerary, citiesByTrip, trips] =
+    await Promise.all([
+      getItineraryDayCount(trip.id),
+      listMembers(trip.id),
+      getShareToken(trip.id),
+      getItinerary(trip.id),
+      getSelectedCitiesByTrip(),
+      listTrips(),
+    ]);
   const phase = tripPhase(
     trip.start_date,
     trip.end_date,
     todayIn(APP_TIME_ZONE, new Date()),
     dayCount,
   );
+
+  // Route order when there is an itinerary; otherwise the order the cities
+  // were added. Only the order of the chips depends on this — the light is a
+  // function of which cities, not of their order.
+  const stops = itineraryStops(itinerary).map((stop) => stop.city);
+  const cities = stops.length > 0 ? stops : (citiesByTrip.get(trip.id) ?? []);
+
+  const hues =
+    assignTripAuras(
+      trips.map((other) => ({
+        id: other.id,
+        cities: citiesByTrip.get(other.id) ?? [],
+        createdAt: other.created_at,
+      })),
+    ).get(trip.id) ?? [];
+
+  const image = await getPlaceImage(cities[0] ?? trip.name);
 
   return (
     <AppShell
@@ -128,6 +168,21 @@ export default async function TripTabsLayout({
       sidebar={<TripSideNav tripId={trip.id} />}
       nav={<TripNav tripId={trip.id} />}
     >
+      {/* Above every tab's own content, because the trip is the thing all ten
+          of them are about. The sticky bar carries the small title for when
+          this has scrolled away — the same large-title-collapses pattern both
+          mobile platforms use, and the reason the name appearing twice is not
+          a duplication. */}
+      <TripAuraBand
+        name={trip.name}
+        startDate={trip.start_date}
+        phase={phase}
+        dayCount={dayCount}
+        imageUrl={image}
+        cities={cities}
+        hues={hues}
+      />
+
       {children}
     </AppShell>
   );

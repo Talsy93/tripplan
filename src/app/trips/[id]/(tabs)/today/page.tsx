@@ -1,10 +1,8 @@
 import { notFound } from "next/navigation";
 import { SectionHeading } from "@/components/ui";
-import { getPlaceImage } from "@/lib/place-image";
 import {
   APP_TIME_ZONE,
   bookingsByDay,
-  CountdownHero,
   DayPager,
   focusDayNumber,
   currentDayNumber,
@@ -15,7 +13,6 @@ import {
   listBookings,
   lodgingByDay,
   todayIn,
-  tripAura,
   tripPhase,
   UpNext,
 } from "@/features/trips";
@@ -79,16 +76,7 @@ export default async function TodayPage({
           bookingsByDay={byDay}
           lodgingByDay={lodging}
         />
-      ) : (
-        <CountdownHero
-          tripId={trip.id}
-          name={trip.name}
-          startDate={trip.start_date}
-          imageUrl={await getPlaceImage(routeCities[0] ?? trip.name)}
-          cities={routeCities}
-          hues={tripAura(routeCities)}
-        />
-      )}
+      ) : null}
 
       <section className="flex flex-col gap-3">
         <SectionHeading level="section">מה קרוב</SectionHeading>

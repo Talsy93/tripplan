@@ -21,7 +21,7 @@ import {
   BookingForm,
   BookingList,
   CityDaysEditor,
-  CountdownHero,
+
   DayTimeline,
   ExpenseSummary,
   GearList,
@@ -29,11 +29,12 @@ import {
   MemberList,
   NightStay,
   Phrasebook,
-  RouteHero,
+
   RouteMap,
   ShareButton,
   ShareTrip,
   TripDatesForm,
+  TripAuraBand,
   TripList,
   tripAura,
   UnlocatedCities,
@@ -194,52 +195,65 @@ export const SCENES: Scene[] = [
     note: "המצב של משתמש חדש",
     render: () => <TripList trips={[]} today={f.TODAY} />,
   },
+  // ---- the band every trip screen opens with --------------------------------
+  //
+  // Full-bleed and fixed to the viewport width, like the home hero, so it
+  // reaches the edge of the frame here too. The three states are the three
+  // headlines it can carry, and they are the reason it has a scene at all: the
+  // band is in the (tabs) layout, so a mistake in it is a mistake on ten
+  // screens at once.
   {
-    slug: "countdown-hero",
-    title: "הטיול הקרוב",
-    note: "כרטיס גדול עם ספירה לאחור וצ׳יפים של ערים",
+    slug: "trip-band-before",
+    title: "פס הטיול · לפני היציאה",
+    note: "ספירה לאחור מעל תמונה של היעד, צבועה באור של הטיול",
     render: () => (
-      <CountdownHero
-        tripId={f.TRIP_ID}
-        name={f.LONG}
-        startDate="2026-09-24"
-        imageUrl={null}
-        cities={["טוקיו", "קיוטו", f.UNBREAKABLE]}
-        hues={tripAura(["טוקיו", "קיוטו", f.UNBREAKABLE])}
-        href="#"
-      />
+      <div className="pt-5">
+        <TripAuraBand
+          name="יפן בסתיו"
+          startDate="2026-09-24"
+          phase={{ kind: "before", daysUntilStart: 13 }}
+          dayCount={14}
+          imageUrl={f.PHOTO}
+          cities={["טוקיו", "קיוטו", "אוסקה", "נארה"]}
+          hues={tripAura(["טוקיו", "קיוטו", "אוסקה", "נארה"])}
+        />
+      </div>
     ),
   },
   {
-    slug: "countdown-hero-photo",
-    title: "הטיול הקרוב · עם תמונה",
-    note: "האור צובע את התמונה במקום scrim שחור — האם הטקסט הלבן נשאר קריא",
+    slug: "trip-band-during",
+    title: "פס הטיול · באמצע הטיול",
+    note: "יום 3 מתוך 14 — הכותרת מתחלפת לפי מקום הטיול בחיים של עצמו",
     render: () => (
-      <CountdownHero
-        tripId={f.TRIP_ID}
-        name="יפן בסתיו"
-        startDate="2026-09-24"
-        imageUrl={f.PHOTO}
-        cities={["טוקיו", "קיוטו", "אוסקה"]}
-        hues={tripAura(["טוקיו", "קיוטו", "אוסקה"])}
-        href="#"
-      />
+      <div className="pt-5">
+        <TripAuraBand
+          name="יפן בסתיו"
+          startDate="2026-09-10"
+          phase={{ kind: "during", dayNumber: 3 }}
+          dayCount={14}
+          imageUrl={f.PHOTO}
+          cities={["טוקיו", "קיוטו"]}
+          hues={tripAura(["טוקיו", "קיוטו"])}
+        />
+      </div>
     ),
   },
   {
-    slug: "countdown-hero-lightless",
-    title: "הטיול הקרוב · בלי יעדים",
-    note: "טיול שעוד לא נבחרו לו יעדים — בסיס עמוק בלי אור, לא רקע שבור",
+    slug: "trip-band-bare",
+    title: "פס הטיול · בלי תמונה, בלי תאריך, בלי יעדים",
+    note: "טיול חדש לגמרי, ובלי תמונה מוויקיפדיה — האם השם נשאר קריא על הבסיס",
     render: () => (
-      <CountdownHero
-        tripId={f.TRIP_ID}
-        name="סופ״ש בפראג"
-        startDate={null}
-        imageUrl={null}
-        cities={[]}
-        hues={[]}
-        href="#"
-      />
+      <div className="pt-5">
+        <TripAuraBand
+          name={f.LONG}
+          startDate={null}
+          phase={{ kind: "undated" }}
+          dayCount={0}
+          imageUrl={null}
+          cities={[]}
+          hues={[]}
+        />
+      </div>
     ),
   },
 
@@ -334,14 +348,6 @@ export const SCENES: Scene[] = [
   },
 
   // ---- map -----------------------------------------------------------------
-  {
-    slug: "route-hero",
-    title: "כותרת המסלול",
-    note: "תמונה עם שם הטיול מעליה",
-    render: () => (
-      <RouteHero tripName={f.UNBREAKABLE} stops={f.STOPS} imageUrl={null} />
-    ),
-  },
   {
     slug: "map",
     title: "מפת המסלול",

@@ -19,10 +19,10 @@ import { cityToneMap } from "../domain/tone";
 //     opaque fill cannot;
 //   * the light is the trip's own, from domain/aura.ts.
 //
-// No photo, deliberately. The design is a field of light, and this is the screen
-// it was drawn for. CountdownHero still carries the photo treatment and still
-// serves the trip's own "today" tab, where a picture of the place earns its
-// space.
+// No photo, deliberately: the design is a field of light and this is the screen
+// it was drawn for. The destination photo lives in TripAuraBand instead, at the
+// top of every screen inside a trip — which is where a picture of the place
+// earns its space, because by then you have chosen to go there.
 //
 // Presentational: the page resolves the cities and the light, because both need
 // the server.
