@@ -1,4 +1,4 @@
-import { Badge, Banner, EmptyState, ListRow } from "@/components/ui";
+import { Badge, Banner, EmptyState, Glyph, ListRow } from "@/components/ui";
 import {
   BOOKING_KINDS,
   bookingAlert,
@@ -85,25 +85,29 @@ export function UpNext({
           return (
             <li key={booking.id} className={cityToneClass(tones, booking.city)}>
               <ListRow
-                accent="tone"
-                leading={
-                  <span className="text-xl leading-none" aria-hidden="true">
-                    {kind.emoji}
-                  </span>
-                }
+                // No accent dot any more. The tile below carries the city
+                // colour, and a dot beside it said the same thing twice — two
+                // marks for one fact, which is how a row starts to look busy
+                // without saying more.
+                leading={<Glyph tone>{kind.emoji}</Glyph>}
                 title={booking.title}
                 subtitle={where ?? undefined}
-                trailing={
-                  alert && (
-                    <Badge
-                      tone={alert.urgency === "now" ? "warning" : "neutral"}
-                      suppressHydrationWarning
-                    >
-                      {alert.message}
-                    </Badge>
-                  )
-                }
-              />
+              >
+                {/* Under the title, not beside it. As `trailing` the badge was
+                    shrink-0 and the title was not, so "צ׳ק-אין היום, בעוד 6
+                    שעות" — 26 characters — took its full width at 375px and
+                    truncated the hotel name to nine. The name is the thing being
+                    identified; the timing is what is said about it. */}
+                {alert && (
+                  <Badge
+                    tone={alert.urgency === "now" ? "warning" : "neutral"}
+                    className="self-start"
+                    suppressHydrationWarning
+                  >
+                    {alert.message}
+                  </Badge>
+                )}
+              </ListRow>
             </li>
           );
         })}

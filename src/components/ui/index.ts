@@ -8,6 +8,7 @@ export { Dialog } from "./dialog";
 export { EmptyState } from "./empty-state";
 export { Field, Input, Select, Textarea } from "./field";
 export { Glass, glassClasses } from "./glass";
+export { Glyph } from "./glyph";
 export type { GlassTone } from "./glass";
 export { IconButton, iconButtonClasses } from "./icon-button";
 export { ListRow } from "./list-row";

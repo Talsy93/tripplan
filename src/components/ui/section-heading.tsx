@@ -10,10 +10,20 @@ type Level = "page" | "section" | "sub";
 // in eleven, bare `font-bold` in three, bare `font-semibold` in two — and
 // explore/page.tsx used text-xl for its first section and text-lg for the next
 // two. That is what "no visual hierarchy" looks like in source.
+// `sub` stopped being a smaller heading and became a label.
+//
+// At text-base font-semibold it was one step off the body copy underneath it,
+// so on a screen with three of them the labels competed with the content they
+// were labelling. As a caption in muted ink it steps out of the way, and the
+// hierarchy comes from the size gap instead — which is the same move the hero
+// makes with 72px against 12px, at the other end of the scale.
+//
+// No letter-spacing: these are Hebrew, and globals.css is right that tracking
+// damages it. Weight and colour do the work.
 const levels: Record<Level, string> = {
   page: "text-heading font-bold",
   section: "text-title font-bold",
-  sub: "text-base font-semibold",
+  sub: "text-caption font-extrabold text-muted",
 };
 
 const tags: Record<Level, "h1" | "h2" | "h3"> = {

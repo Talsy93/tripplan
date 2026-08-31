@@ -45,7 +45,7 @@ export function Banner({
     <div
       role={tone === "danger" ? "alert" : "status"}
       className={cn(
-        "flex items-start gap-2 rounded-control px-3 py-2 text-sm",
+        "flex items-start gap-2.5 rounded-card px-3.5 py-2.5 text-sm",
         tones[tone],
         className,
       )}

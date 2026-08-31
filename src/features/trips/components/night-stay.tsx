@@ -1,5 +1,5 @@
 import { Map as MapIcon } from "lucide-react";
-import { iconButtonClasses, ListRow } from "@/components/ui";
+import { Glyph, iconButtonClasses, ListRow } from "@/components/ui";
 import { googleMapsSearchUrl } from "@/lib/maps";
 import { BOOKING_KINDS } from "../domain/booking";
 import { nightStayLabel } from "../domain/trip-days";
@@ -23,11 +23,7 @@ export function NightStay({ stay }: { stay: NightLodging | null }) {
   return (
     <ListRow
       accent="action"
-      leading={
-        <span className="text-lg leading-none" aria-hidden="true">
-          {BOOKING_KINDS.lodging.emoji}
-        </span>
-      }
+      leading={<Glyph>{BOOKING_KINDS.lodging.emoji}</Glyph>}
       title={
         <>
           <span className="font-normal text-muted">
