@@ -212,7 +212,7 @@ export const SCENES: Scene[] = [
   {
     slug: "trip-band-before",
     title: "פס הטיול · לפני היציאה",
-    note: "ספירה לאחור מעל תמונה של היעד, צבועה באור של הטיול",
+    note: "ספירה לאחור על האור של הטיול — בלי תמונה, שזה מה שהשתנה",
     render: () => (
       <div className="pt-5">
         <TripAuraBand
@@ -220,7 +220,6 @@ export const SCENES: Scene[] = [
           startDate="2026-09-24"
           phase={{ kind: "before", daysUntilStart: 13 }}
           dayCount={14}
-          imageUrl={f.PHOTO}
           cities={["טוקיו", "קיוטו", "אוסקה", "נארה"]}
           hues={tripAura(["טוקיו", "קיוטו", "אוסקה", "נארה"])}
         />
@@ -238,7 +237,6 @@ export const SCENES: Scene[] = [
           startDate="2026-09-10"
           phase={{ kind: "during", dayNumber: 3 }}
           dayCount={14}
-          imageUrl={f.PHOTO}
           cities={["טוקיו", "קיוטו"]}
           hues={tripAura(["טוקיו", "קיוטו"])}
         />
@@ -247,8 +245,8 @@ export const SCENES: Scene[] = [
   },
   {
     slug: "trip-band-bare",
-    title: "פס הטיול · בלי תמונה, בלי תאריך, בלי יעדים",
-    note: "טיול חדש לגמרי, ובלי תמונה מוויקיפדיה — האם השם נשאר קריא על הבסיס",
+    title: "פס הטיול · בלי תאריך ובלי יעדים",
+    note: "טיול חדש לגמרי — בסיס עמוק בלי אור, והאם השם נשאר קריא עליו",
     render: () => (
       <div className="pt-5">
         <TripAuraBand
@@ -256,7 +254,6 @@ export const SCENES: Scene[] = [
           startDate={null}
           phase={{ kind: "undated" }}
           dayCount={0}
-          imageUrl={null}
           cities={[]}
           hues={[]}
         />

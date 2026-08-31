@@ -10,15 +10,17 @@ import { cn } from "@/lib/cn";
 // serves them. All were arrived at by measuring, and the notes below say what
 // the measurement was:
 //
-//   solid — a hero with no photo. Opaque base, blooms spread wide, a gradient
+//   solid — a hero or a band. Opaque base, blooms spread wide, a gradient
 //           floor on top to hold the text band down.
-//   wash  — a hero over a photo. No base; the floor goes *under* the blooms so
-//           the light lands on the darkened band and leaves the photo alone.
 //   chip  — a small decorative tile (the 44px trip signatures). No text sits on
 //           it, so it needs no floor at all, and the blooms move inside the box
 //           because at 44px anything hung off the edge never appears.
+//
+// There was a third, `wash`, for a hero drawn over a photograph: no base, and
+// the floor *under* the blooms so the light landed on the darkened band and left
+// the photo alone. It went with the photo — see trip-aura-band.tsx.
 
-type Variant = "solid" | "wash" | "chip";
+type Variant = "solid" | "chip";
 
 type Bloom = { style: string; drift: string; opacity: number };
 
@@ -104,13 +106,7 @@ export function AuraField({
         layout[i].style,
         animate && layout[i].drift,
       )}
-      style={bloomStyle(
-        blur,
-        hue,
-        // Dimmer over a photo: there the blooms tint rather than paint, and at
-        // full strength they bury whatever the photo was showing.
-        variant === "wash" ? layout[i].opacity * 0.7 : layout[i].opacity,
-      )}
+      style={bloomStyle(blur, hue, layout[i].opacity)}
     />
   ));
 
@@ -132,20 +128,7 @@ export function AuraField({
   // the top as well and was half of why the field read as a dark box.
   const floor =
     variant === "chip" ? null : (
-      <span
-        className={cn(
-          "absolute inset-0",
-          variant === "wash"
-            ? // Never reaches zero, and that is not caution. Measured: a floor
-              // that ran out at 72% left "עד ההמראה" on a sunlit building with
-              // nothing behind it. These stops match what the old neutral scrim
-              // covered — 0.74 / 0.42 / 0.18 across the full height, readable
-              // over every photo the app had — so this changes the colour of
-              // that cover, not how much of it there is.
-              "bg-gradient-to-t from-aura-veil/92 via-aura-veil/68 via-40% to-aura-veil/18"
-            : "bg-gradient-to-t from-aura-veil/90 via-aura-veil/55 via-34% to-transparent to-78%",
-        )}
-      />
+      <span className="absolute inset-0 bg-gradient-to-t from-aura-veil/90 via-aura-veil/55 via-34% to-transparent to-78%" />
     );
 
   return (
@@ -153,36 +136,14 @@ export function AuraField({
       aria-hidden="true"
       className={cn(
         "pointer-events-none absolute inset-0 overflow-hidden",
-        // `isolate` wherever there is an opaque base: it stops `screen` from
-        // reaching past the field to the page behind it. `wash` must not
-        // isolate — there the blend has to reach the photo below, which is the
-        // whole point of that variant.
-        variant !== "wash" && "isolate bg-aura-base",
+        // `isolate` because there is an opaque base: it stops `screen` from
+        // reaching past the field to the page behind it.
+        "isolate bg-aura-base",
         className,
       )}
     >
-      {/* The order flips in `wash`, and that is the mechanism rather than a
-          detail. Measured: with the floor on top, `wash` tinted nothing at all
-          — a photo of a bright sky came out under a plain neutral gradient.
-          That is `screen` behaving correctly: it lifts darks and leaves brights
-          alone, so over a bright photo it has nothing to do.
-
-          Putting the floor underneath uses the same physics instead of fighting
-          it. The floor darkens the bottom band; the blooms then screen over
-          that band, where colour shows plainly — and still do almost nothing to
-          the bright photo above, which is what should happen to someone's photo
-          of Tokyo. One rule, both outcomes. */}
-      {variant === "wash" ? (
-        <>
-          {floor}
-          {blooms}
-        </>
-      ) : (
-        <>
-          {blooms}
-          {floor}
-        </>
-      )}
+      {blooms}
+      {floor}
     </div>
   );
 }

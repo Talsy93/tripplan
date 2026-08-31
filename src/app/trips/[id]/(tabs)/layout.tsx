@@ -22,7 +22,6 @@ import {
   TripSideNav,
   tripPhase,
 } from "@/features/trips";
-import { getPlaceImage } from "@/lib/place-image";
 
 // The trip's name becomes the title template for every tab under it, so a tab
 // only has to name itself ("היום") and the browser shows
@@ -120,7 +119,6 @@ export default async function TripTabsLayout({
       })),
     ).get(trip.id) ?? [];
 
-  const image = await getPlaceImage(cities[0] ?? trip.name);
 
   return (
     <AppShell
@@ -178,7 +176,6 @@ export default async function TripTabsLayout({
         startDate={trip.start_date}
         phase={phase}
         dayCount={dayCount}
-        imageUrl={image}
         cities={cities}
         hues={hues}
       />
