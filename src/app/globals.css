@@ -184,55 +184,65 @@
      --aura-base is the navy the brand already owns, taken down far enough
      that white text clears AA on it without help from a scrim.
      -------------------------------------------------------------------- */
-  --aura-base: #0b1020;
+  --aura-base: #141c3a;
+
+  /* The veil the readability floor is made of, and it is deliberately NOT
+     --aura-base. Those two used to be the same value, which is why the base
+     could never be raised: brightening it to let the light glow also
+     brightened the floor that protects the text, so white captions lost their
+     ground at exactly the moment the field gained its colour.
+
+     Splitting them lets each do its own job — the base is how deep the field
+     sits, the veil is how hard the bottom band is held down. */
+  --aura-veil: #090d1a;
 
   /* ember — the featured card of the approved design (יפן בסתיו) */
-  --aura-ember-1: #e2622f;
-  --aura-ember-2: #7b3f7a;
-  --aura-ember-3: #1b2a6b;
+  --aura-ember-1: #ff8a3d;
+  --aura-ember-2: #b04f9e;
+  --aura-ember-3: #2b3fa8;
 
   /* grove — its איטליה באביב tile */
-  --aura-grove-1: #ffca4a;
-  --aura-grove-2: #3f9e6d;
-  --aura-grove-3: #0f3d63;
+  --aura-grove-1: #ffd75e;
+  --aura-grove-2: #3fbe86;
+  --aura-grove-3: #1f6fa8;
 
   /* dusk — its סופ״ש בפראג tile, with the mid step brought up: at tile size
      the original slate held, but across a 288px hero it read as grey. */
-  --aura-dusk-1: #c9a3d8;
-  --aura-dusk-2: #6f5aa8;
-  --aura-dusk-3: #26305c;
+  --aura-dusk-1: #dcb6ea;
+  --aura-dusk-2: #8a72c8;
+  --aura-dusk-3: #3a4a8f;
 
   /* coral — pushed pink rather than orange. Rendered side by side at tile
      size, the first version was hard to tell from ember: both led warm-
      orange over a violet base. The lead hue carries the identity, so that
      is the one that had to move. */
-  --aura-coral-1: #ff7ea8;
-  --aura-coral-2: #c9366b;
-  --aura-coral-3: #3d1a54;
+  --aura-coral-1: #ff8fb4;
+  --aura-coral-2: #e0447d;
+  --aura-coral-3: #5c2a7a;
 
   /* lagoon */
-  --aura-lagoon-1: #35c2b1;
-  --aura-lagoon-2: #1f8fa8;
-  --aura-lagoon-3: #123a63;
+  --aura-lagoon-1: #4fe0cc;
+  --aura-lagoon-2: #2ab0cc;
+  --aura-lagoon-3: #1d5a9c;
 
   /* moss, azure and crimson complete the wheel. Five palettes measured out at
      a 52% chance that a user with three trips saw two of them in the same
      colour; eight brings that to 34%, and the list now also refuses to repeat
      one while a free palette is left (see domain/aura.ts). Their lead hues are
      chartreuse, sky and red, which are the three gaps the first five left. */
-  --aura-moss-1: #b8d94a;
-  --aura-moss-2: #2f7a4f;
-  --aura-moss-3: #123b2e;
+  --aura-moss-1: #d2ec6a;
+  --aura-moss-2: #4d9e63;
+  --aura-moss-3: #1c5c48;
 
   /* azure */
-  --aura-azure-1: #5ba8ff;
-  --aura-azure-2: #2b4fb0;
-  --aura-azure-3: #101a4d;
+  --aura-azure-1: #7cc0ff;
+  --aura-azure-2: #3d64d6;
+  --aura-azure-3: #1b2670;
 
   /* crimson */
-  --aura-crimson-1: #ff5f52;
-  --aura-crimson-2: #a01838;
-  --aura-crimson-3: #2b0d2e;
+  --aura-crimson-1: #ff7a6d;
+  --aura-crimson-2: #c02a4c;
+  --aura-crimson-3: #45164a;
 
   /* --- glass ------------------------------------------------------------
      Chrome that floats over content instead of framing it. Two variants,
@@ -313,6 +323,7 @@
      domain/aura.ts rather than exposed as utilities, because a field composes
      three of them into inline gradients and there is no utility shape for that. */
   --color-aura-base: var(--aura-base);
+  --color-aura-veil: var(--aura-veil);
   --color-glass-dark: var(--glass-dark);
   --color-glass-dark-border: var(--glass-dark-border);
   --color-glass-light: var(--glass-light);

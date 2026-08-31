@@ -53,9 +53,21 @@ const LAYOUTS: Record<"hero" | "chip", readonly Bloom[]> = {
 // screen, black is the identity, so #000 costs nothing and there is no dark band
 // anywhere — and two blooms overlapping brighten each other instead of covering
 // each other. That is what lets three saturated hues share one small box.
+// The hue holds to 32% before it starts falling off, and that stop is the
+// difference between light and a stain. A gradient that leaves the hue at 0%
+// gives it a single bright pixel at the centre; blur then spreads that one pixel
+// across the whole bloom, and what lands on screen is a dim smear. Raising the
+// palettes without this changes almost nothing — measured, brightening all eight
+// trios and the base moved the rendered swatches barely at all, because the
+// limiter was never the hue, it was how little of the bloom was actually that
+// hue.
+//
+// Still ending at #000 rather than `transparent`, for the reason above: under
+// `screen` black is the identity, so the falloff costs nothing and adds no
+// muddy midpoint.
 function bloomStyle(blur: number, hue: string, opacity: number) {
   return {
-    background: `radial-gradient(circle, ${hue} 0%, #000 70%)`,
+    background: `radial-gradient(circle, ${hue} 0%, ${hue} 32%, #000 78%)`,
     filter: `blur(${blur}px)`,
     mixBlendMode: "screen" as const,
     opacity,
@@ -106,6 +118,15 @@ export function AuraField({
   // none: nothing is ever written on a 44px signature tile, so a floor there
   // only costs light.
   //
+  // Made of --aura-veil rather than --aura-base, and that split is what let the
+  // base be raised at all. While the floor was the base, brightening the base to
+  // make the light glow also lightened the cover under the text — so the field
+  // gained colour and lost its captions in the same edit. Two tokens, two jobs:
+  // the base says how deep the field sits, the veil says how hard the bottom
+  // band is held down. The stops here are the second half of that change: with
+  // brighter blooms, the old 25% midpoint left a 12px white caption sitting on
+  // lit orange.
+  //
   // Where it does appear, stops matter as much as opacity. The first version ran
   // the gradient over the full height in `solid` too, which dimmed the blooms at
   // the top as well and was half of why the field read as a dark box.
@@ -121,8 +142,8 @@ export function AuraField({
               // covered — 0.74 / 0.42 / 0.18 across the full height, readable
               // over every photo the app had — so this changes the colour of
               // that cover, not how much of it there is.
-              "bg-gradient-to-t from-aura-base/95 via-aura-base/70 via-40% to-aura-base/20"
-            : "bg-gradient-to-t from-aura-base/85 via-aura-base/25 via-38% to-transparent to-64%",
+              "bg-gradient-to-t from-aura-veil/92 via-aura-veil/68 via-40% to-aura-veil/18"
+            : "bg-gradient-to-t from-aura-veil/90 via-aura-veil/55 via-34% to-transparent to-78%",
         )}
       />
     );
