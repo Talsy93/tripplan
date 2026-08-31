@@ -42,7 +42,9 @@ import {
   WorkflowGuide,
   WorkflowSummary,
 } from "@/features/trips";
-import { AuraField, EmptyState, SectionHeading } from "@/components/ui";
+import { AuraField, Card, EmptyState, SectionHeading } from "@/components/ui";
+import { BottomNav } from "@/components/layout";
+import { CalendarDays, Compass, Map as MapIcon, Menu, Sun } from "lucide-react";
 import * as f from "./fixtures";
 
 export type Scene = {
@@ -125,6 +127,44 @@ export const SCENES: Scene[] = [
           </div>
         ))}
       </div>
+    ),
+  },
+
+  // ---- the phone navigation bar ---------------------------------------------
+  //
+  // Fixed, so it escapes the scene box on purpose: it is measured against the
+  // viewport, which is the only frame it ever lives in. The filler rows exist
+  // to show content passing under the glass, which is the whole reason the bar
+  // floats — and to make it obvious if the shell's bottom padding stops
+  // clearing it.
+  {
+    slug: "bottom-nav",
+    title: "סרגל הניווט בטלפון",
+    note: "זכוכית מרחפת שהתוכן נוסע מתחתיה — והאם השורה האחרונה נשארת קריאה",
+    render: () => (
+      <>
+        <div className="flex flex-col gap-3 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+          {Array.from({ length: 8 }, (_, i) => (
+            <Card key={i} variant="interactive" data-filler-row>
+              שורה {i + 1}
+            </Card>
+          ))}
+        </div>
+        <BottomNav
+          items={[
+            {
+              href: "#today",
+              label: "היום",
+              icon: <Sun className="h-5 w-5" />,
+              active: true,
+            },
+            { href: "#days", label: "ימים", icon: <CalendarDays className="h-5 w-5" /> },
+            { href: "#explore", label: "מה עושים", icon: <Compass className="h-5 w-5" /> },
+            { href: "#map", label: "מפה", icon: <MapIcon className="h-5 w-5" /> },
+            { href: "#more", label: "עוד", icon: <Menu className="h-5 w-5" /> },
+          ]}
+        />
+      </>
     ),
   },
 

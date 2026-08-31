@@ -12,8 +12,21 @@ type Size = "sm" | "md" | "lg";
 export const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
+// `transition-colors` was the whole of the old feel, and it is why pressing
+// anything read as flat: the fill faded and nothing else acknowledged the
+// finger. Now the surface answers — it dips 3% under the press and comes back
+// on the app's own curve.
+//
+// active: rather than :hover for the dip, because a phone has no hover and
+// this is the feedback that matters there. duration-press is 150ms, fast
+// enough to feel like an answer rather than an animation.
+//
+// The global prefers-reduced-motion block collapses every duration in the
+// app to 0.01ms, so there is no separate opt-out to maintain here.
 const base = cn(
-  "inline-flex items-center justify-center gap-2 rounded-control font-semibold transition-colors",
+  "inline-flex items-center justify-center gap-2 rounded-control font-semibold",
+  "transition-[background-color,border-color,color,box-shadow,transform] duration-press ease-snap",
+  "active:scale-[0.97]",
   focusRing,
   "disabled:opacity-50 disabled:pointer-events-none",
 );

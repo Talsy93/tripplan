@@ -364,14 +364,26 @@
   --tracking-latin: 0.2em;
 
   /* --- radii ------------------------------------------------------------
-     Tightened from v1 (card was 1.25rem). Booking's corners are restrained;
-     a 20px radius on a dense list of cards is what made the old screens
-     read as soft rather than organised.
+     Softened again in the aura direction, on the owner's instruction:
+     "מודרני, חלק, נעים לעין". This reverses the tightening v3 did, and that
+     tightening had a real reason, recorded here — a 20px radius on a dense
+     list of cards read as soft rather than organised — so it is worth saying
+     why it no longer applies rather than pretending the old note was wrong.
+
+     Two things changed under it. The dense list it was written about is
+     gone: a trip row now leads with a 44px light tile, which anchors the row
+     far harder than a sharp corner ever did. And the screen that set the
+     tone is the hero, which is a 28px full-bleed panel — 12px cards under it
+     read as a different, older system rather than as restraint.
+
+     control is the odd one out at 12px rather than 18: it is buttons and
+     inputs at 32–44px tall, and a radius near half the height turns them
+     into pills, which is a different and louder decision than this one.
      -------------------------------------------------------------------- */
-  --radius-control: 0.5rem;
-  --radius-card: 0.75rem;
-  --radius-tile: 1rem;
-  --radius-modal: 1rem;
+  --radius-control: 0.75rem;
+  --radius-card: 1.125rem;
+  --radius-tile: 1.25rem;
+  --radius-modal: 1.5rem;
 
   /* elevation — raw values are --elevation-* on :root, for the reason
      documented there. The names differ on purpose: --shadow-* is Tailwind's own
@@ -400,9 +412,22 @@
      distance. --ease-spring overshoots ~9% and settles, which is what makes an
      element read as having mass; it is for things that appear or change shape,
      never for a scroll or a slide (an overshoot on a long translate looks like
-     a bug, not like physics). */
+     a bug, not like physics).
+
+     The two durations exist so that every interactive surface in the app
+     agrees on how fast it responds. Before them, controls transitioned on
+     whatever Tailwind's default was (150ms, ease) and half of them
+     transitioned only `colors`, so a card lifted instantly and a button
+     faded — which is most of what read as unfinished rather than smooth.
+
+     150ms for a press: fast enough to feel like the surface answered the
+     finger. 250ms for hover and elevation, which is a state change rather
+     than an answer. */
   --ease-snap: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-spring: cubic-bezier(0.34, 1.46, 0.5, 1);
+
+  --duration-press: 150ms;
+  --duration-settle: 250ms;
 }
 
 /* The aura's two drift tracks.

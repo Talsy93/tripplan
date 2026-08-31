@@ -10,7 +10,7 @@ import { focusRing } from "./button";
 // exports the classes and both shapes instead of just a button.
 export function chipClasses(active: boolean, className?: string) {
   return cn(
-    "inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors",
+    "inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold transition-[background-color,border-color,color,box-shadow,transform] duration-press ease-snap active:scale-[0.97]",
     active
       ? "border-primary bg-primary text-primary-foreground"
       : "border-border-strong bg-surface text-foreground hover:bg-surface-2",

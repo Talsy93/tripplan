@@ -7,8 +7,11 @@ type Padding = "none" | "sm" | "md" | "lg";
 const variants: Record<Variant, string> = {
   raised: "border border-border bg-surface shadow-soft",
   flat: "border border-border bg-surface-2",
+  // Lifts on hover and settles back, rather than swapping a shadow with no
+  // transition on the movement. 250ms because elevation is a state change,
+  // not an answer to a press — a card that lifts in 150ms reads as twitchy.
   interactive:
-    "border border-border bg-surface shadow-soft transition-shadow hover:border-border-strong hover:shadow-lift",
+    "border border-border bg-surface shadow-soft transition-[border-color,box-shadow,transform] duration-settle ease-snap hover:border-border-strong hover:shadow-lift hover:-translate-y-0.5",
 };
 
 // Card used to ship no padding at all, so call sites supplied their own and
