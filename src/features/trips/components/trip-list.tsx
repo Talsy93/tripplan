@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { AuraField, Card, EmptyState } from "@/components/ui";
 import { NewTripButton } from "./create-trip-form";
-import { DeleteTripButton } from "./delete-trip-button";
 import { formatShortDate } from "../domain/trip";
 import { phaseLabel, tripPhase } from "../domain/trip-days";
 import type { Trip } from "../domain/trip";
@@ -49,12 +48,10 @@ export function TripList({
 
         return (
           <li key={trip.id} className="min-w-0">
-            {/* The card is not wrapped in the link any more: it holds a delete
-                button too, and a <button> inside an <a> is invalid HTML and
-                gives a screen reader two controls where there is one link.
-                Instead the link carries an after: pseudo-element that covers
-                the card, so the whole surface stays clickable while the delete
-                button — which sits above it on the z axis — does not. */}
+            {/* The stretched link stays even though the delete button that
+                forced it is gone: the whole card should be clickable, and an
+                after: pseudo-element on the title link is still the way to do
+                that without wrapping a card's worth of markup in an <a>. */}
             <Card
               variant="interactive"
               className="relative flex h-full min-w-0 items-center gap-3"
@@ -112,7 +109,6 @@ export function TripList({
                 {trip.start_date ? formatShortDate(trip.start_date) : "—"}
               </span>
 
-              <DeleteTripButton tripId={trip.id} tripName={trip.name} />
             </Card>
           </li>
         );

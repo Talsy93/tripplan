@@ -2,7 +2,18 @@
 
 import { useState } from "react";
 import { ArrowDown, Pencil, Plane, X } from "lucide-react";
-import { Badge, Banner, Card, Dialog, EmptyState, Glyph, IconButton, SegmentedControl, type SegmentedItem } from "@/components/ui";
+import {
+  Badge,
+  Banner,
+  Button,
+  Card,
+  Dialog,
+  EmptyState,
+  Glyph,
+  IconButton,
+  SegmentedControl,
+  type SegmentedItem,
+} from "@/components/ui";
 import {
   BOOKING_KINDS,
   bookingAlert,
@@ -61,6 +72,11 @@ export function BookingList({
   const [removing, setRemoving] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [editing, setEditing] = useState<Booking | null>(null);
+  // Deleting a booking used to happen on the first tap of a permanently visible
+  // ✕ — no confirmation, and the row was gone. The optimistic update below even
+  // made it look instantaneous. A booking is a thing with a confirmation code
+  // that was paid for; it gets asked about first.
+  const [confirming, setConfirming] = useState<Booking | null>(null);
   const asOf = new Date(now);
 
   const bookings = initial.filter((booking) => !removed.includes(booking.id));
@@ -244,7 +260,7 @@ export function BookingList({
                       variant="danger"
                       size="sm"
                       disabled={removing === booking.id}
-                      onClick={() => void remove(booking.id)}
+                      onClick={() => setConfirming(booking)}
                     >
                       <X className="h-4 w-4" aria-hidden="true" />
                     </IconButton>
@@ -325,6 +341,38 @@ export function BookingList({
             onSuccess={() => setEditing(null)}
           />
         )}
+      </Dialog>
+
+      <Dialog
+        open={confirming !== null}
+        onClose={() => setConfirming(null)}
+        title={
+          confirming
+            ? `להסיר את ${BOOKING_KINDS[confirming.kind].label} "${confirming.title}"?`
+            : ""
+        }
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setConfirming(null)}>
+              ביטול
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                const target = confirming;
+                setConfirming(null);
+                if (target) void remove(target.id);
+              }}
+            >
+              הסרה
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm">
+          ההזמנה תיעלם גם מהלו״ז של היום שלה. אין דרך לשחזר — אבל אפשר להוסיף
+          אותה מחדש.
+        </p>
       </Dialog>
     </div>
   );
