@@ -33,10 +33,7 @@ export function CreateTripForm({ onSuccess }: { onSuccess?: () => void }) {
       }}
       className="flex flex-col gap-4"
     >
-      <Field
-        label="איך נקרא לטיול?"
-        error={state?.errors?.name?.join(" ")}
-      >
+      <Field label="איך נקרא לטיול?" error={state?.errors?.name?.join(" ")}>
         <Input
           name="name"
           placeholder="למשל: איטליה בסתיו"
@@ -110,23 +107,27 @@ export function CreateTripForm({ onSuccess }: { onSuccess?: () => void }) {
 // It is an occasional action, so it lives behind a button.
 export function NewTripButton({
   variant = "primary",
+  className,
 }: {
-  variant?: "primary" | "outline";
+  // "onLight" for the home rail, which sits on the upcoming trip's light — see
+  // Button for why that variant is white rather than the action blue.
+  variant?: "primary" | "outline" | "onLight";
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <Button variant={variant} onClick={() => setOpen(true)}>
+      <Button
+        variant={variant}
+        onClick={() => setOpen(true)}
+        className={className}
+      >
         <Plus className="h-4 w-4" aria-hidden="true" />
         טיול חדש
       </Button>
 
-      <Dialog
-        open={open}
-        onClose={() => setOpen(false)}
-        title="טיול חדש"
-      >
+      <Dialog open={open} onClose={() => setOpen(false)} title="טיול חדש">
         <CreateTripForm onSuccess={() => setOpen(false)} />
       </Dialog>
     </>

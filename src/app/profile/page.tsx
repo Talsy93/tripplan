@@ -5,6 +5,7 @@ import {
   APP_TIME_ZONE,
   assignTripAuras,
   AuraHero,
+  HomeRail,
   HowItWorks,
   NewTripButton,
   getItinerary,
@@ -15,6 +16,7 @@ import {
   pickUpcomingTrip,
   StartHere,
   todayIn,
+  tripPhase,
   TripList,
 } from "@/features/trips";
 
@@ -28,7 +30,6 @@ export default async function ProfilePage() {
     // derived from. Per-row it would have been one round trip per trip.
     getSelectedCitiesByTrip(),
   ]);
-
 
   // One light per trip, assigned across the whole list rather than per trip, so
   // no two trips on the screen come out the same colour while a palette is
@@ -51,12 +52,16 @@ export default async function ProfilePage() {
   // trip's own "today" tab, where a picture of the place is the subject.
   const upcoming = pickUpcomingTrip(trips);
   let upcomingCities: string[] = [];
+  // The itinerary's length, for the rail's countdown: tripPhase needs it to know
+  // whether a trip with a start date and no end date is still ahead.
+  let upcomingDayCount = 0;
 
   if (upcoming) {
     // Route order comes from the itinerary when there is one. Before that,
     // fall back to the order cities were added — the chips are still right,
     // they just aren't in visiting order yet.
     const itinerary = await getItinerary(upcoming.id);
+    upcomingDayCount = itinerary.length;
     upcomingCities = itineraryStops(itinerary).map((stop) => stop.city);
     if (upcomingCities.length === 0) {
       const selected = await getSelectedDestinations(upcoming.id);
@@ -66,18 +71,46 @@ export default async function ProfilePage() {
     }
   }
 
+  const today = todayIn(APP_TIME_ZONE, new Date());
+
   return (
     <AppShell
       header={
+        // No wordmark: the rail carries it now, the same as inside a trip. The
+        // `brand` prop was a stand-in for exactly as long as this screen had no
+        // rail — see T6.
         <AppHeader
-          // The wordmark, because this screen has no rail to carry it — see
-          // T6. Once it gets one, this comes off with the same edit.
-          brand
           trailing={
             <>
               <NewTripButton />
               <LogoutButton />
             </>
+          }
+        />
+      }
+      // T6. This screen had no rail at all, which made the one screen everybody
+      // starts on the only one that did not look like the app — crossing into a
+      // trip moved the whole frame sideways by 248px. It carries the upcoming
+      // trip's light, so the colour does not jump on that crossing either.
+      sidebar={
+        <HomeRail
+          initial={user?.email?.[0]}
+          hues={upcoming ? (auraByTrip.get(upcoming.id) ?? []) : []}
+          upcoming={
+            upcoming
+              ? {
+                  id: upcoming.id,
+                  name: upcoming.name,
+                  startDate: upcoming.start_date,
+                  phase: tripPhase(
+                    upcoming.start_date,
+                    upcoming.end_date,
+                    today,
+                    upcomingDayCount,
+                  ),
+                  dayCount: upcomingDayCount,
+                }
+              : null
           }
         />
       }
@@ -107,9 +140,7 @@ export default async function ProfilePage() {
 
       {/* Without a trip to feature there is no hero, so the screen still needs
           to say what it is. */}
-      {!upcoming && (
-        <SectionHeading level="page">הטיולים שלי</SectionHeading>
-      )}
+      {!upcoming && <SectionHeading level="page">הטיולים שלי</SectionHeading>}
 
       {/* When the featured trip has nowhere to go, the next move is one
           decision and the screen should be about making it — not about the

@@ -351,6 +351,7 @@ export { EmptyDays, RouteCities } from "./components/route-cities";
 export { ExploreScreen } from "./components/explore-screen";
 export { CityGuideList } from "./components/city-guide-list";
 export { MoreMenu } from "./components/more-menu";
+export { HomeRail } from "./components/home-rail";
 export type { CityGuideEntry } from "./components/city-guide-list";
 export type { RouteCity } from "./components/route-cities";
 export { tripOpenItems } from "./domain/open-items";

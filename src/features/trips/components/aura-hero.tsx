@@ -87,7 +87,12 @@ export function AuraHero({
       {/* min-w-0 throughout: the trip name is user-authored, and nothing above
           it may be widened by it. */}
       <div className="relative flex min-w-0 flex-1 flex-col gap-5 px-5 pb-6 pt-7 text-white sm:px-7 sm:pb-8 sm:pt-9">
-        <div className="flex min-w-0 items-center justify-between gap-3">
+        {/* Hidden from lg, where the rail carries the same two things. T6 gave
+            /profile a rail with MYTRIP and the avatar at its top, and for one
+            commit this screen showed both — two wordmarks and two avatars on
+            one screen, four feet apart. Below lg there is no rail, and then
+            this row is the only place the app says its own name. */}
+        <div className="flex min-w-0 items-center justify-between gap-3 lg:hidden">
           {/* Tracked, and Latin only. globals.css: letter-spacing damages
               Hebrew, so the wordmark gets it and no Hebrew label does. */}
           <span className="text-caption font-extrabold tracking-latin">
@@ -132,7 +137,6 @@ export function AuraHero({
                 {formatCountdown(days)}
               </span>
             )}
-
           </div>
 
           {/* Only from lg, where the three groups are actually side by side and
@@ -143,7 +147,7 @@ export function AuraHero({
           />
 
           <div className="flex min-w-0 flex-col gap-4 lg:flex-1">
-          {/* Clamped to two lines: a hero is a summary, and the full name is the
+            {/* Clamped to two lines: a hero is a summary, and the full name is the
               title of the page it opens. Measured at 375px, an unclamped long
               name ran to three lines and pushed the label past the top edge.
 
@@ -151,16 +155,16 @@ export function AuraHero({
               thing on the hero rather than the caption under it. Before this, a
               dateless trip showed "עוד לא נקבע תאריך" and its own name at the
               same size, one above the other, and neither read as the title. */}
-          <p
-            className={cn(
-              "line-clamp-2 min-w-0 font-bold wrap-anywhere",
-              days === null ? "text-display" : "text-heading",
-            )}
-          >
-            {name}
-          </p>
+            <p
+              className={cn(
+                "line-clamp-2 min-w-0 font-bold wrap-anywhere",
+                days === null ? "text-display" : "text-heading",
+              )}
+            >
+              {name}
+            </p>
 
-          {/* A trip with no destinations has no light — see domain/aura.ts,
+            {/* A trip with no destinations has no light — see domain/aura.ts,
               which assigns it none rather than assigning it black. On screen
               that is a deep navy panel with nothing in it, and without a line
               of explanation it reads as a hero that failed to load rather than
@@ -168,51 +172,50 @@ export function AuraHero({
 
               The two facts are said separately because they are separately
               fixable, and either one alone is a normal state. */}
-          {(days === null || hues.length === 0) && (
-            <span className="text-caption text-white/70">
-              {hues.length === 0
-                ? days === null
-                  ? "עוד אין יעדים ואין תאריך — הטיול יקבל את הצבע שלו ברגע שתבחרו לאן"
-                  : "עוד אין יעדים — הטיול יקבל את הצבע שלו ברגע שתבחרו לאן"
-                : "עוד לא נקבע תאריך יציאה"}
-            </span>
-          )}
+            {(days === null || hues.length === 0) && (
+              <span className="text-caption text-white/70">
+                {hues.length === 0
+                  ? days === null
+                    ? "עוד אין יעדים ואין תאריך — הטיול יקבל את הצבע שלו ברגע שתבחרו לאן"
+                    : "עוד אין יעדים — הטיול יקבל את הצבע שלו ברגע שתבחרו לאן"
+                  : "עוד לא נקבע תאריך יציאה"}
+              </span>
+            )}
 
-          {stops.length > 0 && (
-            // Glass rather than the white pills of the old hero: these sit over
-            // the light, so translucency lets them take its colour instead of
-            // punching holes in it.
-            //
-            // A chip cannot break a city name that is one long token, so each is
-            // capped and truncates. The full name is on the map and in the
-            // itinerary.
-            <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
-              {stops.slice(0, 3).map((city) => (
-                <span
-                  key={city}
-                  className={cn(
-                    glassClasses("dark"),
-                    "min-w-0 max-w-full truncate rounded-full px-3 py-1 text-caption font-medium",
-                  )}
-                >
-                  {city}
-                </span>
-              ))}
-              {stops.length > 3 && (
-                <span
-                  className={cn(
-                    glassClasses("dark"),
-                    "shrink-0 rounded-full px-3 py-1 text-caption font-medium text-white/70",
-                  )}
-                >
-                  {/* Words, not "+3": in an RTL paragraph the browser puts the
+            {stops.length > 0 && (
+              // Glass rather than the white pills of the old hero: these sit over
+              // the light, so translucency lets them take its colour instead of
+              // punching holes in it.
+              //
+              // A chip cannot break a city name that is one long token, so each is
+              // capped and truncates. The full name is on the map and in the
+              // itinerary.
+              <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
+                {stops.slice(0, 3).map((city) => (
+                  <span
+                    key={city}
+                    className={cn(
+                      glassClasses("dark"),
+                      "min-w-0 max-w-full truncate rounded-full px-3 py-1 text-caption font-medium",
+                    )}
+                  >
+                    {city}
+                  </span>
+                ))}
+                {stops.length > 3 && (
+                  <span
+                    className={cn(
+                      glassClasses("dark"),
+                      "shrink-0 rounded-full px-3 py-1 text-caption font-medium text-white/70",
+                    )}
+                  >
+                    {/* Words, not "+3": in an RTL paragraph the browser puts the
                       sign after the digit, so "+3" rendered as "3+". */}
-                  ועוד {stops.length - 3}
-                </span>
-              )}
-            </div>
-          )}
-
+                    ועוד {stops.length - 3}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex min-w-0 items-stretch gap-2 pt-1 lg:shrink-0 lg:pt-0">
@@ -228,9 +231,7 @@ export function AuraHero({
                   ? `/trips/${tripId}/more/trip`
                   : `/trips/${tripId}/map`
               }
-              aria-label={
-                unplanned ? `התאריכים של ${name}` : `המפה של ${name}`
-              }
+              aria-label={unplanned ? `התאריכים של ${name}` : `המפה של ${name}`}
               className={cn(
                 glassClasses("dark"),
                 "flex w-14 shrink-0 items-center justify-center rounded-2xl transition-transform duration-200 ease-spring hover:scale-[1.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-aura-base",

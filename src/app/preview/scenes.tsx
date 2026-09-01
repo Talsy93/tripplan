@@ -30,11 +30,13 @@ import {
   ExploreScreen,
   ExpenseSummary,
   GearList,
+  HomeRail,
   InviteForm,
   Itinerary,
   CityGuideList,
   MemberList,
   MoreMenu,
+  NewTripButton,
   NightStay,
   Phrasebook,
   RouteMap,
@@ -507,6 +509,78 @@ export const SCENES: Scene[] = [
           />
         ),
       }),
+  },
+  // ---- the home screen -----------------------------------------------------
+  //
+  // T6, and the check is frame continuity: /profile had no rail at all, so the
+  // one screen everybody starts on was the only one that did not look like the
+  // app, and crossing into a trip moved the whole frame 248px sideways. Compare
+  // this scene with `app-frame` — the rail must be in the same place, the same
+  // width, and carrying the same colour.
+  {
+    slug: "home-frame",
+    title: "בית · הרַיל שלא היה",
+    note: "אותה מסגרת בדיוק כמו בתוך טיול: רַיל 248 בקצה, אותו אור. הרַיל נושא את האור של הטיול הקרוב, כי זה מה שהמסך הזה עוסק בו",
+    bleed: true,
+    render: () => (
+      <AppShell
+        header={<AppHeader trailing={<NewTripButton />} />}
+        sidebar={
+          <HomeRail
+            initial="ט"
+            hues={tripAura(FRAME_CITIES)}
+            upcoming={{
+              id: f.TRIP_ID,
+              name: "יפן בסתיו",
+              startDate: f.LONG_START,
+              phase: {
+                kind: "before",
+                daysUntilStart: daysUntil(f.LONG_START),
+              },
+              dayCount: 14,
+            }}
+          />
+        }
+      >
+        <AuraHero
+          tripId={f.TRIP_ID}
+          name="יפן בסתיו"
+          startDate={f.LONG_START}
+          cities={FRAME_CITIES}
+          hues={tripAura(FRAME_CITIES)}
+          initial="ט"
+          className="-mt-5"
+        />
+        <SectionHeading level="sub">כל הטיולים · 3</SectionHeading>
+        <TripList
+          trips={f.TRIPS}
+          today={f.TODAY}
+          citiesByTrip={f.TRIP_CITIES}
+          auraByTrip={assignTripAuras(
+            f.TRIPS.map((trip) => ({
+              id: trip.id,
+              cities: f.TRIP_CITIES.get(trip.id) ?? [],
+              createdAt: trip.created_at,
+            })),
+          )}
+        />
+      </AppShell>
+    ),
+  },
+  {
+    slug: "home-frame-empty",
+    title: "בית · חשבון בלי טיול קרוב",
+    note: "אין ספירה לאחור ואין יעד לקפוץ אליו, אז לרַיל יש שורה אחת וכפתור — והמסגרת עדיין לא זזה",
+    bleed: true,
+    render: () => (
+      <AppShell
+        header={<AppHeader trailing={<NewTripButton />} />}
+        sidebar={<HomeRail initial="ט" hues={[]} upcoming={null} />}
+      >
+        <SectionHeading level="page">הטיולים שלי</SectionHeading>
+        <TripList trips={[]} today={f.TODAY} />
+      </AppShell>
+    ),
   },
   {
     slug: "city-guide-list",
