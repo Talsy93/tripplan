@@ -24,13 +24,22 @@ export function TwoPane({
   aside: ReactNode;
 }) {
   return (
-    // xl, not lg. At 1024 the rail has already taken 15rem, and a 22rem pane on
-    // top of it would leave the main column narrower than a phone's content at a
-    // desktop's type size. Below xl the pane's contents simply follow the main
-    // column, which is where they were before this existed — so nothing is
-    // hidden at any width, it only moves.
-    <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-      <div className="flex min-w-0 flex-col gap-6">{children}</div>
+    // xl, not lg. At 1024 the rail has already taken 15.5rem, and a 23.25rem
+    // pane on top of it would leave the main column narrower than a phone's
+    // content at a desktop's type size. Below xl the pane's contents simply
+    // follow the main column, which is where they were before this existed — so
+    // nothing is hidden at any width, it only moves.
+    // 23.25rem spelled out rather than var(--container-pane): the container
+    // tokens live in an `@theme inline` block, which means Tailwind substitutes
+    // them into utilities and never emits them as custom properties — a var()
+    // here would resolve to nothing. `max-w-pane` reads the same token through
+    // a utility and does work; a grid template has no utility to read it.
+    <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_23.25rem]">
+      {/* Capped at 660px, but only from xl — the width the pane appears at.
+          Below that there is one column and it should fill: measured at 768,
+          an unguarded cap left 45px of dead space at the end of every row,
+          which reads as an accidental indent rather than as a measure. */}
+      <div className="flex min-w-0 flex-col gap-6 xl:max-w-main">{children}</div>
       {/* Sticky at top-20: AppHeader is 3.5rem and the content starts 1.25rem
           below it, so 5rem clears both. self-start is what lets a short pane
           stop rather than stretching to the main column's height — without it

@@ -42,7 +42,7 @@ export function WorkflowGuide({ tripId }: { tripId: string | null }) {
                 )}
               </div>
 
-              <p className="text-sm text-muted">{step.body}</p>
+              <p className="max-w-measure text-sm text-muted">{step.body}</p>
 
               {step.tips && step.tips.length > 0 && (
                 <ul className="flex flex-col gap-1.5 border-t border-dashed border-border pt-3">

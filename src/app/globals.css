@@ -413,10 +413,38 @@
 
      The container scale drives max-w-*, w-* and basis-*, so `sidebar` below
      is both the rail's width and the value the content offsets by.
+
+     The four numbers are the desktop design's, measured off the mockup: a
+     248px rail, a 660px main column, a 372px context pane, and a content
+     area that stops growing once it holds 1180px of actual content.
+     `content` is spelled 1244 because the element carrying it also carries
+     lg:px-8 — 1180 + 2 × 32.
+
+     `shell` (90rem) went with the frame it belonged to. It capped the rail
+     and the content together, which is what put 230px of white outside the
+     rail at 1920: the rail was inside the centred box instead of being the
+     edge of the window.
      -------------------------------------------------------------------- */
-  --container-sidebar: 15rem;
-  --container-pane: 22rem;
-  --container-shell: 90rem;
+  --container-sidebar: 15.5rem;
+  --container-main: 41.25rem;
+  --container-pane: 23.25rem;
+  --container-content: 77.75rem;
+
+  /* A measure for running text, in characters rather than pixels, so it
+     tracks the type size instead of fighting it.
+
+     58ch and not Tailwind's own `prose` (65ch), because `ch` is the advance
+     of the "0" glyph and Heebo's digits are wider than its letters. Measured
+     in the browser at 14, 15, 16 and 18px: 65ch renders 77–82 Hebrew
+     characters per line, 58ch renders about 70, which is the number the
+     design asks for. The same 58ch holds across all four sizes.
+
+     This is on text and never on a column. The main column is 660px because
+     that is the width the design draws cards, day rows and booking cards at;
+     a line of Hebrew body copy at 660px runs 87 characters, which is past
+     readable. Narrowing the column to fix the text would have narrowed
+     everything beside it too. */
+  --container-measure: 58ch;
 
   /* motion
      --ease-snap decelerates into place and is right for anything that moves a

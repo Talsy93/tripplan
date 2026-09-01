@@ -80,11 +80,13 @@ export function TripNav({ tripId }: { tripId: string }) {
 export function TripSideNav({
   tripId,
   hues = [],
+  initial,
   header,
   footer,
 }: {
   tripId: string;
   hues?: string[];
+  initial?: string;
   header?: ReactNode;
   footer?: ReactNode;
 }) {
@@ -92,6 +94,7 @@ export function TripSideNav({
     <SideNav
       items={useTripNavItems(tripId)}
       hues={hues}
+      initial={initial}
       header={header}
       footer={footer}
     />

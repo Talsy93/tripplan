@@ -10,6 +10,11 @@ export const metadata = { title: "Preview scene · MyTrip (dev)" };
 // Full width and no app shell on purpose: the harness measures the component,
 // and wrapping it in a sidebar and a header would measure those instead.
 //
+// A `bleed` scene is the exception, and it is one scene: the shell itself. It
+// renders against the window with the harness's own chrome floated over it,
+// because a rail that has to touch the edge of the window cannot be judged
+// inside a column with 16px of padding.
+//
 // A server component. The components it renders are mostly "use client"
 // themselves, which is fine — a server component may render a client one. What
 // it may not do is the reverse, which is what broke the first version of this.
@@ -22,6 +27,26 @@ export default async function ScenePage({
 
   const { scene: slug } = await params;
   const scene = SCENES_BY_SLUG.get(slug);
+
+  if (scene?.bleed) {
+    return (
+      <main className="min-h-dvh">
+        <Link
+          href="/preview"
+          // Clear of the floating phone bar, which is full width and would
+          // otherwise be half hidden behind harness chrome in a screenshot.
+          className="fixed bottom-28 start-3 z-50 flex items-center gap-1 rounded-full border border-border bg-surface/95 px-3 py-1.5 text-sm text-muted shadow-card backdrop-blur hover:text-foreground md:bottom-3"
+        >
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+          כל הסצנות
+        </Link>
+
+        <div data-scene={scene.slug} className="min-w-0">
+          {scene.render()}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-dvh flex-col gap-3 p-4">

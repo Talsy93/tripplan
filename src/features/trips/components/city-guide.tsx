@@ -246,9 +246,9 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
     <div className="flex flex-col gap-8">
       {(guide.intro || guide.gettingThere) && (
         <Surface tone="quiet" padding="lg" className="flex flex-col gap-3">
-          {guide.intro && <p>{guide.intro}</p>}
+          {guide.intro && <p className="max-w-measure">{guide.intro}</p>}
           {guide.gettingThere && (
-            <p className="flex items-start gap-2 text-sm text-muted">
+            <p className="flex max-w-measure items-start gap-2 text-sm text-muted">
               <Compass className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{guide.gettingThere}</span>
             </p>
