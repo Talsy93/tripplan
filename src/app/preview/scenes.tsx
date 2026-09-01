@@ -32,7 +32,9 @@ import {
   GearList,
   InviteForm,
   Itinerary,
+  CityGuideList,
   MemberList,
+  MoreMenu,
   NightStay,
   Phrasebook,
   RouteMap,
@@ -473,6 +475,61 @@ export const SCENES: Scene[] = [
           />
         ),
       }),
+  },
+  // ---- the "more" menu -----------------------------------------------------
+  //
+  // Seven rows and a card, which is T5's whole definition of done. Two rows were
+  // missing entirely — the city guides had no index anywhere, and the member
+  // list shared a heading with the public link — and "פרטי הטיול" moved out of
+  // the list into the card at the bottom, where the delete row joins it.
+  {
+    slug: "more-tab",
+    title: "עוד · שבע שורות וכרטיס",
+    note: "כל שורה נושאת מצב אמיתי בשורת המשנה. הכרטיס השני מופרד: פרטי הטיול, ומתחתיו המחיקה בצבע הסכנה — לא אייקון מחיקה בין שבע שורות שלוחצים עליהן כל יום",
+    bleed: true,
+    render: () =>
+      appFrame({
+        title: "יפן בסתיו",
+        active: "more",
+        phase: { kind: "during", dayNumber: 3 },
+        startDate: f.LONG_START,
+        cities: FRAME_CITIES,
+        children: (
+          <MoreMenu
+            tripId={f.TRIP_ID}
+            tripName="יפן בסתיו"
+            bookings={f.BOOKINGS}
+            gear={f.GEAR}
+            members={f.MEMBERS}
+            cities={FRAME_CITIES}
+            shareToken="abcdef0123456789"
+            now={f.NOW}
+          />
+        ),
+      }),
+  },
+  {
+    slug: "city-guide-list",
+    title: "מדריכי הערים · האינדקס שלא היה",
+    note: "ערים שיש בהן בחירות, וערים שהגילוי הציע ואיש לא פתח — השורה השנייה היא זו שהאינדקס הזה קיים בשבילה",
+    render: () => (
+      <div className="flex flex-col gap-6">
+        <CityGuideList
+          tripId={f.TRIP_ID}
+          entries={[
+            { city: "טוקיו", picked: 12, description: null },
+            { city: "קיוטו", picked: 1, description: "מקדשים וגנים" },
+            {
+              city: "אוסקה",
+              picked: 0,
+              description: "אוכל רחוב, טירה, ואנשים שמדברים אחרת",
+            },
+            { city: f.UNBREAKABLE, picked: 0, description: f.LONG },
+          ]}
+        />
+        <CityGuideList tripId={f.TRIP_ID} entries={[]} />
+      </div>
+    ),
   },
   {
     slug: "selected-list",

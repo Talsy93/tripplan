@@ -90,7 +90,11 @@ export function SelectedList({
             </button>
 
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold">
+              {/* Wrapped to a second line, not truncated: a place name is
+                  whatever the user or the AI typed, and `truncate` in RTL clips
+                  the start of a Latin string with the ellipsis off screen. Two
+                  lines is what the design allows destination names. */}
+              <span className="line-clamp-2 min-w-0 text-sm font-semibold wrap-anywhere">
                 {item.name}
               </span>
               {/* One truncated line of context. For a hand-typed place this is

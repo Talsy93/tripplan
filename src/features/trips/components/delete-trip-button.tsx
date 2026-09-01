@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { Banner, Button, Dialog } from "@/components/ui";
+import { cn } from "@/lib/cn";
 import { deleteTrip } from "../application/actions";
 
 // Deleting a trip takes its destinations, itinerary, bookings, phrasebook and
@@ -20,9 +21,15 @@ import { deleteTrip } from "../application/actions";
 export function DeleteTripButton({
   tripId,
   tripName,
+  variant = "card",
 }: {
   tripId: string;
   tripName: string;
+  // "row" for the last row of the card at the bottom of the "עוד" menu, which
+  // is where this moved in T5: no border, no shadow, no radius of its own, and
+  // the same padding and tile shape as the rows above it. "card" is the
+  // standalone treatment, kept for anywhere it is not inside a card.
+  variant?: "card" | "row";
 }) {
   const [open, setOpen] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -48,10 +55,20 @@ export function DeleteTripButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex min-w-0 items-center gap-3 rounded-card border border-danger/25 bg-surface p-4 text-start shadow-soft transition-colors hover:border-danger/60 hover:bg-danger-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
+        className={cn(
+          "flex w-full min-w-0 items-center gap-3 text-start transition-colors",
+          variant === "row"
+            ? "px-4 py-3.5 hover:bg-danger-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-danger"
+            : "rounded-card border border-danger/25 bg-surface p-4 shadow-soft hover:border-danger/60 hover:bg-danger-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger",
+        )}
       >
         <span
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-danger-tint text-danger-ink"
+          className={cn(
+            "flex h-10 w-10 shrink-0 items-center justify-center bg-danger-tint text-danger-ink",
+            // A squared tile in a row, matching the seven above it; a circle
+            // when it stands alone.
+            variant === "row" ? "rounded-control" : "rounded-full",
+          )}
           aria-hidden="true"
         >
           <Trash2 className="h-5 w-5" />
@@ -92,9 +109,7 @@ export function DeleteTripButton({
           הזה. אין דרך לשחזר.
         </p>
 
-        {failed && (
-          <Banner tone="danger">המחיקה נכשלה. נסו שוב.</Banner>
-        )}
+        {failed && <Banner tone="danger">המחיקה נכשלה. נסו שוב.</Banner>}
       </Dialog>
     </>
   );

@@ -1,17 +1,13 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Share2 } from "lucide-react";
 import { SectionHeading, Skeleton } from "@/components/ui";
 import {
   BookingForm,
   BookingList,
-  DeleteTripButton,
   ExpenseSummary,
   getSelectedDestinations,
   getTrip,
   listBookings,
-  listMembers,
   MoreBackLink,
   PushToggle,
   TripDatesForm,
@@ -29,16 +25,14 @@ export default async function TripDetailsPage({
   const trip = await getTrip(id);
   if (!trip) notFound();
 
-  const [selected, bookings, members] = await Promise.all([
+  const [selected, bookings] = await Promise.all([
     getSelectedDestinations(id),
     listBookings(id),
-    listMembers(id),
   ]);
 
-  // The owner is in that list, and is not somebody the trip is shared *with*.
-  const shared = members.filter((member) => !member.is_owner).length;
-
-  const cities = [...new Set(selected.map((item) => item.city))].filter(Boolean);
+  const cities = [...new Set(selected.map((item) => item.city))].filter(
+    Boolean,
+  );
 
   return (
     <>
@@ -91,53 +85,12 @@ export default async function TripDetailsPage({
         <ExpenseSummary bookings={bookings} />
       </section>
 
-      {/* Sharing used to be a panel at the bottom of this page. It now has a
-          screen of its own — it grew members, roles and pending invitations, and
-          none of that belongs under the expense summary. What stays here is a
-          pointer, because this is where people had learned to look. */}
-      <section className="flex flex-col gap-3">
-        <SectionHeading level="section">שיתוף הטיול</SectionHeading>
-        <Link
-          href={`/trips/${trip.id}/more/share`}
-          className="flex min-w-0 items-center gap-3 rounded-card border border-border bg-surface p-4 shadow-soft transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <span
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary-ink"
-            aria-hidden="true"
-          >
-            <Share2 className="h-5 w-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-base font-semibold">
-              {shared
-                ? `${shared} אנשים יכולים להיכנס לטיול`
-                : "הזמנת אנשים לטיול"}
-            </span>
-            <span className="block text-sm text-muted">
-              צפייה בלבד או עריכה, לפי אימייל — או קישור פומבי בלי חשבון
-            </span>
-          </span>
-          <ChevronLeft
-            className="h-5 w-5 shrink-0 text-muted"
-            aria-hidden="true"
-          />
-        </Link>
-      </section>
-
-      {/* Last on the page, and separated, because that is what it is. Deleting
-          the trip used to be an icon on every card in the trips list — an
-          irreversible action sitting one mis-tap from the thumb on the screen
-          people scroll most. It belongs inside the trip it destroys, at the
-          bottom, under its own heading. */}
-      <section className="flex flex-col gap-3 border-t border-border pt-6">
-        <SectionHeading
-          level="section"
-          description="הפעולה הזאת לא ניתנת לביטול."
-        >
-          מחיקה
-        </SectionHeading>
-        <DeleteTripButton tripId={trip.id} tripName={trip.name} />
-      </section>
+      {/* Sharing and deletion both used to end this page. Sharing has had a
+          screen of its own since it grew members and roles, and deletion moved
+          to the card at the bottom of the "עוד" menu in T5 — the design puts it
+          there, separated from the seven rows above it, and two screens deep was
+          "at the bottom of a dedicated page" in letter only. Both are one tap
+          from here: the menu is the back link at the top. */}
     </>
   );
 }
