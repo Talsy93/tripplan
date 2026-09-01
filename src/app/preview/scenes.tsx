@@ -199,14 +199,23 @@ export const SCENES: Scene[] = [
             </>
           }
         >
-          {/* Prose, because the 70-character rule is the only reason the main
-              column is capped at 660px and a card would not show it. */}
+          {/* Prose, to make the measure countable. The card is 660px, the
+              width the design draws cards at; the paragraph inside it stops at
+              the measure. Both numbers are on screen at once, which is the
+              point of having them here. */}
           <Card className="flex flex-col gap-2">
-            <SectionHeading level="section">אורך שורה</SectionHeading>
-            <p className="text-sm text-muted">
-              השורה הזאת קיימת כדי שאפשר יהיה לספור אותה. הכלל הוא שבטור הראשי
-              שורת טקסט לא עוברת שבעים תווים בערך, וזאת הסיבה היחידה שהטור מוגבל
-              ל-660 פיקסלים ולא נמתח על כל מה שהרַיל והחלונית משאירים אחריהם.
+            <SectionHeading
+              level="section"
+              description="גם התיאור הזה מקבל את אותה מידה, ומקבל אותה מ-SectionHeading עצמו ולא מהעמוד שקורא לו."
+            >
+              אורך שורה
+            </SectionHeading>
+            <p className="max-w-measure text-sm text-muted">
+              השורה הזאת קיימת כדי שאפשר יהיה לספור אותה. הכרטיס שמסביבה רוחבו
+              660 פיקסלים, כמו במוקאפ, אבל הפסקה עצמה נעצרת קודם — כי בעברית
+              שורה של 660 פיקסלים מגיעה ל-87 תווים, וזה כבר מעבר לטווח שנוח
+              לקרוא בו. המידה יושבת על הטקסט, לא על הטור, כדי שהכרטיסים לידה
+              יישארו ברוחב שהעיצוב נתן להם.
             </p>
           </Card>
           <NowCard

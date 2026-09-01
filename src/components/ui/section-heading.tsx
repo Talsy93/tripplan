@@ -71,8 +71,16 @@ export function SectionHeading({
               viewport. */}
           <span className="min-w-0 wrap-anywhere">{children}</span>
         </Tag>
+        {/* max-w-measure is a measure, not a width, and it sits on the text
+            rather than on the column because only text wants it. The main
+            column is 660px — the width the design draws cards at — and a line
+            of Hebrew body copy at 660px runs 87 characters, which is past
+            readable. The token puts it back near 70 at any type size and
+            leaves every card beside it at full width. See globals.css. */}
         {description && (
-          <p className="min-w-0 text-sm text-muted wrap-anywhere">{description}</p>
+          <p className="min-w-0 max-w-measure text-sm text-muted wrap-anywhere">
+            {description}
+          </p>
         )}
       </div>
       {actions && <div className="ms-auto flex items-center gap-2">{actions}</div>}

@@ -377,7 +377,7 @@ export function Itinerary({
                             </div>
                           </div>
                           {item.note && (
-                            <p className="text-sm text-muted">{item.note}</p>
+                            <p className="max-w-measure text-sm text-muted">{item.note}</p>
                           )}
                           {(item.travelNote || item.travelMinutes !== null) && (
                             <p className="flex items-start gap-1.5 text-caption text-primary-ink">
