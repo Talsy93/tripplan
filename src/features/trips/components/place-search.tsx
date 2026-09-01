@@ -20,6 +20,7 @@ import {
   Input,
   ListRow,
   SectionHeading,
+  Surface,
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { addPlace } from "../application/place-actions";
@@ -37,7 +38,6 @@ import type { PlaceCategory } from "../domain/place";
 import type { Place } from "../domain/place";
 import type { AddedPlace } from "../infrastructure/place-service";
 import { PlaceDetails } from "./place-details";
-import { AuraPanel } from "./aura-panel";
 import { DomainIcon } from "./domain-icon";
 
 const CATEGORY_KEYS = Object.keys(PLACE_CATEGORIES) as PlaceCategory[];
@@ -513,34 +513,47 @@ export function PlaceSearch({
           for. Both are worth having, so the button sits beside the results
           rather than replacing them. */}
       {(area.trim() || activeArea) && status.kind !== "searching" && (
-        // The one lit element on the discovery screen. OSM's results are facts
-        // and look like facts — white rows on grey; this is the thing being
-        // offered, and it is the only place here where the trip's own light
-        // does any work. See AuraPanel for why exactly one.
-        <AuraPanel>
-          <span className="flex min-w-0 items-center gap-1.5 text-caption font-extrabold text-white/75">
-            <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            הצעות בשבילכם
-          </span>
-          <p className="min-w-0 text-title font-bold wrap-anywhere">
-            מה ה-AI ממליץ ב{area.trim() || activeArea}?
-          </p>
-          <p className="min-w-0 text-caption text-white/75">
-            OpenStreetMap יודע אילו מקומות יש ומתי הם פתוחים. את מה שהאזור עצמו
-            שווה בשבילו — לא.
-          </p>
-          <Button
-            type="button"
-            variant="onLight"
-            size="sm"
-            onClick={() => void askAiAboutArea()}
-            loading={askingAi}
-            className="mt-1 self-start"
+        // Quiet, not lit — and that is a change T7 made rather than the shape
+        // this started as.
+        //
+        // It used to be an AuraPanel described as "the one lit element on the
+        // discovery screen". It was not: the discovery panel below it on the
+        // same tab is lit too, and this one is two levels into a flow (open a
+        // category, type a district), so both could be on screen at once. Law 03
+        // allows one per screen, and the one the design draws on this tab is the
+        // discovery offer — see planning-panel.tsx.
+        //
+        // The sparkle and the tinted glyph still say "the model is offering
+        // something", which is the whole job. Full light was never carrying more
+        // meaning than that here.
+        <Surface tone="quiet" className="flex min-w-0 gap-3">
+          <span
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control bg-primary-tint text-primary-ink"
+            aria-hidden="true"
           >
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
-            בקשו הצעות
-          </Button>
-        </AuraPanel>
+            <Sparkles className="h-5 w-5" />
+          </span>
+          <div className="flex min-w-0 flex-col gap-1">
+            <p className="min-w-0 text-base font-bold wrap-anywhere">
+              מה ה-AI ממליץ ב{area.trim() || activeArea}?
+            </p>
+            <p className="min-w-0 max-w-measure text-sm text-muted">
+              OpenStreetMap יודע אילו מקומות יש ומתי הם פתוחים. את מה שהאזור
+              עצמו שווה בשבילו — לא.
+            </p>
+            <Button
+              type="button"
+              variant="soft"
+              size="sm"
+              onClick={() => void askAiAboutArea()}
+              loading={askingAi}
+              className="mt-2 self-start"
+            >
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              בקשו הצעות
+            </Button>
+          </div>
+        </Surface>
       )}
 
       {status.kind === "ai" && (

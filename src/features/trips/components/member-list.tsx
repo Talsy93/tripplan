@@ -4,7 +4,9 @@ import { useState } from "react";
 import { Clock, Copy, Crown, LogOut, Trash2 } from "lucide-react";
 import {
   Badge,
+  Button,
   Card,
+  Dialog,
   EmptyState,
   IconButton,
   ListRow,
@@ -54,6 +56,18 @@ export function MemberList({
   const [busy, setBusy] = useState<string | null>(null);
   const [removed, setRemoved] = useState<string[]>([]);
   const [cancelled, setCancelled] = useState<string[]>([]);
+  // What the confirm dialog is about, or null when it is closed.
+  //
+  // Both of these were one tap with no confirmation until T7's pass — revoking
+  // somebody's access to a trip, and invalidating a token that may already be
+  // sitting in their inbox. Law 05 says a destructive action lives in a dialog,
+  // and these two are the ones on this screen that actually destroy something.
+  // One piece of state rather than two, because only one can be open.
+  const [confirming, setConfirming] = useState<
+    | { kind: "member"; member: TripMember; self: boolean }
+    | { kind: "invite"; invite: TripInvite }
+    | null
+  >(null);
   const { showToast } = useToast();
 
   const visibleOthers = others.filter(
@@ -80,9 +94,7 @@ export function MemberList({
     if (await revokeMember(tripId, member.member_id)) {
       showToast(self ? "יצאתם מהטיול" : "הגישה הוסרה");
     } else {
-      setRemoved((current) =>
-        current.filter((id) => id !== member.member_id),
-      );
+      setRemoved((current) => current.filter((id) => id !== member.member_id));
       showToast("ההסרה נכשלה. נסו שוב.", "danger");
     }
   }
@@ -176,10 +188,14 @@ export function MemberList({
                         somebody added you to would be a trap, not a safeguard. */}
                     {(isOwner || self) && (
                       <IconButton
-                        label={self ? "יציאה מהטיול" : `הסרת ${memberLabel(member)}`}
+                        label={
+                          self ? "יציאה מהטיול" : `הסרת ${memberLabel(member)}`
+                        }
                         variant="danger"
                         size="sm"
-                        onClick={() => void remove(member)}
+                        onClick={() =>
+                          setConfirming({ kind: "member", member, self })
+                        }
                       >
                         {self ? (
                           <LogOut className="h-4 w-4" aria-hidden="true" />
@@ -224,10 +240,7 @@ export function MemberList({
                 className="flex min-w-0 items-center gap-2 border-b border-border px-4 py-2 last:border-b-0"
               >
                 <span className="min-w-0 flex-1">
-                  <span
-                    className="block text-sm wrap-anywhere"
-                    dir="ltr"
-                  >
+                  <span className="block text-sm wrap-anywhere" dir="ltr">
                     {invite.email}
                   </span>
                   <span className="block text-caption text-muted">
@@ -247,7 +260,7 @@ export function MemberList({
                     label={`ביטול ההזמנה של ${invite.email}`}
                     variant="danger"
                     size="sm"
-                    onClick={() => void drop(invite)}
+                    onClick={() => setConfirming({ kind: "invite", invite })}
                   >
                     <Trash2 className="h-4 w-4" aria-hidden="true" />
                   </IconButton>
@@ -257,6 +270,57 @@ export function MemberList({
           </ul>
         </Card>
       )}
+
+      {/* One dialog for both actions, and the wording says what each one costs.
+          A bare "are you sure?" is the version of this that people learn to
+          dismiss without reading. */}
+      <Dialog
+        open={confirming !== null}
+        onClose={() => setConfirming(null)}
+        title={
+          confirming === null
+            ? ""
+            : confirming.kind === "invite"
+              ? `לבטל את ההזמנה של ${confirming.invite.email}?`
+              : confirming.self
+                ? "לצאת מהטיול?"
+                : `להסיר את ${memberLabel(confirming.member)} מהטיול?`
+        }
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setConfirming(null)}>
+              ביטול
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                const target = confirming;
+                setConfirming(null);
+                if (!target) return;
+                if (target.kind === "invite") {
+                  void drop(target.invite);
+                } else {
+                  void remove(target.member);
+                }
+              }}
+            >
+              {confirming?.kind === "invite"
+                ? "ביטול ההזמנה"
+                : confirming?.self
+                  ? "יציאה"
+                  : "הסרה"}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm">
+          {confirming?.kind === "invite"
+            ? "הקישור שנשלח יפסיק לעבוד. אפשר להזמין שוב אחר כך, וייווצר קישור חדש."
+            : confirming?.self
+              ? "תאבדו את הגישה לטיול הזה. רק מי שיצר אותו יכול להוסיף אתכם בחזרה."
+              : "הם יאבדו את הגישה לטיול. אפשר להזמין אותם שוב אחר כך."}
+        </p>
+      </Dialog>
     </div>
   );
 }
