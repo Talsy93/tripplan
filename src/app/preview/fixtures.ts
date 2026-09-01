@@ -16,8 +16,14 @@ import type { ItineraryDay } from "@/features/trips/domain/ai-suggestion";
 import type { RouteStop, TripRoute } from "@/features/trips/domain/route";
 import type { GearItem } from "@/features/trips/domain/gear";
 import type { Trip } from "@/features/trips/domain/trip";
-import type { TripInvite, TripMember } from "@/features/trips/domain/membership";
-import type { CityWeather, ForecastWindow } from "@/features/trips/domain/weather";
+import type {
+  TripInvite,
+  TripMember,
+} from "@/features/trips/domain/membership";
+import type {
+  CityWeather,
+  ForecastWindow,
+} from "@/features/trips/domain/weather";
 import type { AiPhrasebook } from "@/features/trips/domain/phrasebook";
 import type { CityDayPlan } from "@/features/trips/domain/city-days";
 import type { NightLodging } from "@/features/trips/domain/trip-days";
@@ -204,6 +210,54 @@ export const ITINERARY: ItineraryDay[] = [
   { day: 2, items: [] },
 ];
 
+// A whole fortnight, four cities, three days deliberately left empty.
+//
+// The two-day ITINERARY above is the stress fixture: unbreakable titles, a long
+// note, a day with nothing on it. This one is the *ordinary* trip, and the ימים
+// tab needs one — a strip of two pills, a month grid with two in-trip cells and
+// a route of one city say nothing about a screen built to hold fourteen.
+//
+// 24.09–07.10 on purpose: it crosses a month boundary, which is the case the
+// calendar in the context pane renders as two grids and the one place its month
+// arithmetic can be wrong.
+export const LONG_START = "2026-09-24";
+export const LONG_END = "2026-10-07";
+
+const LONG_DAYS: [number, string, string[]][] = [
+  [1, "טוקיו", ["הגעה · צ׳ק־אין בשינג׳וקו", "שוק צוקיג׳י החיצוני"]],
+  [2, "טוקיו", ["מקדש סנסו־ג׳י", "שוק אמייוקו", "ארוחת ערב באיזקאיה"]],
+  [3, "טוקיו", ["מגדל טוקיו סקייטרי", "שיבויה"]],
+  [4, "טוקיו", []],
+  [5, "טוקיו", ["גן שינג׳וקו גיואן", "רכבת לקיוטו"]],
+  [6, "קיוטו", ["פושימי אינארי", "גיון"]],
+  [7, "קיוטו", ["קינקאקו־ג׳י", "יער הבמבוק באראשיאמה"]],
+  [8, "קיוטו", []],
+  [9, "קיוטו", ["שוק נישיקי"]],
+  [10, "אוסקה", ["טירת אוסקה", "דוטומבורי"]],
+  [11, "אוסקה", ["שוק קורומון", "אקווריום קאיויוקאן"]],
+  [12, "אוסקה", []],
+  [13, "נארה", ["פארק נארה", "טודאי־ג׳י"]],
+  [14, "נארה", ["קסוגה טאישה", "טיסה חזרה"]],
+];
+
+export const ITINERARY_LONG: ItineraryDay[] = LONG_DAYS.map(
+  ([day, city, titles]) => ({
+    day,
+    items: titles.map((title, index) => ({
+      id: id(`e${day}${index}`),
+      title,
+      startLabel: `${String(9 + index * 4).padStart(2, "0")}:00`,
+      endLabel: `${String(11 + index * 4).padStart(2, "0")}:00`,
+      note: "",
+      city,
+      latitude: null,
+      longitude: null,
+      travelNote: null,
+      travelMinutes: index === 0 ? null : 20,
+    })),
+  }),
+);
+
 // ---- route ----------------------------------------------------------------
 
 export const STOPS: RouteStop[] = [
@@ -292,7 +346,8 @@ export const MEMBERS: TripMember[] = [
   },
   {
     member_id: id("e2"),
-    member_email: "partner.with.a.long.address@an-extremely-long-domain.example",
+    member_email:
+      "partner.with.a.long.address@an-extremely-long-domain.example",
     member_name: null,
     member_role: "editor",
     joined_at: "2026-01-02T00:00:00Z",
@@ -338,7 +393,9 @@ export const WEATHER: CityWeather[] = [
   },
   {
     city: UNBREAKABLE,
-    days: [{ date: "2026-09-10", code: 95, maxC: 24, minC: 18, rainChance: 90 }],
+    days: [
+      { date: "2026-09-10", code: 95, maxC: 24, minC: 18, rainChance: 90 },
+    ],
   },
 ];
 

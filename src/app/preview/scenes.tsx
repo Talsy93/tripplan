@@ -30,6 +30,7 @@ import {
   ExpenseSummary,
   GearList,
   InviteForm,
+  Itinerary,
   MemberList,
   NightStay,
   Phrasebook,
@@ -364,6 +365,65 @@ export const SCENES: Scene[] = [
               itinerary: [],
               bookings: [],
             })}
+          />
+        ),
+      }),
+  },
+  // ---- the days tab --------------------------------------------------------
+  //
+  // The interaction T2 changed. The tab rendered all fourteen days in sequence
+  // with a sticky day index beside them on lg — an index into a list is what you
+  // need when the list itself is the problem. It opens on one day now, with the
+  // strip above it and the month, the route and the empty days in the pane.
+  //
+  // A fortnight that crosses a month boundary, so the pane draws two grids.
+  {
+    slug: "days-tab",
+    title: "ימים · יום אחד עם רצועה",
+    note: "14 ימים, ארבע ערים, שלושה ימים ריקים ומעבר חודש. הרצועה, כותרת היום, לוח החודש, הערים והימים הריקים — כולם על מסך אחד",
+    bleed: true,
+    render: () =>
+      appFrame({
+        title: "יפן בסתיו",
+        active: "days",
+        phase: { kind: "during", dayNumber: 3 },
+        startDate: f.LONG_START,
+        cities: FRAME_CITIES,
+        children: (
+          <Itinerary
+            tripId={f.TRIP_ID}
+            initialItinerary={f.ITINERARY_LONG}
+            startDate={f.LONG_START}
+            endDate={f.LONG_END}
+            tripDayCount={14}
+            currentDay={3}
+            lodgingByDay={{ 1: f.LODGING }}
+            bookingsByDay={{ 1: [f.BOOKINGS[0]] }}
+            cityDays={f.CITY_DAYS}
+          />
+        ),
+      }),
+  },
+  {
+    slug: "days-tab-unbuilt",
+    title: "ימים · לפני שנבנה לו״ז",
+    note: "אין על מה לעמוד יום-יום, אז המסך הוא צורה אחרת: מה שהבנייה צריכה, ואז הבנייה",
+    bleed: true,
+    render: () =>
+      appFrame({
+        title: "יפן בסתיו",
+        active: "days",
+        phase: { kind: "before", daysUntilStart: daysUntil(f.LONG_START) },
+        startDate: f.LONG_START,
+        cities: FRAME_CITIES,
+        children: (
+          <Itinerary
+            tripId={f.TRIP_ID}
+            initialItinerary={[]}
+            startDate={f.LONG_START}
+            endDate={f.LONG_END}
+            tripDayCount={14}
+            cityDays={f.CITY_DAYS}
           />
         ),
       }),

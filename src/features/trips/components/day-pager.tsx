@@ -6,12 +6,8 @@ import { EmptyState, IconButton, Surface, ToneDot } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { cityByDay } from "../domain/route";
 import { cityToneClass, cityToneMap } from "../domain/tone";
-import {
-  clampDay,
-  dateOfDay,
-  dayOfTripLabel,
-  dayPillLabel,
-} from "../domain/trip-days";
+import { clampDay, dateOfDay, dayOfTripLabel } from "../domain/trip-days";
+import { DayStrip } from "./day-strip";
 import { DayTimeline } from "./day-timeline";
 import { NightStay } from "./night-stay";
 import type { Booking } from "../domain/booking";
@@ -118,49 +114,15 @@ export function DayPager({
         </IconButton>
       </Surface>
 
-      <div className="flex gap-1.5 overflow-x-auto pb-1">
-        {days.map((day) => {
-          const isActive = day.day === active.day;
-          const isToday = day.day === currentDay;
-          const pill = dayPillLabel(startDate, day.day);
-          return (
-            <button
-              key={day.day}
-              type="button"
-              onClick={() => setDayNumber(day.day)}
-              aria-current={isActive ? "true" : undefined}
-              className={cn(
-                "flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-control text-caption transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                isActive
-                  // Ink, not the action blue. Blue means "press this" everywhere
-                  // in this app, and a selected day is a state rather than an
-                  // invitation — which is the same call the phone's tab bar
-                  // already makes for its own selected pill.
-                  ? "bg-foreground font-bold text-surface"
-                  : "border border-border-strong bg-surface text-muted hover:bg-surface-2 hover:text-foreground",
-                // A ring rather than a fill, so "today" and "selected" can be
-                // true at once and still be told apart.
-                isToday && !isActive && "ring-2 ring-primary",
-              )}
-            >
-              {/* The weekday, not the word "יום". Every pill said the same
-                  word, so the only thing telling them apart was a number that
-                  means nothing on its own — "יום 9" is not a date anyone holds
-                  in their head. A weekday and a day-of-month are how a person
-                  actually finds Saturday in a row of pills. Falls back to the
-                  old label when the trip has no start date and there is no
-                  calendar to reckon by. */}
-              <span className="text-caption opacity-70">
-                {pill?.weekday ?? "יום"}
-              </span>
-              <span className="font-bold tabular-nums">
-                {pill?.dayOfMonth ?? day.day}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Shared with the ימים tab since T2 — the pills used to live here and
+          only here, which is why the tab about the days had none. */}
+      <DayStrip
+        dayNumbers={days.map((day) => day.day)}
+        startDate={startDate}
+        activeDay={active.day}
+        currentDay={currentDay}
+        onSelect={setDayNumber}
+      />
 
       {/* The bookings used to be listed here as well as on the timeline
           below. They are the timeline's now — it is the component that knows

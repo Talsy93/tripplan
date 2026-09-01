@@ -134,7 +134,12 @@ export function itineraryOverrun(
 // follows a day number. Dropping the prefix is only correct next to the word
 // "יום", so it happens here rather than inside weekdayLabel — the forecast
 // shows the weekday on its own and wants it.
-function weekdayAfterDayNumber(date: string): string {
+//
+// Exported since T2: the ימים tab's day heading puts the weekday beside "יום 3"
+// rather than inside a single label, so it needs the same string dayLabel builds
+// from. It was private, and the day heading duly printed "יום 6 · קיוטו" over
+// "יום ג׳, 29.09" until this was measured.
+export function weekdayAfterDayNumber(date: string): string {
   return weekdayLabel(date).replace(/^יום\s+/, "");
 }
 

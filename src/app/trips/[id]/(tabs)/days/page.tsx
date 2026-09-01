@@ -3,6 +3,7 @@ import {
   APP_TIME_ZONE,
   bookingsByDay,
   cityDayPlan,
+  currentDayNumber,
   getItinerary,
   getSelectedDestinations,
   getTrip,
@@ -10,6 +11,7 @@ import {
   listBookings,
   listCityDays,
   lodgingByDay,
+  todayIn,
   tripDayCount,
 } from "@/features/trips";
 import type { Booking, NightLodging } from "@/features/trips";
@@ -67,6 +69,14 @@ export default async function DaysPage({
       bookingsByDay={bookingsPerDay}
       cityDays={cityDayPlan(cities, bookings, overrides)}
       tripDayCount={tripDayCount(trip.start_date, trip.end_date)}
+      // Which day the screen opens on. Resolved on the server, in the trip's
+      // own zone, for the same reason every other date on this page is: the
+      // browser's clock can be a day off from the itinerary's.
+      currentDay={currentDayNumber(
+        trip.start_date,
+        todayIn(APP_TIME_ZONE, new Date()),
+        dayCount,
+      )}
     />
   );
 }
