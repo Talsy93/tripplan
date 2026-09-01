@@ -10,6 +10,7 @@ import {
   Skeleton,
   Surface,
 } from "@/components/ui";
+import { cn } from "@/lib/cn";
 import { googleMapsSearchUrl } from "@/lib/maps";
 import { aiErrorFromResponse } from "../domain/ai-errors";
 import {
@@ -26,7 +27,13 @@ import type {
   GuideItem,
   SavedCityGuide,
 } from "../domain/ai-suggestion";
-import { Building2, MapPin, Sparkles, Utensils, type LucideIcon } from "lucide-react";
+import {
+  Building2,
+  MapPin,
+  Sparkles,
+  Utensils,
+  type LucideIcon,
+} from "lucide-react";
 
 // The icon is the component, not a rendered element: a section header and a
 // chip want it at different sizes, and a stored element would fix the size at
@@ -36,6 +43,13 @@ const SECTIONS: { key: AiCategoryKey; label: string; Icon: LucideIcon }[] = [
   { key: "restaurants", label: "מסעדות", Icon: Utensils },
   { key: "attractions", label: "אטרקציות ואתרים", Icon: MapPin },
   { key: "experiences", label: "חוויות ודברים לעשות", Icon: Sparkles },
+];
+
+// The pill row, "סקירה" first. Derived from SECTIONS rather than written out
+// again, so a new category appears in both or in neither.
+const TABS: { key: "overview" | AiCategoryKey; label: string }[] = [
+  { key: "overview", label: "סקירה" },
+  ...SECTIONS.map((section) => ({ key: section.key, label: section.label })),
 ];
 
 function withSelected(items: AiRecommendation[]): GuideItem[] {
@@ -111,6 +125,14 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
   const [keptNotice, setKeptNotice] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState<AiCategoryKey[]>([]);
+  // Which pill is selected. "overview" is the intro and the tips — what the
+  // mockup calls "סקירה" and puts first.
+  //
+  // The four sections used to render stacked, all of them, which on a city with
+  // a full guide was four grids of cards in one scroll. The design draws a pill
+  // row instead: one section at a time, and the row is how you get between
+  // them.
+  const [tab, setTab] = useState<"overview" | AiCategoryKey>("overview");
 
   const generate = useCallback(async () => {
     setError(null);
@@ -122,7 +144,9 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
       });
 
       if (!res.ok) {
-        setError(await aiErrorFromResponse(res, "טעינת המדריך נכשלה. נסו שוב."));
+        setError(
+          await aiErrorFromResponse(res, "טעינת המדריך נכשלה. נסו שוב."),
+        );
         return;
       }
 
@@ -243,19 +267,9 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      {(guide.intro || guide.gettingThere) && (
-        <Surface tone="quiet" padding="lg" className="flex flex-col gap-3">
-          {guide.intro && <p className="max-w-measure">{guide.intro}</p>}
-          {guide.gettingThere && (
-            <p className="flex max-w-measure items-start gap-2 text-sm text-muted">
-              <Compass className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-              <span>{guide.gettingThere}</span>
-            </p>
-          )}
-        </Surface>
-      )}
-
+    // gap-5, not gap-8: the pill row and the section it selects are one thing,
+    // and eight units of air between them read as two.
+    <div className="flex flex-col gap-5">
       {error && <Banner tone="danger">{error}</Banner>}
 
       {keptNotice !== null && keptNotice > 0 && (
@@ -267,59 +281,119 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
         </Banner>
       )}
 
-      <div className="flex items-center gap-3">
-        <p className="text-caption text-muted">
-          רענון מביא הצעות חדשות. מה שהוספתם לטיול נשאר.
-        </p>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleRefresh}
-          loading={refreshing}
-          className="ms-auto shrink-0"
-        >
-          רענון הצעות
-        </Button>
+      {/* The pill row. Ink for the selected one, not the action blue: a chosen
+          filter is a state, and blue in this app means "press this" — the same
+          call the day strip and the phone tab bar already make. */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1">
+        {TABS.map((option) => {
+          const active = option.key === tab;
+          const count =
+            option.key === "overview"
+              ? null
+              : (guide.sections[option.key] ?? []).length;
+          if (count === 0) return null;
+          return (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => setTab(option.key)}
+              aria-current={active ? "true" : undefined}
+              className={cn(
+                "flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                active
+                  ? "bg-foreground text-surface"
+                  : "border border-border bg-surface text-muted hover:text-foreground",
+              )}
+            >
+              {option.label}
+              {count !== null && (
+                <span className="tabular-nums opacity-70">{count}</span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {SECTIONS.map(({ key, label, Icon }) => {
-        const items = guide.sections[key] ?? [];
-        if (items.length === 0) return null;
-        const isLoadingMore = loadingMore.includes(key);
-        return (
-          <section key={key} className="flex flex-col gap-3">
-            <SectionHeading
-              level="section"
-              leading={<Icon className="h-5 w-5 shrink-0" aria-hidden="true" />}
-            >
-              {label}
-            </SectionHeading>
-            {/* A guide card is a paragraph and a button, so three across is
-                comfortable on a desktop. It was one column at every width. */}
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {items.map((item, index) => (
-                <GuideCard
-                  key={`${item.name}-${index}`}
-                  item={item}
-                  city={city}
-                  onToggle={() => toggle(key, item)}
-                />
-              ))}
-            </div>
+      {/* "סקירה" — what the mockup calls "מה כדאי לדעת": the prose, the
+          getting-there line, and the whole-guide refresh. It is the tab that is
+          about the guide rather than about one category of it, which is why the
+          refresh lives here and not above the pills. */}
+      {tab === "overview" && (
+        <div className="flex flex-col gap-4">
+          {(guide.intro || guide.gettingThere) && (
+            <Surface tone="quiet" padding="lg" className="flex flex-col gap-3">
+              {guide.intro && <p className="max-w-measure">{guide.intro}</p>}
+              {guide.gettingThere && (
+                <p className="flex max-w-measure items-start gap-2 text-sm text-muted">
+                  <Compass
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span>{guide.gettingThere}</span>
+                </p>
+              )}
+            </Surface>
+          )}
+
+          <div className="flex items-center gap-3">
+            <p className="max-w-measure text-caption text-muted">
+              רענון מביא הצעות חדשות. מה שהוספתם לטיול נשאר.
+            </p>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => loadMore(key)}
-              loading={isLoadingMore}
-              className="self-start"
+              onClick={handleRefresh}
+              loading={refreshing}
+              className="ms-auto shrink-0"
             >
-              עוד תוצאות
+              רענון הצעות
             </Button>
-          </section>
-        );
-      })}
+          </div>
+        </div>
+      )}
+      {tab !== "overview" &&
+        SECTIONS.filter((section) => section.key === tab).map(
+          ({ key, label, Icon }) => {
+            const items = guide.sections[key] ?? [];
+            const isLoadingMore = loadingMore.includes(key);
+            return (
+              <section key={key} className="flex flex-col gap-3">
+                <SectionHeading
+                  level="section"
+                  leading={
+                    <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  }
+                >
+                  {label}
+                </SectionHeading>
+                {/* A guide card is a paragraph and a button, so three across is
+                    comfortable on a desktop. It was one column at every width. */}
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {items.map((item, index) => (
+                    <GuideCard
+                      key={`${item.name}-${index}`}
+                      item={item}
+                      city={city}
+                      onToggle={() => toggle(key, item)}
+                    />
+                  ))}
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadMore(key)}
+                  loading={isLoadingMore}
+                  className="self-start"
+                >
+                  עוד תוצאות
+                </Button>
+              </section>
+            );
+          },
+        )}
     </div>
   );
 }

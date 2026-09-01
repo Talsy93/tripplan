@@ -35,6 +35,8 @@ import {
   HomeRail,
   InviteForm,
   Itinerary,
+  CityBand,
+  CityGuide,
   CityGuideList,
   MemberList,
   MoreMenu,
@@ -660,6 +662,54 @@ export const SCENES: Scene[] = [
       >
         <SectionHeading level="page">הטיולים שלי</SectionHeading>
         <TripList trips={[]} today={f.TODAY} />
+      </AppShell>
+    ),
+  },
+  // ---- the city guide ------------------------------------------------------
+  //
+  // The last screen that still opened differently from the rest: a plain text
+  // back link and a black heading on grey. It opens with the trip's light now,
+  // and the four sections are behind a pill row instead of stacked four grids
+  // deep in one scroll.
+  {
+    slug: "city-guide",
+    title: "מדריך עיר · פס אור ורצועת גלולות",
+    note: "הפס נושא את האור של הטיול ולא אור משלו — עיר היא לא זהות שנייה. הגלולה הנבחרת בדיו ולא בכחול הפעולה, ו״סקירה״ ראשונה",
+    bleed: true,
+    render: () => (
+      <AppShell
+        header={<AppHeader title="יפן בסתיו" />}
+        banner={
+          <CityBand
+            tripId={f.TRIP_ID}
+            city="טוקיו"
+            hues={tripAura(FRAME_CITIES)}
+            nights={4}
+            from={f.LONG_START}
+            to="2026-09-28"
+          />
+        }
+        sidebar={
+          <SideNav
+            items={FRAME_NAV.map((item) => ({ ...item, active: false }))}
+            hues={tripAura(FRAME_CITIES)}
+            initial="ט"
+            header={
+              <RailTripSwitcher
+                name="יפן בסתיו"
+                phase={{ kind: "during", dayNumber: 3 }}
+              />
+            }
+          />
+        }
+      >
+        <div className="contents" style={tripHueStyle(tripAura(FRAME_CITIES))}>
+          <CityGuide
+            tripId={f.TRIP_ID}
+            city="טוקיו"
+            initialGuide={f.CITY_GUIDE}
+          />
+        </div>
       </AppShell>
     ),
   },

@@ -13,6 +13,8 @@
 
 import type { Booking } from "@/features/trips/domain/booking";
 import type {
+  CityGuideData,
+  GuideItem,
   ItineraryDay,
   SelectedItem,
 } from "@/features/trips/domain/ai-suggestion";
@@ -447,6 +449,42 @@ export const WEATHER: CityWeather[] = [
   },
 ];
 
+// ---- a city guide --------------------------------------------------------
+//
+// Enough in each of the four sections that the pill row has something to switch
+// between, and one item carrying the unbreakable name so the card grid is
+// checked against it too.
+const guideItem = (name: string, description: string, tip: string): GuideItem => ({
+  name,
+  description,
+  tip,
+  selected: false,
+});
+
+export const CITY_GUIDE: CityGuideData = {
+  intro:
+    "טוקיו היא לא עיר אחת אלא כמה עשרות שכונות שכל אחת מהן מרגישה כמו עיר בפני עצמה. הרכבת התחתית מחברת ביניהן ביעילות, וכרטיס Suica אחד פותר את כל הנסיעות בשבוע.",
+  gettingThere:
+    "מהנדה ברכבת המונורייל ואז קו יאמנוטה — כ-40 דקות למרכז. מנאריטה זה שעה וחצי.",
+  sections: {
+    areas: [
+      guideItem("שינג׳וקו", "מרכזי, רועש, ומחובר לכל מקום ברכבת", "עדיף בצד המזרחי של התחנה."),
+      guideItem("יאנאקה", "סמטאות מלפני המלחמה ובתי קפה קטנים", "שקט בלילה, קרוב לאואנו."),
+    ],
+    restaurants: [
+      guideItem("רחוב אומויידה יוקוצ׳ו", "דוכני יאקיטורי צרים, שינג׳וקו", "מזומן בלבד ברוב הדוכנים."),
+      guideItem(UNBREAKABLE, LONG, "להזמין מקום שבועיים מראש."),
+      guideItem("שוק צוקיג׳י החיצוני", "ארוחת בוקר של דגים, מוקדם בבוקר", "להגיע לפני 08:00."),
+    ],
+    attractions: [
+      guideItem("מקדש סנסו־ג׳י", "אסקוסה — המקדש העתיק בטוקיו", "מוקדם בבוקר, בלי קבוצות."),
+      guideItem("מגדל טוקיו סקייטרי", "סומידה — נוף לפוג׳י בימים בהירים", "לבדוק את התחזית לפני שקונים כרטיס."),
+    ],
+    experiences: [
+      guideItem("אונסן בעיר", "מרחצאות חמים בתוך טוקיו", "קעקועים — לבדוק מראש."),
+    ],
+  },
+};
 export const PHRASEBOOK: AiPhrasebook = {
   language: "יפנית",
   language_english: "Japanese",
