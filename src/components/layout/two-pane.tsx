@@ -21,8 +21,24 @@ export function TwoPane({
   aside,
 }: {
   children: ReactNode;
-  aside: ReactNode;
+  // Optional, because a screen can be in a state where the pane has nothing to
+  // say — a trip two months out has no forecast and may have no costs yet. An
+  // empty 372px strip beside the content is worse than no strip: it reads as
+  // something that failed to load.
+  aside?: ReactNode;
 }) {
+  // One column, centred in the content area rather than pinned to its start
+  // edge. Left at the start, the 660px measure would sit against the rail with
+  // 520px of white beside it at 1920 — the same lopsided void this whole pass
+  // is about, one level in.
+  if (!aside) {
+    return (
+      <div className="mx-auto flex w-full min-w-0 max-w-main flex-col gap-6">
+        {children}
+      </div>
+    );
+  }
+
   return (
     // xl, not lg. At 1024 the rail has already taken 15.5rem, and a 23.25rem
     // pane on top of it would leave the main column narrower than a phone's

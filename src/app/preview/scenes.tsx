@@ -23,8 +23,8 @@ import {
   BookingForm,
   BookingList,
   CityDaysEditor,
-
   CreateTripForm,
+  daysUntil,
   DayPager,
   DayTimeline,
   ExpenseSummary,
@@ -33,7 +33,6 @@ import {
   MemberList,
   NightStay,
   Phrasebook,
-
   RouteMap,
   ShareButton,
   StartHere,
@@ -44,13 +43,17 @@ import {
   tripAura,
   UnlocatedCities,
   NowCard,
+  OpenItems,
   RailTripProgress,
   RailTripSwitcher,
+  TodayBefore,
+  tripOpenItems,
   UpNext,
   WeatherForecast,
   WorkflowGuide,
   WorkflowSummary,
 } from "@/features/trips";
+import type { TripPhase } from "@/features/trips";
 import {
   AuraField,
   Badge,
@@ -94,14 +97,137 @@ export type Scene = {
 // The five tabs, drawn for the frame scene below. Static hrefs: nothing here
 // navigates, and the harness has no router state to be current in.
 const FRAME_NAV = [
-  { href: "#today", label: "היום", icon: <Sun className="h-5 w-5" />, active: true },
+  {
+    href: "#today",
+    label: "היום",
+    icon: <Sun className="h-5 w-5" />,
+    active: true,
+  },
   { href: "#days", label: "ימים", icon: <CalendarDays className="h-5 w-5" /> },
-  { href: "#explore", label: "מה עושים?", icon: <Compass className="h-5 w-5" /> },
+  {
+    href: "#explore",
+    label: "מה עושים?",
+    icon: <Compass className="h-5 w-5" />,
+  },
   { href: "#map", label: "מפה", icon: <MapIcon className="h-5 w-5" /> },
   { href: "#more", label: "עוד", icon: <Menu className="h-5 w-5" /> },
 ];
 
 const FRAME_CITIES = ["טוקיו", "קיוטו", "אוסקה", "נארה"];
+
+// Computed by the real domain function rather than written out as rows, so a
+// scene cannot go on looking right after the ordering changes underneath it.
+// Four cities, lodging booked in one of them, an itinerary two days long
+// against a fourteen-day trip with one of those two empty.
+//
+// The days-to-departure is derived from the date with the same `daysUntil` the
+// band and the rail use, not typed in beside it. Written in, the scene said 62
+// while the band above it said 72 — the harness has absolute dates and a real
+// clock, so any number spelled out twice will disagree with itself eventually.
+const FAR_OPEN = tripOpenItems({
+  startDate: f.FAR_START,
+  daysUntilStart: daysUntil(f.FAR_START),
+  dayCount: 14,
+  cities: FRAME_CITIES,
+  itinerary: f.ITINERARY,
+  bookings: f.BOOKINGS,
+});
+
+// The whole shell around a tab's content, so that more than one scene can be a
+// real screen rather than a component floating in a padded column.
+//
+// A function and not a second copy of the JSX: the frame is the thing T0 fixed,
+// and two scenes drawing their own version of it is how the harness would come
+// to disagree with itself about what the frame is.
+function appFrame({
+  title,
+  badge,
+  active,
+  phase,
+  startDate,
+  // The route. Not defaulted to the four Japanese cities: a scene for a trip
+  // with no destinations was drawing chips for four of them in the band above
+  // the row that said it had none.
+  cities,
+  children,
+}: {
+  title: string;
+  badge?: ReactNode;
+  active: string;
+  phase: TripPhase;
+  startDate: string | null;
+  cities: string[];
+  children: ReactNode;
+}) {
+  const items = FRAME_NAV.map((item) => ({
+    ...item,
+    active: item.href === `#${active}`,
+  }));
+
+  return (
+    <AppShell
+      header={
+        <AppHeader
+          title={title}
+          badge={badge}
+          trailing={<ShareButton tripId={f.TRIP_ID} memberCount={2} isShared />}
+        />
+      }
+      sidebar={
+        <SideNav
+          items={items}
+          hues={tripAura(cities)}
+          initial="ט"
+          header={<RailTripSwitcher name={title} phase={phase} />}
+          footer={
+            <RailTripProgress
+              phase={phase}
+              dayCount={14}
+              startDate={startDate}
+            />
+          }
+        />
+      }
+      // All three presentations at once, the way TripNav renders them: the
+      // floating bar below md, the pill row between md and lg, the rail from
+      // lg. Only one is ever visible, and the shell's bottom padding is sized
+      // for the first — so it has to be here or that padding is untested at
+      // 375.
+      nav={
+        <>
+          <div className="hidden gap-1 self-start rounded-full border border-border bg-surface-2 p-1 md:flex lg:hidden">
+            {items.map((item) => (
+              <span
+                key={item.href}
+                className={
+                  item.active
+                    ? "flex items-center gap-2 rounded-full bg-surface px-4 py-1.5 text-sm font-semibold shadow-soft"
+                    : "flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold text-muted"
+                }
+              >
+                {item.icon}
+                {item.label}
+              </span>
+            ))}
+          </div>
+          <BottomNav items={items} />
+        </>
+      }
+      banner={
+        <TripAuraBand
+          name={title}
+          startDate={startDate}
+          phase={phase}
+          dayCount={14}
+          cities={cities}
+          hues={tripAura(cities)}
+        />
+      }
+    >
+      {children}
+    </AppShell>
+  );
+}
 
 export const SCENES: Scene[] = [
   // ---- the frame itself ----------------------------------------------------
@@ -118,113 +244,152 @@ export const SCENES: Scene[] = [
     title: "המסגרת · רַיל, כותרת, שתי חלוניות",
     note: "ב-1920 הרַיל חייב לגעת בקצה החלון והתוכן להיות ממורכז במה שנשאר; ב-768 הרַיל יורד ושורת הגלולות עולה",
     bleed: true,
-    render: () => (
-      <AppShell
-        header={
-          <AppHeader
-            title="יפן בסתיו"
-            badge={
-              <span className="hidden shrink-0 sm:inline-flex">
-                <Badge tone="success">בטיול</Badge>
-              </span>
+    render: () =>
+      appFrame({
+        title: "יפן בסתיו",
+        active: "today",
+        phase: { kind: "during", dayNumber: 3 },
+        startDate: "2026-09-09",
+        cities: FRAME_CITIES,
+        badge: (
+          <span className="hidden shrink-0 sm:inline-flex">
+            <Badge tone="success">בטיול</Badge>
+          </span>
+        ),
+        children: (
+          <TwoPane
+            aside={
+              <>
+                <SectionHeading level="section">מה קרוב</SectionHeading>
+                <UpNext
+                  bookings={f.BOOKINGS}
+                  now={`${f.TODAY}T09:00:00.000Z`}
+                  cities={FRAME_CITIES}
+                />
+              </>
             }
-            trailing={<ShareButton tripId={f.TRIP_ID} memberCount={2} isShared />}
-          />
-        }
-        sidebar={
-          <SideNav
-            items={FRAME_NAV}
-            hues={tripAura(FRAME_CITIES)}
-            initial="ט"
-            header={
-              <RailTripSwitcher
-                name="יפן בסתיו"
-                phase={{ kind: "during", dayNumber: 3 }}
-              />
-            }
-            footer={
-              <RailTripProgress
-                phase={{ kind: "during", dayNumber: 3 }}
-                dayCount={14}
-                startDate="2026-09-09"
-              />
-            }
-          />
-        }
-        // All three presentations at once, the way TripNav renders them: the
-        // floating bar below md, the pill row between md and lg, the rail from
-        // lg. Only one is ever visible, and the shell's bottom padding is
-        // sized for the first — so it has to be here or that padding is
-        // untested at 375.
-        nav={
-          <>
-            <div className="hidden gap-1 self-start rounded-full border border-border bg-surface-2 p-1 md:flex lg:hidden">
-              {FRAME_NAV.map((item) => (
-                <span
-                  key={item.href}
-                  className={
-                    item.active
-                      ? "flex items-center gap-2 rounded-full bg-surface px-4 py-1.5 text-sm font-semibold shadow-soft"
-                      : "flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold text-muted"
-                  }
-                >
-                  {item.icon}
-                  {item.label}
-                </span>
-              ))}
-            </div>
-            <BottomNav items={FRAME_NAV} />
-          </>
-        }
-        banner={
-          <TripAuraBand
-            name="יפן בסתיו"
-            startDate="2026-09-09"
-            phase={{ kind: "during", dayNumber: 3 }}
-            dayCount={14}
-            cities={FRAME_CITIES}
-            hues={tripAura(FRAME_CITIES)}
-          />
-        }
-      >
-        <TwoPane
-          aside={
-            <>
-              <SectionHeading level="section">מה קרוב</SectionHeading>
-              <UpNext
-                bookings={f.BOOKINGS}
-                now={`${f.TODAY}T09:00:00.000Z`}
-                cities={FRAME_CITIES}
-              />
-            </>
-          }
-        >
-          {/* Prose, to make the measure countable. The card is 660px, the
+          >
+            {/* Prose, to make the measure countable. The card is 660px, the
               width the design draws cards at; the paragraph inside it stops at
               the measure. Both numbers are on screen at once, which is the
               point of having them here. */}
-          <Card className="flex flex-col gap-2">
-            <SectionHeading
-              level="section"
-              description="גם התיאור הזה מקבל את אותה מידה, ומקבל אותה מ-SectionHeading עצמו ולא מהעמוד שקורא לו."
-            >
-              אורך שורה
-            </SectionHeading>
-            <p className="max-w-measure text-sm text-muted">
-              השורה הזאת קיימת כדי שאפשר יהיה לספור אותה. הכרטיס שמסביבה רוחבו
-              660 פיקסלים, כמו במוקאפ, אבל הפסקה עצמה נעצרת קודם — כי בעברית
-              שורה של 660 פיקסלים מגיעה ל-87 תווים, וזה כבר מעבר לטווח שנוח
-              לקרוא בו. המידה יושבת על הטקסט, לא על הטור, כדי שהכרטיסים לידה
-              יישארו ברוחב שהעיצוב נתן להם.
-            </p>
-          </Card>
-          <NowCard
-            day={f.ITINERARY[0]}
-            date={f.TODAY}
-            now={`${f.TODAY}T07:10:00Z`}
+            <Card className="flex flex-col gap-2">
+              <SectionHeading
+                level="section"
+                description="גם התיאור הזה מקבל את אותה מידה, ומקבל אותה מ-SectionHeading עצמו ולא מהעמוד שקורא לו."
+              >
+                אורך שורה
+              </SectionHeading>
+              <p className="max-w-measure text-sm text-muted">
+                השורה הזאת קיימת כדי שאפשר יהיה לספור אותה. הכרטיס שמסביבה רוחבו
+                660 פיקסלים, כמו במוקאפ, אבל הפסקה עצמה נעצרת קודם — כי בעברית
+                שורה של 660 פיקסלים מגיעה ל-87 תווים, וזה כבר מעבר לטווח שנוח
+                לקרוא בו. המידה יושבת על הטקסט, לא על הטור, כדי שהכרטיסים לידה
+                יישארו ברוחב שהעיצוב נתן להם.
+              </p>
+            </Card>
+            <NowCard
+              day={f.ITINERARY[0]}
+              date={f.TODAY}
+              now={`${f.TODAY}T07:10:00Z`}
+            />
+          </TwoPane>
+        ),
+      }),
+  },
+  // ---- the day screen before departure -------------------------------------
+  //
+  // The state T1 exists for. Measured at 1911px before the fix, the main column
+  // was 817px of nothing: today/page.tsx rendered NowCard only when there is a
+  // current day and DayPager only during or after the trip, and on a trip
+  // leaving in 62 days both are false — so the column drew an sr-only heading
+  // and stopped, while the whole screen sat in the 372px pane beside it.
+  //
+  // Three scenes, because the pane's content is what varies: two months out
+  // there is no forecast and there may be no costs, and the pane has to
+  // disappear rather than stand there empty.
+  {
+    slug: "today-before",
+    title: "היום · לפני היציאה",
+    note: "המצב שהיה 817px של כלום: אין ״עכשיו״ ואין יום נוכחי. יותר מ-16 יום מהיציאה אז אין תחזית, אבל יש עלויות — החלונית נושאת רק אותן",
+    bleed: true,
+    render: () =>
+      appFrame({
+        title: "יפן בסתיו",
+        active: "today",
+        phase: { kind: "before", daysUntilStart: daysUntil(f.FAR_START) },
+        startDate: f.FAR_START,
+        cities: FRAME_CITIES,
+        badge: (
+          <span className="hidden shrink-0 sm:inline-flex">
+            <Badge tone="neutral">בתכנון</Badge>
+          </span>
+        ),
+        children: (
+          <TodayBefore
+            tripId={f.TRIP_ID}
+            tripName="יפן בסתיו"
+            bookings={f.BOOKINGS}
+            now={`${f.TODAY}T09:00:00.000Z`}
+            cities={FRAME_CITIES}
+            open={FAR_OPEN}
           />
-        </TwoPane>
-      </AppShell>
+        ),
+      }),
+  },
+  {
+    slug: "today-before-bare",
+    title: "היום · טיול חדש לגמרי",
+    note: "בלי תאריכים, בלי יעדים, בלי הזמנות — אין לחלונית מה לומר, אז היא נעלמת והטור היחיד ממורכז",
+    bleed: true,
+    render: () =>
+      appFrame({
+        title: "טיול חדש",
+        active: "today",
+        phase: { kind: "undated" },
+        startDate: null,
+        cities: [],
+        children: (
+          <TodayBefore
+            tripId={f.TRIP_ID}
+            tripName="טיול חדש"
+            bookings={[]}
+            now={`${f.TODAY}T09:00:00.000Z`}
+            cities={[]}
+            open={tripOpenItems({
+              startDate: null,
+              daysUntilStart: null,
+              dayCount: 0,
+              cities: [],
+              itinerary: [],
+              bookings: [],
+            })}
+          />
+        ),
+      }),
+  },
+  {
+    slug: "open-items",
+    title: "עדיין פתוח · שלושת המצבים",
+    note: "רשימה מלאה, שורה דחופה אחת, וטיול שאין בו כלום פתוח — הסדר הוא מה שחוסם את מה",
+    render: () => (
+      <div className="flex flex-col gap-8">
+        <OpenItems tripId={f.TRIP_ID} items={FAR_OPEN} />
+        <OpenItems
+          tripId={f.TRIP_ID}
+          items={tripOpenItems({
+            startDate: f.NEAR_START,
+            // Inside the three-week window, so lodging and transport turn
+            // urgent rather than staying informational.
+            daysUntilStart: 9,
+            dayCount: 14,
+            cities: FRAME_CITIES,
+            itinerary: f.ITINERARY,
+            bookings: [],
+          })}
+        />
+        <OpenItems tripId={f.TRIP_ID} items={[]} />
+      </div>
     ),
   },
   // ---- the home hero -------------------------------------------------------
@@ -329,9 +494,21 @@ export const SCENES: Scene[] = [
               icon: <Sun className="h-5 w-5" />,
               active: true,
             },
-            { href: "#days", label: "ימים", icon: <CalendarDays className="h-5 w-5" /> },
-            { href: "#explore", label: "מה עושים", icon: <Compass className="h-5 w-5" /> },
-            { href: "#map", label: "מפה", icon: <MapIcon className="h-5 w-5" /> },
+            {
+              href: "#days",
+              label: "ימים",
+              icon: <CalendarDays className="h-5 w-5" />,
+            },
+            {
+              href: "#explore",
+              label: "מה עושים",
+              icon: <Compass className="h-5 w-5" />,
+            },
+            {
+              href: "#map",
+              label: "מפה",
+              icon: <MapIcon className="h-5 w-5" />,
+            },
             { href: "#more", label: "עוד", icon: <Menu className="h-5 w-5" /> },
           ]}
         />
@@ -378,14 +555,27 @@ export const SCENES: Scene[] = [
     note: "שלוש פלטות ושלושה שלבים — האם הפריט הנבחר מנצח את האור מאחוריו, והאם המחליף למעלה והספירה למטה קריאים על כל אחת",
     render: () => (
       <div className="flex gap-4">
-        {(
-          [
-            { cities: ["טוקיו", "קיוטו", "אוסקה", "נארה"], name: "יפן בסתיו", phase: { kind: "during", dayNumber: 3 } as const },
-            { cities: ["רומא", "פירנצה"], name: "איטליה באביב", phase: { kind: "before", daysUntilStart: 24 } as const },
-            { cities: ["פראג"], name: f.LONG, phase: { kind: "undated" } as const },
-          ]
-        ).map(({ cities, name, phase }, index) => (
-          <div key={index} className="h-[32rem] w-sidebar overflow-hidden rounded-tile">
+        {[
+          {
+            cities: ["טוקיו", "קיוטו", "אוסקה", "נארה"],
+            name: "יפן בסתיו",
+            phase: { kind: "during", dayNumber: 3 } as const,
+          },
+          {
+            cities: ["רומא", "פירנצה"],
+            name: "איטליה באביב",
+            phase: { kind: "before", daysUntilStart: 24 } as const,
+          },
+          {
+            cities: ["פראג"],
+            name: f.LONG,
+            phase: { kind: "undated" } as const,
+          },
+        ].map(({ cities, name, phase }, index) => (
+          <div
+            key={index}
+            className="h-[32rem] w-sidebar overflow-hidden rounded-tile"
+          >
             <SideNav
               hues={tripAura(cities)}
               initial="ט"
@@ -398,11 +588,34 @@ export const SCENES: Scene[] = [
                 />
               }
               items={[
-                { href: "#1", label: "היום", icon: <Sun className="h-5 w-5" />, active: index === 0 },
-                { href: "#2", label: "ימים", icon: <CalendarDays className="h-5 w-5" />, active: index === 1 },
-                { href: "#3", label: "מה עושים?", icon: <Compass className="h-5 w-5" /> },
-                { href: "#4", label: "מפה", icon: <MapIcon className="h-5 w-5" />, active: index === 2 },
-                { href: "#5", label: "עוד", icon: <Menu className="h-5 w-5" /> },
+                {
+                  href: "#1",
+                  label: "היום",
+                  icon: <Sun className="h-5 w-5" />,
+                  active: index === 0,
+                },
+                {
+                  href: "#2",
+                  label: "ימים",
+                  icon: <CalendarDays className="h-5 w-5" />,
+                  active: index === 1,
+                },
+                {
+                  href: "#3",
+                  label: "מה עושים?",
+                  icon: <Compass className="h-5 w-5" />,
+                },
+                {
+                  href: "#4",
+                  label: "מפה",
+                  icon: <MapIcon className="h-5 w-5" />,
+                  active: index === 2,
+                },
+                {
+                  href: "#5",
+                  label: "עוד",
+                  icon: <Menu className="h-5 w-5" />,
+                },
               ]}
             />
           </div>
@@ -485,10 +698,7 @@ export const SCENES: Scene[] = [
           date="2026-09-11"
           now="2026-09-11T07:10:00Z"
         />
-        <DayTimeline
-          day={f.ITINERARY[0]}
-          date="2026-09-11"
-          />
+        <DayTimeline day={f.ITINERARY[0]} date="2026-09-11" />
       </TwoPane>
     ),
   },
@@ -652,18 +862,15 @@ export const SCENES: Scene[] = [
     slug: "day-timeline-gaps",
     title: "ציר הזמן · הפערים",
     note: "אותו יום בלי הטיסה שמכסה אותו — כאן שורות הפער נראות, וזה מה שהחליף את רשת השעות",
-    render: () => (
-      <DayTimeline
-        day={f.ITINERARY[0]}
-        date="2026-09-11"
-      />
-    ),
+    render: () => <DayTimeline day={f.ITINERARY[0]} date="2026-09-11" />,
   },
   {
     slug: "day-timeline-empty",
     title: "ציר הזמן · יום ריק",
     note: "יום בלי פעילויות — המצב שמציע רעיונות",
-    render: () => <DayTimeline day={f.ITINERARY[1]} bookings={[]} date="2026-09-12" />,
+    render: () => (
+      <DayTimeline day={f.ITINERARY[1]} bookings={[]} date="2026-09-12" />
+    ),
   },
   {
     slug: "city-days",
@@ -771,9 +978,7 @@ export const SCENES: Scene[] = [
     slug: "share-button",
     title: "כפתור השיתוף בכותרת",
     note: "הגרסה המצומצמת לטלפון והמלאה לרוחב",
-    render: () => (
-      <ShareButton tripId={f.TRIP_ID} memberCount={2} isShared />
-    ),
+    render: () => <ShareButton tripId={f.TRIP_ID} memberCount={2} isShared />,
   },
 
   // ---- more ----------------------------------------------------------------
@@ -834,9 +1039,7 @@ export const SCENES: Scene[] = [
               <span className="text-caption font-extrabold text-white/75">
                 הצעות בשבילכם
               </span>
-              <p className="text-title font-bold">
-                מה ה-AI ממליץ בשינג׳וקו?
-              </p>
+              <p className="text-title font-bold">מה ה-AI ממליץ בשינג׳וקו?</p>
               <p className="text-caption text-white/75">
                 OpenStreetMap יודע אילו מקומות יש ומתי הם פתוחים. את מה שהאזור
                 עצמו שווה בשבילו — לא.
@@ -871,10 +1074,16 @@ export const SCENES: Scene[] = [
         <SectionHeading level="page" description={f.LONG}>
           {f.UNBREAKABLE}
         </SectionHeading>
-        <EmptyState icon={<Luggage />} title={f.LONG} description={f.UNBREAKABLE} />
+        <EmptyState
+          icon={<Luggage />}
+          title={f.LONG}
+          description={f.UNBREAKABLE}
+        />
       </div>
     ),
   },
 ];
 
-export const SCENES_BY_SLUG = new Map(SCENES.map((scene) => [scene.slug, scene]));
+export const SCENES_BY_SLUG = new Map(
+  SCENES.map((scene) => [scene.slug, scene]),
+);
