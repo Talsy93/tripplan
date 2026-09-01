@@ -83,7 +83,12 @@ export const bookingSchema = z.object({
   // clock in APP_TIME_ZONE, so on a flight that crosses zones their
   // difference is the gap between two clocks rather than a duration. See the
   // migration.
-  duration_minutes: z.number().nullable(),
+  // Optional, not just nullable, and that is about the hand-run migrations:
+  // between deploying this and someone running 0020 in the SQL editor the column
+  // does not exist, so a row comes back without the key at all. listBookings
+  // casts rather than parses, so nothing throws — but the type has to admit the
+  // gap or every reader is told a number is there when it is not.
+  duration_minutes: z.number().nullable().optional(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 

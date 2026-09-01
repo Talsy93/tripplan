@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { wallClockToInstant } from "@/lib/datetime";
 import { deadlineDate, parseCost, parseDuration } from "../domain/booking";
+import { isSchemaOutOfDate } from "@/lib/supabase/schema-errors";
 import { APP_TIME_ZONE } from "../domain/weather";
 import type {
   Booking,
@@ -37,6 +38,23 @@ function toInstant(wall: string): string | null {
   return wallClockToInstant(wall, APP_TIME_ZONE);
 }
 
+// 0020's column, spread into a write only when there is a value for it.
+//
+// Migrations here are applied by hand (README), so between a deploy and the
+// person running the SQL there is a window where the column does not exist. An
+// unconditional `duration_minutes: null` in the payload would fail every insert
+// and update in that window — turning "the new duration field does not save" into
+// "no booking can be saved at all", which is the difference between a feature
+// waiting and the screen being broken.
+//
+// A booking that does carry a duration still fails in that window, and that is
+// correct: the alternative is dropping what the user typed and reporting success.
+// The action names migration 0020 in the message — see isSchemaOutOfDate.
+function durationColumn(value: string | undefined) {
+  const minutes = parseDuration(value);
+  return minutes === null ? {} : { duration_minutes: minutes };
+}
+
 export async function createBooking(input: CreateBookingInput) {
   const startsAt = toInstant(input.startsAt);
   // The schema guarantees a well-formed string, so this is unreachable in
@@ -44,7 +62,7 @@ export async function createBooking(input: CreateBookingInput) {
   // two-hour shift, which is worse than refusing the write.
   if (!startsAt) {
     console.error("createBooking: unparseable startsAt", input.startsAt);
-    return false;
+    return { error: "failed" };
   }
 
   const supabase = await createClient();
@@ -82,14 +100,23 @@ export async function createBooking(input: CreateBookingInput) {
     // in it.
     cost_amount: parseCost(input.costAmount),
     cost_currency: parseCost(input.costAmount) === null ? null : input.costCurrency || null,
-    duration_minutes: parseDuration(input.durationMinutes),
+    // Spread rather than a plain key, so a booking with no duration sends no
+    // `duration_minutes` at all — which is what keeps every existing flow
+    // working on a database where migration 0020 has not been run yet. Only a
+    // booking that actually carries one can hit the missing column, and that
+    // failure is reported by name below.
+    ...durationColumn(input.durationMinutes),
   });
 
+  // A boolean until now. It reports a kind instead, so the one failure a
+  // reader can actually do something about — the 0020 column not being there
+  // yet — can say so rather than arriving as "try again", which is advice that
+  // does not work.
   if (error) {
     console.error("createBooking failed:", error.message);
-    return false;
+    return { error: isSchemaOutOfDate(error.message) ? "schema" : "failed" };
   }
-  return true;
+  return { error: null };
 }
 
 // Same fields as createBooking, targeted at an existing row instead of a new
@@ -124,13 +151,15 @@ export async function updateBooking(input: UpdateBookingInput) {
         reminder_days_before: input.reminderDaysBefore ?? null,
         cost_amount: parseCost(input.costAmount),
         cost_currency: input.costCurrency || null,
-        duration_minutes: parseDuration(input.durationMinutes),
+        ...durationColumn(input.durationMinutes),
       },
       { count: "exact" },
     )
     .eq("id", input.id);
 
-  if (error) return { error: error.message };
+  if (error) {
+    return { error: isSchemaOutOfDate(error.message) ? "schema" : error.message };
+  }
   if (count === 0) return { error: "not-found" };
   return { error: null };
 }

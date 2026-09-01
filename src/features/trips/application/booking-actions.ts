@@ -35,6 +35,19 @@ const FORM_FIELDS = [
   "durationMinutes",
 ] as const;
 
+// The one write failure a reader can act on, named. Everything else keeps the
+// generic message: "the column is missing" is actionable ("run the migration"),
+// and a network blip or an RLS refusal is not.
+//
+// Migrations in this project are applied by hand in the Supabase SQL editor
+// (README), so the window between deploying a column and running its SQL is
+// real and a reader can be standing in it.
+function bookingWriteError(kind: string, fallback: string): string {
+  return kind === "schema"
+    ? "השדה ״משך הנסיעה״ עדיין לא קיים במסד הנתונים. הריצו את המיגרציה 0020_booking_duration.sql, או השאירו את השדה ריק."
+    : fallback;
+}
+
 // A checkbox is absent from FormData when unticked, present as "on" when
 // ticked. Absent therefore means false — but only for a form that actually
 // contains the field, which is why the caller passes the flag explicitly rather
@@ -100,11 +113,12 @@ export async function addBooking(
     };
   }
 
-  if (!(await createBooking(parsed.data))) {
+  const created = await createBooking(parsed.data);
+  if (created.error) {
     // A save that failed for reasons outside the form still keeps the input —
     // retyping a flight is nobody's idea of error recovery.
     return {
-      error: "השמירה נכשלה. נסו שוב.",
+      error: bookingWriteError(created.error, "השמירה נכשלה. נסו שוב."),
       values: submittedValues(formData),
     };
   }
@@ -136,6 +150,7 @@ export async function editBooking(
     booked: checkboxValue(formData, "booked"),
     reminderDaysBefore: optionalNumber(formData.get("reminderDaysBefore")),
     costAmount: formData.get("costAmount") || undefined,
+    durationMinutes: formData.get("durationMinutes") || undefined,
     costCurrency: formData.get("costCurrency") || undefined,
   });
 
@@ -149,7 +164,7 @@ export async function editBooking(
   const { error } = await updateBookingRow(parsed.data);
   if (error) {
     return {
-      error: "העדכון נכשל. נסו שוב.",
+      error: bookingWriteError(error, "העדכון נכשל. נסו שוב."),
       values: submittedValues(formData),
     };
   }

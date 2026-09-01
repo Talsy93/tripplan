@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { normaliseName } from "@/lib/text";
+import { isSchemaOutOfDate } from "@/lib/supabase/schema-errors";
 import type {
   AiItinerary,
   ItineraryDay,
@@ -224,21 +225,6 @@ export async function saveItinerary(
   return { error: null };
 }
 
-// A write that failed because the database is behind the code, as opposed to any
-// other write failure. Worth telling apart: the fix is running a migration, and
-// no amount of retrying will help.
-//
-// PostgREST reports it either as Postgres' undefined_column (42703) or, more
-// often, as its own schema-cache miss — hence matching on the text as well.
-export function isSchemaOutOfDate(message: string): boolean {
-  return (
-    message.includes("42703") ||
-    message.includes("PGRST204") ||
-    /column .* does not exist/i.test(message) ||
-    /could not find the .* column/i.test(message) ||
-    /schema cache/i.test(message)
-  );
-}
 
 // How many days the itinerary covers, without loading it.
 //

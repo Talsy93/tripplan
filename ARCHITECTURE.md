@@ -62,8 +62,9 @@ src/
 5. **Breadth before depth.** New capabilities are built as a thin end-to-end slice first.
 6. **A trip's phase is derived from its dates, not stored.** `tripPhase()` in
    `features/trips/domain/trip-days.ts` returns `undated | before | during | after`
-   from `start_date`, `end_date` and today. The `trips.status` column remains for
-   explicit user intent (archiving) and is not written by the app.
+   from `start_date`, `end_date` and today. The `trips.status` column is read by
+   the schema because it exists and is non-null, and is **written by nothing** —
+   archiving was its last writer and was removed on 2026-09-01.
    *Changed 2026-08-12.* The stored status was never true: it was set to
    `executing` the moment an AI itinerary was saved — possibly months before
    departure — and nothing ever set `completed`. Keeping a stored status honest

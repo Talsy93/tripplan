@@ -3,7 +3,7 @@ import { geocodePlace, geocodePlaces, reverseCountries } from "@/lib/geocode";
 import { medianPoint, orderByProximity } from "@/lib/geo";
 import { isSameDestination } from "../domain/ai-suggestion";
 import { dominantCountry, itineraryStops } from "../domain/route";
-import { isSchemaOutOfDate } from "./itinerary-service";
+import { isSchemaOutOfDate } from "@/lib/supabase/schema-errors";
 import type { RoutePlace, RouteStop, TripRoute } from "../domain/route";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 import type { CountryInfo, Coordinates } from "@/lib/geocode";

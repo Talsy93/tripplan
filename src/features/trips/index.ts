@@ -166,7 +166,10 @@ export {
   dayHoursPromptLines,
 } from "./domain/day-hours";
 export type { DayHours } from "./domain/day-hours";
-export { isSchemaOutOfDate } from "./infrastructure/itinerary-service";
+// Re-exported through the feature barrel because app/api/ai/itinerary reaches it
+// that way, and iron rule 1 says a route may only import a feature through its
+// index. The helper itself is generic — see lib/supabase/schema-errors.ts.
+export { isSchemaOutOfDate } from "@/lib/supabase/schema-errors";
 export {
   cityDayPlan,
   cityDayTotals,

@@ -46,10 +46,8 @@ export default async function ProfilePage() {
   // my trips shown, always". A home screen for trips that hides trips was
   // solving a problem nobody had.
 
-  const active = trips;
-
   const auraByTrip = assignTripAuras(
-    active.map((trip) => ({
+    trips.map((trip) => ({
       id: trip.id,
       cities: citiesByTrip.get(trip.id) ?? [],
       createdAt: trip.created_at,
@@ -63,7 +61,7 @@ export default async function ProfilePage() {
   // is a field of light, and a photo underneath it would be a third thing
   // competing with the countdown and the route. getPlaceImage still serves the
   // trip's own "today" tab, where a picture of the place is the subject.
-  const upcoming = pickUpcomingTrip(active);
+  const upcoming = pickUpcomingTrip(trips);
   let upcomingCities: string[] = [];
   // The itinerary's length, for the rail's countdown: tripPhase needs it to know
   // whether a trip with a start date and no end date is still ahead.
@@ -217,20 +215,20 @@ export default async function ProfilePage() {
             question. It stays reachable, collapsed, for everyone else. */}
         <HowItWorks
           defaultOpen={trips.length === 0}
-          tripId={upcoming?.id ?? active[0]?.id ?? null}
+          tripId={upcoming?.id ?? trips[0]?.id ?? null}
         />
 
         <section className="flex flex-col gap-3">
-          {active.length > 0 && (
+          {trips.length > 0 && (
             <SectionHeading
               level="sub"
               description={user ? `מחובר כ-${user.email}` : undefined}
             >
-              כל הטיולים · {active.length}
+              כל הטיולים · {trips.length}
             </SectionHeading>
           )}
           <TripList
-            trips={active}
+            trips={trips}
             today={today}
             citiesByTrip={citiesByTrip}
             auraByTrip={auraByTrip}

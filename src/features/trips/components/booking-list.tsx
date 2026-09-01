@@ -447,7 +447,13 @@ function TransportLeg({ booking }: { booking: Booking }) {
             11h25m — see migration 0020. A booking without it shows nothing
             here rather than a number that is wrong by the offset between two
             countries. */}
-        {booking.duration_minutes !== null && (
+        {/* `typeof`, not `!== null`. listBookings *casts* its rows rather than
+            parsing them, so on a database where 0020 has not been run the column
+            is simply absent and this field is `undefined` — which `!== null`
+            waves through, and durationMinutesLabel then renders "NaNש׳ NaNד׳".
+            The type says `number | null` and the runtime disagrees; the check
+            has to answer to the runtime. */}
+        {typeof booking.duration_minutes === "number" && (
           <span className="whitespace-nowrap text-caption tabular-nums text-muted">
             {durationMinutesLabel(booking.duration_minutes)}
           </span>
