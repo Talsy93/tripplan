@@ -52,7 +52,7 @@ export function TripNav({ tripId }: { tripId: string }) {
 
   return (
     <>
-      <div className="hidden gap-1 self-start rounded-full border border-border bg-surface-2 p-1 md:flex lg:hidden">
+      <div className="mt-4 hidden gap-1 self-start rounded-full border border-border bg-surface-2 p-1 md:flex lg:hidden">
         {items.map((item) => (
           <Link
             key={item.href}

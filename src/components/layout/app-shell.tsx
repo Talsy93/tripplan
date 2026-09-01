@@ -82,20 +82,26 @@ export function AppShell({
             sidebar ? "max-w-content" : widths[width],
           )}
         >
-          {nav && (
-            <div className="w-full px-4 pt-4 md:px-6 lg:px-8">{nav}</div>
-          )}
+          {/* No top padding of its own. A navigation component is free to render
+              nothing in the flow — the phone bar is `fixed` and the pill row is
+              `hidden` outside md–lg — and a wrapper with `pt-4` was then 16px of
+              dead space above every screen at every width but one.
+              Measured on the map tab at 375: the app bar ended at 56 and the map
+              began at 72, so a screen whose whole point is reaching the bar had a
+              grey strip under it. The padding belongs to the pill row, which is
+              the only thing here that is ever in the flow. */}
+          {nav && <div className="w-full px-4 md:px-6 lg:px-8">{nav}</div>}
 
           <main
             className={cn(
               "flex w-full flex-1 flex-col gap-6 px-4 pt-5 md:px-6 lg:px-8",
               nav
-                // 6rem, not 5: the phone bar floats now, so its own inset
-                // counts on top of its height. Measured at 375px — the bar is
-                // 80px tall and its top sits 92px above the viewport bottom,
-                // so it needs 5.75rem. The old 5rem left the last row of a
-                // list 12px behind the glass.
-                ? "pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-12"
+                ? // 6rem, not 5: the phone bar floats now, so its own inset
+                  // counts on top of its height. Measured at 375px — the bar is
+                  // 80px tall and its top sits 92px above the viewport bottom,
+                  // so it needs 5.75rem. The old 5rem left the last row of a
+                  // list 12px behind the glass.
+                  "pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-12"
                 : "pb-12",
             )}
           >

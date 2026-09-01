@@ -152,6 +152,9 @@ function appFrame({
   // with no destinations was drawing chips for four of them in the band above
   // the row that said it had none.
   cities,
+  // The band, which the map tab does not have: TripBandSlot hides it there, and
+  // that is the reason the map can start at the app bar at all.
+  showBanner = true,
   children,
 }: {
   title: string;
@@ -160,6 +163,7 @@ function appFrame({
   phase: TripPhase;
   startDate: string | null;
   cities: string[];
+  showBanner?: boolean;
   children: ReactNode;
 }) {
   const items = FRAME_NAV.map((item) => ({
@@ -198,7 +202,7 @@ function appFrame({
       // 375.
       nav={
         <>
-          <div className="hidden gap-1 self-start rounded-full border border-border bg-surface-2 p-1 md:flex lg:hidden">
+          <div className="mt-4 hidden gap-1 self-start rounded-full border border-border bg-surface-2 p-1 md:flex lg:hidden">
             {items.map((item) => (
               <span
                 key={item.href}
@@ -217,14 +221,16 @@ function appFrame({
         </>
       }
       banner={
-        <TripAuraBand
-          name={title}
-          startDate={startDate}
-          phase={phase}
-          dayCount={14}
-          cities={cities}
-          hues={tripAura(cities)}
-        />
+        showBanner ? (
+          <TripAuraBand
+            name={title}
+            startDate={startDate}
+            phase={phase}
+            dayCount={14}
+            cities={cities}
+            hues={tripAura(cities)}
+          />
+        ) : undefined
       }
     >
       {children}
@@ -993,6 +999,38 @@ export const SCENES: Scene[] = [
   },
 
   // ---- map -----------------------------------------------------------------
+  //
+  // T4 is a measurement, not a redraw: the map runs full-bleed from the app bar
+  // to the bottom of the viewport, and its height is arithmetic against the
+  // chrome above it — chrome that T0 rearranged. So the map needs a scene inside
+  // the frame, which is what `map-tab` is; `map` below still measures the
+  // component on its own.
+  //
+  // No band: TripBandSlot hides it on this tab, and it is the reason the map can
+  // start at the app bar at all.
+  {
+    slug: "map-tab",
+    title: "מפה · בתוך המסגרת",
+    note: "בטלפון המפה נוגעת בשלוש הקצוות ומתחת לסרגל; בדסקטופ היא חולקת שורה עם חלונית התחנות. אין רצועה לבנה סביבה באף אחד מהם",
+    bleed: true,
+    render: () =>
+      appFrame({
+        title: "יפן בסתיו",
+        active: "map",
+        phase: { kind: "during", dayNumber: 3 },
+        startDate: f.LONG_START,
+        cities: FRAME_CITIES,
+        showBanner: false,
+        children: (
+          <RouteMap
+            tripId={f.TRIP_ID}
+            route={f.ROUTE}
+            itinerary={f.ITINERARY_LONG}
+            tripName="יפן בסתיו"
+          />
+        ),
+      }),
+  },
   {
     slug: "map",
     title: "מפת המסלול",

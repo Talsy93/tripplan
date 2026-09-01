@@ -24,16 +24,30 @@ import { cityToneClass, cityToneMap } from "../domain/tone";
 // The map's height at each window class. It used to be a flat h-[26rem] at
 // every width, repeated in four places — a phone-sized map centred in a 1440px
 // screen. The canvas fills its frame now, so this is the only place it is set.
-// The map's height at each window class.
 //
-// Below lg it is the whole viewport under the app bar: on a phone this tab is
-// the map, the chips float on it and the stops arrive on a sheet over it, so
-// there is nothing else to leave room for. AppHeader is 3.5rem.
+// Three numbers, and each one is the sum of what actually sits above the map at
+// that width. All three were measured in the browser rather than reasoned about,
+// because two of them were wrong:
 //
-// From lg it goes back to sharing the row with the stops pane, which is the
-// desktop layout and does not want a sheet.
+//   < md   3.5rem  — the app bar, and nothing else. This tab *is* the map: the
+//                    chips float on it and the stops arrive on a sheet over it.
+//   md–lg  7.375rem — the app bar, plus the tab pill row (2.875rem) and the
+//                    1rem above it. Measured at 768×900 the map overshot the
+//                    window by exactly 62px, which is that row: the height had
+//                    only ever counted the app bar.
+//   ≥ lg   4.75rem  — the app bar plus the content column's own 1.25rem of top
+//                    padding; the pill row is gone and the rail is beside, not
+//                    above. This was 14rem, calibrated against the frame T0
+//                    replaced, and at 1920×1000 it left the map ending 148px
+//                    short of the bottom with nothing in the gap.
+//
+// Below the fold at every width: the reset button and any location warnings.
+// That is where a maintenance action belongs.
+//
+// min-h so a short window (a laptop with devtools open) gets a usable map rather
+// than a 200px strip.
 const MAP_HEIGHT =
-  "h-[calc(100dvh-3.5rem)] lg:h-[calc(100dvh-14rem)] lg:min-h-[26rem]";
+  "h-[calc(100dvh-3.5rem)] md:h-[calc(100dvh-7.375rem)] lg:h-[calc(100dvh-4.75rem)] lg:min-h-[26rem]";
 
 // Leaflet has no server rendering — it needs a real DOM. Loading the canvas
 // only in the browser keeps the rest of the page server-rendered.
@@ -100,8 +114,12 @@ export function RouteMap({
     focusCity === null
       ? null
       : (() => {
-          const stop = route.stops.find((candidate) => candidate.city === focusCity);
-          return stop ? ([stop.latitude, stop.longitude] as [number, number]) : null;
+          const stop = route.stops.find(
+            (candidate) => candidate.city === focusCity,
+          );
+          return stop
+            ? ([stop.latitude, stop.longitude] as [number, number])
+            : null;
         })();
 
   // Numbers stay global across the groups below — a stop's number matches its
@@ -203,36 +221,36 @@ export function RouteMap({
               ) : null
             }
             items={route.stops.map((stop) => (
-                <div
-                  key={stop.city}
-                  className={cn(
-                    "flex min-w-0 items-center gap-2.5 py-2",
-                    cityToneClass(tones, stop.city),
-                  )}
+              <div
+                key={stop.city}
+                className={cn(
+                  "flex min-w-0 items-center gap-2.5 py-2",
+                  cityToneClass(tones, stop.city),
+                )}
+              >
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tone-dot text-caption font-black tabular-nums text-white">
+                  {stopNumberByCity.get(stop.city)}
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="min-w-0 truncate text-sm font-bold">
+                    {stop.city}
+                  </span>
+                  <span className="min-w-0 truncate text-caption text-muted">
+                    {stop.days.length > 0
+                      ? `ימים ${stop.days.join(", ")}${stop.nights > 0 ? ` · ${nightsLabel(stop.nights)}` : ""}`
+                      : "עוד לא בלו״ז"}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setFocusCity(stop.city)}
+                  aria-label={`הצג את ${stop.city} במפה`}
+                  className="shrink-0 rounded-control p-1 text-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tone-dot text-caption font-black tabular-nums text-white">
-                    {stopNumberByCity.get(stop.city)}
-                  </span>
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="min-w-0 truncate text-sm font-bold">
-                      {stop.city}
-                    </span>
-                    <span className="min-w-0 truncate text-caption text-muted">
-                      {stop.days.length > 0
-                        ? `ימים ${stop.days.join(", ")}${stop.nights > 0 ? ` · ${nightsLabel(stop.nights)}` : ""}`
-                        : "עוד לא בלו״ז"}
-                    </span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setFocusCity(stop.city)}
-                    aria-label={`הצג את ${stop.city} במפה`}
-                    className="shrink-0 rounded-control p-1 text-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <Crosshair className="h-4 w-4" aria-hidden="true" />
-                  </button>
-                </div>
-              ))}
+                  <Crosshair className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
+            ))}
           />
         </div>
 
@@ -261,8 +279,10 @@ export function RouteMap({
         className={cn(
           "hidden w-full flex-col gap-4 lg:flex lg:w-pane lg:shrink-0",
           // Scrolls independently of the map, which is what makes this a pane
-          // rather than a long column next to a short one.
-          "lg:sticky lg:top-20 lg:max-h-[calc(100dvh-14rem)] lg:overflow-y-auto lg:pe-1",
+          // rather than a long column next to a short one. Same 4.75rem as
+          // MAP_HEIGHT above, so the pane's top edge lines up with the map's
+          // and both end at the bottom of the window.
+          "lg:sticky lg:top-[4.75rem] lg:max-h-[calc(100dvh-4.75rem)] lg:overflow-y-auto lg:pe-1",
         )}
       >
         <div className="flex flex-col gap-2">
@@ -281,7 +301,10 @@ export function RouteMap({
                 )}
                 <ol className="flex flex-col gap-2">
                   {group.stops.map((stop) => (
-                    <li key={stop.city} className={cityToneClass(tones, stop.city)}>
+                    <li
+                      key={stop.city}
+                      className={cityToneClass(tones, stop.city)}
+                    >
                       <ListRow
                         leading={
                           <Badge
