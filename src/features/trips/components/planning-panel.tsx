@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Sparkles } from "lucide-react";
 import { Banner, Button, Card, Field, Textarea } from "@/components/ui";
+import { AuraPanel } from "./aura-panel";
 import { addMoreCities, saveCities } from "../application/guide-actions";
 import { aiErrorFromResponse } from "../domain/ai-errors";
 import {
@@ -118,24 +119,41 @@ export function PlanningPanel({ tripId, initialCities }: PlanningPanelProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-        <Field label="מה בא לכם לעשות בטיול?">
-          <Textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="לדוגמה: שבוע באיטליה, דגש על אוכל, אמנות ואתרים היסטוריים"
-            rows={3}
-          />
-        </Field>
-        <Button
-          type="submit"
-          loading={loading}
-          disabled={prompt.trim().length < 3}
-          className="self-start"
-        >
-          {cities.length > 0 ? "הצעות חדשות" : "קבלת הצעות מ-AI"}
-        </Button>
-      </form>
+      {/* The one lit element on this screen.
+          The design draws the discovery tab with exactly one thing carrying the
+          trip's full light — the AI's offer — because a screen where everything
+          glows has nothing that stands out (law 03). This is that offer: the
+          category grid above it is white cards on grey, and the city cards it
+          produces are white cards on grey. Only the asking glows.
+          The prompt itself sits on the light, which the token file otherwise
+          forbids. It holds here for the reason AuraPanel documents: the veil is
+          what the rule is about, and the field below is an opaque input. */}
+      <AuraPanel>
+        <span className="flex min-w-0 items-center gap-1.5 text-caption font-extrabold text-white/75">
+          <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          מותאם לטיול שלכם
+        </span>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <Field label="מה בא לכם לעשות בטיול?">
+            <Textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="לדוגמה: שבוע באיטליה, דגש על אוכל, אמנות ואתרים היסטוריים"
+              rows={3}
+            />
+          </Field>
+          <Button
+            type="submit"
+            variant="onLight"
+            loading={loading}
+            disabled={prompt.trim().length < 3}
+            className="self-start"
+          >
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+            {cities.length > 0 ? "הצעות חדשות" : "קבלת הצעות מ-AI"}
+          </Button>
+        </form>
+      </AuraPanel>
 
       {error && <Banner tone="danger">{error}</Banner>}
       {notice && <Banner tone="info">{notice}</Banner>}

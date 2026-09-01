@@ -16,6 +16,7 @@ import {
   Button,
   Chip,
   EmptyState,
+  Glyph,
   Input,
   ListRow,
   SectionHeading,
@@ -26,7 +27,12 @@ import { saveMore, setSelected } from "../application/guide-actions";
 import { aiErrorFromResponse } from "../domain/ai-errors";
 import { PLACE_CATEGORIES } from "../domain/place";
 import type { AiRecommendation } from "../domain/ai-suggestion";
-import { cityToneClass, cityToneMap } from "../domain/tone";
+import {
+  cityToneClass,
+  cityToneMap,
+  toneByIndex,
+  toneClass,
+} from "../domain/tone";
 import type { PlaceCategory } from "../domain/place";
 import type { Place } from "../domain/place";
 import type { AddedPlace } from "../infrastructure/place-service";
@@ -256,7 +262,10 @@ export function PlaceSearch({
       if (!res.ok) {
         setStatus({
           kind: "error",
-          message: await aiErrorFromResponse(res, "בקשת הרעיונות נכשלה. נסו שוב."),
+          message: await aiErrorFromResponse(
+            res,
+            "בקשת הרעיונות נכשלה. נסו שוב.",
+          ),
         });
         return;
       }
@@ -310,8 +319,11 @@ export function PlaceSearch({
   // ---- The grid: where this tab starts -------------------------------------
   if (category === null) {
     return (
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
-        {CATEGORY_KEYS.map((key) => {
+      // Three columns at every width, which is what the design draws. It used
+      // to be 2/3/4/6, and at xl that put six tiles in one 110px-tall row above
+      // an otherwise empty screen — a toolbar, not the opening move of a tab.
+      <div className="grid grid-cols-3 gap-2.5">
+        {CATEGORY_KEYS.map((key, index) => {
           const meta = PLACE_CATEGORIES[key];
           const count = savedCounts[key] ?? 0;
           return (
@@ -319,26 +331,34 @@ export function PlaceSearch({
               key={key}
               type="button"
               onClick={() => openCategory(key)}
-              // The tiles used to be filled with one of the six pastels, keyed
-              // to the category's index. That was six saturated blocks on the
-              // opening screen of the tab, and the colour meant nothing — the
-              // pastels identify cities, not categories. Neutral now; the emoji
-              // is the identity and the count is the information.
+              // The tone tints the icon's square, not the tile.
+              //
+              // These tiles were filled edge to edge with one of the six
+              // pastels once, and that was reverted for a good reason: six
+              // saturated blocks on the opening screen of the tab, and the
+              // colour said nothing. The design's answer is the middle one — a
+              // white card with a tinted 40px square inside it, the same
+              // treatment every domain glyph in the app already gets. The card
+              // stays quiet and the row of icons stays scannable.
               className={cn(
-                "flex flex-col gap-2 rounded-card border border-border bg-surface p-4 text-start shadow-soft transition-shadow",
+                toneClass(toneByIndex(index)),
+                "flex flex-col items-center gap-2 rounded-card border border-border bg-surface p-3 text-center shadow-soft transition-shadow",
                 "hover:border-border-strong hover:shadow-lift",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               )}
             >
-              <span className="text-display leading-none" aria-hidden="true">
+              <Glyph tone size="md">
                 <DomainIcon name={meta.icon} className="h-5 w-5 shrink-0" />
+              </Glyph>
+              <span className="min-w-0 text-sm font-bold wrap-anywhere">
+                {meta.label}
               </span>
-              <span className="flex flex-col">
-                <span className="text-sm font-bold">{meta.label}</span>
-                <span className="text-caption text-muted">
-                  {count > 0 ? `${count} בטיול` : "לחיפוש"}
-                </span>
-              </span>
+              {/* Only when there is something to count. The design's tile is an
+                  icon and a label; "לחיפוש" under every one of the six said the
+                  same thing six times and told nobody anything. */}
+              {count > 0 && (
+                <span className="text-caption text-muted">{count} בטיול</span>
+              )}
             </button>
           );
         })}
@@ -360,10 +380,7 @@ export function PlaceSearch({
         חזרה לקטגוריות
       </button>
 
-      <SectionHeading
-        level="section"
-        leading={<DomainIcon name={meta.icon} />}
-      >
+      <SectionHeading level="section" leading={<DomainIcon name={meta.icon} />}>
         {meta.label}
       </SectionHeading>
 
@@ -375,7 +392,10 @@ export function PlaceSearch({
       <div className="sticky top-14 z-20 -mx-4 flex flex-col gap-2 border-b border-border bg-surface/95 px-4 py-2 backdrop-blur md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-1.5 text-sm font-bold">
-            <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+            <MapPin
+              className="h-4 w-4 shrink-0 text-primary"
+              aria-hidden="true"
+            />
             <span className="min-w-0 truncate">
               {near
                 ? `ליד ${near.label}`
@@ -475,7 +495,11 @@ export function PlaceSearch({
 
       {status.kind === "searching" && (
         <p className="text-sm text-muted">
-          מחפש {activeArea || area.trim() ? `ב${area.trim() || activeArea}` : `ב־${city}`}…
+          מחפש{" "}
+          {activeArea || area.trim()
+            ? `ב${area.trim() || activeArea}`
+            : `ב־${city}`}
+          …
         </p>
       )}
 

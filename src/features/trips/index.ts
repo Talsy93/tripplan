@@ -348,6 +348,7 @@ export { TodayBefore } from "./components/today-before";
 export { DayStrip } from "./components/day-strip";
 export { TripCalendar } from "./components/trip-calendar";
 export { EmptyDays, RouteCities } from "./components/route-cities";
+export { ExploreScreen } from "./components/explore-screen";
 export type { RouteCity } from "./components/route-cities";
 export { tripOpenItems } from "./domain/open-items";
 export type { OpenItem } from "./domain/open-items";

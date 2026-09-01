@@ -27,6 +27,7 @@ import {
   daysUntil,
   DayPager,
   DayTimeline,
+  ExploreScreen,
   ExpenseSummary,
   GearList,
   InviteForm,
@@ -35,6 +36,7 @@ import {
   NightStay,
   Phrasebook,
   RouteMap,
+  SelectedList,
   ShareButton,
   StartHere,
   ShareTrip,
@@ -427,6 +429,55 @@ export const SCENES: Scene[] = [
           />
         ),
       }),
+  },
+  // ---- the explore tab -----------------------------------------------------
+  //
+  // T3's order: the category grid first, then the one lit thing on the screen,
+  // then — in the pane, under the map — what the trip has picked, as rows with a
+  // green check. It was a heading, the search, the manual form, a two-column
+  // grid of picked cards, and discovery last.
+  //
+  // The map is a placeholder here on purpose: RouteMapPanel geocodes, and the
+  // map has its own scene (`route-map`) that draws it with fixed stops.
+  {
+    slug: "explore-tab",
+    title: "מה עושים? · רשת, כרטיס מואר, חלונית",
+    note: "שלושת הדברים שה-DoD מבקש על מסך אחד. הרשת בשלוש עמודות עם אריח מגוון לכל קטגוריה, ו״נבחרו לטיול״ כשורות עם וי — הווי הוא גם הכיבוי, בלי X במנוחה",
+    bleed: true,
+    render: () =>
+      appFrame({
+        title: "יפן בסתיו",
+        active: "explore",
+        phase: { kind: "before", daysUntilStart: daysUntil(f.LONG_START) },
+        startDate: f.LONG_START,
+        cities: FRAME_CITIES,
+        children: (
+          <ExploreScreen
+            tripId={f.TRIP_ID}
+            searchCities={FRAME_CITIES}
+            knownCities={FRAME_CITIES}
+            selected={f.SELECTED}
+            addedPlaces={[]}
+            savedCities={[]}
+            map={
+              <div className="flex h-[20rem] items-center justify-center rounded-tile border border-border bg-surface-2 text-caption text-muted">
+                המפה — סצנה נפרדת, ‎/preview/route-map
+              </div>
+            }
+          />
+        ),
+      }),
+  },
+  {
+    slug: "selected-list",
+    title: "נבחרו לטיול · שורות עם וי",
+    note: "שש בחירות בשלוש ערים, כולל שם בלי נקודת שבירה. ריחוף על הווי הופך אותו ל-X — זה הכיבוי, ולכן אין אייקון מחיקה במנוחה",
+    render: () => (
+      <div className="flex flex-col gap-6">
+        <SelectedList tripId={f.TRIP_ID} items={f.SELECTED} />
+        <SelectedList tripId={f.TRIP_ID} items={[]} />
+      </div>
+    ),
   },
   {
     slug: "open-items",

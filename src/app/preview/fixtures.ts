@@ -12,7 +12,10 @@
 // nothing in the app may import it.
 
 import type { Booking } from "@/features/trips/domain/booking";
-import type { ItineraryDay } from "@/features/trips/domain/ai-suggestion";
+import type {
+  ItineraryDay,
+  SelectedItem,
+} from "@/features/trips/domain/ai-suggestion";
 import type { RouteStop, TripRoute } from "@/features/trips/domain/route";
 import type { GearItem } from "@/features/trips/domain/gear";
 import type { Trip } from "@/features/trips/domain/trip";
@@ -308,6 +311,51 @@ export const ROUTE_EMPTY: TripRoute = {
   unlocatedCities: ["קנזאווה"],
   repairedCities: [],
 };
+
+// ---- what the trip has picked ---------------------------------------------
+//
+// The shortlist behind "נבחרו לטיול". Four cities so the rows have something to
+// distinguish, both category vocabularies (the AI guide's and the search's six),
+// and one hand-typed place whose "description" is the address that was entered —
+// the case that would otherwise be stored and never shown.
+export const SELECTED: SelectedItem[] = [
+  {
+    city: "טוקיו",
+    category: "attractions",
+    name: "מקדש סנסו־ג׳י",
+    description: "אסקוסה · המקדש העתיק בטוקיו",
+  },
+  {
+    city: "טוקיו",
+    category: "restaurants",
+    name: "רחוב אומויידה יוקוצ׳ו",
+    description: "שינג׳וקו · יאקיטורי בערב",
+  },
+  {
+    city: "טוקיו",
+    category: "areas",
+    name: UNBREAKABLE,
+    description: LONG,
+  },
+  {
+    city: "קיוטו",
+    category: "temples",
+    name: "פושימי אינארי",
+    description: "אלפי שערי טורי במעלה ההר",
+  },
+  {
+    city: "קיוטו",
+    category: "experiences",
+    name: "יער הבמבוק באראשיאמה",
+    description: "מוקדם בבוקר, לפני הקבוצות",
+  },
+  {
+    city: "אוסקה",
+    category: "shopping",
+    name: "שוק קורומון",
+    description: "1-1 Nipponbashi, Chuo Ward, Osaka",
+  },
+];
 
 // ---- gear -----------------------------------------------------------------
 

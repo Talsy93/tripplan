@@ -1,17 +1,12 @@
 import { Suspense } from "react";
-import { TwoPane } from "@/components/layout";
-import { SectionHeading, Skeleton } from "@/components/ui";
+import { Skeleton } from "@/components/ui";
 import {
+  ExploreScreen,
   getAddedPlaces,
   getSavedCities,
   getSelectedDestinations,
   getTrip,
-  ManualPlaceForm,
-  PlaceSearch,
-  PlanningPanel,
   RouteMapPanel,
-  savedCountsByCategory,
-  SelectedList,
 } from "@/features/trips";
 
 export const metadata = { title: "מה עושים?" };
@@ -47,7 +42,13 @@ export default async function ExplorePage({
   ].filter(Boolean);
 
   return (
-    <TwoPane
+    <ExploreScreen
+      tripId={id}
+      searchCities={searchCities}
+      knownCities={knownCities}
+      selected={selected}
+      addedPlaces={addedPlaces}
+      savedCities={savedCities}
       // The one thing a desktop can do here that a phone cannot: results beside
       // the map they are results on. On a phone this is two tabs and a round
       // trip between them; from 1280 up it is one screen.
@@ -55,59 +56,23 @@ export default async function ExplorePage({
       // The "מפה" tab stays. It is still the right place to look at the route
       // full-screen — this pane answers "where is that?" while you are choosing,
       // which is a different question.
-      aside={
-        <section className="flex flex-col gap-3">
-          <SectionHeading level="section">איפה זה</SectionHeading>
-          {/* Its own boundary: resolving the route may need to geocode a new
-              city, which is paced at about a request per second. The search
-              above must not wait for that. */}
-          <Suspense
-            fallback={
-              <div className="flex flex-col gap-2">
-                <Skeleton className="h-[20rem] rounded-tile" />
-                <Skeleton className="h-14" />
-                <Skeleton className="h-14" />
-              </div>
-            }
-          >
-            <RouteMapPanel tripId={id} tripName={trip?.name ?? ""} />
-          </Suspense>
-        </section>
+      //
+      // Its own boundary: resolving the route may need to geocode a new city,
+      // which is paced at about a request per second. The search beside it must
+      // not wait for that.
+      map={
+        <Suspense
+          fallback={
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-[20rem] rounded-tile" />
+              <Skeleton className="h-14" />
+              <Skeleton className="h-14" />
+            </div>
+          }
+        >
+          <RouteMapPanel tripId={id} tripName={trip?.name ?? ""} />
+        </Suspense>
       }
-    >
-      <section className="flex flex-col gap-4">
-        <SectionHeading
-          level="section"
-          description="מתוכנן, אופציונלי, וכל מה ששמרתם"
-        >
-          לאן עכשיו?
-        </SectionHeading>
-        <PlaceSearch
-          tripId={id}
-          cities={searchCities}
-          addedPlaces={addedPlaces}
-          savedCounts={savedCountsByCategory(selected)}
-        />
-        {/* Sits under the search on purpose, including when the search is an
-            empty state: on a trip with no cities yet this form is the only way
-            to add anything by hand, and it creates the first city itself. */}
-        <ManualPlaceForm tripId={id} cities={knownCities} />
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <SectionHeading level="section">מה שבחרתם לטיול</SectionHeading>
-        <SelectedList tripId={id} items={selected} />
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <SectionHeading
-          level="section"
-          description="תארו את הטיול ותקבלו יעדים להתחיל מהם"
-        >
-          גילוי יעדים
-        </SectionHeading>
-        <PlanningPanel tripId={id} initialCities={savedCities} />
-      </section>
-    </TwoPane>
+    />
   );
 }
