@@ -306,6 +306,94 @@ export function PlaceSearch({
     setAdding(null);
   }
 
+  // The results list, the empty state and the "more" button, shared by both
+  // shapes this component takes. The grid used to be a dead end — there was no
+  // way to search without first picking a category — so this markup only ever
+  // rendered in one place and lived inline there.
+  const results = (
+    <>
+      {status.kind === "results" && status.places.length === 0 && (
+        <EmptyState
+          icon={<Search />}
+          title="לא נמצאו תוצאות"
+          description={
+            activeArea
+              ? `אין מקומות מתויגים בקטגוריה הזו ב${activeArea}. נסו קטגוריה אחרת, או בקשו מה-AI רעיונות באזור.`
+              : "נסו קטגוריה אחרת, עיר אחרת, או חיפוש רחב יותר."
+          }
+        />
+      )}
+      {status.kind === "results" && status.places.length > 0 && (
+        <ul className="grid gap-2 xl:grid-cols-2">
+          {status.places.slice(0, visibleCount).map((place) => {
+            const days = added.get(place.id);
+            return (
+              <li key={place.id} className={cityToneClass(tones, city)}>
+                <ListRow
+                  accent="tone"
+                  title={
+                    <button
+                      type="button"
+                      onClick={() => setOpen(place)}
+                      className="flex min-w-0 items-center gap-2 rounded text-start hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <span className="min-w-0 truncate">{place.name}</span>
+                      {place.notable && (
+                        <Badge
+                          tone="action"
+                          title="למקום יש ערך בוויקיפדיה"
+                          className="shrink-0"
+                        >
+                          מוכר
+                        </Badge>
+                      )}
+                    </button>
+                  }
+                  subtitle={
+                    [place.brand, place.cuisine, place.openingHours]
+                      .filter(Boolean)
+                      .join(" · ") ||
+                    place.address ||
+                    undefined
+                  }
+                  trailing={
+                    days ? (
+                      <Badge tone="success">
+                        <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                        {dayLabel(days)}
+                      </Badge>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="soft"
+                        onClick={() => void add(place)}
+                        loading={adding === place.id}
+                      >
+                        הוספה
+                      </Button>
+                    )
+                  }
+                />
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {status.kind === "results" && status.places.length > visibleCount && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+          className="self-start"
+        >
+          עוד תוצאות
+        </Button>
+      )}
+    </>
+  );
+
   if (cities.length === 0) {
     return (
       <EmptyState
@@ -319,49 +407,116 @@ export function PlaceSearch({
   // ---- The grid: where this tab starts -------------------------------------
   if (category === null) {
     return (
-      // Three columns at every width, which is what the design draws. It used
-      // to be 2/3/4/6, and at xl that put six tiles in one 110px-tall row above
-      // an otherwise empty screen — a toolbar, not the opening move of a tab.
-      <div className="grid grid-cols-3 gap-2.5">
-        {CATEGORY_KEYS.map((key, index) => {
-          const meta = PLACE_CATEGORIES[key];
-          const count = savedCounts[key] ?? 0;
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => openCategory(key)}
-              // The tone tints the icon's square, not the tile.
-              //
-              // These tiles were filled edge to edge with one of the six
-              // pastels once, and that was reverted for a good reason: six
-              // saturated blocks on the opening screen of the tab, and the
-              // colour said nothing. The design's answer is the middle one — a
-              // white card with a tinted 40px square inside it, the same
-              // treatment every domain glyph in the app already gets. The card
-              // stays quiet and the row of icons stays scannable.
-              className={cn(
-                toneClass(toneByIndex(index)),
-                "flex flex-col items-center gap-2 rounded-card border border-border bg-surface p-3 text-center shadow-soft transition-shadow",
-                "hover:border-border-strong hover:shadow-lift",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-              )}
-            >
-              <Glyph tone size="md">
-                <DomainIcon name={meta.icon} className="h-5 w-5 shrink-0" />
-              </Glyph>
-              <span className="min-w-0 text-sm font-bold wrap-anywhere">
-                {meta.label}
-              </span>
-              {/* Only when there is something to count. The design's tile is an
+      <div className="flex flex-col gap-4">
+        {/* Free text across every category, which is what the design puts
+            above the grid — and it needed no backend work at all: the API's
+            `category` was already optional and buildQuery already says "with no
+            category chosen, free text searches across every category at once".
+            The grid was simply a dead end, with no way to search without first
+            picking one. */}
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void search(null);
+          }}
+          className="flex gap-2"
+        >
+          <div className="relative flex-1">
+            <Search
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 start-3 my-auto h-4 w-4 text-muted"
+            />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={`חפשו מקום, שכונה או אטרקציה ב${city}`}
+              className="ps-9"
+            />
+          </div>
+          <Button type="submit" loading={status.kind === "searching"}>
+            חיפוש
+          </Button>
+        </form>
+        {/* Which destination, when there is more than one. The category view has
+            its own copy of this in a sticky bar; here it is a plain row, because
+            nothing scrolls under it. */}
+        {cities.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {cities.map((option) => (
+              <Chip
+                key={option}
+                active={option === city}
+                onClick={() => {
+                  setCity(option);
+                  setNear(null);
+                  setStatus({ kind: "idle" });
+                }}
+              >
+                {option}
+              </Chip>
+            ))}
+          </div>
+        )}
+        {/* Three columns at every width, which is what the design draws. It
+            used to be 2/3/4/6, and at xl that put six tiles in one 110px-tall
+            row above an otherwise empty screen — a toolbar, not the opening
+            move of a tab. */}
+        <div className="grid grid-cols-3 gap-2.5">
+          {CATEGORY_KEYS.map((key, index) => {
+            const meta = PLACE_CATEGORIES[key];
+            const count = savedCounts[key] ?? 0;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => openCategory(key)}
+                // The tone tints the icon's square, not the tile.
+                //
+                // These tiles were filled edge to edge with one of the six
+                // pastels once, and that was reverted for a good reason: six
+                // saturated blocks on the opening screen of the tab, and the
+                // colour said nothing. The design's answer is the middle one — a
+                // white card with a tinted 40px square inside it, the same
+                // treatment every domain glyph in the app already gets. The card
+                // stays quiet and the row of icons stays scannable.
+                className={cn(
+                  toneClass(toneByIndex(index)),
+                  "flex flex-col items-center gap-2 rounded-card border border-border bg-surface p-3 text-center shadow-soft transition-shadow",
+                  "hover:border-border-strong hover:shadow-lift",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                )}
+              >
+                <Glyph tone size="md">
+                  <DomainIcon name={meta.icon} className="h-5 w-5 shrink-0" />
+                </Glyph>
+                <span className="min-w-0 text-sm font-bold wrap-anywhere">
+                  {meta.label}
+                </span>
+                {/* Only when there is something to count. The design's tile is an
                   icon and a label; "לחיפוש" under every one of the six said the
                   same thing six times and told nobody anything. */}
-              {count > 0 && (
-                <span className="text-caption text-muted">{count} בטיול</span>
-              )}
-            </button>
-          );
-        })}
+                {count > 0 && (
+                  <span className="text-caption text-muted">{count} בטיול</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        {status.kind === "searching" && (
+          <p className="text-sm text-muted">מחפש ב־{city}…</p>
+        )}
+        {status.kind === "error" && (
+          <Banner tone="danger">{status.message}</Banner>
+        )}
+        {results}
+        {open && (
+          <PlaceDetails
+            place={open}
+            city={city}
+            onClose={() => setOpen(null)}
+            onSearchNearby={() => searchNear(open)}
+          />
+        )}
       </div>
     );
   }
@@ -596,87 +751,7 @@ export function PlaceSearch({
         </div>
       )}
 
-      {status.kind === "results" && status.places.length === 0 && (
-        <EmptyState
-          icon={<Search />}
-          title="לא נמצאו תוצאות"
-          description={
-            activeArea
-              ? `אין מקומות מתויגים בקטגוריה הזו ב${activeArea}. נסו קטגוריה אחרת, או בקשו מה-AI רעיונות באזור.`
-              : "נסו קטגוריה אחרת, עיר אחרת, או חיפוש רחב יותר."
-          }
-        />
-      )}
-
-      {status.kind === "results" && status.places.length > 0 && (
-        <ul className="grid gap-2 xl:grid-cols-2">
-          {status.places.slice(0, visibleCount).map((place) => {
-            const days = added.get(place.id);
-            return (
-              <li key={place.id} className={cityToneClass(tones, city)}>
-                <ListRow
-                  accent="tone"
-                  title={
-                    <button
-                      type="button"
-                      onClick={() => setOpen(place)}
-                      className="flex min-w-0 items-center gap-2 rounded text-start hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <span className="min-w-0 truncate">{place.name}</span>
-                      {place.notable && (
-                        <Badge
-                          tone="action"
-                          title="למקום יש ערך בוויקיפדיה"
-                          className="shrink-0"
-                        >
-                          מוכר
-                        </Badge>
-                      )}
-                    </button>
-                  }
-                  subtitle={
-                    [place.brand, place.cuisine, place.openingHours]
-                      .filter(Boolean)
-                      .join(" · ") ||
-                    place.address ||
-                    undefined
-                  }
-                  trailing={
-                    days ? (
-                      <Badge tone="success">
-                        <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                        {dayLabel(days)}
-                      </Badge>
-                    ) : (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="soft"
-                        onClick={() => void add(place)}
-                        loading={adding === place.id}
-                      >
-                        הוספה
-                      </Button>
-                    )
-                  }
-                />
-              </li>
-            );
-          })}
-        </ul>
-      )}
-
-      {status.kind === "results" && status.places.length > visibleCount && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-          className="self-start"
-        >
-          עוד תוצאות
-        </Button>
-      )}
+      {results}
 
       {open && (
         <PlaceDetails
