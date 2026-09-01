@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { wallClockToInstant } from "@/lib/datetime";
-import { deadlineDate, parseCost } from "../domain/booking";
+import { deadlineDate, parseCost, parseDuration } from "../domain/booking";
 import { APP_TIME_ZONE } from "../domain/weather";
 import type {
   Booking,
@@ -82,6 +82,7 @@ export async function createBooking(input: CreateBookingInput) {
     // in it.
     cost_amount: parseCost(input.costAmount),
     cost_currency: parseCost(input.costAmount) === null ? null : input.costCurrency || null,
+    duration_minutes: parseDuration(input.durationMinutes),
   });
 
   if (error) {
@@ -123,6 +124,7 @@ export async function updateBooking(input: UpdateBookingInput) {
         reminder_days_before: input.reminderDaysBefore ?? null,
         cost_amount: parseCost(input.costAmount),
         cost_currency: input.costCurrency || null,
+        duration_minutes: parseDuration(input.durationMinutes),
       },
       { count: "exact" },
     )

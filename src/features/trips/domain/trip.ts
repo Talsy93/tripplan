@@ -11,8 +11,7 @@ export const tripStatusSchema = z.enum([
   //
   // Not "completed": a finished trip and a put-away trip are different facts. A
   // trip you took last year is completed and may well belong on the home
-  // screen; a trip you abandoned is archived and is not completed at all.
-  "archived",
+  // screen.
 ]);
 export type TripStatus = z.infer<typeof tripStatusSchema>;
 
@@ -102,12 +101,6 @@ export function daysUntil(startDate: string): number {
   return Math.round((target - today) / 86_400_000);
 }
 
-// Archived trips are off the home screen and out of "the next trip" — that is
-// the whole point of archiving one. Kept as a function rather than compared
-// inline at four call sites, so the rule has one place to change.
-export function isArchived(trip: { status: TripStatus }): boolean {
-  return trip.status === "archived";
-}
 
 // Human, warm Hebrew phrasing for the countdown to departure.
 export function formatCountdown(days: number): string {

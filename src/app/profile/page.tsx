@@ -1,4 +1,3 @@
-import { Archive } from "lucide-react";
 import { AppHeader, AppShell, TwoPane } from "@/components/layout";
 import { SectionHeading } from "@/components/ui";
 import { getCurrentUser, LogoutButton } from "@/features/auth";
@@ -9,7 +8,6 @@ import {
   daysUntil,
   HomeRail,
   HowItWorks,
-  isArchived,
   NewTripButton,
   getItinerary,
   getSelectedCitiesByTrip,
@@ -43,12 +41,12 @@ export default async function ProfilePage() {
   // no two trips on the screen come out the same colour while a palette is
   // free. Oldest first, which is what keeps an existing trip's colour from
   // moving when a new trip is created — see domain/aura.ts.
-  // Archived trips are out of the list, out of the light assignment and out of
-  // "the next trip" — that is what archiving one means. They keep their own
-  // section at the bottom, because "put away" has to be undoable from
-  // somewhere, and a trip nobody can find again is a trip that was deleted.
-  const active = trips.filter((trip) => !isArchived(trip));
-  const archived = trips.filter(isArchived);
+  // Every trip, in one list. There was a split here — active above, a collapsed
+  // "בארכיון · N" below — and it was removed at the owner's request: "I want all
+  // my trips shown, always". A home screen for trips that hides trips was
+  // solving a problem nobody had.
+
+  const active = trips;
 
   const auraByTrip = assignTripAuras(
     active.map((trip) => ({
@@ -239,25 +237,6 @@ export default async function ProfilePage() {
           />
         </section>
 
-        {/* Collapsed, and last. An archived trip is one the owner has said they
-            do not want to look at; the section exists so it can be brought back,
-            not so it can be browsed. <details> rather than useState for the same
-            reason HowItWorks uses it: no client bundle, works before hydration,
-            and the browser handles the keyboard. */}
-        {archived.length > 0 && (
-          <details className="flex flex-col gap-3">
-            <summary className="flex w-fit cursor-pointer list-none items-center gap-1.5 rounded-control text-caption font-extrabold text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <Archive className="h-3.5 w-3.5" aria-hidden="true" />
-              בארכיון · {archived.length}
-            </summary>
-            <div className="pt-3">
-              {/* No light and no colours: an archived trip is not one of the
-                  eight palettes any more, and giving it one would put it back
-                  into the set the assignment above deconflicts. */}
-              <TripList trips={archived} today={today} />
-            </div>
-          </details>
-        )}
       </TwoPane>
 
       {/* No password settings here, deliberately.

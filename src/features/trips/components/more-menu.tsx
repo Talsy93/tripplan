@@ -20,7 +20,6 @@ import type { Booking } from "../domain/booking";
 import type { GearItem } from "../domain/gear";
 import type { TripMember } from "../domain/membership";
 import type { Tone } from "../domain/tone";
-import { ArchiveTripButton } from "./archive-trip-button";
 import { DeleteTripButton } from "./delete-trip-button";
 
 // A menu, not a pile. The five sections used to stack on one page, which on a
@@ -111,9 +110,6 @@ export function MoreMenu({
   cities,
   // Whether a public view link has been issued. Null when it has not.
   shareToken,
-  // Whether the owner has put this trip away. The bottom card's middle row goes
-  // both directions — see ArchiveTripButton.
-  archived,
   // Stamped by the server, so the deadline counts cannot disagree between the
   // server render and hydration.
   now,
@@ -125,7 +121,6 @@ export function MoreMenu({
   members: TripMember[];
   cities: string[];
   shareToken: string | null;
-  archived: boolean;
   now: string;
 }) {
   const at = new Date(now);
@@ -293,17 +288,6 @@ export function MoreMenu({
           />
         </Link>
 
-        {/* Between the trip's record and the one action that cannot be undone,
-            which is where it belongs on both counts: it is about the trip as a
-            whole, and it is the reversible half of "put this away". */}
-        <div className="border-b border-border">
-          <ArchiveTripButton
-            tripId={tripId}
-            tripName={tripName}
-            archived={archived}
-            variant="row"
-          />
-        </div>
 
         {/* It used to be at the bottom of /more/trip, under the expense summary
             — correct in spirit and two screens deep in practice. Here it is the

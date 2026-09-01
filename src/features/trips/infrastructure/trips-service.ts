@@ -1,7 +1,7 @@
 import { cache } from "react";
 import * as z from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { tripSchema, type Trip, type TripStatus } from "../domain/trip";
+import { tripSchema, type Trip } from "../domain/trip";
 
 export async function createTrip(
   name: string,
@@ -103,32 +103,9 @@ export async function deleteTrip(tripId: string) {
   return { error: null };
 }
 
-// The trip's status column, which the app writes for exactly one reason:
-// archiving. See ARCHITECTURE.md rule #6 — the phase is derived from the dates
-// and never stored, and this column is for explicit intent.
+// Nothing in this feature writes `trips.status` any more.
 //
-// It lived in itinerary-service.ts until now, left over from when generating an
-// itinerary set the status to "executing" as a side effect. That behaviour was
-// removed in 2026-08; the function stayed there with no callers, in a file about
-// itineraries. It belongs here.
-//
-// Returns a boolean rather than logging and swallowing: an archive that silently
-// failed would leave the trip on the home screen with no explanation.
-export async function setTripStatus(
-  tripId: string,
-  status: TripStatus,
-): Promise<boolean> {
-  const supabase = await createClient();
-  // `count` for the reason deleteTrip checks it: Postgres calls an update that
-  // matched no row a success, and RLS makes "not yours" look exactly like that.
-  const { error, count } = await supabase
-    .from("trips")
-    .update({ status }, { count: "exact" })
-    .eq("id", tripId);
-
-  if (error) {
-    console.error("setTripStatus failed:", error.message);
-    return false;
-  }
-  return (count ?? 0) > 0;
-}
+// `setTripStatus` lived here and went with archiving, which was its only caller.
+// Per ARCHITECTURE.md rule #6 the phase a screen shows is derived from the trip's
+// dates and never stored, so the column is parsed on read — it exists and is
+// non-null — and written by nothing.

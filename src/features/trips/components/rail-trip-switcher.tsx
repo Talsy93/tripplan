@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, ChevronDown, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { formatShortDate, isArchived } from "../domain/trip";
+import { formatShortDate } from "../domain/trip";
 import { phaseLabel } from "../domain/trip-days";
 import type { Trip } from "../domain/trip";
 import type { TripPhase } from "../domain/trip-days";
@@ -63,11 +63,9 @@ export function RailTripSwitcher({
     };
   }, [open]);
 
-  const active = trips.filter((trip) => !isArchived(trip));
-  const archived = trips.filter((trip) => isArchived(trip));
-  // Archived trips stay reachable but go last: putting one away is a statement
-  // that it is not what you are working on.
-  const ordered = [...active, ...archived];
+  // Whatever order listTrips returned, unfiltered. There was an archived-last
+  // split here; archiving is gone.
+  const ordered = trips;
 
   return (
     <div ref={wrapRef} className="relative">
@@ -162,10 +160,9 @@ export function RailTripSwitcher({
 // queries, and "24.9–7.10" is the fact somebody scanning a list of trips is
 // looking for anyway.
 function dateLine(trip: Trip): string {
-  const suffix = isArchived(trip) ? " · בארכיון" : "";
   if (trip.start_date && trip.end_date) {
-    return `${formatShortDate(trip.start_date)}–${formatShortDate(trip.end_date)}${suffix}`;
+    return `${formatShortDate(trip.start_date)}–${formatShortDate(trip.end_date)}`;
   }
-  if (trip.start_date) return `מ-${formatShortDate(trip.start_date)}${suffix}`;
-  return `בלי תאריכים${suffix}`;
+  if (trip.start_date) return `מ-${formatShortDate(trip.start_date)}`;
+  return "בלי תאריכים";
 }

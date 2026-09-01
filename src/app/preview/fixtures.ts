@@ -88,16 +88,15 @@ export const TRIPS: Trip[] = [
     status: "planning",
     created_at: "2026-03-01T00:00:00Z",
   },
-  // Archived, so the switcher has one to push to the bottom of its list and
-  // one to label — and so /profile has something to put behind its
-  // collapsed "בארכיון" section.
+  // A fourth trip, already over. The switcher lists it like any other — there
+  // is no archive to sort it into.
   {
     id: id("d4"),
     user_id: USER_ID,
     name: "פראג, חורף שעבר",
     start_date: "2025-12-20",
     end_date: "2025-12-27",
-    status: "archived",
+    status: "completed",
     created_at: "2025-10-01T00:00:00Z",
   },
 ];
@@ -127,6 +126,10 @@ const bookingBase = {
   book_by_notified_at: null,
   cost_amount: null,
   cost_currency: null,
+  // 0020. Null on the base so a leg with no duration is the default case —
+  // that is what every booking created before the column existed looks like,
+  // and the leg has to render without one.
+  duration_minutes: null,
 } as const;
 
 export const BOOKINGS: Booking[] = [
@@ -142,6 +145,10 @@ export const BOOKINGS: Booking[] = [
     confirmation: "ABC123",
     cost_amount: 3200,
     cost_currency: "ILS",
+    // The point of the column, in one fixture: the stored timestamps differ
+    // by 18h45m because both are read as Israel wall clock, and the flight
+    // takes 11h25m.
+    duration_minutes: 685,
   },
   {
     ...bookingBase,

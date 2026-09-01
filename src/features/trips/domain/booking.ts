@@ -78,6 +78,12 @@ export const bookingSchema = z.object({
   // be totalled, and the form only ever writes them together.
   cost_amount: z.number().nullable(),
   cost_currency: z.string().nullable(),
+  // 0020. Minutes, as printed on the ticket. Not derived from starts_at and
+  // ends_at, and it cannot be: both are written by reading the typed wall
+  // clock in APP_TIME_ZONE, so on a flight that crosses zones their
+  // difference is the gap between two clocks rather than a duration. See the
+  // migration.
+  duration_minutes: z.number().nullable(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 
@@ -142,6 +148,24 @@ const bookingFields = {
     .refine((value) => !value || CURRENCY_CODES.includes(value), {
       error: "מטבע לא נתמך.",
     }),
+  // 0020. A string from a number input for the same reason costAmount is one:
+  // z.coerce would read an untouched field as 0 rather than as "not given",
+  // and 0 minutes is a constraint violation rather than a blank.
+  //
+  // Bounds match the column's check constraint, so the database can never be
+  // the thing that reports a bad value.
+  durationMinutes: z
+    .string()
+    .trim()
+    .optional()
+    .refine(
+      (value) =>
+        !value ||
+        (Number.isInteger(Number(value)) &&
+          Number(value) > 0 &&
+          Number(value) <= 20160),
+      { error: "משך הנסיעה צריך להיות מספר דקות בין 1 ל-20160." },
+    ),
 };
 
 // Applied identically to add and edit: the cross-field rules describe the
@@ -210,6 +234,30 @@ export function parseCost(amount: string | undefined): number | null {
   if (!amount) return null;
   const value = Number(amount);
   return Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+// 0020. Same shape as parseCost, and separate rather than a shared numeric
+// helper because the two disagree about what a valid value is: a price of 0 is
+// a real answer ("free cancellation, no charge"), and a journey of 0 minutes is
+// not.
+export function parseDuration(minutes: string | undefined): number | null {
+  if (!minutes) return null;
+  const value = Number(minutes);
+  return Number.isInteger(value) && value > 0 && value <= 20160 ? value : null;
+}
+
+// "11ש 25ד" — the duration as a traveller reads it off a ticket.
+//
+// Distinct from durationLabel in domain/timeline.ts, which describes a gap
+// *between* two things in the schedule and says "שעה" for 60 minutes. This
+// labels a journey, where the hours and minutes are two halves of one figure and
+// dropping either reads as a rounded number.
+export function durationMinutesLabel(minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (hours === 0) return `${rest}ד׳`;
+  if (rest === 0) return `${hours}ש׳`;
+  return `${hours}ש׳ ${rest}ד׳`;
 }
 
 export type BookingFormState = {

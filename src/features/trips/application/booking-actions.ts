@@ -32,6 +32,7 @@ const FORM_FIELDS = [
   "reminderDaysBefore",
   "costAmount",
   "costCurrency",
+  "durationMinutes",
 ] as const;
 
 // A checkbox is absent from FormData when unticked, present as "on" when
@@ -88,6 +89,7 @@ export async function addBooking(
     booked: checkboxValue(formData, "booked"),
     reminderDaysBefore: optionalNumber(formData.get("reminderDaysBefore")),
     costAmount: formData.get("costAmount") || undefined,
+    durationMinutes: formData.get("durationMinutes") || undefined,
     costCurrency: formData.get("costCurrency") || undefined,
   });
 

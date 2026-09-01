@@ -5,11 +5,15 @@ import {
   aiItinerarySchema,
   APP_TIME_ZONE,
   buildDayCityPlan,
+  buildDayHours,
   categoryLabel,
   cityDayPlan,
   cityDaysPromptLine,
+  clampItineraryToDayHours,
   dayCityPlanHasFacts,
   dayCityPlanPromptLines,
+  dayHoursHaveFacts,
+  dayHoursPromptLines,
   getItinerary,
   getSelectedDestinations,
   getTrip,
@@ -29,7 +33,7 @@ import {
 } from "@/lib/ai";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
-import type { Booking, DayCityPlan, SelectedItem } from "@/features/trips";
+import type { Booking, DayCityPlan, DayHours, SelectedItem } from "@/features/trips";
 import type { Trip } from "@/features/trips";
 
 const RATE_LIMIT = 5;
@@ -60,6 +64,10 @@ function buildPrompt(
   bookings: Booking[],
   cityDaysLine: string | null,
   dayPlan: DayCityPlan[] | null,
+  // The hours each day is actually free, from the bookings' times. The day plan
+  // above answers "which city"; this answers "from when", which the prompt used
+  // to say nothing about at all.
+  dayHours: DayHours[] | null,
   cities: string[],
 ) {
   const lodging = lodgingLines(bookings);
@@ -77,6 +85,9 @@ function buildPrompt(
   // regardless of what the model does with it (see reconcileItineraryWithDayPlan),
   // so there is no reason to also ask for the weaker version.
   const hasDayPlan = dayPlan !== null && dayCityPlanHasFacts(dayPlan);
+  // Independent of hasDayPlan: a trip can have a flight and no hotel, which
+  // gives an arrival hour and no city plan at all.
+  const hasDayHours = dayHours !== null && dayHoursHaveFacts(dayHours);
 
   return [
     "אתה מתכנן טיולים מקצועי.",
@@ -115,6 +126,16 @@ function buildPrompt(
     !hasDayPlan &&
       cities.length > 1 &&
       `סדר הערים הגאוגרפי ההגיוני הוא: ${cities.join(" ← ")}. שמרו על ערים סמוכות זו לזו ברצף, ואל תחזרו לעיר שכבר עזבתם.`,
+
+    // Before the item list, because it is a constraint on the answer rather
+    // than context for it. A day with a 14:00 landing and a 15:00 check-in used
+    // to get a 09:00-to-18:00 plan like any other, and the traveller was on a
+    // plane for the first half of it.
+    hasDayHours &&
+      "שעות שנקבעו מראש על ידי ההזמנות. אלה עובדות ולא המלצות — אסור לתכנן פריט מחוץ לחלון של אותו יום:",
+    hasDayHours && dayHoursPromptLines(dayHours!),
+    hasDayHours &&
+      "ביום עם שעת התחלה — הפריט הראשון מתחיל בשעה הזאת או אחריה, לא לפניה.",
 
     "הפריטים שנבחרו לטיול:",
     list,
@@ -214,15 +235,36 @@ export async function POST(request: Request) {
       ? buildDayCityPlan(trip.start_date, dayCount, bookings, APP_TIME_ZONE)
       : null;
 
+  // Same precondition as the day plan, for the same reason: without a start date
+  // there is no day 1 to hang an hour off.
+  const dayHours =
+    trip.start_date && dayCount
+      ? buildDayHours(trip.start_date, dayCount, bookings, APP_TIME_ZONE)
+      : null;
+
   try {
     const itinerary = await generateStructured({
-      prompt: buildPrompt(trip, items, bookings, cityDaysLine, dayPlan, cities),
+      prompt: buildPrompt(
+        trip,
+        items,
+        bookings,
+        cityDaysLine,
+        dayPlan,
+        dayHours,
+        cities,
+      ),
       schema: aiItinerarySchema,
     });
-    const reconciled = reconcileItineraryWithDayPlan(
-      itinerary,
-      items,
-      dayPlan && dayCityPlanHasFacts(dayPlan) ? dayPlan : null,
+    // Days first, then hours: moving an item to another day changes which day's
+    // window it has to fit inside, so the city correction has to settle before
+    // the clock one runs.
+    const reconciled = clampItineraryToDayHours(
+      reconcileItineraryWithDayPlan(
+        itinerary,
+        items,
+        dayPlan && dayCityPlanHasFacts(dayPlan) ? dayPlan : null,
+      ),
+      dayHours,
     );
     const { error: saveError } = await saveItinerary(tripId, reconciled, items);
 

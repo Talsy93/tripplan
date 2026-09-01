@@ -69,6 +69,8 @@ function bookingDefaults(booking: Booking | undefined): Partial<Record<Field, st
         ? String(booking.reminder_days_before)
         : String(DEFAULT_REMINDER_DAYS),
     costAmount: booking.cost_amount !== null ? String(booking.cost_amount) : "",
+    durationMinutes:
+      booking.duration_minutes !== null ? String(booking.duration_minutes) : "",
     costCurrency: booking.cost_currency ?? "",
   };
 }
@@ -292,6 +294,39 @@ export function BookingForm({
             <FieldError message={errorFor("endsAt")} />
           </label>
         </div>
+
+        {/* Transport only, and asked for rather than computed.
+
+            The two fields above are read as wall-clock in one zone (see
+            src/lib/datetime.ts), which is right for showing them back — the
+            board at Narita says 16:30 and so does the app — and useless for
+            subtraction: on TLV→NRT their difference is 18h45m against a real
+            11h25m. Deriving it would need an airport-to-timezone table the app
+            has no way to build from a free-text "NRT", so the number is taken
+            from the ticket the user is already copying from. Blank shows no
+            duration at all; a wrong one is worse than none. */}
+        {isTransport && (
+          <label className="flex min-w-0 flex-col gap-1 text-sm sm:max-w-56">
+            <span className="text-muted">משך הנסיעה בדקות (לא חובה)</span>
+            <Input
+              type="number"
+              name="durationMinutes"
+              min={1}
+              max={20160}
+              step={5}
+              dir="ltr"
+              placeholder="685"
+              defaultValue={was("durationMinutes")}
+              aria-invalid={Boolean(errorFor("durationMinutes"))}
+              className={fieldClass("durationMinutes")}
+            />
+            <FieldError message={errorFor("durationMinutes")} />
+            <span className="text-caption text-muted">
+              כמו שמופיע בכרטיס. לא מחושב משעות היציאה וההגעה, כי שתיהן נשמרות
+              בשעון אחד ולכן ההפרש ביניהן אינו משך הטיסה.
+            </span>
+          </label>
+        )}
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex min-w-0 flex-col gap-1 text-sm">

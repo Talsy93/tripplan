@@ -25,6 +25,7 @@ import {
   cancellationAlert,
   connectedBookingIds,
   doubleBookedLodgingIds,
+  durationMinutesLabel,
   findConnections,
   layoverLabel,
 } from "../domain/booking";
@@ -410,8 +411,20 @@ export function BookingList({
 // That was the report: one long flight card widening every screen on mobile.
 // Equal flexible thirds instead, each free to shrink and wrap its own text.
 function TransportLeg({ booking }: { booking: Booking }) {
+  const kind = BOOKING_KINDS[booking.kind];
+
   return (
-    <div dir="ltr" className="flex items-start gap-2 px-4 pb-4 sm:gap-3">
+    // No `dir="ltr"`. It was here, and it is the bug: with it the origin sits on
+    // the left and the destination on the right, which is correct for someone
+    // reading "TLV → NRT" and backwards for everyone reading this app. The names
+    // are Hebrew — "נתב״ג", "הנדה, טוקיו" — so a Hebrew reader starts at the
+    // right and reads the destination first. Reported as "in Hebrew the route
+    // looks reversed", which is exactly what it was.
+    //
+    // Following the document instead puts the origin on the start edge, and a
+    // Latin name inside it still renders left-to-right on its own — that is what
+    // `dir="auto"` on each name is for.
+    <div className="flex items-start gap-2 px-4 pb-4 sm:gap-3">
       <Endpoint place={booking.origin} when={booking.starts_at} />
 
       {/* Never the part that gives way: the connector is decorative, so it
@@ -419,12 +432,34 @@ function TransportLeg({ booking }: { booking: Booking }) {
       <div className="flex min-w-8 shrink flex-col items-center gap-1 pt-1.5">
         <div className="flex w-full items-center gap-1">
           <span className="h-px flex-1 border-t border-dashed border-border" />
-          <Plane className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+          {/* Mirrored, because the glyph points somewhere. Lucide draws the
+              plane nose-up-right, which in an RTL row points back at the origin
+              — the same reversal the container had. */}
+          <Plane
+            className="h-4 w-4 shrink-0 -scale-x-100 text-primary"
+            aria-hidden="true"
+          />
           <span className="h-px flex-1 border-t border-dashed border-border" />
         </div>
+        {/* The ticket's own figure, never a computed one. `starts_at` and
+            `ends_at` are both stored by reading the typed wall clock in one
+            zone, so their difference on this flight is 18h45m against a real
+            11h25m — see migration 0020. A booking without it shows nothing
+            here rather than a number that is wrong by the offset between two
+            countries. */}
+        {booking.duration_minutes !== null && (
+          <span className="whitespace-nowrap text-caption tabular-nums text-muted">
+            {durationMinutesLabel(booking.duration_minutes)}
+          </span>
+        )}
       </div>
 
       <Endpoint place={booking.destination} when={booking.ends_at} align="end" />
+
+      <span className="sr-only">
+        {kind.label} מ{booking.origin ?? "מקור לא ידוע"} ל
+        {booking.destination ?? "יעד לא ידוע"}
+      </span>
     </div>
   );
 }
@@ -445,7 +480,10 @@ function Endpoint({
         // long either name is, and min-w-0 so `break-words` below is actually
         // allowed to take effect.
         "min-w-0 flex-1 basis-0",
-        align === "end" ? "text-right" : "text-left",
+        // Logical, not physical. These were `text-right`/`text-left`, which only
+        // read correctly because the row was forced to LTR; with the row
+        // following the document they would put both names on the wrong edges.
+        align === "end" ? "text-end" : "text-start",
       )}
     >
       {/* Wraps rather than truncates. A half-shown airport name is not a
@@ -459,11 +497,17 @@ function Endpoint({
           width of its longest word — so the grid track above still sized itself
           to the whole unbroken string. `overflow-wrap: anywhere` is the one that
           reduces min-content, which is the property this layout depends on. */}
-      <p className="text-title font-bold wrap-anywhere hyphens-auto">
+      {/* dir="auto": the row follows the document now, so an airport code or a
+          Latin city name has to render left-to-right inside its own box while
+          the two boxes stay laid out start-to-end. */}
+      <p dir="auto" className="text-title font-bold wrap-anywhere hyphens-auto">
         {place ?? "—"}
       </p>
       {when && (
         <p
+          // A date and a time around a comma is an LTR run; left to the RTL
+          // document the punctuation moves.
+          dir="ltr"
           className="text-caption tabular-nums text-muted"
           suppressHydrationWarning
         >
