@@ -53,3 +53,99 @@ export const PHRASE_TOPICS = [
   "לינה ומלון",
   "מצבי חירום ובריאות",
 ] as const;
+
+// A BCP-47 tag for the browser's speech synthesiser, from the language the AI
+// named in English.
+//
+// `language_english` has been on the schema since the feature was built, with a
+// comment saying it was "useful for a text-to-speech voice ... later". This is
+// later. The AI is asked for a plain English language name, so this is a lookup
+// and not a parse.
+//
+// Why a table and not a library: the whole input space is "languages a trip
+// might be to", the answer is two to five characters long, and every mapping
+// here is one somebody can check by reading it. A dependency for this would be
+// more code to audit than the table.
+//
+// Regional tags where the choice matters for pronunciation rather than for
+// politics — pt-BR and pt-PT are different enough that a Brazilian voice reading
+// Lisbon Portuguese is the wrong answer, and "Portuguese" alone most often means
+// Brazil to a traveller from Israel. Where it does not matter, the bare language
+// tag lets the device pick whatever voice it has.
+const SPEECH_LANGS: Record<string, string> = {
+  japanese: "ja-JP",
+  korean: "ko-KR",
+  chinese: "zh-CN",
+  mandarin: "zh-CN",
+  cantonese: "zh-HK",
+  thai: "th-TH",
+  vietnamese: "vi-VN",
+  hindi: "hi-IN",
+  indonesian: "id-ID",
+  malay: "ms-MY",
+  turkish: "tr-TR",
+  arabic: "ar-SA",
+  hebrew: "he-IL",
+  greek: "el-GR",
+  italian: "it-IT",
+  spanish: "es-ES",
+  portuguese: "pt-BR",
+  french: "fr-FR",
+  german: "de-DE",
+  dutch: "nl-NL",
+  english: "en-GB",
+  russian: "ru-RU",
+  ukrainian: "uk-UA",
+  polish: "pl-PL",
+  czech: "cs-CZ",
+  slovak: "sk-SK",
+  hungarian: "hu-HU",
+  romanian: "ro-RO",
+  bulgarian: "bg-BG",
+  croatian: "hr-HR",
+  serbian: "sr-RS",
+  slovenian: "sl-SI",
+  albanian: "sq-AL",
+  swedish: "sv-SE",
+  norwegian: "nb-NO",
+  danish: "da-DK",
+  finnish: "fi-FI",
+  icelandic: "is-IS",
+  estonian: "et-EE",
+  latvian: "lv-LV",
+  lithuanian: "lt-LT",
+  georgian: "ka-GE",
+  armenian: "hy-AM",
+  persian: "fa-IR",
+  farsi: "fa-IR",
+  swahili: "sw-KE",
+  afrikaans: "af-ZA",
+  catalan: "ca-ES",
+  filipino: "fil-PH",
+  tagalog: "fil-PH",
+  nepali: "ne-NP",
+  sinhala: "si-LK",
+  burmese: "my-MM",
+  khmer: "km-KH",
+  lao: "lo-LA",
+  mongolian: "mn-MN",
+  bengali: "bn-BD",
+  urdu: "ur-PK",
+  tamil: "ta-IN",
+};
+
+// Null when the language is not in the table — the caller offers no speak
+// control at all rather than handing the synthesiser a tag it will read in the
+// browser's default voice. A Hebrew voice sounding out Japanese is worse than
+// silence, because it sounds like the feature works.
+export function speechLangFor(languageEnglish: string): string | null {
+  const key = languageEnglish.trim().toLowerCase();
+  if (key in SPEECH_LANGS) return SPEECH_LANGS[key];
+
+  // "Japanese (Nihongo)", "Brazilian Portuguese" — the AI is asked for a bare
+  // name and usually gives one, but a qualifier should not lose the voice.
+  for (const [name, tag] of Object.entries(SPEECH_LANGS)) {
+    if (key.includes(name)) return tag;
+  }
+  return null;
+}

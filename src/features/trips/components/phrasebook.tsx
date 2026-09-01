@@ -11,7 +11,9 @@ import {
   SectionHeading,
 } from "@/components/ui";
 import { aiErrorFromResponse } from "../domain/ai-errors";
+import { speechLangFor } from "../domain/phrasebook";
 import type { AiPhrase, AiPhrasebook } from "../domain/phrasebook";
+import { SpeakButton } from "./speak-button";
 
 // Matches across all four fields. Someone reaching for a phrase might remember
 // the Hebrew, the English, or how it sounded — the pronunciation row is
@@ -49,6 +51,13 @@ export function Phrasebook({
       }))
       .filter((section) => section.phrases.length > 0);
   }, [phrasebook, query]);
+
+  // One lookup for the whole page rather than one per card. Null means the AI
+  // named a language the speech table does not cover, and then no card gets a
+  // speak button — see speechLangFor for why that is better than guessing.
+  const speechLang = phrasebook
+    ? speechLangFor(phrasebook.language_english)
+    : null;
 
   async function build() {
     setBuilding(true);
@@ -155,9 +164,27 @@ export function Phrasebook({
                   </span>
 
                   {/* The row that makes the feature usable: how to actually
-                      say it, in letters the reader knows. */}
+                      say it, in letters the reader knows — and, where the
+                      device has a voice for the language, a button that says
+                      it. The speaker glyph used to sit here as decoration in
+                      exactly this spot, which is why it was read as a play
+                      button; it now is one.
+
+                      Rendered only when the language resolves to a BCP-47
+                      tag. See speechLangFor. */}
                   <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-primary-ink">
-                    <Volume2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+                    {speechLang ? (
+                      <SpeakButton
+                        text={phrase.local}
+                        lang={speechLang}
+                        label={`השמעה של ${phrase.he}`}
+                      />
+                    ) : (
+                      <Volume2
+                        className="h-4 w-4 shrink-0"
+                        aria-hidden="true"
+                      />
+                    )}
                     <span className="min-w-0 wrap-anywhere">
                       {phrase.pronunciation}
                     </span>

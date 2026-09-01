@@ -38,7 +38,7 @@ export function TripList({
   }
 
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <ul className="stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {trips.map((trip) => {
         // Day count is unknown here — the list does not load itineraries. It
         // only matters for a trip with a start date and no end date, which
@@ -47,7 +47,7 @@ export function TripList({
         const cities = citiesByTrip?.get(trip.id) ?? [];
 
         return (
-          <li key={trip.id} className="min-w-0">
+          <li key={trip.id} className="min-w-0 animate-rise">
             {/* The stretched link stays even though the delete button that
                 forced it is gone: the whole card should be clickable, and an
                 after: pseudo-element on the title link is still the way to do

@@ -45,6 +45,7 @@ import {
   NightStay,
   Phrasebook,
   RouteMap,
+  RouteMapCard,
   SelectedList,
   ShareButton,
   StartHere,
@@ -92,6 +93,7 @@ import {
   Sun,
 } from "lucide-react";
 import * as f from "./fixtures";
+import { MotionDemo } from "./motion-demo";
 import { SwipeDemo } from "./swipe-demo";
 
 export type Scene = {
@@ -196,7 +198,14 @@ function appFrame({
           items={items}
           hues={tripAura(cities)}
           initial="ט"
-          header={<RailTripSwitcher name={title} phase={phase} />}
+          header={
+            <RailTripSwitcher
+              name={title}
+              phase={phase}
+              trips={f.TRIPS}
+              currentId={f.TRIPS[0].id}
+            />
+          }
           footer={
             <RailTripProgress
               phase={phase}
@@ -520,8 +529,10 @@ export const SCENES: Scene[] = [
   // green check. It was a heading, the search, the manual form, a two-column
   // grid of picked cards, and discovery last.
   //
-  // The map is a placeholder here on purpose: RouteMapPanel geocodes, and the
-  // map has its own scene (`route-map`) that draws it with fixed stops.
+  // The pane map is the real component. It used to be a grey placeholder here
+  // because RouteMapPanel geocodes — and that is exactly why the pane shipped
+  // rendering the מפה tab's full-screen RouteMap inside a 372px column: no
+  // scene drew it, so nobody saw it. RouteMapCard takes fixed stops.
   {
     slug: "explore-tab",
     title: "מה עושים? · רשת, כרטיס מואר, חלונית",
@@ -543,9 +554,12 @@ export const SCENES: Scene[] = [
             addedPlaces={[]}
             savedCities={[]}
             map={
-              <div className="flex h-[20rem] items-center justify-center rounded-tile border border-border bg-surface-2 text-caption text-muted">
-                המפה — סצנה נפרדת, ‎/preview/route-map
-              </div>
+              <RouteMapCard
+                tripId={f.TRIP_ID}
+                stops={f.ROUTE.stops}
+                places={f.ROUTE.places}
+                unlocatedCount={f.ROUTE.unlocatedCities.length}
+              />
             }
           />
         ),
@@ -701,6 +715,8 @@ export const SCENES: Scene[] = [
               <RailTripSwitcher
                 name="יפן בסתיו"
                 phase={{ kind: "during", dayNumber: 3 }}
+                trips={f.TRIPS}
+                currentId={f.TRIPS[0].id}
               />
             }
           />
@@ -976,7 +992,14 @@ export const SCENES: Scene[] = [
             <SideNav
               hues={tripAura(cities)}
               initial="ט"
-              header={<RailTripSwitcher name={name} phase={phase} />}
+              header={
+                <RailTripSwitcher
+                  name={name}
+                  phase={phase}
+                  trips={f.TRIPS}
+                  currentId={f.TRIPS[0].id}
+                />
+              }
               footer={
                 <RailTripProgress
                   phase={phase}
@@ -1327,6 +1350,36 @@ export const SCENES: Scene[] = [
     ),
   },
   {
+    slug: "route-map-card",
+    title: "מפה קומפקטית · חלונית",
+    note: "מה שהחלונית ב״מה עושים?״ מציגה. קודם היא רנדרה את RouteMap של טאב המפה — 100dvh ומרג׳ינים שליליים — בתוך עמודה של 372px",
+    render: () => (
+      <div className="max-w-pane">
+        <RouteMapCard
+          tripId={f.TRIP_ID}
+          stops={f.ROUTE.stops}
+          places={f.ROUTE.places}
+          unlocatedCount={f.ROUTE.unlocatedCities.length}
+        />
+      </div>
+    ),
+  },
+  {
+    slug: "route-map-card-empty",
+    title: "מפה קומפקטית · בלי תחנות",
+    note: "טיול חדש. בלי זה, החלונית פתחה EmptyState בגובה חלון שלם",
+    render: () => (
+      <div className="max-w-pane">
+        <RouteMapCard
+          tripId={f.TRIP_ID}
+          stops={[]}
+          places={[]}
+          unlocatedCount={0}
+        />
+      </div>
+    ),
+  },
+  {
     slug: "map-all-unlocated",
     title: "מפה · אף עיר לא נמקמה",
     note: "המקרה שבו המסך אמר ״הוסיפו יעדים״ למי שכבר יש לו",
@@ -1426,6 +1479,12 @@ export const SCENES: Scene[] = [
     render: () => <GearList tripId={f.TRIP_ID} items={[]} />,
   },
   {
+    slug: "motion",
+    title: "אנימציות · ארבע כניסות",
+    note: "pop, rise עם השהיה מדורגת, stamp, וספירה. כפתור החזרה מריץ את כולן מחדש — אחרת כניסה שרצה פעם אחת נגמרת לפני שאפשר למדוד אותה",
+    render: () => <MotionDemo />,
+  },
+  {
     slug: "swipe-action",
     title: "מחיקה בהחלקה",
     note: "החלקה, לחיצה ארוכה, ריחוף ומיקוד — בלי אייקון מחיקה במנוחה",
@@ -1442,9 +1501,24 @@ export const SCENES: Scene[] = [
   {
     slug: "phrasebook",
     title: "שיחון",
-    note: "ביטוי רגיל וביטוי בלי נקודת שבירה",
+    note: "ביטוי רגיל וביטוי בלי נקודת שבירה. כפתור ההשמעה מושבת כאן אלא אם מותקן במכשיר קול יפני — וזה מכוון: קול עברי שמקריא יפנית נשמע כאילו הפיצ׳ר עובד",
     render: () => (
       <Phrasebook tripId={f.TRIP_ID} initialPhrasebook={f.PHRASEBOOK} />
+    ),
+  },
+  {
+    slug: "phrasebook-speakable",
+    title: "שיחון · עם קול מותקן",
+    note: "אותו שיחון בשפה שלכל מכשיר יש לה קול. זה המצב הפעיל של כפתור ההשמעה — בלי סצנה כזאת אפשר לבדוק רק את המצב המושבת",
+    render: () => (
+      <Phrasebook
+        tripId={f.TRIP_ID}
+        initialPhrasebook={{
+          ...f.PHRASEBOOK,
+          language: "אנגלית",
+          language_english: "English",
+        }}
+      />
     ),
   },
   {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, X } from "lucide-react";
+import { Check, ChevronDown, X } from "lucide-react";
 import { Card, EmptyState } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { setSelected } from "../application/guide-actions";
@@ -41,6 +41,18 @@ export function SelectedList({
   items: SelectedItem[];
 }) {
   const [items, setItems] = useState<SelectedItem[]>(initialItems);
+  // Which rows are expanded, by key. A Set rather than a single key: two
+  // places you are comparing is exactly when you want both open.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  function toggle(key: string) {
+    setExpanded((current) => {
+      const next = new Set(current);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   function remove(item: SelectedItem) {
     setItems((prev) => prev.filter((it) => keyOf(it) !== keyOf(item)));
@@ -60,11 +72,22 @@ export function SelectedList({
   return (
     <Card padding="none" className="overflow-hidden">
       <ul>
-        {items.map((item) => (
+        {items.map((item) => {
+          const key = keyOf(item);
+          const isOpen = expanded.has(key);
+          // Only worth expanding when there is more than the one line shows.
+          // A place added by hand with no address has nothing behind the
+          // chevron, and a chevron that opens onto its own subtitle is worse
+          // than no chevron.
+          const detail = item.description?.trim() ?? "";
+          const canExpand = detail.length > 0;
+
+          return (
           <li
-            key={keyOf(item)}
-            className="flex min-w-0 items-center gap-2.5 border-b border-border px-3 py-2.5 last:border-b-0"
+            key={key}
+            className="flex min-w-0 flex-col border-b border-border last:border-b-0"
           >
+           <div className="flex min-w-0 items-center gap-2.5 px-3 py-2.5">
             {/* group/pick, not group: the row also sits inside whatever the
                 caller wrapped it in, and an unnamed group would be captured by
                 the nearest one. */}
@@ -80,7 +103,7 @@ export function SelectedList({
               )}
             >
               <Check
-                className="h-4 w-4 group-hover/pick:hidden"
+                className="h-4 w-4 animate-stamp group-hover/pick:hidden"
                 aria-hidden="true"
               />
               <X
@@ -102,14 +125,48 @@ export function SelectedList({
                   stored and never shown; for a guide item it is the start of the
                   AI's description. The city leads, because on a four-city trip
                   that is the fact you are scanning for. */}
+              {/* One line at rest. The full text is behind the chevron —
+                  before it, a guide description was stored, truncated to a
+                  single line and unreadable in full anywhere in the app. */}
               <span className="block truncate text-caption text-muted">
                 {item.city}
                 {" · "}
-                {item.description ?? categoryLabel(item.category)}
+                {detail || categoryLabel(item.category)}
               </span>
             </span>
+
+            {canExpand && (
+              <button
+                type="button"
+                onClick={() => toggle(key)}
+                aria-expanded={isOpen}
+                aria-label={isOpen ? `סגירת התיאור של ${item.name}` : `מה יש ב${item.name}`}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <ChevronDown
+                  className={cn(
+                    "h-4 w-4 transition-transform duration-settle ease-snap",
+                    isOpen && "rotate-180",
+                  )}
+                  aria-hidden="true"
+                />
+              </button>
+            )}
+           </div>
+
+            {/* Indented past the check so the text lines up with the name
+                above it rather than with the control: 0.75rem of row padding
+                plus the 1.75rem control and the 0.625rem gap. max-w-measure, because
+                an AI description in a 372px pane is the one place in this
+                component where a real paragraph lands. */}
+            {canExpand && isOpen && (
+              <p className="max-w-measure animate-rise pb-3 pe-3 ps-[3.125rem] text-caption leading-relaxed text-muted wrap-anywhere">
+                {detail}
+              </p>
+            )}
           </li>
-        ))}
+          );
+        })}
       </ul>
     </Card>
   );

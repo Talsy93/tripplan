@@ -88,6 +88,18 @@ export const TRIPS: Trip[] = [
     status: "planning",
     created_at: "2026-03-01T00:00:00Z",
   },
+  // Archived, so the switcher has one to push to the bottom of its list and
+  // one to label — and so /profile has something to put behind its
+  // collapsed "בארכיון" section.
+  {
+    id: id("d4"),
+    user_id: USER_ID,
+    name: "פראג, חורף שעבר",
+    start_date: "2025-12-20",
+    end_date: "2025-12-27",
+    status: "archived",
+    created_at: "2025-10-01T00:00:00Z",
+  },
 ];
 
 // Cities per trip, for the light each trip is drawn in. Deliberately uneven:

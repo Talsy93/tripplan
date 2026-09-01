@@ -14,6 +14,12 @@ export const placeCategorySchema = z.enum([
   "shopping",
   "temples",
   "attractions",
+  // Not searchable, and that is the whole of its definition — see
+  // SEARCHABLE_PLACE_CATEGORIES below. A hand-added place is often none of
+  // the six: a viewpoint a friend named, a hot spring, a market, a football
+  // ground. Before this it had to be filed as one of them, so "אחר" was being
+  // spelled "מסעדות" in the data.
+  "other",
 ]);
 export type PlaceCategory = z.infer<typeof placeCategorySchema>;
 
@@ -56,7 +62,20 @@ export const PLACE_CATEGORIES: Record<
     icon: "attraction",
     filters: ["tourism=attraction", "tourism=museum", "tourism=viewpoint"],
   },
+  // No filters, on purpose rather than for want of tags. "אחר" is the
+  // category for a place OpenStreetMap has no single answer for; giving it a
+  // guess at one would make the tile return arbitrary results.
+  other: { label: "אחר", icon: "other", filters: [] },
 };
+
+// The categories the attractions search can actually offer, derived rather
+// than listed a second time: a category is searchable exactly when it has tag
+// filters. Two components iterate this — the search grid and the free-text
+// fallback — and both would otherwise have grown a hand-maintained copy that
+// drifts the next time a category is added.
+export const SEARCHABLE_PLACE_CATEGORIES = (
+  Object.keys(PLACE_CATEGORIES) as PlaceCategory[]
+).filter((key) => PLACE_CATEGORIES[key].filters.length > 0);
 
 // How many things the trip already holds in each search category.
 //
@@ -95,6 +114,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   bakeries: "מאפייה",
   shopping: "שופינג",
   temples: "מקדש",
+  other: "מקום",
 };
 
 export function categoryLabel(category: string) {

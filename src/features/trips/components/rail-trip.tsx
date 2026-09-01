@@ -1,51 +1,16 @@
-import Link from "next/link";
-import { ChevronDown } from "lucide-react";
 import { daysUntil } from "../domain/trip";
-import { phaseLabel } from "../domain/trip-days";
 import type { TripPhase } from "../domain/trip-days";
 
-// The two ends of the desktop rail.
+// The bottom end of the desktop rail.
 //
 // The rail already carries the trip's colour; these say which trip in words, and
 // where it is in its own life. Both are things a phone gets from the band at the
 // top of every screen — and the rail is what a desktop has instead of that band
 // being the first thing under your thumb.
 //
-// Split into two exports rather than one component because SideNav takes them as
-// separate slots: the switcher pins to the top and the progress sits on the
-// bottom edge, and anything between them is the navigation itself.
-
-export function RailTripSwitcher({
-  name,
-  phase,
-}: {
-  name: string;
-  phase: TripPhase;
-}) {
-  return (
-    // A link to the trips list, not a dropdown. A menu here would be a second
-    // way to do the one thing /profile already does well, and it would have to
-    // load every trip into a layout that currently loads none of them for this.
-    <Link
-      href="/profile"
-      className="flex min-w-0 items-center gap-2 rounded-control border border-white/20 bg-white/12 px-3 py-2.5 text-white transition-colors hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-aura-base"
-    >
-      <span className="min-w-0 flex-1">
-        <span className="block text-caption font-semibold text-white/65">
-          {phaseLabel(phase)}
-        </span>
-        {/* truncate, not wrap: the rail is 15rem and a two-line trip name would
-            push the first nav item down by its own height. The full name is in
-            the app bar at the top of the same screen. */}
-        <span className="block min-w-0 truncate text-sm font-bold">{name}</span>
-      </span>
-      <ChevronDown
-        className="h-4 w-4 shrink-0 text-white/60"
-        aria-hidden="true"
-      />
-    </Link>
-  );
-}
+// The switcher that used to live here moved to rail-trip-switcher.tsx when it
+// stopped being a link and became a real menu — that needs client state, and
+// this file has none.
 
 export function RailTripProgress({
   phase,
@@ -104,6 +69,12 @@ function Progress({
     <div className="border-t border-white/15 px-3 pt-3 text-white">
       <p className="text-caption font-semibold text-white/65">{label}</p>
       <p className="flex items-baseline gap-1.5">
+        {/* Static, deliberately. A count-up was built for this number and
+            removed: the server renders the final figure, so the only way a
+            client animation can start from zero is to overwrite it at
+            hydration — measured as a visible 23 → 0 → 23 jump, which reads as
+            a glitch rather than as the app working something out. The bar
+            below fills instead, and a bar has no value to contradict. */}
         <span className="text-heading font-black tabular-nums">{value}</span>
         <span className="text-caption font-semibold text-white/75">{unit}</span>
       </p>
@@ -113,7 +84,7 @@ function Progress({
           role="presentation"
         >
           <span
-            className="block h-full rounded-full bg-white"
+            className="block h-full animate-fill rounded-full bg-white"
             style={{ width: `${Math.round(fraction * 100)}%` }}
           />
         </div>

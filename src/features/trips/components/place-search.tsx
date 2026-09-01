@@ -26,7 +26,7 @@ import { cn } from "@/lib/cn";
 import { addPlace } from "../application/place-actions";
 import { saveMore, setSelected } from "../application/guide-actions";
 import { aiErrorFromResponse } from "../domain/ai-errors";
-import { PLACE_CATEGORIES } from "../domain/place";
+import { PLACE_CATEGORIES, SEARCHABLE_PLACE_CATEGORIES } from "../domain/place";
 import type { AiRecommendation } from "../domain/ai-suggestion";
 import {
   cityToneClass,
@@ -40,7 +40,9 @@ import type { AddedPlace } from "../infrastructure/place-service";
 import { PlaceDetails } from "./place-details";
 import { DomainIcon } from "./domain-icon";
 
-const CATEGORY_KEYS = Object.keys(PLACE_CATEGORIES) as PlaceCategory[];
+// The six the search can offer. "אחר" exists as a category but has no tag
+// filters, so a tile for it would open a search that can only come back empty.
+const CATEGORY_KEYS = SEARCHABLE_PLACE_CATEGORIES;
 
 // A place is in the trip whether or not the itinerary has been built since —
 // so "in the trip" is the fallback, and a day is the better news when we have
@@ -461,7 +463,11 @@ export function PlaceSearch({
             used to be 2/3/4/6, and at xl that put six tiles in one 110px-tall
             row above an otherwise empty screen — a toolbar, not the opening
             move of a tab. */}
-        <div className="grid grid-cols-3 gap-2.5">
+        {/* stagger + animate-rise: the six tiles are the first thing on the
+            tab, and arriving in sequence over 0.5s reads as the screen
+            assembling rather than as six things sliding. Both are inert under
+            prefers-reduced-motion — globals.css. */}
+        <div className="stagger grid grid-cols-3 gap-2.5">
           {CATEGORY_KEYS.map((key, index) => {
             const meta = PLACE_CATEGORIES[key];
             const count = savedCounts[key] ?? 0;
@@ -481,6 +487,7 @@ export function PlaceSearch({
                 // stays quiet and the row of icons stays scannable.
                 className={cn(
                   toneClass(toneByIndex(index)),
+                  "animate-rise",
                   "flex flex-col items-center gap-2 rounded-card border border-border bg-surface p-3 text-center shadow-soft transition-shadow",
                   "hover:border-border-strong hover:shadow-lift",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",

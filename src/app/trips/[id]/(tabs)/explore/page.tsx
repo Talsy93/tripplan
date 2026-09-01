@@ -62,15 +62,14 @@ export default async function ExplorePage({
       // not wait for that.
       map={
         <Suspense
-          fallback={
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-[20rem] rounded-tile" />
-              <Skeleton className="h-14" />
-              <Skeleton className="h-14" />
-            </div>
-          }
+          // Matches RouteMapCard: a 15rem canvas over a one-line footer.
+          fallback={<Skeleton className="h-[17.75rem] rounded-card" />}
         >
-          <RouteMapPanel tripId={id} tripName={trip?.name ?? ""} />
+          <RouteMapPanel
+            tripId={id}
+            tripName={trip?.name ?? ""}
+            variant="compact"
+          />
         </Suspense>
       }
     />

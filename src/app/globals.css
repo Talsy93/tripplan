@@ -453,20 +453,55 @@
      never for a scroll or a slide (an overshoot on a long translate looks like
      a bug, not like physics).
 
-     The two durations exist so that every interactive surface in the app
-     agrees on how fast it responds. Before them, controls transitioned on
-     whatever Tailwind's default was (150ms, ease) and half of them
-     transitioned only `colors`, so a card lifted instantly and a button
-     faded — which is most of what read as unfinished rather than smooth.
-
-     150ms for a press: fast enough to feel like the surface answered the
-     finger. 250ms for hover and elevation, which is a state change rather
-     than an answer. */
+     The two named durations that go with them are @utility rules further down
+     this file, not tokens. */
   --ease-snap: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-spring: cubic-bezier(0.34, 1.46, 0.5, 1);
 
-  --duration-press: 150ms;
-  --duration-settle: 250ms;
+  /* NOT tokens — see the @utility pair below @keyframes. Tailwind v4 has an
+     --ease-* namespace but no --duration-*, so these two never compiled to
+     anything: `.duration-settle` and `.duration-press` were absent from the
+     emitted CSS entirely, and all eighteen uses across twelve files fell
+     through to --default-transition-duration. Measured at 150ms on a chevron
+     asking for 250ms — and 150ms is also what --duration-press wanted, which
+     is why half of this was invisible.
+
+     --default-transition-duration is set for the same 150ms, so anything
+     transitioning without an explicit duration is a press by default. */
+  --default-transition-duration: 150ms;
+
+  /* Named entrances.
+
+     Three, not a library, and each one answers a question the app was
+     already asking badly:
+
+       pop    something that appears where it was summoned — a menu under
+              its own button. Scale from 96% with the spring, so it reads as
+              coming out of the control rather than fading in over it.
+       rise   something arriving in the flow. 8px is the whole distance: any
+              further and a grid of six tiles becomes six things sliding.
+       stamp  a confirmation mark. Overshoots, because that is what makes a
+              check feel like an answer instead of an appearance.
+
+     `both` on all three: the element holds the "from" frame until it
+     starts and the "to" frame after, so nothing flashes at full opacity on
+     the first paint and nothing snaps back at the end.
+
+     The easings are written out rather than as var(--ease-snap). This block
+     is @theme *inline*, so Tailwind substitutes token values into utilities
+     and never emits them as custom properties — a var() here resolves to
+     nothing. The same trap the container tokens hit in T0.
+
+     No reduced-motion guard here: the block at the bottom of this file
+     already neutralises every animation and transition in the app. */
+  --animate-pop: pop 150ms cubic-bezier(0.34, 1.46, 0.5, 1) both;
+  --animate-rise: rise 250ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  --animate-stamp: stamp 250ms cubic-bezier(0.34, 1.46, 0.5, 1) both;
+  /* No --animate-fill token here on purpose: that effect needs a
+     transform-origin as well as an animation, and a plain rule further down
+     supplies both. A token *and* a hand-written .animate-fill rule collide —
+     measured: the utility was not emitted at all and only the origin applied,
+     so the bar sat at its final width with animation-name: none. */
 }
 
 /* The aura's two drift tracks.
@@ -494,6 +529,94 @@
 
 .aura-drift-a { animation: aura-drift-a 18s ease-in-out infinite alternate; }
 .aura-drift-b { animation: aura-drift-b 24s ease-in-out infinite alternate; }
+
+/* The entrance keyframes behind --animate-pop / --animate-rise / --animate-stamp.
+   ---------------------------------------------------------------------------
+   transform and opacity only, so all three stay on the compositor. A keyframe
+   that touched height or margin would animate layout on every card in a grid,
+   which is the difference between this being free and being the reason a
+   mid-range phone drops frames on the explore tab. */
+@keyframes pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes stamp {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: none; }
+}
+
+/* scaleX rather than an animated width, so the fill stays on the compositor
+   and never lays out the track around it.
+
+   The origin is the one thing here that cannot be written logically:
+   transform-origin takes percentages of the box and knows nothing about
+   direction, so a bar in an RTL document has to be told that its start is the
+   right edge. The document is RTL, so that is the default, and the [dir=ltr]
+   override is what keeps the utility honest if it is ever used inside one of
+   the LTR islands (the map, a code block, a phone number).
+
+   700ms, longer than the three entrances above, because this one describes a
+   quantity rather than an arrival — at 250ms a bar does not read as filling,
+   it reads as appearing at the wrong size for one frame. */
+@keyframes fill {
+  from { transform: scaleX(0); }
+  to { transform: none; }
+}
+
+.animate-fill {
+  animation: fill 700ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  transform-origin: 100% 50%;
+}
+
+/* The two named durations, as real utilities.
+   ---------------------------------------------------------------------------
+   @utility rather than @theme, because a duration is not one of v4's theme
+   namespaces — see the note where the tokens used to live.
+
+   150ms for a press: fast enough to feel like the surface answered the
+   finger. 250ms for hover and elevation, which is a state change rather than
+   an answer. Before them, controls transitioned on whatever the default was
+   and half of them transitioned only `colors`, so a card lifted instantly and
+   a button faded — which is most of what read as unfinished rather than
+   smooth. */
+@utility duration-press {
+  transition-duration: 150ms;
+}
+
+@utility duration-settle {
+  transition-duration: 250ms;
+}
+
+[dir="ltr"] .animate-fill { transform-origin: 0% 50%; }
+
+/* A staggered entrance for the children of one container.
+   ---------------------------------------------------------------------------
+   The delay is on the child, not on the animation token, so the same
+   `animate-rise` utility serves a lone card and a grid of eight.
+
+   Capped at eight and then flat, on purpose. A per-item delay that keeps
+   growing means the twentieth row of a long list waits a second before it
+   exists — which stops being an entrance and becomes a load. Eight covers
+   every grid in the app that is visible without scrolling.
+
+   45ms, measured against the 250ms the rise itself takes: the eighth child
+   starts as the first is finishing, so the group reads as one movement
+   rather than as a queue. */
+.stagger > * { animation-delay: 315ms; }
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 45ms; }
+.stagger > *:nth-child(3) { animation-delay: 90ms; }
+.stagger > *:nth-child(4) { animation-delay: 135ms; }
+.stagger > *:nth-child(5) { animation-delay: 180ms; }
+.stagger > *:nth-child(6) { animation-delay: 225ms; }
+.stagger > *:nth-child(7) { animation-delay: 270ms; }
+.stagger > *:nth-child(8) { animation-delay: 315ms; }
 
 body {
   background: var(--background);

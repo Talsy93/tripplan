@@ -1,6 +1,7 @@
 import { getItinerary } from "../infrastructure/itinerary-service";
 import { getTripRoute } from "../infrastructure/route-service";
 import { RouteMap } from "./route-map";
+import { RouteMapCard } from "./route-map-card";
 
 // Server component: resolves the route (which may need to geocode new cities,
 // paced at ~1 request/second) and hands it to the client map. Wrap it in a
@@ -8,10 +9,15 @@ import { RouteMap } from "./route-map";
 export async function RouteMapPanel({
   tripId,
   tripName,
+  // "full" is the מפה tab: the map is the screen. "compact" is a context
+  // pane beside something else, and it is a different component rather than
+  // the same one with a height override — see route-map-card.tsx for why.
+  variant = "full",
 }: {
   tripId: string;
   // Geocoding context — see getTripRoute().
   tripName: string;
+  variant?: "full" | "compact";
 }) {
   // The itinerary decides both the order of the stops and the nights spent in
   // each, so it has to be loaded before the route is built.
@@ -26,6 +32,17 @@ export async function RouteMapPanel({
   // map as the only screen that opened differently.
   //
   // This also drops a getPlaceImage call from the tab: the band already made it.
+
+  if (variant === "compact") {
+    return (
+      <RouteMapCard
+        tripId={tripId}
+        stops={route.stops}
+        places={route.places}
+        unlocatedCount={route.unlocatedCities.length}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5">

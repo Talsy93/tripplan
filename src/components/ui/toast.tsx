@@ -61,10 +61,21 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {/* Fixed to the corner rather than a full-width strip, so it sits
-          beside the screen instead of pushing content down — and stacks
-          without needing to know how many are already showing. */}
-      <div className="pointer-events-none fixed inset-x-4 top-4 z-50 flex flex-col items-stretch gap-2 sm:inset-x-auto sm:start-4 sm:items-end">
+      {/* Bottom of the screen, and on the *end* edge from sm up.
+
+          It was `top-4` + `sm:start-4`, which in RTL is the inline start —
+          the right — and that is exactly where the 248px desktop rail is.
+          Measured at 1440: 100% of the toast landed on the rail, a white card
+          over the dark navigation for 3.5s. Reported as bookings saving with
+          no confirmation at all, and that is a fair reading of it.
+
+          Bottom rather than top because the top of a trip screen is the app
+          bar and the trip's light band, and the end edge because the rail owns
+          the start edge on every screen that has one.
+
+          The phone offset clears the floating bottom bar — the same
+          6rem + safe-area AppShell's main uses, measured against that bar. */}
+      <div className="pointer-events-none fixed inset-x-4 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-50 flex flex-col items-stretch gap-2 md:bottom-6 sm:inset-x-auto sm:end-4 sm:items-start">
         {toasts.map((toast) => (
           <ToastCard key={toast.id} toast={toast} onDismiss={() => dismiss(toast.id)} />
         ))}
@@ -93,8 +104,9 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
     <div
       role="status"
       className={cn(
-        "pointer-events-auto flex w-full max-w-72 items-start gap-2 rounded-card bg-surface p-3 shadow-lift transition-all duration-200 ease-snap",
-        shown ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0",
+        "pointer-events-auto flex w-full max-w-72 items-start gap-2 rounded-card border border-border bg-surface p-3 shadow-lift transition-all duration-200 ease-snap",
+        // Rises into place, because it now comes from the bottom edge.
+        shown ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-95 opacity-0",
       )}
     >
       <Icon

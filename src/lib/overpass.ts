@@ -163,9 +163,17 @@ function buildQuery({
   const around = `around:${radiusM},${center.latitude},${center.longitude}`;
 
   // With no category chosen, free text searches across every category at once.
-  const filters = category
-    ? PLACE_CATEGORIES[category].filters
-    : Object.values(PLACE_CATEGORIES).flatMap((entry) => entry.filters);
+  //
+  // The `.length > 0` fallback is the guard for a category that has no tag
+  // filters at all — "אחר" is one, deliberately. It is never offered by the
+  // search grid, but an empty filter list here would build a query with no
+  // clauses in it, and that is worth one line to make impossible rather than
+  // unlikely.
+  const chosen = category ? PLACE_CATEGORIES[category].filters : [];
+  const filters =
+    chosen.length > 0
+      ? chosen
+      : Object.values(PLACE_CATEGORIES).flatMap((entry) => entry.filters);
 
   const clauses = filters
     .flatMap((filter) => {

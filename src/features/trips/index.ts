@@ -299,6 +299,7 @@ export {
   aiPhrasebookSchema,
   phrasebookRequestSchema,
   PHRASE_TOPICS,
+  speechLangFor,
 } from "./domain/phrasebook";
 export type {
   AiPhrase,
@@ -346,7 +347,8 @@ export { AuraPanel } from "./components/aura-panel";
 export { tripHueStyle } from "./domain/aura-vars";
 export { NowCard } from "./components/now-card";
 export { TodayStats } from "./components/today-stats";
-export { RailTripProgress, RailTripSwitcher } from "./components/rail-trip";
+export { RailTripProgress } from "./components/rail-trip";
+export { RailTripSwitcher } from "./components/rail-trip-switcher";
 export { UpNext } from "./components/up-next";
 export { OpenItems } from "./components/open-items";
 export { TripSpend } from "./components/trip-spend";
@@ -421,6 +423,8 @@ export type {
 export { PlaceSearch } from "./components/place-search";
 export { PlaceDetails } from "./components/place-details";
 export { ManualPlaceForm } from "./components/manual-place-form";
+export { RouteMapCard } from "./components/route-map-card";
+export { SpeakButton } from "./components/speak-button";
 export { RouteMapPanel } from "./components/route-map-panel";
 export {
   gearCategorySchema,

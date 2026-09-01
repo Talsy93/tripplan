@@ -182,7 +182,16 @@ export default async function TripTabsLayout({
           tripId={trip.id}
           hues={hues}
           initial={user?.email?.[0]}
-          header={<RailTripSwitcher name={trip.name} phase={phase} />}
+          header={
+            <RailTripSwitcher
+              name={trip.name}
+              phase={phase}
+              // Already in hand for the aura assignment above — the
+              // switcher costs no extra query.
+              trips={trips}
+              currentId={trip.id}
+            />
+          }
           footer={
             <RailTripProgress
               phase={phase}
