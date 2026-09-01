@@ -15,6 +15,7 @@
 
 import type { ReactNode } from "react";
 import {
+  ArchiveTripButton,
   AURA_PALETTES,
   assignTripAuras,
   AuraHero,
@@ -576,6 +577,7 @@ export const SCENES: Scene[] = [
             members={f.MEMBERS}
             cities={FRAME_CITIES}
             shareToken="abcdef0123456789"
+            archived={false}
             now={f.NOW}
           />
         ),
@@ -711,6 +713,21 @@ export const SCENES: Scene[] = [
           />
         </div>
       </AppShell>
+    ),
+  },
+  {
+    slug: "archive-trip",
+    title: "ארכוב ושחזור",
+    note: "שורה אחת בשני הכיוונים. בצבע האזהרה ולא בצבע הסכנה — הארכוב הפיך והמחיקה לא, ושתי שורות אדומות זהות היו משאירות את שתיהן בלי משמעות",
+    render: () => (
+      <div className="flex max-w-2xl flex-col gap-4">
+        <ArchiveTripButton
+          tripId={f.TRIP_ID}
+          tripName="יפן בסתיו"
+          archived={false}
+        />
+        <ArchiveTripButton tripId={f.TRIP_ID} tripName="יפן בסתיו" archived />
+      </div>
     ),
   },
   {

@@ -6,7 +6,6 @@ import type {
   ItineraryDay,
   SelectedItem,
 } from "../domain/ai-suggestion";
-import type { TripStatus } from "../domain/trip";
 
 // Coordinates for the trip's destinations, keyed the same way the itinerary
 // links back to them (city + normalised name, see getAddedPlaces).
@@ -261,19 +260,6 @@ export const getItineraryDayCount = cache(
     return data.day_number ?? 0;
   },
 );
-
-// Retained for an explicit archive action; the app no longer writes status as
-// a side effect of generating an itinerary. See ARCHITECTURE.md rule #6.
-export async function setTripStatus(tripId: string, status: TripStatus) {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("trips")
-    .update({ status })
-    .eq("id", tripId);
-  if (error) {
-    console.error("setTripStatus failed:", error.message);
-  }
-}
 
 // Edit one entry: its hours, the day it sits on, its note, and how you get to
 // it. RLS restricts the update to the user's own trips, so a foreign id matches

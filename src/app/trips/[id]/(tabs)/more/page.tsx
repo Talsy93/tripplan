@@ -3,6 +3,7 @@ import {
   getSelectedDestinations,
   getShareToken,
   getTrip,
+  isArchived,
   listBookings,
   listGear,
   listMembers,
@@ -40,6 +41,7 @@ export default async function MorePage({
       members={members}
       cities={[...new Set(selected.map((item) => item.city))].filter(Boolean)}
       shareToken={shareToken}
+      archived={isArchived(trip)}
       now={new Date().toISOString()}
     />
   );

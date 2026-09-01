@@ -5,6 +5,14 @@ export const tripStatusSchema = z.enum([
   "planning",
   "executing",
   "completed",
+  // Put away by the owner, and the only value the app ever writes — see
+  // ARCHITECTURE.md rule #6: the trip's *phase* is derived from its dates and
+  // never stored, and this column exists for explicit intent alone.
+  //
+  // Not "completed": a finished trip and a put-away trip are different facts. A
+  // trip you took last year is completed and may well belong on the home
+  // screen; a trip you abandoned is archived and is not completed at all.
+  "archived",
 ]);
 export type TripStatus = z.infer<typeof tripStatusSchema>;
 
@@ -92,6 +100,13 @@ export function daysUntil(startDate: string): number {
   const now = new Date();
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   return Math.round((target - today) / 86_400_000);
+}
+
+// Archived trips are off the home screen and out of "the next trip" — that is
+// the whole point of archiving one. Kept as a function rather than compared
+// inline at four call sites, so the rule has one place to change.
+export function isArchived(trip: { status: TripStatus }): boolean {
+  return trip.status === "archived";
 }
 
 // Human, warm Hebrew phrasing for the countdown to departure.

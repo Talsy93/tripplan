@@ -5,6 +5,7 @@ export {
   setTripDatesSchema,
   daysUntil,
   formatCountdown,
+  isArchived,
   formatShortDate,
   pickUpcomingTrip,
 } from "./domain/trip";
@@ -90,7 +91,11 @@ export type {
   ItineraryDay,
   ItineraryEntry,
 } from "./domain/ai-suggestion";
-export { createTrip, deleteTrip } from "./application/actions";
+export {
+  createTrip,
+  deleteTrip,
+  setTripArchived,
+} from "./application/actions";
 export { setTripDates } from "./application/date-actions";
 export {
   saveGuide,
@@ -104,6 +109,7 @@ export { deleteItineraryEntry } from "./application/itinerary-actions";
 export {
   getTrip,
   listTrips,
+  setTripStatus,
   updateTripDates,
 } from "./infrastructure/trips-service";
 export {
@@ -118,7 +124,6 @@ export {
   getItinerary,
   getItineraryDayCount,
   saveItinerary,
-  setTripStatus,
 } from "./infrastructure/itinerary-service";
 export { getTripRoute, getCityCenter } from "./infrastructure/route-service";
 export {
@@ -360,6 +365,7 @@ export { ExploreScreen } from "./components/explore-screen";
 export { CityGuideList } from "./components/city-guide-list";
 export { CityBand } from "./components/city-band";
 export { MoreMenu } from "./components/more-menu";
+export { ArchiveTripButton } from "./components/archive-trip-button";
 export { HomeRail } from "./components/home-rail";
 export type { CityGuideEntry } from "./components/city-guide-list";
 export type { RouteCity } from "./components/route-cities";
