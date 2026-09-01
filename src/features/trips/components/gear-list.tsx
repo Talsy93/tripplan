@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useActionState } from "react";
 import { Plus, RotateCcw, X } from "lucide-react";
-import { Badge, Button, Card, Field, Glyph, IconButton, Input, SectionHeading, Select, useToast } from "@/components/ui";
+import { Badge, Button, Card, Field, Glyph, IconButton, Input, REVEALED_ACTION, SectionHeading, Select, SwipeAction, useToast } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import {
   GEAR_CATEGORIES,
@@ -129,48 +129,60 @@ export function GearList({
                   </Badge>
                 </div>
 
-                <ul className="flex flex-col">
+                <div className="flex flex-col">
                   {group.items.map((item) => (
-                    <li
+                    // The divider stays on the wrapper and the sliding half is
+                    // borderless: a border that travelled with the content would
+                    // leave the last stretch of the row unruled mid-swipe.
+                    <SwipeAction
                       key={item.id}
-                      className="flex min-w-0 items-center gap-2 border-b border-border px-3 py-1.5 last:border-b-0"
+                      icon={<X className="h-4 w-4" aria-hidden="true" />}
+                      onAction={() => void remove(item)}
+                      className="rounded-none border-b border-border last:border-b-0"
                     >
-                      {/* A real checkbox, wrapped in its own label. The whole
-                          row being the hit target matters on a phone, and a
-                          label with the input inside needs no `htmlFor`/id
-                          pairing to stay correct as rows are added. */}
-                      <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 py-1">
-                        <input
-                          type="checkbox"
-                          checked={item.packed}
-                          onChange={(event) =>
-                            void toggle(item, event.currentTarget.checked)
-                          }
-                          className="h-4.5 w-4.5 shrink-0 accent-primary"
-                        />
-                        <span
-                          className={cn(
-                            // wrap-anywhere, not truncate: the user typed this
-                            // and a long entry is theirs to read in full.
-                            "min-w-0 text-sm wrap-anywhere",
-                            item.packed && "text-muted line-through",
-                          )}
-                        >
-                          {item.label}
-                        </span>
-                      </label>
+                      <div className="flex min-w-0 items-center gap-2 px-3 py-1.5">
+                        {/* A real checkbox, wrapped in its own label. The whole
+                            row being the hit target matters on a phone, and a
+                            label with the input inside needs no `htmlFor`/id
+                            pairing to stay correct as rows are added. */}
+                        <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 py-1">
+                          <input
+                            type="checkbox"
+                            checked={item.packed}
+                            onChange={(event) =>
+                              void toggle(item, event.currentTarget.checked)
+                            }
+                            className="h-4.5 w-4.5 shrink-0 accent-primary"
+                          />
+                          <span
+                            className={cn(
+                              // wrap-anywhere, not truncate: the user typed this
+                              // and a long entry is theirs to read in full.
+                              "min-w-0 text-sm wrap-anywhere",
+                              item.packed && "text-muted line-through",
+                            )}
+                          >
+                            {item.label}
+                          </span>
+                        </label>
 
-                      <IconButton
-                        label={`הסרת ${item.label}`}
-                        variant="danger"
-                        size="sm"
-                        onClick={() => void remove(item)}
-                      >
-                        <X className="h-3.5 w-3.5" aria-hidden="true" />
-                      </IconButton>
-                    </li>
+                        {/* Revealed, not resting: invisible until the row is
+                            hovered or this button is focused. On a touch
+                            screen there is no hover and it never appears —
+                            which is what the swipe and the hold are for. */}
+                        <IconButton
+                          label={`הסרת ${item.label}`}
+                          variant="danger"
+                          size="sm"
+                          className={REVEALED_ACTION}
+                          onClick={() => void remove(item)}
+                        >
+                          <X className="h-3.5 w-3.5" aria-hidden="true" />
+                        </IconButton>
+                      </div>
+                    </SwipeAction>
                   ))}
-                </ul>
+                </div>
 
                 <StarterRow
                   tripId={tripId}

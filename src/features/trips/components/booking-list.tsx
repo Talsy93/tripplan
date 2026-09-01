@@ -11,7 +11,9 @@ import {
   EmptyState,
   Glyph,
   IconButton,
+  REVEALED_ACTION,
   SegmentedControl,
+  SwipeAction,
   type SegmentedItem,
 } from "@/components/ui";
 import {
@@ -194,120 +196,136 @@ export function BookingList({
 
           return (
             <li key={booking.id} className="min-w-0">
-              <Card padding="none" className="h-full overflow-hidden">
-                <div className="flex items-start gap-3 p-4 pb-2">
-                  {/* The kind glyph leads the card as its own tile rather than
-                      sitting inline before the title. Inline it moved with the
-                      text: on a phone the badges wrapped and the glyph ended up
-                      wherever the wrap left it, so no two cards in a list
-                      started the same way. */}
-                  <Glyph size="md">
-                    <DomainIcon name={kind.icon} />
-                  </Glyph>
+              {/* The remove action is reached by a swipe or a hold on the card,
+                  or by the button in the header that appears only once the card
+                  is hovered or that button is focused. Every route opens the
+                  same confirm dialog: a booking carries a confirmation code and
+                  a price, and a gesture is not a reason to skip asking. */}
+              <SwipeAction
+                icon={<X className="h-4 w-4" aria-hidden="true" />}
+                disabled={removing === booking.id}
+                onAction={() => setConfirming(booking)}
+                className="h-full"
+              >
+                <Card padding="none" className="h-full overflow-hidden">
+                  <div className="flex items-start gap-3 p-4 pb-2">
+                    {/* The kind glyph leads the card as its own tile rather than
+                        sitting inline before the title. Inline it moved with the
+                        text: on a phone the badges wrapped and the glyph ended up
+                        wherever the wrap left it, so no two cards in a list
+                        started the same way. */}
+                    <Glyph size="md">
+                      <DomainIcon name={kind.icon} />
+                    </Glyph>
 
-                  {/* Wraps rather than squeezing: an alert like "departing in
-                      2 hours" is wider than the title on a phone, and a
-                      truncated flight number is worse than a second line. */}
-                  <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 pt-1.5">
-                    {/* `min-w-0` is not optional on a truncating flex child.
-                        Without it the item keeps its automatic minimum size —
-                        the full width of the un-wrapped string, because
-                        `truncate` sets `white-space: nowrap` — so it refuses to
-                        shrink, pushes the row past the card, and widens the
-                        page instead of ellipsing. The parent having `min-w-0`
-                        does not help: the constraint has to be on the item that
-                        cannot wrap. */}
-                    <span className="min-w-0 truncate text-base font-semibold">
-                      {booking.title}
+                    {/* Wraps rather than squeezing: an alert like "departing in
+                        2 hours" is wider than the title on a phone, and a
+                        truncated flight number is worse than a second line. */}
+                    <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 pt-1.5">
+                      {/* `min-w-0` is not optional on a truncating flex child.
+                          Without it the item keeps its automatic minimum size —
+                          the full width of the un-wrapped string, because
+                          `truncate` sets `white-space: nowrap` — so it refuses to
+                          shrink, pushes the row past the card, and widens the
+                          page instead of ellipsing. The parent having `min-w-0`
+                          does not help: the constraint has to be on the item that
+                          cannot wrap. */}
+                      <span className="min-w-0 truncate text-base font-semibold">
+                        {booking.title}
+                      </span>
+                      {clashing && (
+                        <Badge tone="warning" className="shrink-0">
+                          לינה כפולה
+                        </Badge>
+                      )}
+                      {connected.has(booking.id) && (
+                        <Badge
+                          tone="action"
+                          className="shrink-0"
+                          title="חלק ממסלול עם קונקשן"
+                        >
+                          קונקשן
+                        </Badge>
+                      )}
+                      {alerts.map((alert) => (
+                        <Badge
+                          key={alert.message}
+                          tone={ALERT_TONE[alert.urgency]}
+                          className="shrink-0"
+                          suppressHydrationWarning
+                        >
+                          {alert.message}
+                        </Badge>
+                      ))}
                     </span>
-                    {clashing && (
-                      <Badge tone="warning" className="shrink-0">
-                        לינה כפולה
-                      </Badge>
-                    )}
-                    {connected.has(booking.id) && (
-                      <Badge
-                        tone="action"
-                        className="shrink-0"
-                        title="חלק ממסלול עם קונקשן"
+
+                    <span className="flex shrink-0 items-center gap-1">
+                      <IconButton
+                        label={`עריכת ${kind.label}`}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditing(booking)}
                       >
-                        קונקשן
-                      </Badge>
-                    )}
-                    {alerts.map((alert) => (
-                      <Badge
-                        key={alert.message}
-                        tone={ALERT_TONE[alert.urgency]}
-                        className="shrink-0"
-                        suppressHydrationWarning
+                        <Pencil className="h-4 w-4" aria-hidden="true" />
+                      </IconButton>
+                      {/* Revealed by hovering the card or by focusing this
+                          button, never at rest — the finger uses the swipe
+                          and the hold instead. */}
+                      <IconButton
+                        label={`הסר ${kind.label}`}
+                        variant="danger"
+                        size="sm"
+                        className={REVEALED_ACTION}
+                        disabled={removing === booking.id}
+                        onClick={() => setConfirming(booking)}
                       >
-                        {alert.message}
-                      </Badge>
-                    ))}
-                  </span>
-
-                  <span className="flex shrink-0 items-center gap-1">
-                    <IconButton
-                      label={`עריכת ${kind.label}`}
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setEditing(booking)}
-                    >
-                      <Pencil className="h-4 w-4" aria-hidden="true" />
-                    </IconButton>
-                    <IconButton
-                      label={`הסר ${kind.label}`}
-                      variant="danger"
-                      size="sm"
-                      disabled={removing === booking.id}
-                      onClick={() => setConfirming(booking)}
-                    >
-                      <X className="h-4 w-4" aria-hidden="true" />
-                    </IconButton>
-                  </span>
-                </div>
-
-                {kind.isTransport ? (
-                  <TransportLeg booking={booking} />
-                ) : (
-                  <StayLeg booking={booking} nights={nights} />
-                )}
-
-                {(booking.confirmation ||
-                  booking.note ||
-                  booking.free_cancellation_until ||
-                  booking.cost_amount !== null ||
-                  (!booking.booked && booking.book_by)) && (
-                  // `wrap-anywhere` on the container rather than on each line:
-                  // overflow-wrap is inherited, and every field here is a string
-                  // the provider chose — a 36-character confirmation code has no
-                  // spaces to break at.
-                  <div className="flex flex-col gap-1 border-t border-dashed border-border px-4 py-3 text-caption text-muted wrap-anywhere">
-                    {booking.confirmation && (
-                      <span dir="ltr" className="tabular-nums">
-                        קוד הזמנה: {booking.confirmation}
-                      </span>
-                    )}
-                    {booking.cost_amount !== null && booking.cost_currency && (
-                      <span dir="ltr" className="tabular-nums">
-                        עלות: {formatMoney(booking.cost_amount, booking.cost_currency)}
-                      </span>
-                    )}
-                    {/* Shown even when no alert is active, so the deadline that
-                        was entered is visible rather than only surfacing days
-                        later when it becomes urgent. */}
-                    {booking.free_cancellation_until && (
-                      <span>
-                        ביטול חינם עד {formatDay(booking.free_cancellation_until)}
-                      </span>
-                    )}
-                    {!booking.booked && booking.book_by && (
-                      <span>להזמין עד {formatDay(booking.book_by)}</span>
-                    )}
-                    {booking.note && <span>{booking.note}</span>}
+                        <X className="h-4 w-4" aria-hidden="true" />
+                      </IconButton>
+                    </span>
                   </div>
-                )}
-              </Card>
+
+                  {kind.isTransport ? (
+                    <TransportLeg booking={booking} />
+                  ) : (
+                    <StayLeg booking={booking} nights={nights} />
+                  )}
+
+                  {(booking.confirmation ||
+                    booking.note ||
+                    booking.free_cancellation_until ||
+                    booking.cost_amount !== null ||
+                    (!booking.booked && booking.book_by)) && (
+                    // `wrap-anywhere` on the container rather than on each line:
+                    // overflow-wrap is inherited, and every field here is a string
+                    // the provider chose — a 36-character confirmation code has no
+                    // spaces to break at.
+                    <div className="flex flex-col gap-1 border-t border-dashed border-border px-4 py-3 text-caption text-muted wrap-anywhere">
+                      {booking.confirmation && (
+                        <span dir="ltr" className="tabular-nums">
+                          קוד הזמנה: {booking.confirmation}
+                        </span>
+                      )}
+                      {booking.cost_amount !== null && booking.cost_currency && (
+                        <span dir="ltr" className="tabular-nums">
+                          עלות: {formatMoney(booking.cost_amount, booking.cost_currency)}
+                        </span>
+                      )}
+                      {/* Shown even when no alert is active, so the deadline that
+                          was entered is visible rather than only surfacing days
+                          later when it becomes urgent. */}
+                      {booking.free_cancellation_until && (
+                        <span>
+                          ביטול חינם עד {formatDay(booking.free_cancellation_until)}
+                        </span>
+                      )}
+                      {!booking.booked && booking.book_by && (
+                        <span>להזמין עד {formatDay(booking.book_by)}</span>
+                      )}
+                      {booking.note && <span>{booking.note}</span>}
+                    </div>
+                  )}
+                </Card>
+              </SwipeAction>
 
               {/* The wait between two legs of one journey. Inside the same
                   <li> as the leg it follows, so the grid keeps the pair in

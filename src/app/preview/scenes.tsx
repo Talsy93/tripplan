@@ -92,6 +92,7 @@ import {
   Sun,
 } from "lucide-react";
 import * as f from "./fixtures";
+import { SwipeDemo } from "./swipe-demo";
 
 export type Scene = {
   slug: string;
@@ -1423,6 +1424,12 @@ export const SCENES: Scene[] = [
     title: "ציוד · ריק",
     note: "מצב ההתחלה עם שש רשימות מוצעות",
     render: () => <GearList tripId={f.TRIP_ID} items={[]} />,
+  },
+  {
+    slug: "swipe-action",
+    title: "מחיקה בהחלקה",
+    note: "החלקה, לחיצה ארוכה, ריחוף ומיקוד — בלי אייקון מחיקה במנוחה",
+    render: () => <SwipeDemo />,
   },
   {
     slug: "weather",

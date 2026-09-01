@@ -17,4 +17,5 @@ export { SegmentedControl } from "./segmented-control";
 export type { SegmentedItem } from "./segmented-control";
 export { Skeleton } from "./skeleton";
 export { Surface } from "./surface";
+export { SwipeAction, REVEALED_ACTION } from "./swipe-action";
 export { ToastProvider, useToast } from "./toast";
