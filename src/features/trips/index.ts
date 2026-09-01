@@ -342,6 +342,11 @@ export {
   RailTripSwitcher,
 } from "./components/rail-trip";
 export { UpNext } from "./components/up-next";
+export { OpenItems } from "./components/open-items";
+export { TripSpend } from "./components/trip-spend";
+export { TodayBefore } from "./components/today-before";
+export { tripOpenItems } from "./domain/open-items";
+export type { OpenItem } from "./domain/open-items";
 export { MoreBackLink } from "./components/more-back-link";
 export { TripNav, TripSideNav } from "./components/trip-nav";
 export {

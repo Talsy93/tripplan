@@ -36,6 +36,17 @@ const id = (n: string) => `00000000-0000-0000-0000-0000000000${n}`;
 export const NOW = "2026-09-11T09:30:00Z";
 export const TODAY = "2026-09-11";
 
+// Two departure dates measured from TODAY, for the day screen's before-state.
+//
+// FAR is 62 days out — the trip from the screenshot that made T1 necessary, and
+// the far side of two thresholds at once: past the 16-day forecast horizon, so
+// the context pane has no weather to show, and past the three weeks at which an
+// unbooked hotel becomes urgent rather than informational.
+//
+// NEAR is 9 days out, inside both.
+export const FAR_START = "2026-11-12";
+export const NEAR_START = "2026-09-20";
+
 // ---- trips ----------------------------------------------------------------
 
 export const TRIPS: Trip[] = [

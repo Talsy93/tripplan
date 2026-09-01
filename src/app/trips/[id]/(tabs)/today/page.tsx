@@ -7,7 +7,9 @@ import {
   bookingsByDay,
   DayPager,
   focusDayNumber,
+  forecastWindow,
   currentDayNumber,
+  daysUntil,
   getItinerary,
   getSelectedDestinations,
   getTrip,
@@ -16,10 +18,13 @@ import {
   lodgingByDay,
   NowCard,
   dateOfDay,
+  TodayBefore,
   TodayStats,
   todayIn,
+  tripOpenItems,
   tripPhase,
   UpNext,
+  WeatherPanel,
 } from "@/features/trips";
 import type { Booking, NightLodging } from "@/features/trips";
 
@@ -83,6 +88,53 @@ export default async function TodayPage({
         }
       : null;
 
+  // ---- before departure ---------------------------------------------------
+  // A separate branch rather than a screen that conditionally renders four
+  // things, because the two states are not the same screen with pieces missing.
+  // Before the trip there is no "now" and no current day, so the main column
+  // carries what does exist: what is coming, and what is still open. "מה קרוב"
+  // moves out of the context pane and into the column — beside an empty column
+  // it was the whole screen, in a 372px strip.
+  if (!live && !showDay) {
+    const open = tripOpenItems({
+      startDate: trip.start_date,
+      daysUntilStart: trip.start_date ? daysUntil(trip.start_date) : null,
+      dayCount,
+      cities: routeCities,
+      itinerary,
+      bookings,
+    });
+
+    // The forecast is decided here rather than inside TodayBefore, because
+    // "does a forecast exist for these dates" is answerable without a network
+    // call and rendering the panel unconditionally would put "התחזית עוד לא
+    // קיימת" in the pane of every trip more than 16 days out — a card whose
+    // entire content is that it has no content.
+    const hasForecast =
+      forecastWindow(trip.start_date, trip.end_date, today).kind === "available";
+
+    return (
+      <TodayBefore
+        tripId={trip.id}
+        tripName={trip.name}
+        bookings={bookings}
+        now={now.toISOString()}
+        cities={routeCities}
+        open={open}
+        forecast={
+          hasForecast ? (
+            // One request per city, so behind its own boundary: the column
+            // beside it must not wait on a forecast.
+            <Suspense fallback={<Skeleton className="h-28 rounded-card" />}>
+              <WeatherPanel trip={trip} />
+            </Suspense>
+          ) : undefined
+        }
+      />
+    );
+  }
+
+  // ---- on the trip --------------------------------------------------------
   return (
     <TwoPane
       // "What is coming" is the thing you glance at and then go straight back to
@@ -91,8 +143,6 @@ export default async function TodayPage({
       aside={
         <section className="flex flex-col gap-3">
           <SectionHeading level="section">מה קרוב</SectionHeading>
-          {/* Stamped on the server so "in 3 hours" cannot disagree between the
-              server render and hydration. */}
           <UpNext
             bookings={bookings}
             now={now.toISOString()}
