@@ -424,6 +424,13 @@ export function Itinerary({
         onEdit={setEditingId}
         bookings={bookingsByDay[active.day] ?? []}
         date={activeDate}
+        // The dashed row the mockup ends the day with. It goes to the tab where
+        // things are chosen, because that is where a day gains an item —
+        // scheduling happens on the build.
+        addHref={`/trips/${tripId}/explore`}
+        addLabel={
+          activeCity ? `הוסיפו משהו ב${activeCity}` : "הוסיפו משהו ליום הזה"
+        }
       />
 
       {/* One dialog for the whole list rather than one per row: only a single

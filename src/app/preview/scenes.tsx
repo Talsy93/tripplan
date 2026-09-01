@@ -27,6 +27,8 @@ import {
   daysUntil,
   DayPager,
   DayTimeline,
+  DayMapCard,
+  DayWeatherCard,
   ExploreScreen,
   ExpenseSummary,
   GearList,
@@ -54,6 +56,7 @@ import {
   RailTripProgress,
   RailTripSwitcher,
   TodayBefore,
+  TodayDuringAside,
   tripOpenItems,
   UpNext,
   WeatherForecast,
@@ -321,6 +324,72 @@ export const SCENES: Scene[] = [
   // Three scenes, because the pane's content is what varies: two months out
   // there is no forecast and there may be no costs, and the pane has to
   // disappear rather than stand there empty.
+  // ---- the day screen while the trip runs ----------------------------------
+  //
+  // The pane the mockup draws for this state, which carried "מה קרוב" alone
+  // until now. The two fetching panels arrive as nodes, so the scene can draw
+  // the layout with fixed data instead of going to Overpass and Open-Meteo.
+  {
+    slug: "today-during",
+    title: "היום · בטיול, עם החלונית המלאה",
+    note: "ארבעה כרטיסים בחלונית בסדר של המוקאפ: התחנות של היום, מזג האוויר, דורש תשומת לב, ומה שזה עלה. הכרטיס הכהה נשאר הדבר היחיד המואר בטור",
+    bleed: true,
+    render: () =>
+      appFrame({
+        title: "יפן בסתיו",
+        active: "today",
+        phase: { kind: "during", dayNumber: 3 },
+        startDate: "2026-09-09",
+        cities: FRAME_CITIES,
+        badge: (
+          <span className="hidden shrink-0 sm:inline-flex">
+            <Badge tone="success">בטיול</Badge>
+          </span>
+        ),
+        children: (
+          <TwoPane
+            aside={
+              <TodayDuringAside
+                tripId={f.TRIP_ID}
+                bookings={f.BOOKINGS}
+                now={f.NOW}
+                cities={FRAME_CITIES}
+                urgent={FAR_OPEN.filter((item) => item.urgency === "now")}
+                stops={
+                  <DayMapCard
+                    tripId={f.TRIP_ID}
+                    stops={[f.STOPS[0]]}
+                    places={[]}
+                  />
+                }
+                forecast={
+                  <DayWeatherCard
+                    city="טוקיו"
+                    days={f.WEATHER[0].days}
+                    today={f.TODAY}
+                  />
+                }
+              />
+            }
+          >
+            <NowCard
+              day={f.ITINERARY[0]}
+              date={f.TODAY}
+              now={`${f.TODAY}T07:10:00Z`}
+            />
+            <DayPager
+              tripId={f.TRIP_ID}
+              days={f.ITINERARY_LONG}
+              initialDay={3}
+              startDate="2026-09-09"
+              currentDay={3}
+              bookingsByDay={{}}
+              lodgingByDay={{}}
+            />
+          </TwoPane>
+        ),
+      }),
+  },
   {
     slug: "today-before",
     title: "היום · לפני היציאה",
@@ -541,29 +610,41 @@ export const SCENES: Scene[] = [
             }}
           />
         }
+        banner={
+          <AuraHero
+            tripId={f.TRIP_ID}
+            name="יפן בסתיו"
+            startDate={f.LONG_START}
+            cities={FRAME_CITIES}
+            hues={tripAura(FRAME_CITIES)}
+            initial="ט"
+            className="-mt-5"
+          />
+        }
       >
-        <AuraHero
-          tripId={f.TRIP_ID}
-          name="יפן בסתיו"
-          startDate={f.LONG_START}
-          cities={FRAME_CITIES}
-          hues={tripAura(FRAME_CITIES)}
-          initial="ט"
-          className="-mt-5"
-        />
-        <SectionHeading level="sub">כל הטיולים · 3</SectionHeading>
-        <TripList
-          trips={f.TRIPS}
-          today={f.TODAY}
-          citiesByTrip={f.TRIP_CITIES}
-          auraByTrip={assignTripAuras(
-            f.TRIPS.map((trip) => ({
-              id: trip.id,
-              cities: f.TRIP_CITIES.get(trip.id) ?? [],
-              createdAt: trip.created_at,
-            })),
-          )}
-        />
+        <TwoPane
+          aside={
+            <>
+              <SectionHeading level="section">מה מתקרב</SectionHeading>
+              <UpNext bookings={f.BOOKINGS} now={f.NOW} cities={FRAME_CITIES} />
+              <OpenItems tripId={f.TRIP_ID} items={FAR_OPEN} />
+            </>
+          }
+        >
+          <SectionHeading level="sub">כל הטיולים · 3</SectionHeading>
+          <TripList
+            trips={f.TRIPS}
+            today={f.TODAY}
+            citiesByTrip={f.TRIP_CITIES}
+            auraByTrip={assignTripAuras(
+              f.TRIPS.map((trip) => ({
+                id: trip.id,
+                cities: f.TRIP_CITIES.get(trip.id) ?? [],
+                createdAt: trip.created_at,
+              })),
+            )}
+          />
+        </TwoPane>
       </AppShell>
     ),
   },
@@ -1070,6 +1151,7 @@ export const SCENES: Scene[] = [
     note: "יום בשבוע מעל תאריך, לא ״יום N״ — והנבחר בדיו ולא בכחול הפעולה. היום הנוכחי מסומן בטבעת, כדי ש״היום״ ו״נבחר״ יוכלו להיות נכונים בו-זמנית",
     render: () => (
       <DayPager
+        tripId={f.TRIP_ID}
         days={f.ITINERARY}
         initialDay={1}
         startDate="2026-09-11"
@@ -1085,6 +1167,7 @@ export const SCENES: Scene[] = [
     note: "אין לוח שנה להתייחס אליו, אז הגלולות חוזרות ל״יום N״ — הנפילה לאחור שהיא הסיבה שהעוזר בדומיין מחזיר null",
     render: () => (
       <DayPager
+        tripId={f.TRIP_ID}
         days={f.ITINERARY}
         initialDay={1}
         startDate={null}

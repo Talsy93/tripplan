@@ -21,6 +21,7 @@ import { CalendarDays } from "lucide-react";
 // returns the whole trip in one query, so paging costs nothing, while ?day=
 // would spend a server round trip on every arrow tap.
 export function DayPager({
+  tripId,
   days,
   initialDay,
   startDate,
@@ -28,6 +29,7 @@ export function DayPager({
   bookingsByDay,
   lodgingByDay,
 }: {
+  tripId: string;
   days: ItineraryDay[];
   initialDay: number;
   startDate: string | null;
@@ -144,10 +146,14 @@ export function DayPager({
           here, so the first row does not land underneath it. */}
       <div id="day-schedule" className="scroll-mt-20">
         <DayTimeline
-        day={active}
+          day={active}
           variant="compact"
           bookings={bookings}
           date={date}
+          // The ימים tab, not this one: adding to a day is an edit, and editing
+          // a day happens where the day is the subject rather than where it is
+          // the reference under the "now" card.
+          addHref={`/trips/${tripId}/days`}
         />
       </div>
     </div>

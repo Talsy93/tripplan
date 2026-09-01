@@ -20,12 +20,26 @@ export default function Loading() {
           {/* The hero, which is the first thing on the real screen and reaches
               the edges of the content area — so the placeholder does too. */}
           <Skeleton className="-mx-4 -mt-5 h-[22rem] rounded-b-[1.75rem] md:-mx-6 lg:-mx-8 lg:h-[13rem]" />
-          <Skeleton className="h-16" />
-          <Skeleton className="h-5 w-32" />
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <Skeleton className="h-20" />
-            <Skeleton className="h-20" />
-            <Skeleton className="h-20" />
+
+          {/* Two columns from xl, matching the pane the real screen opens with.
+              Same gap and the same 23.25rem track as TwoPane, so nothing shifts
+              sideways when the trips arrive. */}
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_23.25rem]">
+            <div className="flex min-w-0 flex-col gap-6 xl:max-w-main">
+              <Skeleton className="h-16" />
+              <Skeleton className="h-5 w-32" />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Skeleton className="h-20" />
+                <Skeleton className="h-20" />
+                <Skeleton className="h-20" />
+              </div>
+            </div>
+            <div className="flex min-w-0 flex-col gap-4">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-16" />
+              <Skeleton className="h-16" />
+              <Skeleton className="h-28" />
+            </div>
           </div>
         </div>
       </div>

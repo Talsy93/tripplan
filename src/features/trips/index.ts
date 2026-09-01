@@ -146,7 +146,11 @@ export type {
   BookingFormState,
 } from "./domain/booking";
 export { listBookings } from "./infrastructure/booking-service";
-export { tripDayCount, buildDayCityPlan, travelDayCount } from "./domain/trip-days";
+export {
+  tripDayCount,
+  buildDayCityPlan,
+  travelDayCount,
+} from "./domain/trip-days";
 export type { DayCityPlan } from "./domain/trip-days";
 export {
   dayCityPlanPromptLines,
@@ -337,14 +341,18 @@ export { AuraPanel } from "./components/aura-panel";
 export { tripHueStyle } from "./domain/aura-vars";
 export { NowCard } from "./components/now-card";
 export { TodayStats } from "./components/today-stats";
-export {
-  RailTripProgress,
-  RailTripSwitcher,
-} from "./components/rail-trip";
+export { RailTripProgress, RailTripSwitcher } from "./components/rail-trip";
 export { UpNext } from "./components/up-next";
 export { OpenItems } from "./components/open-items";
 export { TripSpend } from "./components/trip-spend";
 export { TodayBefore } from "./components/today-before";
+export { TodayDuringAside } from "./components/today-during-aside";
+export {
+  DayForecastPanel,
+  DayStopsPanel,
+} from "./components/day-context-panels";
+export { DayMapCard } from "./components/day-map-card";
+export { DayWeatherCard } from "./components/day-weather-card";
 export { DayStrip } from "./components/day-strip";
 export { TripCalendar } from "./components/trip-calendar";
 export { EmptyDays, RouteCities } from "./components/route-cities";
@@ -358,11 +366,7 @@ export { tripOpenItems } from "./domain/open-items";
 export type { OpenItem } from "./domain/open-items";
 export { MoreBackLink } from "./components/more-back-link";
 export { TripNav, TripSideNav } from "./components/trip-nav";
-export {
-  TRIP_TABS,
-  tripTabHref,
-  defaultTripTab,
-} from "./domain/trip-tabs";
+export { TRIP_TABS, tripTabHref, defaultTripTab } from "./domain/trip-tabs";
 export type { TripTabSegment } from "./domain/trip-tabs";
 export {
   TONES,

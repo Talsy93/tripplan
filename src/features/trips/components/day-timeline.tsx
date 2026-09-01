@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import {
   ArrowUpDown,
   ChevronLeft,
   Clock,
   Footprints,
   MoonStar,
+  Plus,
 } from "lucide-react";
 import { Card, Surface } from "@/components/ui";
 import { cn } from "@/lib/cn";
@@ -63,6 +65,10 @@ export function DayTimeline({
   // and a future row action will want it.
   bookings = [],
   date = null,
+  // Where "add something" goes, and what it says. Omitted on a read-only
+  // rendering — the share view has no business offering to change the day.
+  addHref,
+  addLabel = "הוסיפו משהו ליום הזה",
 }: {
   day: ItineraryDay;
   // Opens the edit dialog. Optional so the read-only uses of this component
@@ -72,6 +78,8 @@ export function DayTimeline({
   variant?: Variant;
   bookings?: Booking[];
   date?: string | null;
+  addHref?: string;
+  addLabel?: string;
 }) {
   const timeline = buildDayTimeline(day, {
     bookings,
@@ -147,6 +155,24 @@ export function DayTimeline({
             ))}
           </ul>
         </Surface>
+      )}
+
+      {/* The dashed row the mockup ends both day lists with. It is the one place
+          on either screen that says a day is not a fixed object — the schedule
+          above it reads as finished otherwise, whether or not the evening is
+          actually empty.
+          Dashed, and that is the one place in this app where a dashed outline is
+          right: everywhere else it says "something belongs here and is missing",
+          which is what EmptyState was corrected away from. Here that is exactly
+          what it means. Only when there is somewhere to add to. */}
+      {addHref && (
+        <Link
+          href={addHref}
+          className="flex min-w-0 items-center justify-center gap-1.5 rounded-card border border-dashed border-border-strong px-4 py-3 text-sm font-semibold text-muted transition-colors hover:border-primary hover:bg-primary-tint hover:text-primary-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Plus className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {addLabel}
+        </Link>
       )}
     </div>
   );

@@ -1,10 +1,11 @@
-import { AppHeader, AppShell } from "@/components/layout";
+import { AppHeader, AppShell, TwoPane } from "@/components/layout";
 import { SectionHeading } from "@/components/ui";
 import { getCurrentUser, LogoutButton } from "@/features/auth";
 import {
   APP_TIME_ZONE,
   assignTripAuras,
   AuraHero,
+  daysUntil,
   HomeRail,
   HowItWorks,
   NewTripButton,
@@ -12,13 +13,18 @@ import {
   getSelectedCitiesByTrip,
   getSelectedDestinations,
   itineraryStops,
+  listBookings,
   listTrips,
+  OpenItems,
   pickUpcomingTrip,
   StartHere,
   todayIn,
+  tripOpenItems,
   tripPhase,
   TripList,
+  UpNext,
 } from "@/features/trips";
+import type { Booking, OpenItem } from "@/features/trips";
 
 export const metadata = { title: "הטיולים שלי · MyTrip" };
 
@@ -55,13 +61,22 @@ export default async function ProfilePage() {
   // The itinerary's length, for the rail's countdown: tripPhase needs it to know
   // whether a trip with a start date and no end date is still ahead.
   let upcomingDayCount = 0;
+  // The context pane's two cards. The mockup puts "what is coming" and "still
+  // open" beside the trip list, and both are about the featured trip — this
+  // screen's subject once there is one.
+  let upcomingBookings: Booking[] = [];
+  let upcomingOpen: OpenItem[] = [];
 
   if (upcoming) {
     // Route order comes from the itinerary when there is one. Before that,
     // fall back to the order cities were added — the chips are still right,
     // they just aren't in visiting order yet.
-    const itinerary = await getItinerary(upcoming.id);
+    const [itinerary, bookings] = await Promise.all([
+      getItinerary(upcoming.id),
+      listBookings(upcoming.id),
+    ]);
     upcomingDayCount = itinerary.length;
+    upcomingBookings = bookings;
     upcomingCities = itineraryStops(itinerary).map((stop) => stop.city);
     if (upcomingCities.length === 0) {
       const selected = await getSelectedDestinations(upcoming.id);
@@ -69,9 +84,21 @@ export default async function ProfilePage() {
         ...new Set(selected.map((item) => item.city).filter(Boolean)),
       ];
     }
+
+    upcomingOpen = tripOpenItems({
+      startDate: upcoming.start_date,
+      daysUntilStart: upcoming.start_date
+        ? daysUntil(upcoming.start_date)
+        : null,
+      dayCount: upcomingDayCount,
+      cities: upcomingCities,
+      itinerary,
+      bookings,
+    });
   }
 
   const today = todayIn(APP_TIME_ZONE, new Date());
+  const now = new Date().toISOString();
 
   return (
     <AppShell
@@ -114,65 +141,94 @@ export default async function ProfilePage() {
           }
         />
       }
+      // The hero is a `banner` rather than the first child, and that is forced
+      // rather than chosen: it reaches the edges of the content area with
+      // negative margins, and inside the two-pane grid below those margins would
+      // run sideways into the pane instead of off the screen.
+      banner={
+        upcoming ? (
+          <AuraHero
+            tripId={upcoming.id}
+            name={upcoming.name}
+            startDate={upcoming.start_date}
+            cities={upcomingCities}
+            // Straight from the list's assignment, not computed again from
+            // upcomingCities: the hero and this trip's tile in the list below it
+            // have to be the same colour, and only the assignment knows which
+            // palette this trip ended up with after deconfliction.
+            hues={auraByTrip.get(upcoming.id) ?? []}
+            initial={user?.email?.[0]}
+            // Cancels AppShell pt-5: the hero is the first thing in main and
+            // should meet the header. The component does not carry this itself —
+            // the harness renders it under a scene title, where it would be
+            // wrong.
+            className="-mt-5"
+          />
+        ) : undefined
+      }
     >
-      {/* The hero comes first and reaches the viewport edge — this screen has
-          no page title of its own any more, because the hero is it. The old
-          "הטיולים שלי" heading plus a "הטיול הקרוב" sub-heading above a card
-          was three levels of chrome introducing one trip. */}
-      {upcoming && (
-        <AuraHero
-          tripId={upcoming.id}
-          name={upcoming.name}
-          startDate={upcoming.start_date}
-          cities={upcomingCities}
-          // Straight from the list's assignment, not computed again from
-          // upcomingCities: the hero and this trip's tile in the list below it
-          // have to be the same colour, and only the assignment knows which
-          // palette this trip ended up with after deconfliction.
-          hues={auraByTrip.get(upcoming.id) ?? []}
-          initial={user?.email?.[0]}
-          // Cancels AppShell pt-5: the hero is the first thing in main and
-          // should meet the header. The component does not carry this itself —
-          // the harness renders it under a scene title, where it would be wrong.
-          className="-mt-5"
-        />
-      )}
+      <TwoPane
+        // The pane the mockup draws beside the trip list. Both cards are about
+        // the featured trip, which is what this screen is about once there is
+        // one — and with no upcoming trip there is nothing to put here, so the
+        // pane collapses and the column centres.
+        aside={
+          upcoming && (upcomingBookings.length > 0 || upcomingOpen.length > 0) ? (
+            <>
+              <section className="flex flex-col gap-3">
+                <SectionHeading level="section">מה מתקרב</SectionHeading>
+                {/* Stamped on the server so "in 3 hours" cannot disagree
+                    between the server render and hydration. */}
+                <UpNext
+                  bookings={upcomingBookings}
+                  now={now}
+                  cities={upcomingCities}
+                />
+              </section>
 
-      {/* Without a trip to feature there is no hero, so the screen still needs
-          to say what it is. */}
-      {!upcoming && <SectionHeading level="page">הטיולים שלי</SectionHeading>}
+              {upcomingOpen.length > 0 && (
+                <OpenItems tripId={upcoming.id} items={upcomingOpen} />
+              )}
+            </>
+          ) : undefined
+        }
+      >
+        {/* Without a trip to feature there is no hero, so the screen still needs
+            to say what it is. */}
+        {!upcoming && <SectionHeading level="page">הטיולים שלי</SectionHeading>}
 
-      {/* When the featured trip has nowhere to go, the next move is one
-          decision and the screen should be about making it — not about the
-          workflow in general. The two are mutually exclusive on purpose. */}
-      {upcoming && upcomingCities.length === 0 && (
-        <StartHere tripId={upcoming.id} />
-      )}
-
-      {/* Above the trip list, and expanded only for someone who has no trips
-          yet — the point at which "what am I supposed to do here" is an actual
-          question. It stays reachable, collapsed, for everyone else. */}
-      <HowItWorks
-        defaultOpen={trips.length === 0}
-        tripId={upcoming?.id ?? trips[0]?.id ?? null}
-      />
-
-      <section className="flex flex-col gap-3">
-        {trips.length > 0 && (
-          <SectionHeading
-            level="sub"
-            description={user ? `מחובר כ-${user.email}` : undefined}
-          >
-            כל הטיולים · {trips.length}
-          </SectionHeading>
+        {/* When the featured trip has nowhere to go, the next move is one
+            decision and the screen should be about making it — not about the
+            workflow in general. The two are mutually exclusive on purpose. */}
+        {upcoming && upcomingCities.length === 0 && (
+          <StartHere tripId={upcoming.id} />
         )}
-        <TripList
-          trips={trips}
-          today={todayIn(APP_TIME_ZONE, new Date())}
-          citiesByTrip={citiesByTrip}
-          auraByTrip={auraByTrip}
+
+        {/* Above the trip list, and expanded only for someone who has no trips
+            yet — the point at which "what am I supposed to do here" is an actual
+            question. It stays reachable, collapsed, for everyone else. */}
+        <HowItWorks
+          defaultOpen={trips.length === 0}
+          tripId={upcoming?.id ?? trips[0]?.id ?? null}
         />
-      </section>
+
+        <section className="flex flex-col gap-3">
+          {trips.length > 0 && (
+            <SectionHeading
+              level="sub"
+              description={user ? `מחובר כ-${user.email}` : undefined}
+            >
+              כל הטיולים · {trips.length}
+            </SectionHeading>
+          )}
+          <TripList
+            trips={trips}
+            today={today}
+            citiesByTrip={citiesByTrip}
+            auraByTrip={auraByTrip}
+          />
+        </section>
+      </TwoPane>
 
       {/* No password settings here, deliberately.
           A password can only be changed through the emailed link at

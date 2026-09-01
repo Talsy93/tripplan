@@ -1,11 +1,13 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { TwoPane } from "@/components/layout";
-import { SectionHeading, Skeleton } from "@/components/ui";
+import { Skeleton } from "@/components/ui";
 import {
   APP_TIME_ZONE,
   bookingsByDay,
+  DayForecastPanel,
   DayPager,
+  DayStopsPanel,
   focusDayNumber,
   forecastWindow,
   currentDayNumber,
@@ -19,11 +21,11 @@ import {
   NowCard,
   dateOfDay,
   TodayBefore,
+  TodayDuringAside,
   TodayStats,
   todayIn,
   tripOpenItems,
   tripPhase,
-  UpNext,
   WeatherPanel,
 } from "@/features/trips";
 import type { Booking, NightLodging } from "@/features/trips";
@@ -111,7 +113,8 @@ export default async function TodayPage({
     // קיימת" in the pane of every trip more than 16 days out — a card whose
     // entire content is that it has no content.
     const hasForecast =
-      forecastWindow(trip.start_date, trip.end_date, today).kind === "available";
+      forecastWindow(trip.start_date, trip.end_date, today).kind ===
+      "available";
 
     return (
       <TodayBefore
@@ -135,20 +138,62 @@ export default async function TodayPage({
   }
 
   // ---- on the trip --------------------------------------------------------
+  //
+  // The pane the mockup draws for this state, in its order: where today's places
+  // are, what the weather is doing there, what needs attention, and what it has
+  // cost. It carried "מה קרוב" alone until now — one card beside a full column,
+  // which is the same imbalance T1 fixed at the other end of the trip.
+  const liveCity = live
+    ? (live.day.items.find((item) => item.city)?.city ?? null)
+    : null;
+  // Only the urgent ones. The full list is the before-departure screen's
+  // subject; here it is an interruption, and a pane of "worth knowing" rows
+  // beside a live day is noise.
+  const urgent = live
+    ? tripOpenItems({
+        startDate: trip.start_date,
+        daysUntilStart: trip.start_date ? daysUntil(trip.start_date) : null,
+        dayCount,
+        cities: routeCities,
+        itinerary,
+        bookings,
+      }).filter((item) => item.urgency === "now")
+    : [];
+
   return (
     <TwoPane
-      // "What is coming" is the thing you glance at and then go straight back to
-      // the schedule — two taps on a phone, none beside it. On anything narrower
-      // than xl it falls back to where it has always been: below the day.
       aside={
-        <section className="flex flex-col gap-3">
-          <SectionHeading level="section">מה קרוב</SectionHeading>
-          <UpNext
-            bookings={bookings}
-            now={now.toISOString()}
-            cities={routeCities}
-          />
-        </section>
+        <TodayDuringAside
+          tripId={trip.id}
+          bookings={bookings}
+          now={now.toISOString()}
+          cities={routeCities}
+          urgent={urgent}
+          stops={
+            live ? (
+              <Suspense fallback={<Skeleton className="h-56 rounded-card" />}>
+                <DayStopsPanel
+                  tripId={trip.id}
+                  tripName={trip.name}
+                  day={live.day}
+                  city={liveCity}
+                />
+              </Suspense>
+            ) : undefined
+          }
+          forecast={
+            live?.date ? (
+              <Suspense fallback={<Skeleton className="h-28 rounded-card" />}>
+                <DayForecastPanel
+                  tripId={trip.id}
+                  tripName={trip.name}
+                  city={liveCity}
+                  date={live.date}
+                />
+              </Suspense>
+            ) : undefined
+          }
+        />
       }
     >
       <h1 className="sr-only">{trip.name}</h1>
@@ -192,6 +237,7 @@ export default async function TodayPage({
 
       {showDay ? (
         <DayPager
+          tripId={trip.id}
           days={itinerary}
           initialDay={focusDay}
           startDate={trip.start_date}
