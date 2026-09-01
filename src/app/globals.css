@@ -413,10 +413,22 @@
 
      The container scale drives max-w-*, w-* and basis-*, so `sidebar` below
      is both the rail's width and the value the content offsets by.
+
+     The four numbers are the desktop design's, measured off the mockup: a
+     248px rail, a 660px main column, a 372px context pane, and a content
+     area that stops growing once it holds 1180px of actual content.
+     `content` is spelled 1244 because the element carrying it also carries
+     lg:px-8 — 1180 + 2 × 32.
+
+     `shell` (90rem) went with the frame it belonged to. It capped the rail
+     and the content together, which is what put 230px of white outside the
+     rail at 1920: the rail was inside the centred box instead of being the
+     edge of the window.
      -------------------------------------------------------------------- */
-  --container-sidebar: 15rem;
-  --container-pane: 22rem;
-  --container-shell: 90rem;
+  --container-sidebar: 15.5rem;
+  --container-main: 41.25rem;
+  --container-pane: 23.25rem;
+  --container-content: 77.75rem;
 
   /* motion
      --ease-snap decelerates into place and is right for anything that moves a

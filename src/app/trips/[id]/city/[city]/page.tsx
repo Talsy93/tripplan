@@ -33,7 +33,7 @@ export default async function CityPage({
   return (
     // No sidebar here on purpose: this screen sits outside the (tabs) group and
     // has no tab context. It does get the header, which it had none of before.
-    <AppShell header={<AppHeader title={trip.name} />}>
+    <AppShell header={<AppHeader brand title={trip.name} />}>
       <Link
         href={`/trips/${id}/explore`}
         className="flex items-center gap-1 self-start rounded-control text-sm text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

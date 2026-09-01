@@ -53,13 +53,20 @@ import {
 } from "@/features/trips";
 import {
   AuraField,
+  Badge,
   Button,
   Card,
   EmptyState,
   SectionHeading,
   Skeleton,
 } from "@/components/ui";
-import { BottomNav, SideNav, TwoPane } from "@/components/layout";
+import {
+  AppHeader,
+  AppShell,
+  BottomNav,
+  SideNav,
+  TwoPane,
+} from "@/components/layout";
 import {
   CalendarDays,
   Compass,
@@ -75,10 +82,142 @@ export type Scene = {
   title: string;
   // What this state is for — shown in the index so a scene is not just a name.
   note: string;
+  // Renders outside the harness's padded column, against the window itself.
+  // For the one scene that *is* the frame: a rail that has to touch the edge
+  // of the window cannot be checked inside a box with 16px of padding, and the
+  // 230px of white this task exists to remove was invisible to every scene
+  // here precisely because no scene rendered the shell.
+  bleed?: boolean;
   render: () => ReactNode;
 };
 
+// The five tabs, drawn for the frame scene below. Static hrefs: nothing here
+// navigates, and the harness has no router state to be current in.
+const FRAME_NAV = [
+  { href: "#today", label: "היום", icon: <Sun className="h-5 w-5" />, active: true },
+  { href: "#days", label: "ימים", icon: <CalendarDays className="h-5 w-5" /> },
+  { href: "#explore", label: "מה עושים?", icon: <Compass className="h-5 w-5" /> },
+  { href: "#map", label: "מפה", icon: <MapIcon className="h-5 w-5" /> },
+  { href: "#more", label: "עוד", icon: <Menu className="h-5 w-5" /> },
+];
+
+const FRAME_CITIES = ["טוקיו", "קיוטו", "אוסקה", "נארה"];
+
 export const SCENES: Scene[] = [
+  // ---- the frame itself ----------------------------------------------------
+  //
+  // Every other scene here is a component measured on its own. This one is the
+  // shell those components live in, and it exists because the shell was the
+  // thing that was actually broken: at 1911px the rail sat 230px in from the
+  // right edge with white on both sides of the app, and no scene could show
+  // that because no scene rendered a rail and a content column together.
+  //
+  // Check it at 1920 first, then 1440, 1280, 768 and 375.
+  {
+    slug: "app-frame",
+    title: "המסגרת · רַיל, כותרת, שתי חלוניות",
+    note: "ב-1920 הרַיל חייב לגעת בקצה החלון והתוכן להיות ממורכז במה שנשאר; ב-768 הרַיל יורד ושורת הגלולות עולה",
+    bleed: true,
+    render: () => (
+      <AppShell
+        header={
+          <AppHeader
+            title="יפן בסתיו"
+            badge={
+              <span className="hidden shrink-0 sm:inline-flex">
+                <Badge tone="success">בטיול</Badge>
+              </span>
+            }
+            trailing={<ShareButton tripId={f.TRIP_ID} memberCount={2} isShared />}
+          />
+        }
+        sidebar={
+          <SideNav
+            items={FRAME_NAV}
+            hues={tripAura(FRAME_CITIES)}
+            initial="ט"
+            header={
+              <RailTripSwitcher
+                name="יפן בסתיו"
+                phase={{ kind: "during", dayNumber: 3 }}
+              />
+            }
+            footer={
+              <RailTripProgress
+                phase={{ kind: "during", dayNumber: 3 }}
+                dayCount={14}
+                startDate="2026-09-09"
+              />
+            }
+          />
+        }
+        // All three presentations at once, the way TripNav renders them: the
+        // floating bar below md, the pill row between md and lg, the rail from
+        // lg. Only one is ever visible, and the shell's bottom padding is
+        // sized for the first — so it has to be here or that padding is
+        // untested at 375.
+        nav={
+          <>
+            <div className="hidden gap-1 self-start rounded-full border border-border bg-surface-2 p-1 md:flex lg:hidden">
+              {FRAME_NAV.map((item) => (
+                <span
+                  key={item.href}
+                  className={
+                    item.active
+                      ? "flex items-center gap-2 rounded-full bg-surface px-4 py-1.5 text-sm font-semibold shadow-soft"
+                      : "flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold text-muted"
+                  }
+                >
+                  {item.icon}
+                  {item.label}
+                </span>
+              ))}
+            </div>
+            <BottomNav items={FRAME_NAV} />
+          </>
+        }
+        banner={
+          <TripAuraBand
+            name="יפן בסתיו"
+            startDate="2026-09-09"
+            phase={{ kind: "during", dayNumber: 3 }}
+            dayCount={14}
+            cities={FRAME_CITIES}
+            hues={tripAura(FRAME_CITIES)}
+          />
+        }
+      >
+        <TwoPane
+          aside={
+            <>
+              <SectionHeading level="section">מה קרוב</SectionHeading>
+              <UpNext
+                bookings={f.BOOKINGS}
+                now={`${f.TODAY}T09:00:00.000Z`}
+                cities={FRAME_CITIES}
+              />
+            </>
+          }
+        >
+          {/* Prose, because the 70-character rule is the only reason the main
+              column is capped at 660px and a card would not show it. */}
+          <Card className="flex flex-col gap-2">
+            <SectionHeading level="section">אורך שורה</SectionHeading>
+            <p className="text-sm text-muted">
+              השורה הזאת קיימת כדי שאפשר יהיה לספור אותה. הכלל הוא שבטור הראשי
+              שורת טקסט לא עוברת שבעים תווים בערך, וזאת הסיבה היחידה שהטור מוגבל
+              ל-660 פיקסלים ולא נמתח על כל מה שהרַיל והחלונית משאירים אחריהם.
+            </p>
+          </Card>
+          <NowCard
+            day={f.ITINERARY[0]}
+            date={f.TODAY}
+            now={`${f.TODAY}T07:10:00Z`}
+          />
+        </TwoPane>
+      </AppShell>
+    ),
+  },
   // ---- the home hero -------------------------------------------------------
   //
   // Full-bleed by design, so it is the one component whose scene wrapper is
@@ -237,9 +376,10 @@ export const SCENES: Scene[] = [
             { cities: ["פראג"], name: f.LONG, phase: { kind: "undated" } as const },
           ]
         ).map(({ cities, name, phase }, index) => (
-          <div key={index} className="h-[30rem] w-60 overflow-hidden rounded-tile">
+          <div key={index} className="h-[32rem] w-sidebar overflow-hidden rounded-tile">
             <SideNav
               hues={tripAura(cities)}
+              initial="ט"
               header={<RailTripSwitcher name={name} phase={phase} />}
               footer={
                 <RailTripProgress

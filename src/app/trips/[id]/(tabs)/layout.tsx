@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { AppHeader, AppShell } from "@/components/layout";
 import { Badge } from "@/components/ui";
+import { getCurrentUser } from "@/features/auth";
 import {
   APP_TIME_ZONE,
   assignTripAuras,
@@ -92,7 +93,10 @@ export default async function TripTabsLayout({
   // from this trip's cities alone would give it a different palette whenever
   // deconfliction had moved it, and one trip in two colours is the bug that
   // sorting the hash was introduced to kill.
-  const [dayCount, members, shareToken, itinerary, citiesByTrip, trips] =
+  // getCurrentUser joins them for the rail's avatar, which is the wordmark's
+  // other half in the design. One more read on a layout that already awaits
+  // six, and it does not re-run on a tab switch.
+  const [dayCount, members, shareToken, itinerary, citiesByTrip, trips, user] =
     await Promise.all([
       getItineraryDayCount(trip.id),
       listMembers(trip.id),
@@ -100,6 +104,7 @@ export default async function TripTabsLayout({
       getItinerary(trip.id),
       getSelectedCitiesByTrip(),
       listTrips(),
+      getCurrentUser(),
     ]);
   const phase = tripPhase(
     trip.start_date,
@@ -130,9 +135,11 @@ export default async function TripTabsLayout({
         <AppHeader
           title={trip.name}
           back={
+            // Gone from lg up: from there the rail carries a switcher that
+            // goes to the same place and says which trip you are leaving.
             <Link
               href="/profile"
-              className="flex shrink-0 items-center gap-1 text-sm text-muted transition-colors hover:text-foreground"
+              className="flex shrink-0 items-center gap-1 text-sm text-muted transition-colors hover:text-foreground lg:hidden"
             >
               {/* In RTL "back" points left, and the glyph is chosen by
                   meaning rather than by mirroring the LTR arrow. */}
@@ -140,30 +147,33 @@ export default async function TripTabsLayout({
               <span className="hidden sm:inline">הטיולים שלי</span>
             </Link>
           }
+          // Beside the name rather than at the far end of the bar: it says
+          // where this trip is in its own life, which is a property of the
+          // name it follows.
+          //
+          // Hidden on phones: the bar already holds the back link, the trip
+          // name and the share control, and the phase is restated on the day
+          // screen itself. sm and not a custom xs — this project defines no
+          // breakpoints beyond Tailwind's own, and an undefined `xs:` variant
+          // compiles to nothing at all rather than to a narrower rule.
+          badge={
+            <span className="hidden shrink-0 sm:inline-flex">
+              <Badge tone={phase.kind === "during" ? "success" : "neutral"}>
+                {phaseLabel(phase)}
+              </Badge>
+            </span>
+          }
           trailing={
-            <>
-              {/* Sharing, in the app bar of every trip screen. It used to be the
-                  last section of "עוד → פרטי הטיול", below the dates, the
-                  weather, every booking and the expense summary — findable only
-                  by someone who already knew it was there. */}
-              <ShareButton
-                tripId={trip.id}
-                // The owner is in this list, and they are not "shared with".
-                memberCount={members.filter((member) => !member.is_owner).length}
-                isShared={shareToken !== null}
-              />
-              {/* Hidden on phones: the bar already holds the back link, the trip
-                  name and now the share control, and the phase is restated on
-                  the day screen itself. sm and not a custom xs — this project
-                  defines no breakpoints beyond Tailwind's own, and an undefined
-                  `xs:` variant compiles to nothing at all rather than to a
-                  narrower rule. */}
-              <span className="hidden sm:inline-flex">
-                <Badge tone={phase.kind === "during" ? "success" : "neutral"}>
-                  {phaseLabel(phase)}
-                </Badge>
-              </span>
-            </>
+            // Sharing, in the app bar of every trip screen. It used to be the
+            // last section of "עוד → פרטי הטיול", below the dates, the weather,
+            // every booking and the expense summary — findable only by someone
+            // who already knew it was there.
+            <ShareButton
+              tripId={trip.id}
+              // The owner is in this list, and they are not "shared with".
+              memberCount={members.filter((member) => !member.is_owner).length}
+              isShared={shareToken !== null}
+            />
           }
         />
       }
@@ -171,6 +181,7 @@ export default async function TripTabsLayout({
         <TripSideNav
           tripId={trip.id}
           hues={hues}
+          initial={user?.email?.[0]}
           header={<RailTripSwitcher name={trip.name} phase={phase} />}
           footer={
             <RailTripProgress

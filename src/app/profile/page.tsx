@@ -70,6 +70,9 @@ export default async function ProfilePage() {
     <AppShell
       header={
         <AppHeader
+          // The wordmark, because this screen has no rail to carry it — see
+          // T6. Once it gets one, this comes off with the same edit.
+          brand
           trailing={
             <>
               <NewTripButton />

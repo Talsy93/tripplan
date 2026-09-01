@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { AuraField } from "@/components/ui";
+import { AuraField, Glass } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import type { NavItem } from "./bottom-nav";
 
@@ -23,11 +23,15 @@ import type { NavItem } from "./bottom-nav";
 export function SideNav({
   items,
   hues = [],
+  initial,
   header,
   footer,
 }: {
   items: NavItem[];
   hues?: string[];
+  // The signed-in person's first letter. A letter, not a user — this component
+  // still knows nothing about accounts.
+  initial?: string;
   // Slots above and below the items. Domain-free like the rest of this
   // component: it renders what it is handed and does not know that the thing
   // above is a trip switcher or that the thing below is a countdown.
@@ -37,12 +41,33 @@ export function SideNav({
   return (
     <nav
       aria-label="ניווט ראשי"
-      className="relative isolate flex h-full flex-col gap-1 overflow-y-auto bg-aura-base p-3"
+      className="relative isolate flex h-full flex-col gap-1 overflow-y-auto bg-aura-base px-3.5 pb-4 pt-5"
     >
       {/* animate={false}: the rail is on screen the entire time someone uses the
           app on a desktop, and drift in permanent peripheral vision is the one
           place this effect stops being atmosphere and becomes a distraction. */}
       <AuraField hues={hues} variant="rail" animate={false} blur={54} />
+
+      {/* The wordmark lives here rather than in the app bar. The rail is the
+          only chrome that survives every tab switch, and the bar it came from
+          now belongs to the trip. Tracked and Latin only — globals.css:
+          letter-spacing damages Hebrew, so no Hebrew label gets it. */}
+      <div className="relative flex items-center justify-between gap-2 px-1 pb-5">
+        <Link
+          href="/profile"
+          className="rounded-control text-caption font-extrabold tracking-latin text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-aura-base"
+        >
+          MYTRIP
+        </Link>
+        {initial && (
+          <Glass
+            aria-hidden="true"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold uppercase text-white"
+          >
+            {initial}
+          </Glass>
+        )}
+      </div>
 
       {header && <div className="relative pb-3">{header}</div>}
 

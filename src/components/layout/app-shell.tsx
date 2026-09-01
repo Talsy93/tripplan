@@ -3,8 +3,9 @@ import { cn } from "@/lib/cn";
 
 type Width = "content" | "wide";
 
-// Only used when there is no sidebar. With one, the content pane simply fills
-// what the rail leaves and the whole frame is capped at max-w-shell instead.
+// Only used when there is no sidebar. With one, the content column is capped
+// at max-w-content instead — the rail has already taken its width off the
+// window, and what is left is what gets centred.
 const widths: Record<Width, string> = {
   content: "max-w-3xl",
   wide: "max-w-6xl",
@@ -21,6 +22,16 @@ const widths: Record<Width, string> = {
 // 1024px — the app was a phone layout stretched across a desktop. The rail
 // appears from lg up and the mobile bar hides itself at md, so the three
 // presentations never overlap.
+//
+// The frame is two columns, and which of them is centred is the whole point.
+// Until 2026-09-01 the rail and the content sat together inside one
+// `mx-auto max-w-shell`, so at 1911px the rail floated 230px in from the right
+// edge with white on both sides of the app. The rail is now a sibling of the
+// centred box rather than a child of it: it is pinned to the window's inline
+// edge and runs the full height, and only the content column is capped and
+// centred inside whatever it leaves. The header moved inside that column with
+// it — in the design the rail is the taller of the two and carries the
+// wordmark, and the header starts where the rail ends.
 //
 // `nav` renders above the content: a navigation component is free to also
 // place a fixed bar of its own, and being fixed, that bar is unaffected by
@@ -52,24 +63,25 @@ export function AppShell({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-h-dvh flex-col">
-      {header}
+    <div className="flex min-h-dvh">
+      {sidebar && (
+        // Full height, from the very top of the window: the rail is beside the
+        // header rather than under it, and it stops at the bottom of the
+        // viewport rather than of the document.
+        <div className="sticky top-0 hidden h-dvh w-sidebar shrink-0 lg:block">
+          {sidebar}
+        </div>
+      )}
 
-      <div
-        className={cn(
-          "mx-auto flex w-full flex-1",
-          sidebar ? "max-w-shell" : widths[width],
-        )}
-      >
-        {sidebar && (
-          // h-14 is AppHeader's height; the rail has to start below it and
-          // stop at the bottom of the viewport, not of the document.
-          <div className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-sidebar shrink-0 lg:block">
-            {sidebar}
-          </div>
-        )}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {header}
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div
+          className={cn(
+            "mx-auto flex w-full flex-1 flex-col",
+            sidebar ? "max-w-content" : widths[width],
+          )}
+        >
           {nav && (
             <div className="w-full px-4 pt-4 md:px-6 lg:px-8">{nav}</div>
           )}
