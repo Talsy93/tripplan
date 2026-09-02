@@ -77,7 +77,7 @@ export function OpenItems({
                     be five identical links down the right edge. */}
                 <Link
                   href={`/trips/${tripId}/${item.path}`}
-                  className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                  className="group/row flex items-start gap-3 px-4 py-3 transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                 >
                   {/* A dot, not an icon. Five line icons down a column read as
                       five categories; the only distinction these rows carry is
@@ -106,9 +106,9 @@ export function OpenItems({
                       </span>
                     )}
                   </span>
-                  {/* RTL: forward points left. */}
+                  {/* RTL: forward points left, so hover nudges it that way. */}
                   <ChevronLeft
-                    className="mt-0.5 h-4 w-4 shrink-0 text-muted"
+                    className="mt-0.5 h-4 w-4 shrink-0 text-muted +NUDGE+"
                     aria-hidden="true"
                   />
                 </Link>

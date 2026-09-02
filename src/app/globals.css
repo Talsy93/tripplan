@@ -497,6 +497,19 @@
   --animate-pop: pop 150ms cubic-bezier(0.34, 1.46, 0.5, 1) both;
   --animate-rise: rise 170ms cubic-bezier(0.32, 0.72, 0, 1) both;
   --animate-stamp: stamp 250ms cubic-bezier(0.34, 1.46, 0.5, 1) both;
+  /* A block arriving because you scrolled to it, rather than because the page
+     loaded. Deliberately more generous than `rise`:
+
+       from opacity 0, not 0.35 — the opposite call to rise, and for the
+         opposite reason. `rise` must never leave content absent, because an
+         absent block on load is indistinguishable from one that has not
+         rendered. A block below the fold is not being looked at, so there is
+         nothing to mistake, and starting from nothing is what makes the
+         arrival read as an arrival.
+       18px, not 6 — far enough to be a movement rather than a settle.
+       420ms and the spring, not 170ms and the snap. This one has room to
+         overshoot and land, which is the part that reads as alive. */
+  --animate-reveal: reveal 420ms cubic-bezier(0.34, 1.46, 0.5, 1) both;
   /* No --animate-fill token here on purpose: that effect needs a
      transform-origin as well as an animation, and a plain rule further down
      supplies both. A token *and* a hand-written .animate-fill rule collide —
@@ -558,6 +571,11 @@
    is left, which is the half that reads as waiting. */
 @keyframes rise {
   from { opacity: 0.35; transform: translate3d(0, 6px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes reveal {
+  from { opacity: 0; transform: translate3d(0, 18px, 0); }
   to { opacity: 1; transform: none; }
 }
 
@@ -674,6 +692,52 @@
 
 .enter-children > .enter-skip {
   animation: none;
+}
+
+/* Blocks that start below the fold do not join the load sequence — they wait
+   and arrive when they are scrolled to.
+
+   This is the difference between a page that plays a cutscene and one that
+   feels alive. The load stagger is over in ~250ms and everything past the
+   first screen animated where nobody was looking; now the screen keeps
+   answering as you move down it. PageEnter marks the children — see there for
+   why the marking happens after mount and not during render.
+
+   `pending` holds the first frame with no animation at all. `animation: none`
+   would drop the fill too and snap the block to opacity 1, so the from-frame
+   is written out by hand instead. */
+.enter-children > [data-reveal="pending"] {
+  animation: none;
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+}
+
+.enter-children > [data-reveal="shown"] {
+  animation: reveal 420ms cubic-bezier(0.34, 1.46, 0.5, 1) both;
+  opacity: 1;
+}
+
+/* Siblings that come into view together still arrive one after another. Set
+   inline by PageEnter, because which sibling is which depends on what the
+   reader scrolled past. */
+.enter-children > [data-reveal="shown"] {
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+/* Print has no viewport to scroll, so nothing would ever release a block that
+   was still waiting — the page would come out of the printer with everything
+   past the first screen blank. Every entrance is off here, not just the
+   pending ones: an animation is nothing a sheet of paper can show. */
+@media print {
+  .enter-children > *,
+  .enter-children > [data-reveal="pending"],
+  .enter-children > [data-reveal="shown"],
+  .animate-rise,
+  .animate-fill {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 
 .stagger > * { animation-delay: calc(var(--stagger-base, 0ms) + 140ms); }

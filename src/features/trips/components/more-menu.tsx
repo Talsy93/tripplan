@@ -210,7 +210,7 @@ export function MoreMenu({
               <Link
                 href={`/trips/${tripId}/more/${segment}`}
                 className={cn(
-                  "flex min-w-0 items-center gap-3 px-4 py-3.5 transition-colors hover:bg-surface-2",
+                  "group/row flex min-w-0 items-center gap-3 px-4 py-3.5 transition-colors hover:bg-surface-2",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                 )}
               >
@@ -240,9 +240,11 @@ export function MoreMenu({
                     {state[segment]?.text ?? hint}
                   </span>
                 </span>
-                {/* RTL: "forward" points left. */}
+                {/* RTL: "forward" points left, so the nudge on hover is toward
+                    it. Half a step — enough to say the row answers, not enough
+                    to read as the glyph moving. */}
                 <ChevronLeft
-                  className="h-5 w-5 shrink-0 text-border-strong"
+                  className="h-5 w-5 shrink-0 text-border-strong +NUDGE+"
                   aria-hidden="true"
                 />
               </Link>
@@ -259,7 +261,7 @@ export function MoreMenu({
         <Link
           href={`/trips/${tripId}/more/trip`}
           className={cn(
-            "flex min-w-0 items-center gap-3 border-b border-border px-4 py-3.5 transition-colors hover:bg-surface-2",
+            "group/row flex min-w-0 items-center gap-3 border-b border-border px-4 py-3.5 transition-colors hover:bg-surface-2",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
           )}
         >
@@ -283,7 +285,7 @@ export function MoreMenu({
             </span>
           </span>
           <ChevronLeft
-            className="h-5 w-5 shrink-0 text-border-strong"
+            className="h-5 w-5 shrink-0 text-border-strong +NUDGE+"
             aria-hidden="true"
           />
         </Link>
