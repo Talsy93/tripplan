@@ -92,4 +92,6 @@ led to them, are in `HANDOFF.md`.
   run real AI calls casually.
 - **Migrations are applied by hand** in the Supabase SQL editor, in order. They
   are idempotent except `0016`, which guards itself with an
-  `applied_migrations` table.
+  `applied_migrations` table. **`src/db/check_migrations.sql` reports which of
+  them a database actually has** — nothing else does, because only 0016 records
+  itself.
