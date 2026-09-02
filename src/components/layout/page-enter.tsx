@@ -44,10 +44,10 @@ const REVEAL_MARGIN = "0px 0px -12% 0px";
 // block held back by a line it can never cross is content permanently hidden.
 const REVEAL_MARGIN_FRACTION = 0.12;
 
-// Between siblings that cross the line together. Larger than the 45ms of the
-// load sequence: on load the whole screen is arriving at once and speed is the
-// point, here two or three cards are arriving and the sequence is the point.
-const REVEAL_STEP_MS = 70;
+// Between siblings that cross the line together. Near the 110ms of the load
+// sequence, and no longer above it: the two used to differ because the load
+// sequence was racing and this one was not, and now neither is.
+const REVEAL_STEP_MS = 100;
 
 export function PageEnter({
   children,
@@ -119,7 +119,7 @@ export function PageEnter({
     }
     if (pending.length === 0) return;
 
-    // Batched per callback, so siblings that cross together get 0, 70, 140ms
+    // Batched per callback, so siblings that cross together get 0, 100, 200ms
     // rather than all landing on the same frame.
     const observer = new IntersectionObserver(
       (entries) => {

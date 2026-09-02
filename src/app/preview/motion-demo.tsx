@@ -25,6 +25,24 @@ import { Badge, Button, Card, SectionHeading } from "@/components/ui";
 //     CSS, so the block at the bottom of globals.css covers them
 const TILES = ["מסעדות", "בתי קפה", "מאפיות", "שופינג", "מקדשים", "אטרקציות"];
 
+// The three settings the load stagger has had, side by side and replayable.
+//
+// This exists because the numbers cannot be judged as numbers. The step and the
+// duration were reasoned about twice and set wrong twice — once so slow it read
+// as a page failing to load, then twice so fast that the answer both times was
+// "I don't see any particular change". Reading a delay off a spec sheet does not
+// tell you which of those you have built; watching two of them one under the
+// other does, immediately.
+//
+// Kept after the decision rather than deleted with it: the next person to move
+// these numbers needs the same comparison, and rebuilding it is the expensive
+// part. It costs nothing in production — /preview does not exist there.
+const RISE_SETTINGS = [
+  { key: "old", title: "הישן", px: 6, ms: 170, step: 28 },
+  { key: "prod", title: "בפרודקשן היום", px: 12, ms: 260, step: 45 },
+  { key: "next", title: "ההצעה", px: 20, ms: 400, step: 110 },
+] as const;
+
 export function MotionDemo() {
   const [run, setRun] = useState(0);
 
@@ -37,6 +55,78 @@ export function MotionDemo() {
         </Button>
         <Badge tone="neutral">הרצה {run + 1}</Badge>
       </div>
+
+      {/* One keyframe for all three rows, with the distance read from a custom
+          property the row sets. A keyframe may hold a var(), it resolves per
+          element, and that is what keeps this to three inline numbers per row
+          rather than three near-identical @keyframes blocks.
+
+          The per-tile delay is inline here, which globals.css warns against for
+          `.stagger` — but the warning is about giving every child the *same*
+          inline delay and flattening the sequence. Each tile gets its own value,
+          which is the case that rule cannot express. */}
+      <style>{`
+        @keyframes cmp-rise {
+          from { opacity: 0.35; transform: translate3d(0, var(--cmp-distance, 12px), 0); }
+          to { opacity: 1; transform: none; }
+        }
+        .cmp-tile {
+          animation-name: cmp-rise;
+          animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+          animation-fill-mode: both;
+        }
+      `}</style>
+
+      <section key={`cmp-${run}`} className="flex flex-col gap-5">
+        <SectionHeading
+          level="sub"
+          description="אותן שש אריחים בשלושת התזמונים. ההבדל הוא היחס בין הצעד למשך — לא כל מספר בנפרד."
+        >
+          השוואת תזמונים
+        </SectionHeading>
+
+        {RISE_SETTINGS.map((setting) => (
+          <div key={setting.key} className="flex flex-col gap-2">
+            {/* One LTR island per run of digits, never one around the whole
+                line. A dir="ltr" span with Hebrew inside it reorders that
+                Hebrew — "צעד 28ms" came out backwards on the first try. */}
+            <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-caption text-muted">
+              <span className="font-bold text-foreground">{setting.title}</span>
+              <span dir="ltr" className="tabular-nums">
+                {setting.px}px · {setting.ms}ms
+              </span>
+              <span>
+                צעד{" "}
+                <span dir="ltr" className="tabular-nums">
+                  {setting.step}ms
+                </span>
+              </span>
+              <span className="tabular-nums">
+                יחס {(setting.step / setting.ms).toFixed(2)}
+              </span>
+            </p>
+            <div
+              className="grid grid-cols-3 gap-2.5"
+              style={
+                { "--cmp-distance": `${setting.px}px` } as React.CSSProperties
+              }
+            >
+              {TILES.map((tile, index) => (
+                <div
+                  key={tile}
+                  className="cmp-tile rounded-card border border-border bg-surface p-4 text-center text-sm font-bold shadow-soft"
+                  style={{
+                    animationDuration: `${setting.ms}ms`,
+                    animationDelay: `${index * setting.step}ms`,
+                  }}
+                >
+                  {tile}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
 
       {/* key on each block, so one press replays all four together. */}
       <section key={run} className="flex flex-col gap-6">

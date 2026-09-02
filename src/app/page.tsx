@@ -75,7 +75,7 @@ export default async function HomePage() {
 
             stagger + animate-rise on top of that, chained after the block above
             rather than starting with it: the list is PageEnter's second child
-            and so arrives at 45ms, and 90ms is where its own items pick the
+            and so arrives at 110ms, and 220ms is where its own items pick the
             sequence up. Without the base all three would land while the heading
             is still moving, which reads as one block fading in rather than as a
             page being built. Same idea as the `enterDelayMs` prop on TripList
@@ -83,7 +83,7 @@ export default async function HomePage() {
             take it. */}
         <ul
           className="stagger grid gap-x-8 gap-y-6 sm:grid-cols-3"
-          style={{ "--stagger-base": "90ms" } as React.CSSProperties}
+          style={{ "--stagger-base": "220ms" } as React.CSSProperties}
         >
           {SELLING_POINTS.map(({ Icon, title, body }) => (
             <li key={title} className="flex animate-rise flex-col gap-2">
