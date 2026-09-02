@@ -197,7 +197,7 @@ export default async function ProfilePage() {
                   bookings={upcomingBookings}
                   now={now}
                   cities={upcomingCities}
-                  enterDelayMs={28}
+                  enterDelayMs={45}
                 />
               </section>
 
@@ -205,7 +205,7 @@ export default async function ProfilePage() {
                 <OpenItems
                   tripId={upcoming.id}
                   items={upcomingOpen}
-                  enterDelayMs={56}
+                  enterDelayMs={90}
                 />
               )}
             </>
@@ -254,15 +254,15 @@ export default async function ProfilePage() {
               </SectionHeading>
             )}
             {/* The cards continue the column's sequence instead of restarting
-                it. 56ms is two steps in: this section is the second or third
+                it. 90ms is two steps in: this section is the second or third
                 child depending on which conditional blocks above rendered, and
-                a 45ms error either way is not visible. */}
+                a one-step error either way is not visible. */}
             <TripList
               trips={trips}
               today={today}
               citiesByTrip={citiesByTrip}
               auraByTrip={auraByTrip}
-              enterDelayMs={56}
+              enterDelayMs={90}
             />
           </section>
         </>

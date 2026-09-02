@@ -478,7 +478,7 @@
        pop    something that appears where it was summoned — a menu under
               its own button. Scale from 96% with the spring, so it reads as
               coming out of the control rather than fading in over it.
-       rise   something arriving in the flow. 8px is the whole distance: any
+       rise   something arriving in the flow. 12px is the whole distance: any
               further and a grid of six tiles becomes six things sliding.
        stamp  a confirmation mark. Overshoots, because that is what makes a
               check feel like an answer instead of an appearance.
@@ -495,7 +495,7 @@
      No reduced-motion guard here: the block at the bottom of this file
      already neutralises every animation and transition in the app. */
   --animate-pop: pop 150ms cubic-bezier(0.34, 1.46, 0.5, 1) both;
-  --animate-rise: rise 170ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  --animate-rise: rise 260ms cubic-bezier(0.32, 0.72, 0, 1) both;
   --animate-stamp: stamp 250ms cubic-bezier(0.34, 1.46, 0.5, 1) both;
   /* A block arriving because you scrolled to it, rather than because the page
      loaded. Deliberately more generous than `rise`:
@@ -507,7 +507,7 @@
          nothing to mistake, and starting from nothing is what makes the
          arrival read as an arrival.
        18px, not 6 — far enough to be a movement rather than a settle.
-       420ms and the spring, not 170ms and the snap. This one has room to
+       420ms and the spring, not 260ms and the snap. This one has room to
          overshoot and land, which is the part that reads as alive. */
   --animate-reveal: reveal 420ms cubic-bezier(0.34, 1.46, 0.5, 1) both;
   /* No --animate-fill token here on purpose: that effect needs a
@@ -566,11 +566,13 @@
    place, which is the thing being asked for — pieces being slotted in, not
    pieces arriving from nowhere.
 
-   6px rather than 8: a shorter distance over a shorter time keeps the velocity
-   readable. Below about 4px the movement stops registering and only the fade
-   is left, which is the half that reads as waiting. */
+   12px, and the distance is where the readability lives. It was 8, then 6, and
+   at 6 the movement had stopped registering at all — reported as "I don't see
+   any particular change". Below about 4px only the fade is left, which is the
+   half that reads as waiting, and 6 sat close enough to that floor to land
+   there. 12 is a movement you can name without it becoming a slide. */
 @keyframes rise {
-  from { opacity: 0.35; transform: translate3d(0, 6px, 0); }
+  from { opacity: 0.35; transform: translate3d(0, 12px, 0); }
   to { opacity: 1; transform: none; }
 }
 
@@ -637,16 +639,28 @@
    growing means the twentieth row of a long list waits a second before it
    exists — which stops being an entrance and becomes a load.
 
-   28ms against the 170ms the rise takes, and both numbers came down from
-   45/250 after the first version was reported as reading like a slow page
-   load rather than an improvement. Three things were wrong and this is two
-   of them: eight steps of 45ms put the last block 315ms out and 565ms from
-   done, and at 45ms against a 250ms duration eight items overlap for most
-   of their lives — one blurred mass fading in, not pieces being placed.
+   45ms against the 260ms the rise takes, and this pair has now been set three
+   times — 45/250, then 28/170, and now 45/260. Worth reading before moving it
+   again, because both reports behind those moves were right about different
+   things.
 
-   Six steps of 28ms put the last block 140ms out. Nested two levels deep,
-   which is the real worst case, the last thing on the home screen now
-   settles at about 280ms instead of 475ms.
+   The first version read as a slow page load. Three things were wrong with it
+   and only two were the timing: the entrance also started from `opacity: 0`, so
+   with `both` and a delay a block was *absent* for up to 315ms, and absent
+   content is indistinguishable from content that has not rendered. That is the
+   fix that has to stay, and it lives in @keyframes rise above as the 0.35
+   start.
+
+   The step and the duration came down with it, and that part overshot. At 28ms
+   and 170ms over 6px the whole sequence was done in 310ms and the movement sat
+   under the threshold where anyone notices it — reported, in turn, as "I don't
+   see any particular change". Six steps of 45ms now put the last block 225ms
+   out and settled at 485ms.
+
+   The overlap the old note warned about is real, and is accepted here: at 45ms
+   against 260ms the blocks are mostly on screen together. What makes that read
+   as placement rather than as one blurred mass is the 12px of travel — at 6px
+   there was nothing to see *but* the overlap.
 
    `--stagger-base` is what lets one sequence continue into another. The home
    screen stacks blocks and then a grid of trip cards inside the last one, and
@@ -680,15 +694,15 @@
    computed-value time. Components that want their rows chained take an explicit
    `enterDelayMs` instead — see TripList, OpenItems, UpNext. */
 .enter-children > * {
-  animation: rise 170ms cubic-bezier(0.32, 0.72, 0, 1) both;
-  animation-delay: 140ms;
+  animation: rise 260ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation-delay: 225ms;
 }
 .enter-children > *:nth-child(1) { animation-delay: 0ms; }
-.enter-children > *:nth-child(2) { animation-delay: 28ms; }
-.enter-children > *:nth-child(3) { animation-delay: 56ms; }
-.enter-children > *:nth-child(4) { animation-delay: 84ms; }
-.enter-children > *:nth-child(5) { animation-delay: 112ms; }
-.enter-children > *:nth-child(6) { animation-delay: 140ms; }
+.enter-children > *:nth-child(2) { animation-delay: 45ms; }
+.enter-children > *:nth-child(3) { animation-delay: 90ms; }
+.enter-children > *:nth-child(4) { animation-delay: 135ms; }
+.enter-children > *:nth-child(5) { animation-delay: 180ms; }
+.enter-children > *:nth-child(6) { animation-delay: 225ms; }
 
 .enter-children > .enter-skip {
   animation: none;
@@ -740,13 +754,13 @@
   }
 }
 
-.stagger > * { animation-delay: calc(var(--stagger-base, 0ms) + 140ms); }
+.stagger > * { animation-delay: calc(var(--stagger-base, 0ms) + 225ms); }
 .stagger > *:nth-child(1) { animation-delay: var(--stagger-base, 0ms); }
-.stagger > *:nth-child(2) { animation-delay: calc(var(--stagger-base, 0ms) + 28ms); }
-.stagger > *:nth-child(3) { animation-delay: calc(var(--stagger-base, 0ms) + 56ms); }
-.stagger > *:nth-child(4) { animation-delay: calc(var(--stagger-base, 0ms) + 84ms); }
-.stagger > *:nth-child(5) { animation-delay: calc(var(--stagger-base, 0ms) + 112ms); }
-.stagger > *:nth-child(6) { animation-delay: calc(var(--stagger-base, 0ms) + 140ms); }
+.stagger > *:nth-child(2) { animation-delay: calc(var(--stagger-base, 0ms) + 45ms); }
+.stagger > *:nth-child(3) { animation-delay: calc(var(--stagger-base, 0ms) + 90ms); }
+.stagger > *:nth-child(4) { animation-delay: calc(var(--stagger-base, 0ms) + 135ms); }
+.stagger > *:nth-child(5) { animation-delay: calc(var(--stagger-base, 0ms) + 180ms); }
+.stagger > *:nth-child(6) { animation-delay: calc(var(--stagger-base, 0ms) + 225ms); }
 
 body {
   background: var(--background);
