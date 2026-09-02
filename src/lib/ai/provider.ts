@@ -104,6 +104,66 @@ function handleProviderError(label: string, error: unknown): never {
   throw error;
 }
 
+// How many extra attempts a 503 gets, and how long to wait before each.
+//
+// 503 UNAVAILABLE is Google saying "this model is currently experiencing high
+// demand. Spikes in demand are usually temporary. Please try again later" —
+// their words, verbatim, and they are describing something that clears in
+// under a second. Until this existed the app took them at their word and made
+// the *user* do the trying again: one unlucky request became "שירות ה-AI עמוס
+// כרגע", while the very next one would have worked.
+//
+// Measured against the live API while diagnosing exactly that report: twelve
+// structured calls returned one 503 among them, with the rest fine. A single
+// blip in twelve is invisible with two retries and is an error page without
+// them.
+//
+// **Only 503.** Retrying a 429 is worse than useless: the quota is the thing
+// being exceeded, so another attempt spends a request that cannot succeed and
+// pushes the window further out. That is why AiRateLimitedError and
+// AiQuotaExceededError are separate classes from AiUnavailableError, and this
+// is the first thing that depends on the distinction.
+//
+// Two extra attempts and 1.4s of worst-case added latency, which has to stay
+// small: these calls already run for several seconds inside a serverless
+// function with its own timeout, and a retry budget that risks the timeout
+// trades a visible error for a mysterious one.
+const UNAVAILABLE_RETRY_DELAYS_MS = [400, 1_000];
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Runs `call`, retrying only the overloaded case.
+//
+// Wraps the provider call rather than living inside handleProviderError,
+// because that function's job is to classify a failure that has already
+// happened — it throws, and something that throws cannot retry. The retry has
+// to sit above it, where the call itself can be made again.
+async function withUnavailableRetry<T>(
+  label: string,
+  call: () => Promise<T>,
+): Promise<T> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await call();
+    } catch (error) {
+      const delay = UNAVAILABLE_RETRY_DELAYS_MS[attempt];
+      // Out of attempts, or a failure that retrying cannot fix. Either way the
+      // error goes on to be classified and reported as it always was.
+      if (delay === undefined || !isUnavailable(error)) throw error;
+
+      // Logged at every retry, not only at the end. "The AI is slow sometimes"
+      // and "the AI fails and recovers" look identical from the outside, and
+      // the hosting logs are the only place the difference is visible.
+      console.warn(
+        `[ai] ${label}: 503 from provider, retrying in ${delay}ms (attempt ${attempt + 1} of ${UNAVAILABLE_RETRY_DELAYS_MS.length})`,
+      );
+      await sleep(delay);
+    }
+  }
+}
+
 // A turn in a conversation. "model" rather than "assistant" because that is
 // what Gemini calls it; the name stops here — nothing outside this file needs
 // to know whose vocabulary it is.
@@ -125,16 +185,18 @@ export async function generateText(params: {
 
   const ai = new GoogleGenAI({ apiKey });
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: params.messages.map((message) => ({
-        role: message.role,
-        parts: [{ text: message.text }],
-      })),
-      config: params.systemInstruction
-        ? { systemInstruction: params.systemInstruction }
-        : undefined,
-    });
+    const response = await withUnavailableRetry("generateText", () =>
+      ai.models.generateContent({
+        model: MODEL,
+        contents: params.messages.map((message) => ({
+          role: message.role,
+          parts: [{ text: message.text }],
+        })),
+        config: params.systemInstruction
+          ? { systemInstruction: params.systemInstruction }
+          : undefined,
+      }),
+    );
 
     const text = response.text;
     if (!text) {
@@ -161,14 +223,16 @@ export async function generateStructured<T>(params: {
 
   const ai = new GoogleGenAI({ apiKey });
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: params.prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseJsonSchema: jsonSchema,
-      },
-    });
+    const response = await withUnavailableRetry("generateStructured", () =>
+      ai.models.generateContent({
+        model: MODEL,
+        contents: params.prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseJsonSchema: jsonSchema,
+        },
+      }),
+    );
 
     const text = response.text;
     if (!text) {
