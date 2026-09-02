@@ -12,18 +12,40 @@
 //
 // The first version of this file guessed that shape and guessed wrong, which is
 // why a per-minute limit went on being reported as the daily quota even after it
-// was "fixed". The body actually captured from gemini-3.6-flash carries the delay
-// in prose and nothing else useful:
+// was "fixed".
 //
-//   "* Quota exceeded for metric:
-//     generativelanguage.googleapis.com/generate_content_free_tier_requests,
-//     limit: 20, model: gemini-3.6-flash
-//     Please retry in 15.659996788s."
+// The second version — this comment — then described the body from memory of a
+// truncated log and got it wrong in the other direction. It claimed "there is no
+// RetryInfo.retryDelay field, and the metric name mentions neither window", and
+// captured against the live API in September 2026 both halves are false. What
+// `ApiError.message` actually holds is the *entire* JSON body, `details` and
+// all:
 //
-// There is no RetryInfo.retryDelay field, and the metric name mentions neither
-// window — it is just "free_tier_requests". So the prose form is the primary
-// signal here, and the structured forms are kept as alternates because other
-// models and tiers do send them.
+//   {"error":{"code":429,
+//     "message":"... * Quota exceeded for metric:
+//       generativelanguage.googleapis.com/generate_content_free_tier_requests,
+//       limit: 20, model: gemini-3.6-flash
+//       Please retry in 29.010467571s.",
+//     "status":"RESOURCE_EXHAUSTED",
+//     "details":[...
+//       {"@type":".../QuotaFailure","violations":[{
+//         "quotaId":"GenerateRequestsPerDayPerProjectPerModel-FreeTier",
+//         "quotaValue":"20"}]},
+//       {"@type":".../RetryInfo","retryDelay":"29s"}]}}
+//
+// Two things follow, and the second is the one that matters:
+//
+//   * The window IS named, in `quotaId` — "…PerDay…". The /per-?day/ test below
+//     matches it, which is why a 429 on this model classifies correctly today.
+//   * `retryDelay` and the prose "retry in 29s" are both present and both
+//     MISLEADING on a daily quota. Google says 29 seconds; the quota resets
+//     tomorrow. That is why the window name is checked before the delay and not
+//     after it — reversing those two lines would tell a reader out of requests
+//     for the day to try again in half a minute, forever.
+//
+// The free-tier ceiling this model reports is 20 requests per DAY, not per
+// minute. Worth knowing before assuming a "quota exceeded" report is heavy use:
+// twenty is a morning's worth of ordinary clicking.
 //
 // No imports on purpose: this is a pure string classifier, which is what lets it
 // be tested against real captured bodies instead of through a mocked SDK.
