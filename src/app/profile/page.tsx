@@ -167,11 +167,10 @@ export default async function ProfilePage() {
             // should meet the header. The component does not carry this itself —
             // the harness renders it under a scene title, where it would be
             // wrong.
-            // First in the screen's entrance, and with no delay: it is the one
-            // block that is the trip itself rather than something about it.
-            // Outside the stagger below, so the `.stagger > *` rules do not
-            // reach it and its delay stays 0.
-            className="-mt-5 animate-rise"
+            //
+            // It is also the first thing the entrance shows, at 0ms: PageEnter
+            // animates the banner as its own first child.
+            className="-mt-5"
           />
         ) : undefined
       }
@@ -184,16 +183,13 @@ export default async function ProfilePage() {
         aside={
           upcoming &&
           (upcomingBookings.length > 0 || upcomingOpen.length > 0) ? (
-            // Its own sequence, trailing the main column by one step. The pane
-            // is a second column rather than a continuation of the first, so it
-            // reads better arriving alongside it than after all of it.
-            <div className="flex flex-col gap-6 stagger [--stagger-base:45ms]">
-              {/* Each card rises, and then its rows rise inside it. The delays
-                  are handed down rather than restarted: this pane's own
-                  sequence is 45/90, so the rows of the first card start at 90
-                  and of the second at 135 — one continuous cascade instead of
-                  two that overlap. */}
-              <section className="flex flex-col gap-3 animate-rise">
+            <>
+              {/* TwoPane's aside is an `.enter-children` container, so these two
+                  cards arrive at 0 and 45ms without anything here saying so.
+                  The rows inside each one are told where to start, because a
+                  third level cannot inherit the arithmetic — see the note on
+                  `.enter-children`. */}
+              <section className="flex flex-col gap-3">
                 <SectionHeading level="section">מה מתקרב</SectionHeading>
                 {/* Stamped on the server so "in 3 hours" cannot disagree
                     between the server render and hydration. */}
@@ -201,64 +197,54 @@ export default async function ProfilePage() {
                   bookings={upcomingBookings}
                   now={now}
                   cities={upcomingCities}
-                  enterDelayMs={90}
+                  enterDelayMs={45}
                 />
               </section>
 
               {upcomingOpen.length > 0 && (
-                <div className="animate-rise">
-                  <OpenItems
-                    tripId={upcoming.id}
-                    items={upcomingOpen}
-                    enterDelayMs={135}
-                  />
-                </div>
+                <OpenItems
+                  tripId={upcoming.id}
+                  items={upcomingOpen}
+                  enterDelayMs={90}
+                />
               )}
-            </div>
+            </>
           ) : undefined
         }
       >
-        {/* The screen arrives one block at a time, fading up.
-            ---------------------------------------------------------------
-            A wrapper rather than the stagger on TwoPane's own column: TwoPane
-            is a layout primitive used by nine screens, and only this one wants
-            an entrance. It carries the column's `gap-6` so the spacing is
-            unchanged.
+        {/* No wrapper of its own any more: TwoPane's main column is an
+            `.enter-children` container, so these blocks arrive at 0, 45 and
+            90ms without this page saying anything. It used to be a hand-rolled
+            `.stagger` here, from before the entrance was a layout concern.
 
-            Every child here is conditional, and that is fine — `:nth-child`
-            counts rendered DOM elements, not JSX slots, so the delays follow
-            what is actually on screen rather than leaving gaps where a block
-            did not render. */}
-        <div className="stagger flex flex-col gap-6">
+            Every child is conditional and that is fine — `:nth-child` counts
+            rendered DOM elements, not JSX slots, so the delays follow what is
+            actually on screen rather than leaving gaps where a block did not
+            render. */}
+        <>
           {/* Without a trip to feature there is no hero, so the screen still
               needs to say what it is. */}
           {!upcoming && (
-            <SectionHeading level="page" className="animate-rise">
-              הטיולים שלי
-            </SectionHeading>
+            <SectionHeading level="page">הטיולים שלי</SectionHeading>
           )}
 
           {/* When the featured trip has nowhere to go, the next move is one
               decision and the screen should be about making it — not about the
               workflow in general. The two are mutually exclusive on purpose. */}
           {upcoming && upcomingCities.length === 0 && (
-            <div className="animate-rise">
-              <StartHere tripId={upcoming.id} />
-            </div>
+            <StartHere tripId={upcoming.id} />
           )}
 
           {/* Above the trip list, and expanded only for someone who has no
               trips yet — the point at which "what am I supposed to do here" is
               an actual question. It stays reachable, collapsed, for everyone
               else. */}
-          <div className="animate-rise">
-            <HowItWorks
-              defaultOpen={trips.length === 0}
-              tripId={upcoming?.id ?? trips[0]?.id ?? null}
-            />
-          </div>
+          <HowItWorks
+            defaultOpen={trips.length === 0}
+            tripId={upcoming?.id ?? trips[0]?.id ?? null}
+          />
 
-          <section className="flex flex-col gap-3 animate-rise">
+          <section className="flex flex-col gap-3">
             {trips.length > 0 && (
               <SectionHeading
                 level="sub"
@@ -267,20 +253,19 @@ export default async function ProfilePage() {
                 כל הטיולים · {trips.length}
               </SectionHeading>
             )}
-            {/* Last block, so its cards continue the page's sequence instead of
-                restarting it. 135ms is three steps in: this section is the
-                third or fourth child depending on which of the conditional
-                blocks above rendered, and a 45ms error either way is not
-                visible. */}
+            {/* The cards continue the column's sequence instead of restarting
+                it. 90ms is two steps in: this section is the second or third
+                child depending on which conditional blocks above rendered, and
+                a 45ms error either way is not visible. */}
             <TripList
               trips={trips}
               today={today}
               citiesByTrip={citiesByTrip}
               auraByTrip={auraByTrip}
-              enterDelayMs={135}
+              enterDelayMs={90}
             />
           </section>
-        </div>
+        </>
       </TwoPane>
 
       {/* No password settings here, deliberately.

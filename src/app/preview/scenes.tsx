@@ -638,47 +638,44 @@ export const SCENES: Scene[] = [
             cities={FRAME_CITIES}
             hues={tripAura(FRAME_CITIES)}
             initial="ט"
-            className="-mt-5 animate-rise"
+            className="-mt-5"
           />
         }
       >
         <TwoPane
           aside={
-            <div className="flex flex-col gap-6 stagger [--stagger-base:45ms]">
-              <section className="flex flex-col gap-3 animate-rise">
+            <>
+              <section className="flex flex-col gap-3">
                 <SectionHeading level="section">מה מתקרב</SectionHeading>
                 <UpNext
                   bookings={f.BOOKINGS}
                   now={f.NOW}
                   cities={FRAME_CITIES}
-                  enterDelayMs={90}
+                  enterDelayMs={45}
                 />
               </section>
-              <div className="animate-rise">
-                <OpenItems
-                  tripId={f.TRIP_ID}
-                  items={FAR_OPEN}
-                  enterDelayMs={135}
-                />
-              </div>
-            </div>
+              <OpenItems
+                tripId={f.TRIP_ID}
+                items={FAR_OPEN}
+                enterDelayMs={90}
+              />
+            </>
           }
         >
-          {/* Mirrors /profile's own wrapper, including the delays: the page
-              reads the database so it cannot be a scene, and the entrance is
-              the one thing about it that is worth measuring. Keep the two in
-              step — the note on this scene is the only thing saying so. */}
-          <div className="stagger flex flex-col gap-6">
-            <div className="animate-rise">
-              <HowItWorks defaultOpen={false} tripId={f.TRIP_ID} />
-            </div>
-            <section className="flex flex-col gap-3 animate-rise">
+          {/* Mirrors /profile, including the delays: the page reads the
+              database so it cannot be a scene, and the entrance is the one
+              thing about it worth measuring. The staggering itself is
+              AppShell's and TwoPane's now, so there is nothing here to keep in
+              step except the two enterDelayMs values. */}
+          <>
+            <HowItWorks defaultOpen={false} tripId={f.TRIP_ID} />
+            <section className="flex flex-col gap-3">
               <SectionHeading level="sub">כל הטיולים · 4</SectionHeading>
               <TripList
                 trips={f.TRIPS}
                 today={f.TODAY}
                 citiesByTrip={f.TRIP_CITIES}
-                enterDelayMs={135}
+                enterDelayMs={90}
                 auraByTrip={assignTripAuras(
                   f.TRIPS.map((trip) => ({
                     id: trip.id,
@@ -688,7 +685,7 @@ export const SCENES: Scene[] = [
                 )}
               />
             </section>
-          </div>
+          </>
         </TwoPane>
       </AppShell>
     ),

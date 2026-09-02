@@ -4,3 +4,4 @@ export { BottomNav } from "./bottom-nav";
 export type { NavItem } from "./bottom-nav";
 export { SideNav } from "./side-nav";
 export { TwoPane } from "./two-pane";
+export { PageEnter } from "./page-enter";

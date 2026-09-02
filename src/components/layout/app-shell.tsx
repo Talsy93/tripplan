@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { PageEnter } from "./page-enter";
 
 type Width = "content" | "wide";
 
@@ -94,7 +95,7 @@ export function AppShell({
 
           <main
             className={cn(
-              "flex w-full flex-1 flex-col gap-6 px-4 pt-5 md:px-6 lg:px-8",
+              "flex w-full flex-1 flex-col px-4 pt-5 md:px-6 lg:px-8",
               nav
                 ? // 6rem, not 5: the phone bar floats now, so its own inset
                   // counts on top of its height. Measured at 375px — the bar is
@@ -105,8 +106,15 @@ export function AppShell({
                 : "pb-12",
             )}
           >
-            {banner}
-            {children}
+            {/* Everything a page renders arrives through here, one block at a
+                time. The banner is inside it rather than above it, so the
+                trip's light is the first thing that appears and the content
+                follows it — see page-enter.tsx and `.enter-children`.
+                `gap-6` moved on to it with the children. */}
+            <PageEnter>
+              {banner}
+              {children}
+            </PageEnter>
           </main>
         </div>
       </div>
