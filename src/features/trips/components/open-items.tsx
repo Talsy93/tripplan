@@ -14,9 +14,18 @@ import type { OpenItem } from "../domain/open-items";
 export function OpenItems({
   tripId,
   items,
+  enterDelayMs = 0,
 }: {
   tripId: string;
   items: OpenItem[];
+  // Where the rows' entrance starts, in ms. Default 0 — on the day screen
+  // this card is near the top and rises on its own.
+  //
+  // The home screen passes a value because the card is itself one of several
+  // blocks arriving in sequence, and a nested stagger restarts the count:
+  // without it the rows appear before the card holding them. Same prop and
+  // same reason as TripList's.
+  enterDelayMs?: number;
 }) {
   return (
     <section className="flex flex-col gap-3">
@@ -46,9 +55,22 @@ export function OpenItems({
         </Card>
       ) : (
         <Card padding="none" className="overflow-hidden">
-          <ul>
+          {/* One row at a time, fading up. These are the things there are
+              left to do, and a list that assembles reads as a list being
+              worked through rather than a wall of five identical rows. */}
+          <ul
+            className="stagger"
+            style={
+              enterDelayMs > 0
+                ? ({ "--stagger-base": `${enterDelayMs}ms` } as React.CSSProperties)
+                : undefined
+            }
+          >
             {items.map((item) => (
-              <li key={item.id} className="border-b border-border last:border-b-0">
+              <li
+                key={item.id}
+                className="animate-rise border-b border-border last:border-b-0"
+              >
                 {/* The whole row is the link. Every item here is actionable and
                     each one is actionable somewhere else, so the row's job is
                     to get you there — a separate "fix" affordance per row would

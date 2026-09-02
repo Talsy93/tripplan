@@ -651,10 +651,15 @@ export const SCENES: Scene[] = [
                   bookings={f.BOOKINGS}
                   now={f.NOW}
                   cities={FRAME_CITIES}
+                  enterDelayMs={90}
                 />
               </section>
               <div className="animate-rise">
-                <OpenItems tripId={f.TRIP_ID} items={FAR_OPEN} />
+                <OpenItems
+                  tripId={f.TRIP_ID}
+                  items={FAR_OPEN}
+                  enterDelayMs={135}
+                />
               </div>
             </div>
           }

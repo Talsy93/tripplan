@@ -6,6 +6,7 @@ import {
   bookingWhere,
   cancellationAlert,
 } from "../domain/booking";
+import { cn } from "@/lib/cn";
 import { cityToneClass, cityToneMap } from "../domain/tone";
 import type { Booking, BookingAlert } from "../domain/booking";
 import { DomainIcon } from "./domain-icon";
@@ -23,11 +24,22 @@ export function UpNext({
   bookings,
   now,
   cities = [],
+  enterDelayMs = 0,
 }: {
   bookings: Booking[];
   now: string;
   cities?: string[];
+  // Where the rows' entrance starts, in ms — see OpenItems and TripList for why
+  // a nested list has to be told. Default 0.
+  enterDelayMs?: number;
 }) {
+  // Inherited by every row from the list, which is what lets the per-row delays
+  // add to it instead of being overridden by it. See globals.css.
+  const baseStyle =
+    enterDelayMs > 0
+      ? ({ "--stagger-base": `${enterDelayMs}ms` } as React.CSSProperties)
+      : undefined;
+
   const at = new Date(now);
   const upcoming = bookings
     .filter((b) => new Date(b.starts_at).getTime() >= at.getTime())
@@ -63,9 +75,9 @@ export function UpNext({
   return (
     <>
       {todo.length > 0 && (
-        <ul className="flex flex-col gap-2">
+        <ul className="stagger flex flex-col gap-2" style={baseStyle}>
           {todo.map(({ booking, alert }) => (
-            <li key={`${booking.id}-${alert.message}`}>
+            <li key={`${booking.id}-${alert.message}`} className="animate-rise">
               {/* Banner rather than a card with a coloured stripe. The icon used
                   to be chosen by alert.message.startsWith("ביטול"), which works
                   right up until somebody rewords a sentence. */}
@@ -78,14 +90,21 @@ export function UpNext({
         </ul>
       )}
 
-      <ul className="flex flex-col gap-2">
+      {/* Both lists take the same base rather than the second continuing the
+          first. They are two groups — what to do, and what is coming — and
+          chaining them would make the last deadline land after the flight
+          underneath it. */}
+      <ul className="stagger flex flex-col gap-2" style={baseStyle}>
         {upcoming.map((booking) => {
           const kind = BOOKING_KINDS[booking.kind];
           const alert = bookingAlert(booking, at);
           const where = bookingWhere(booking);
 
           return (
-            <li key={booking.id} className={cityToneClass(tones, booking.city)}>
+            <li
+              key={booking.id}
+              className={cn("animate-rise", cityToneClass(tones, booking.city))}
+            >
               <ListRow
                 // No accent dot any more. The tile below carries the city
                 // colour, and a dot beside it said the same thing twice — two

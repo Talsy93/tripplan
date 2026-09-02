@@ -188,6 +188,11 @@ export default async function ProfilePage() {
             // is a second column rather than a continuation of the first, so it
             // reads better arriving alongside it than after all of it.
             <div className="flex flex-col gap-6 stagger [--stagger-base:45ms]">
+              {/* Each card rises, and then its rows rise inside it. The delays
+                  are handed down rather than restarted: this pane's own
+                  sequence is 45/90, so the rows of the first card start at 90
+                  and of the second at 135 — one continuous cascade instead of
+                  two that overlap. */}
               <section className="flex flex-col gap-3 animate-rise">
                 <SectionHeading level="section">מה מתקרב</SectionHeading>
                 {/* Stamped on the server so "in 3 hours" cannot disagree
@@ -196,12 +201,17 @@ export default async function ProfilePage() {
                   bookings={upcomingBookings}
                   now={now}
                   cities={upcomingCities}
+                  enterDelayMs={90}
                 />
               </section>
 
               {upcomingOpen.length > 0 && (
                 <div className="animate-rise">
-                  <OpenItems tripId={upcoming.id} items={upcomingOpen} />
+                  <OpenItems
+                    tripId={upcoming.id}
+                    items={upcomingOpen}
+                    enterDelayMs={135}
+                  />
                 </div>
               )}
             </div>
