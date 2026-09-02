@@ -178,10 +178,17 @@ export function Itinerary({
   // Resolved here rather than captured when the button was clicked, for the
   // same reason `editing` is: a rebuild while the dialog is open replaces
   // every day, and a stashed city could name one the trip no longer visits.
+  //
+  // 🐞 Read `lodgingByDay` directly until now, while the button that opens this
+  // renders on `activeCity` — which comes from `cityOfDay` and forward-fills
+  // from the previous day. So an empty day with no hotel booked *for that day*
+  // got the button (carried city) and no dialog (no lodging row): pressing it
+  // did nothing at all, silently.
+  //
+  // That is the exact case cityOfDay was built for — see the comment on it. The
+  // two now read the same map, so the offer and what it opens cannot disagree.
   const suggestingCity =
-    suggestingDay !== null
-      ? (lodgingByDay[suggestingDay]?.booking.city ?? null)
-      : null;
+    suggestingDay !== null ? (cityOfDay.get(suggestingDay) ?? null) : null;
 
   async function build() {
     setBuilding(true);

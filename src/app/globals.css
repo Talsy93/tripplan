@@ -607,16 +607,29 @@
 
    45ms, measured against the 250ms the rise itself takes: the eighth child
    starts as the first is finishing, so the group reads as one movement
-   rather than as a queue. */
-.stagger > * { animation-delay: 315ms; }
-.stagger > *:nth-child(1) { animation-delay: 0ms; }
-.stagger > *:nth-child(2) { animation-delay: 45ms; }
-.stagger > *:nth-child(3) { animation-delay: 90ms; }
-.stagger > *:nth-child(4) { animation-delay: 135ms; }
-.stagger > *:nth-child(5) { animation-delay: 180ms; }
-.stagger > *:nth-child(6) { animation-delay: 225ms; }
-.stagger > *:nth-child(7) { animation-delay: 270ms; }
-.stagger > *:nth-child(8) { animation-delay: 315ms; }
+   rather than as a queue.
+
+   `--stagger-base` is what lets one sequence continue into another. The home
+   screen stacks blocks and then a grid of trip cards inside the last one, and
+   two independent staggers restart the count — the cards began rising at 0ms,
+   before the block containing them had appeared. The container sets a base and
+   its children inherit it, so the grid picks up where the page left off.
+
+   A custom property rather than an inline `animation-delay`: an inline style
+   beats these class rules outright, which would give every card the *same*
+   delay and flatten the effect into a single late fade. Set on the parent,
+   inherited by the children, and added to here — no override, no cycle
+   (`--x: calc(var(--x) + …)` on one element is a self-reference and is invalid
+   at computed-value time, which is why the base is not accumulated per child). */
+.stagger > * { animation-delay: calc(var(--stagger-base, 0ms) + 315ms); }
+.stagger > *:nth-child(1) { animation-delay: var(--stagger-base, 0ms); }
+.stagger > *:nth-child(2) { animation-delay: calc(var(--stagger-base, 0ms) + 45ms); }
+.stagger > *:nth-child(3) { animation-delay: calc(var(--stagger-base, 0ms) + 90ms); }
+.stagger > *:nth-child(4) { animation-delay: calc(var(--stagger-base, 0ms) + 135ms); }
+.stagger > *:nth-child(5) { animation-delay: calc(var(--stagger-base, 0ms) + 180ms); }
+.stagger > *:nth-child(6) { animation-delay: calc(var(--stagger-base, 0ms) + 225ms); }
+.stagger > *:nth-child(7) { animation-delay: calc(var(--stagger-base, 0ms) + 270ms); }
+.stagger > *:nth-child(8) { animation-delay: calc(var(--stagger-base, 0ms) + 315ms); }
 
 body {
   background: var(--background);
@@ -701,6 +714,13 @@ html {
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    /* The delay has to go too, and it was missing. A staggered entrance uses
+       `both`, so a child holds its "from" frame — opacity 0 — until its delay
+       elapses. Zeroing only the duration left the eighth card in a grid blank
+       for 315ms and the last block of the home screen blank for longer: motion
+       removed, and the content still withheld from the one reader who asked for
+       neither. */
+    animation-delay: 0s !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }

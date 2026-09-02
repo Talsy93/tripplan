@@ -17,6 +17,7 @@ export function TripList({
   today,
   citiesByTrip,
   auraByTrip,
+  enterDelayMs = 0,
 }: {
   trips: Trip[];
   today: string;
@@ -25,6 +26,16 @@ export function TripList({
   // deconflicted across the whole list — a row cannot work out on its own
   // which colours the other rows already took.
   auraByTrip?: Map<string, string[]>;
+  // Where this grid's entrance starts, in ms. Default 0: on its own, the first
+  // card rises immediately.
+  //
+  // The home screen passes a value because the cards are inside the last of
+  // several blocks that are themselves rising in sequence, and a nested stagger
+  // restarts the count — the cards began before the block holding them had
+  // appeared. Set as `--stagger-base` on the list, which every card inherits;
+  // an inline `animationDelay` would beat the per-card rules and give all of
+  // them the same one. See globals.css.
+  enterDelayMs?: number;
 }) {
   if (trips.length === 0) {
     return (
@@ -38,7 +49,14 @@ export function TripList({
   }
 
   return (
-    <ul className="stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+    <ul
+      className="stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+      style={
+        enterDelayMs > 0
+          ? ({ "--stagger-base": `${enterDelayMs}ms` } as React.CSSProperties)
+          : undefined
+      }
+    >
       {trips.map((trip) => {
         // Day count is unknown here — the list does not load itineraries. It
         // only matters for a trip with a start date and no end date, which

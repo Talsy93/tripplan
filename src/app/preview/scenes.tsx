@@ -34,6 +34,7 @@ import {
   ExpenseSummary,
   GearList,
   HomeRail,
+  HowItWorks,
   InviteForm,
   Itinerary,
   CityBand,
@@ -608,7 +609,7 @@ export const SCENES: Scene[] = [
   {
     slug: "home-frame",
     title: "בית · הרַיל שלא היה",
-    note: "אותה מסגרת בדיוק כמו בתוך טיול: רַיל 248 בקצה, אותו אור. הרַיל נושא את האור של הטיול הקרוב, כי זה מה שהמסך הזה עוסק בו",
+    note: "אותה מסגרת בדיוק כמו בתוך טיול: רַיל 248 בקצה, אותו אור. הרַיל נושא את האור של הטיול הקרוב. **מראה גם את כניסת המסך** — הבלוקים עולים אחד אחרי השני והכרטיסים ממשיכים את הרצף במקום להתחיל אותו מחדש; מרעננים כדי לראות שוב",
     bleed: true,
     render: () => (
       <AppShell
@@ -637,32 +638,52 @@ export const SCENES: Scene[] = [
             cities={FRAME_CITIES}
             hues={tripAura(FRAME_CITIES)}
             initial="ט"
-            className="-mt-5"
+            className="-mt-5 animate-rise"
           />
         }
       >
         <TwoPane
           aside={
-            <>
-              <SectionHeading level="section">מה מתקרב</SectionHeading>
-              <UpNext bookings={f.BOOKINGS} now={f.NOW} cities={FRAME_CITIES} />
-              <OpenItems tripId={f.TRIP_ID} items={FAR_OPEN} />
-            </>
+            <div className="flex flex-col gap-6 stagger [--stagger-base:45ms]">
+              <section className="flex flex-col gap-3 animate-rise">
+                <SectionHeading level="section">מה מתקרב</SectionHeading>
+                <UpNext
+                  bookings={f.BOOKINGS}
+                  now={f.NOW}
+                  cities={FRAME_CITIES}
+                />
+              </section>
+              <div className="animate-rise">
+                <OpenItems tripId={f.TRIP_ID} items={FAR_OPEN} />
+              </div>
+            </div>
           }
         >
-          <SectionHeading level="sub">כל הטיולים · 3</SectionHeading>
-          <TripList
-            trips={f.TRIPS}
-            today={f.TODAY}
-            citiesByTrip={f.TRIP_CITIES}
-            auraByTrip={assignTripAuras(
-              f.TRIPS.map((trip) => ({
-                id: trip.id,
-                cities: f.TRIP_CITIES.get(trip.id) ?? [],
-                createdAt: trip.created_at,
-              })),
-            )}
-          />
+          {/* Mirrors /profile's own wrapper, including the delays: the page
+              reads the database so it cannot be a scene, and the entrance is
+              the one thing about it that is worth measuring. Keep the two in
+              step — the note on this scene is the only thing saying so. */}
+          <div className="stagger flex flex-col gap-6">
+            <div className="animate-rise">
+              <HowItWorks defaultOpen={false} tripId={f.TRIP_ID} />
+            </div>
+            <section className="flex flex-col gap-3 animate-rise">
+              <SectionHeading level="sub">כל הטיולים · 4</SectionHeading>
+              <TripList
+                trips={f.TRIPS}
+                today={f.TODAY}
+                citiesByTrip={f.TRIP_CITIES}
+                enterDelayMs={135}
+                auraByTrip={assignTripAuras(
+                  f.TRIPS.map((trip) => ({
+                    id: trip.id,
+                    cities: f.TRIP_CITIES.get(trip.id) ?? [],
+                    createdAt: trip.created_at,
+                  })),
+                )}
+              />
+            </section>
+          </div>
         </TwoPane>
       </AppShell>
     ),
