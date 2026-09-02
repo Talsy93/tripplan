@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { Crosshair, Globe, Map as MapIcon, Route } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, Crosshair, Globe, Map as MapIcon, Route } from "lucide-react";
 import {
   Badge,
   Banner,
@@ -176,8 +177,47 @@ export function RouteMap({
               own stacking context (see route-map-canvas.tsx), so the whole map
               is one z-auto box and anything positive above it wins. The number
               stays because these chips also sit above the card's own shadow. */}
+          {/* The way out, and it is deliberately not `position: fixed`.
+              ---------------------------------------------------------------
+              Reported as "once the map is full screen there is no way back",
+              and narrowed down to: only after a pinch. A pinch zooms the *page*
+              — Leaflet sets `touch-action: none` over the canvas, so the gesture
+              is only the browser's when it starts on one of the thin strips that
+              is not map — and a zoomed page is a visual viewport smaller than the
+              layout viewport. Everything `fixed` is anchored to the layout one,
+              so the app bar and the phone tab bar both leave the screen at once,
+              and this tab is the one screen with no in-flow content to scroll
+              back to them by.
+
+              Restricting zoom in the viewport meta would "fix" it and is not on
+              the table: that is an accessibility regression for everyone, to
+              paper over one screen.
+
+              So the map carries its own exit, `absolute` inside it. It travels
+              with the page rather than with a viewport the reader can no longer
+              see, and it is reachable at any zoom by panning to the map's top
+              edge.
+
+              Below lg only: from there the rail is on screen and never moves. */}
+          <Link
+            href={`/trips/${tripId}/today`}
+            aria-label="חזרה למסך הטיול"
+            className={cn(
+              glassClasses("light"),
+              "absolute start-2 top-2 z-[510] flex items-center gap-1 rounded-full px-3 py-1.5 text-caption font-bold lg:hidden",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            )}
+          >
+            {/* RTL: "back" points the way the text runs. */}
+            <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
+            חזרה
+          </Link>
+
           {route.stops.length > 1 && (
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] flex gap-1.5 overflow-x-auto p-2">
+            // ps-24 below lg clears the exit above, which sits in the same
+            // corner. The chip row scrolls horizontally, so the exit cannot live
+            // inside it — it would scroll away exactly when it is needed.
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] flex gap-1.5 overflow-x-auto p-2 ps-24 lg:ps-2">
               <button
                 type="button"
                 onClick={() => setFocusCity(null)}
