@@ -99,6 +99,7 @@ import {
 import * as f from "./fixtures";
 import { MotionDemo } from "./motion-demo";
 import { SwipeDemo } from "./swipe-demo";
+import { ToastDemo } from "./toast-demo";
 
 export type Scene = {
   slug: string;
@@ -1278,6 +1279,12 @@ export const SCENES: Scene[] = [
         booking={f.BOOKINGS[0]}
       />
     ),
+  },
+  {
+    slug: "toast",
+    title: "הודעת אישור",
+    note: "מה שקופץ אחרי שמירה. לא הייתה דרך אחרת לראות אותו — הוא חי 3.5 שניות אחרי פעולת שרת שמחייבת התחברות, ולכן הוא שהה זמן רב בגודל שאיש לא הסתכל עליו. עכשיו 384px, טקסט 16px ואייקון 20px",
+    render: () => <ToastDemo />,
   },
   {
     slug: "expenses",

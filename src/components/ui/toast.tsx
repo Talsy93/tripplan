@@ -104,23 +104,51 @@ function ToastCard({ toast, onDismiss }: { toast: ToastItem; onDismiss: () => vo
     <div
       role="status"
       className={cn(
-        "pointer-events-auto flex w-full max-w-72 items-start gap-2 rounded-card border border-border bg-surface p-3 shadow-lift transition-all duration-200 ease-snap",
+        // max-w-96 and p-4, up from max-w-72 and p-3.
+        //
+        // It was sized as an aside and read as one: 288px of 14px text in the
+        // corner, gone in three and a half seconds, on a screen where the thing
+        // it is confirming has just disappeared from. The confirmation that a
+        // booking saved is the only feedback that action gets, so it has to be
+        // able to catch the eye from wherever the eye actually was.
+        //
+        // 384px is still comfortably under what the phone container leaves at
+        // 375px, so the cap keeps doing its job there — it just stops being the
+        // binding constraint on a desktop, where there was no reason for a
+        // confirmation to be narrower than a form field.
+        //
+        // The min-width is what actually resized the common case, and finding
+        // that out took measuring rather than reading. From sm up the row is
+        // `items-start`, so the card shrinks to its content and the max-width
+        // never binds: "הטיסה נוספה" rendered at 175px however high the cap
+        // went. Raising the ceiling only ever helped the long messages. A floor
+        // is what gives a four-word confirmation the presence of a card instead
+        // of a chip, and the two together mean every toast now lands between
+        // 320 and 384px rather than between 90 and 288.
+        "pointer-events-auto flex w-full items-start gap-3 rounded-card border border-border bg-surface p-4 shadow-lift transition-all duration-200 ease-snap sm:min-w-80 sm:max-w-96",
         // Rises into place, because it now comes from the bottom edge.
         shown ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-95 opacity-0",
       )}
     >
+      {/* The icon grows with the text rather than staying at 16px beside it: at
+          the larger size a small glyph reads as a bullet point instead of as
+          the status mark it is. */}
       <Icon
-        className={cn("mt-0.5 h-4 w-4 shrink-0", TONE_CLASS[toast.tone])}
+        className={cn("mt-0.5 h-5 w-5 shrink-0", TONE_CLASS[toast.tone])}
         aria-hidden="true"
       />
-      <p className="min-w-0 flex-1 text-sm font-medium">{toast.message}</p>
+      <p className="min-w-0 flex-1 text-base font-semibold">{toast.message}</p>
       <button
         type="button"
         onClick={onDismiss}
         aria-label="סגירה"
-        className="shrink-0 rounded text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        // -m-1 p-1: the tap target grows to 28px without the X moving or the
+        // row getting taller, because the padding is cancelled by the negative
+        // margin. A 14px close button was under every touch-target minimum
+        // there is, and it is the one control on this card.
+        className="-m-1 shrink-0 rounded p-1 text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <X className="h-3.5 w-3.5" aria-hidden="true" />
+        <X className="h-4 w-4" aria-hidden="true" />
       </button>
     </div>
   );
