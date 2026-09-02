@@ -34,6 +34,7 @@ const FORM_FIELDS = [
   "costAmount",
   "costCurrency",
   "durationMinutes",
+  "airline",
 ] as const;
 
 // The one write failure a reader can act on, named. Everything else keeps the
@@ -45,7 +46,7 @@ const FORM_FIELDS = [
 // real and a reader can be standing in it.
 function bookingWriteError(kind: string, fallback: string): string {
   return kind === "schema"
-    ? "השדה ״משך הנסיעה״ עדיין לא קיים במסד הנתונים. הריצו את המיגרציה 0020_booking_duration.sql, או השאירו את השדה ריק."
+    ? "אחד השדות ״משך הנסיעה״ או ״חברת תעופה״ עדיין לא קיים במסד הנתונים. הריצו את המיגרציות 0020_booking_duration.sql ו-0021_booking_airline.sql, או השאירו את השדות ריקים."
     : fallback;
 }
 
@@ -124,6 +125,7 @@ export async function addBooking(
       formData.get("durationMinutes")?.toString(),
     ),
     costCurrency: formData.get("costCurrency") || undefined,
+    airline: formData.get("airline") || undefined,
   });
 
   if (!parsed.success) {
@@ -178,6 +180,7 @@ export async function editBooking(
       formData.get("durationMinutes")?.toString(),
     ),
     costCurrency: formData.get("costCurrency") || undefined,
+    airline: formData.get("airline") || undefined,
   });
 
   if (!parsed.success) {

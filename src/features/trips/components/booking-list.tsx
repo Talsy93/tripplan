@@ -37,6 +37,7 @@ import { removeBooking } from "../application/booking-actions";
 import { BookingForm } from "./booking-form";
 import type { Booking, BookingAlert, BookingKind } from "../domain/booking";
 import { DomainIcon } from "./domain-icon";
+import { AirlineChip } from "./airline-chip";
 import { Luggage } from "lucide-react";
 
 const ALERT_TONE: Record<BookingAlert["urgency"], "warning" | "action" | "neutral"> =
@@ -234,6 +235,12 @@ export function BookingList({
                       <span className="min-w-0 truncate text-base font-semibold">
                         {booking.title}
                       </span>
+                      {/* Beside the title rather than in the meta row below:
+                          which carrier it is belongs with what the flight is
+                          called, and the row underneath is where the times and
+                          the duration live. Renders nothing when the booking
+                          has no airline, which is most of them. */}
+                      <AirlineChip code={booking.airline} className="shrink-0" />
                       {clashing && (
                         <Badge tone="warning" className="shrink-0">
                           לינה כפולה

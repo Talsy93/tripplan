@@ -89,6 +89,9 @@ export const bookingSchema = z.object({
   // casts rather than parses, so nothing throws — but the type has to admit the
   // gap or every reader is told a number is there when it is not.
   duration_minutes: z.number().nullable().optional(),
+  // 0021. The airline's IATA code, uppercase. Optional for the same
+  // hand-run-migration reason duration_minutes is — see above and the README.
+  airline: z.string().nullable().optional(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 
@@ -171,6 +174,19 @@ const bookingFields = {
           Number(value) <= 20160),
       { error: "משך הנסיעה צריך להיות מספר דקות בין 1 ל-20160." },
     ),
+  // 0021. Shape-checked here and membership-checked nowhere, on purpose: the
+  // list of carriers in domain/airlines.ts is curated and grows, and a code
+  // written before an airline was added must not become invalid when it is.
+  // The pattern matches the column's own check constraint, so the database can
+  // never be the thing that reports a bad value.
+  airline: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .optional()
+    .refine((value) => !value || /^[A-Z0-9]{2,3}$/.test(value), {
+      error: "קוד חברת תעופה צריך להיות שתי אותיות או ספרות (למשל LY).",
+    }),
 };
 
 // Applied identically to add and edit: the cross-field rules describe the

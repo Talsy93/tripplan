@@ -55,6 +55,20 @@ function durationColumn(value: string | undefined) {
   return minutes === null ? {} : { duration_minutes: minutes };
 }
 
+// 0021's column, on exactly the same terms as durationColumn above and for
+// exactly the same reason — a blank field must not send `airline: null` into a
+// database where 0021 has not been run yet, because that would break saving
+// every booking rather than only the ones naming a carrier.
+//
+// Uppercased here as well as in the schema. This function is what the database
+// sees, and the column's check constraint is case-sensitive: a lowercase "ly"
+// reaching it is a constraint violation reported as a failed save, when it is
+// the same airline written in a different case.
+function airlineColumn(value: string | undefined) {
+  const code = value?.trim().toUpperCase();
+  return code ? { airline: code } : {};
+}
+
 export async function createBooking(input: CreateBookingInput) {
   const startsAt = toInstant(input.startsAt);
   // The schema guarantees a well-formed string, so this is unreachable in
@@ -106,6 +120,7 @@ export async function createBooking(input: CreateBookingInput) {
     // booking that actually carries one can hit the missing column, and that
     // failure is reported by name below.
     ...durationColumn(input.durationMinutes),
+    ...airlineColumn(input.airline),
   });
 
   // A boolean until now. It reports a kind instead, so the one failure a
@@ -152,6 +167,7 @@ export async function updateBooking(input: UpdateBookingInput) {
         cost_amount: parseCost(input.costAmount),
         cost_currency: input.costCurrency || null,
         ...durationColumn(input.durationMinutes),
+        ...airlineColumn(input.airline),
       },
       { count: "exact" },
     )

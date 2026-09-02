@@ -21,6 +21,7 @@ import {
   splitDuration,
   toDateTimeLocal,
 } from "../domain/booking";
+import { AIRLINES } from "../domain/airlines";
 import { CURRENCIES, DEFAULT_CURRENCY } from "../domain/expenses";
 import type {
   Booking,
@@ -70,6 +71,7 @@ function bookingDefaults(booking: Booking | undefined): Partial<Record<Field, st
         ? String(booking.reminder_days_before)
         : String(DEFAULT_REMINDER_DAYS),
     costAmount: booking.cost_amount !== null ? String(booking.cost_amount) : "",
+    airline: booking.airline ?? "",
     durationMinutes:
       booking.duration_minutes !== null ? String(booking.duration_minutes) : "",
     costCurrency: booking.cost_currency ?? "",
@@ -240,6 +242,33 @@ export function BookingForm({
           />
           <FieldError message={errorFor("title")} />
         </label>
+
+        {/* Flights only. A train has an operator too, but the list in
+            domain/airlines.ts is airlines, and offering it on a train row would
+            be a picker that cannot contain the right answer. */}
+        {kind === "flight" && (
+          <label className="flex min-w-0 flex-col gap-1 text-sm sm:max-w-72">
+            <span className="text-muted">חברת תעופה (לא חובה)</span>
+            <Select
+              name="airline"
+              defaultValue={was("airline")}
+              aria-invalid={Boolean(errorFor("airline"))}
+              className={fieldClass("airline")}
+            >
+              {/* The blank stays first and stays selectable: the list is
+                  curated and therefore incomplete, so "not one of these" has to
+                  remain an answer rather than something you can only give by
+                  never touching the field. */}
+              <option value="">ללא</option>
+              {AIRLINES.map((airline) => (
+                <option key={airline.code} value={airline.code}>
+                  {airline.name} · {airline.code}
+                </option>
+              ))}
+            </Select>
+            <FieldError message={errorFor("airline")} />
+          </label>
+        )}
 
         {isTransport ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

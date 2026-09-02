@@ -130,6 +130,9 @@ const bookingBase = {
   // that is what every booking created before the column existed looks like,
   // and the leg has to render without one.
   duration_minutes: null,
+  // 0021. Null on the base too: most bookings name no carrier, and a lodging
+  // row can never have one.
+  airline: null,
 } as const;
 
 export const BOOKINGS: Booking[] = [
@@ -137,7 +140,10 @@ export const BOOKINGS: Booking[] = [
     ...bookingBase,
     id: id("a1"),
     kind: "flight",
-    title: "LY086 · אל על",
+    // Just the flight number since 0021. The carrier used to be crammed in
+    // here as free text because there was nowhere else to put it; now it is a
+    // column, and repeating it in the title renders the name twice on the card.
+    title: "LY086",
     origin: "נתב״ג",
     destination: "הנדה, טוקיו",
     starts_at: "2026-09-10T22:20:00Z",
@@ -149,6 +155,9 @@ export const BOOKINGS: Booking[] = [
     // by 18h45m because both are read as Israel wall clock, and the flight
     // takes 11h25m.
     duration_minutes: 685,
+    // 0021. The code, not the name — the name in the title above is free text
+    // and this is the identifier the chip and any future grouping read.
+    airline: "LY",
   },
   {
     ...bookingBase,
