@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
 import {
+  combineDuration,
   createBookingSchema,
   updateBookingSchema,
   type BookingFormState,
@@ -76,6 +77,19 @@ function submittedValues(formData: FormData) {
   // default — silently turning "not booked yet" back into "booked" when a
   // rejected submission is handed back for correction.
   values.booked = formData.get("booked") !== null ? "on" : "off";
+
+  // The loop above copied the `durationMinutes` *input*, which since the field
+  // became two boxes holds only the minutes part. Echoing that would hand back
+  // "25" for a submitted 11h25m and the hours would vanish on the one
+  // submission that has to keep them. The echo carries the combined figure,
+  // which is also the shape the form splits apart again.
+  const combined = combineDuration(
+    formData.get("durationHours")?.toString(),
+    formData.get("durationMinutes")?.toString(),
+  );
+  if (combined) values.durationMinutes = combined;
+  else delete values.durationMinutes;
+
   return values;
 }
 
@@ -102,7 +116,13 @@ export async function addBooking(
     booked: checkboxValue(formData, "booked"),
     reminderDaysBefore: optionalNumber(formData.get("reminderDaysBefore")),
     costAmount: formData.get("costAmount") || undefined,
-    durationMinutes: formData.get("durationMinutes") || undefined,
+    // Two boxes in, one figure out. The form asks for hours and minutes
+    // because 685 is not a number anybody reads off a ticket; the column and
+    // every reader of it still hold total minutes. See combineDuration.
+    durationMinutes: combineDuration(
+      formData.get("durationHours")?.toString(),
+      formData.get("durationMinutes")?.toString(),
+    ),
     costCurrency: formData.get("costCurrency") || undefined,
   });
 
@@ -150,7 +170,13 @@ export async function editBooking(
     booked: checkboxValue(formData, "booked"),
     reminderDaysBefore: optionalNumber(formData.get("reminderDaysBefore")),
     costAmount: formData.get("costAmount") || undefined,
-    durationMinutes: formData.get("durationMinutes") || undefined,
+    // Two boxes in, one figure out. The form asks for hours and minutes
+    // because 685 is not a number anybody reads off a ticket; the column and
+    // every reader of it still hold total minutes. See combineDuration.
+    durationMinutes: combineDuration(
+      formData.get("durationHours")?.toString(),
+      formData.get("durationMinutes")?.toString(),
+    ),
     costCurrency: formData.get("costCurrency") || undefined,
   });
 

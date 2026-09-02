@@ -1268,6 +1268,18 @@ export const SCENES: Scene[] = [
     ),
   },
   {
+    slug: "booking-form-edit",
+    title: "טופס הזמנה · עריכה",
+    note: "אותו טופס עם טיסה קיימת. **הבדיקה כאן היא משך הנסיעה**: הוא נשמר כ-685 דקות ונפרס חזרה לשני שדות, 11 ו-25. השדה היה תיבה אחת של דקות, וזה מספר שאף כרטיס לא מדפיס",
+    render: () => (
+      <BookingForm
+        tripId={f.TRIP_ID}
+        cities={["טוקיו", f.UNBREAKABLE]}
+        booking={f.BOOKINGS[0]}
+      />
+    ),
+  },
+  {
     slug: "expenses",
     title: "הוצאות הטיול",
     note: "סיכום לפי מטבע, עם פריט אחד בלי עלות",

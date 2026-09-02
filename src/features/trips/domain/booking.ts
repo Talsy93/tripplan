@@ -265,6 +265,70 @@ export function durationMinutesLabel(minutes: number): string {
   return `${hours}ש׳ ${rest}ד׳`;
 }
 
+// The form asks for hours and minutes; the column stores one number of minutes.
+// These two are that conversion, and they are here rather than in the form
+// because the action needs the first one and the form needs the second.
+//
+// The field used to be a single "duration in minutes" box, so a flight was
+// entered as 685 — a number nobody's ticket shows and nobody works out in their
+// head. The stored figure stays total minutes: it is what durationMinutesLabel,
+// the timeline and the check constraint all already read, and splitting the
+// column would be a migration to make a form easier to type into.
+
+// Blank in both boxes means no duration, which is a legitimate answer — the
+// whole field is optional, and a wrong duration is worse than none.
+//
+// A blank in one box counts as zero rather than as a refusal: "2 hours" with the
+// minutes box untouched is a complete answer, and so is "45 minutes" with no
+// hours. Anything that is not a non-negative integer returns "0" instead, which
+// the schema rejects — the alternative is silently dropping what was typed and
+// telling the user their duration was saved.
+export function combineDuration(
+  hours: string | undefined,
+  minutes: string | undefined,
+): string | undefined {
+  const h = (hours ?? "").trim();
+  const m = (minutes ?? "").trim();
+  if (!h && !m) return undefined;
+
+  const hourPart = h === "" ? 0 : Number(h);
+  const minutePart = m === "" ? 0 : Number(m);
+  const valid =
+    Number.isInteger(hourPart) &&
+    hourPart >= 0 &&
+    Number.isInteger(minutePart) &&
+    minutePart >= 0;
+
+  return valid ? String(hourPart * 60 + minutePart) : "0";
+}
+
+// The inverse, for the form's two boxes — both on an existing booking and on
+// the echo after a rejected submit, which carries the combined figure back
+// because that is the field the schema knows about.
+//
+// Minutes over 59 normalise into hours on the way back: someone who types 90
+// minutes gets 1 and 30 returned to them, which is the same figure said the way
+// the rest of the app says it.
+export function splitDuration(minutes: string | number | undefined | null): {
+  hours: string;
+  minutes: string;
+} {
+  const total = typeof minutes === "string" ? Number(minutes) : minutes;
+  if (
+    total === null ||
+    total === undefined ||
+    !Number.isFinite(total) ||
+    total <= 0
+  ) {
+    return { hours: "", minutes: "" };
+  }
+  const whole = Math.floor(total);
+  return {
+    hours: String(Math.floor(whole / 60)),
+    minutes: String(whole % 60),
+  };
+}
+
 export type BookingFormState = {
   error?: string;
   fieldErrors?: Partial<Record<keyof CreateBookingInput, string[]>>;

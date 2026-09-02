@@ -18,6 +18,7 @@ import {
   BOOKING_KINDS,
   DEFAULT_REMINDER_DAYS,
   REMINDER_PRESETS,
+  splitDuration,
   toDateTimeLocal,
 } from "../domain/booking";
 import { CURRENCIES, DEFAULT_CURRENCY } from "../domain/expenses";
@@ -178,6 +179,13 @@ export function BookingForm({
   const fieldClass = (field: Field) =>
     errorFor(field) ? "border-danger focus-visible:ring-danger" : undefined;
 
+  // The duration is two boxes on screen and one figure everywhere else, so the
+  // split happens here — against `was`, which already resolves the echo from a
+  // rejected submit ahead of the booking being edited. Splitting the booking
+  // directly would throw away what was typed on exactly the submission that
+  // needs it kept.
+  const durationParts = splitDuration(was("durationMinutes"));
+
   // Adding sits directly on the page and needs Card's own surface; editing
   // already lives inside a Dialog, which is a surface of its own — nesting
   // Card there would be a card inside a card.
@@ -306,26 +314,63 @@ export function BookingForm({
             from the ticket the user is already copying from. Blank shows no
             duration at all; a wrong one is worse than none. */}
         {isTransport && (
-          <label className="flex min-w-0 flex-col gap-1 text-sm sm:max-w-56">
-            <span className="text-muted">משך הנסיעה בדקות (לא חובה)</span>
-            <Input
-              type="number"
-              name="durationMinutes"
-              min={1}
-              max={20160}
-              step={5}
-              dir="ltr"
-              placeholder="685"
-              defaultValue={was("durationMinutes")}
-              aria-invalid={Boolean(errorFor("durationMinutes"))}
-              className={fieldClass("durationMinutes")}
-            />
+          // Hours and minutes, not one box of minutes.
+          //
+          // It was a single "משך הנסיעה בדקות" field, so a flight went in as
+          // 685 — a figure no ticket prints and nobody divides by 60 in their
+          // head to check. The column still stores total minutes and every
+          // reader of it is unchanged; the two boxes are joined in the action
+          // by combineDuration and split back apart here.
+          //
+          // A fieldset rather than a label, because two inputs cannot share
+          // one: a <label> points at a single control, and wrapping both in it
+          // makes clicking the word focus whichever the browser guesses.
+          <fieldset className="flex min-w-0 flex-col gap-1 border-0 p-0 text-sm">
+            <legend className="text-muted">משך הנסיעה (לא חובה)</legend>
+            <div className="flex min-w-0 items-start gap-2">
+              <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-28">
+                <Input
+                  type="number"
+                  name="durationHours"
+                  min={0}
+                  max={336}
+                  step={1}
+                  dir="ltr"
+                  placeholder="11"
+                  defaultValue={durationParts.hours}
+                  aria-invalid={Boolean(errorFor("durationMinutes"))}
+                  aria-label="שעות"
+                  className={fieldClass("durationMinutes")}
+                />
+                <span className="text-caption text-muted">שעות</span>
+              </label>
+              <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-28">
+                {/* Capped at 59 rather than left open: over that is an hour,
+                    and splitDuration would hand it straight back normalised —
+                    a box that silently rewrites what was typed. The cap says
+                    so up front instead. */}
+                <Input
+                  type="number"
+                  name="durationMinutes"
+                  min={0}
+                  max={59}
+                  step={5}
+                  dir="ltr"
+                  placeholder="25"
+                  defaultValue={durationParts.minutes}
+                  aria-invalid={Boolean(errorFor("durationMinutes"))}
+                  aria-label="דקות"
+                  className={fieldClass("durationMinutes")}
+                />
+                <span className="text-caption text-muted">דקות</span>
+              </label>
+            </div>
             <FieldError message={errorFor("durationMinutes")} />
             <span className="text-caption text-muted">
               כמו שמופיע בכרטיס. לא מחושב משעות היציאה וההגעה, כי שתיהן נשמרות
               בשעון אחד ולכן ההפרש ביניהן אינו משך הטיסה.
             </span>
-          </label>
+          </fieldset>
         )}
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
