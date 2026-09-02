@@ -10,18 +10,21 @@ import {
   HowItWorks,
   NewTripButton,
   getItinerary,
+  getItineraryDayCountByTrip,
   getSelectedCitiesByTrip,
   getSelectedDestinations,
   itineraryStops,
   listBookings,
   listTrips,
   OpenItems,
-  pickUpcomingTrip,
+  orderTripsByProximity,
+  pickFeaturedTrip,
   StartHere,
   todayIn,
   tripOpenItems,
   tripPhase,
   TripList,
+  UpcomingTrips,
   UpNext,
 } from "@/features/trips";
 import type { Booking, OpenItem } from "@/features/trips";
@@ -29,12 +32,18 @@ import type { Booking, OpenItem } from "@/features/trips";
 export const metadata = { title: "הטיולים שלי · MyTrip" };
 
 export default async function ProfilePage() {
-  const [user, trips, citiesByTrip] = await Promise.all([
+  const [user, trips, citiesByTrip, dayCounts] = await Promise.all([
     getCurrentUser(),
     listTrips(),
     // One query for every trip's cities, which is what each trip's light is
     // derived from. Per-row it would have been one round trip per trip.
     getSelectedCitiesByTrip(),
+    // And one for every trip's length. Ordering the screen by proximity means
+    // asking each trip where it stands, and a trip with a start date and no end
+    // date cannot answer that without knowing how long its itinerary runs — it
+    // would read as finished the morning after it left. Same shape as the query
+    // above: one round trip, not one per row.
+    getItineraryDayCountByTrip(),
   ]);
 
   // One light per trip, assigned across the whole list rather than per trip, so
@@ -54,14 +63,32 @@ export default async function ProfilePage() {
     })),
   );
 
-  // Feature the soonest upcoming trip: its countdown, its route, and its own
-  // light.
+  // One "today" for the whole render, resolved before anything that needs it.
+  // Two calls to todayIn could straddle midnight and put the ordering and the
+  // labels on different days — the sort would place a trip as departing
+  // tomorrow while its own row said today.
+  const today = todayIn(APP_TIME_ZONE, new Date());
+
+  // The whole screen in one order: the trip being lived, then the ones ahead
+  // by how soon they leave, then the undated, then the finished. listTrips
+  // returns creation order, which is when you thought of a trip rather than
+  // when it happens — see domain/trip-order.ts for why that was the wrong axis
+  // for every tier below.
+  const ordered = orderTripsByProximity(trips, today, dayCounts);
+
+  // Feature the trip being lived, or else the next one out: its countdown, its
+  // route, and its own light.
+  //
+  // This used to be pickUpcomingTrip, which skipped any trip that had already
+  // departed — so while actually travelling, the screen featured the *next*
+  // trip and the one being lived sat in the grid like any other row.
   //
   // No destination photo here any more. The hero this screen was designed for
   // is a field of light, and a photo underneath it would be a third thing
   // competing with the countdown and the route. getPlaceImage still serves the
   // trip's own "today" tab, where a picture of the place is the subject.
-  const upcoming = pickUpcomingTrip(trips);
+  const featured = pickFeaturedTrip(ordered);
+  const upcoming = featured?.trip ?? null;
   let upcomingCities: string[] = [];
   // The itinerary's length, for the rail's countdown: tripPhase needs it to know
   // whether a trip with a start date and no end date is still ahead.
@@ -102,8 +129,43 @@ export default async function ProfilePage() {
     });
   }
 
-  const today = todayIn(APP_TIME_ZONE, new Date());
   const now = new Date().toISOString();
+
+  // Three tiers, and the middle one is the new part.
+  //
+  // The screen had two sizes: the hero, and a grid where every remaining trip
+  // was the same 44px tile in creation order. "Sort by which trip is closer and
+  // give it room" cannot be said in a layout with one size below the hero.
+  //
+  //   hero      the featured trip — being lived, or leaving next
+  //   near      the next few after it, as wide rows with the countdown loud
+  //   grid      every trip, compact, as a complete index
+  //
+  // Three is a cap, not a rule about what is "near": a date threshold ("within
+  // 30 days") reads as arbitrary the moment your next trip is in five weeks and
+  // the screen goes flat. A fixed count means the tier is always populated when
+  // there is anything to put in it, and never long enough to stop being a tier.
+  //
+  // The grid keeps every trip rather than only what the tiers above did not
+  // take, including the featured one — "I want all my trips shown, always", the
+  // same instruction that removed the archive. The tiers are emphasis, not a
+  // filter, and "כל הטיולים · N" has to be able to count to N. The hero's trip
+  // already appeared twice before this change and never read as a duplicate,
+  // because the two are different questions: what now, and what do I have.
+  // Ahead only. The first version sliced the next three off the ordered list
+  // whatever they were, and with one active trip and one future one that put
+  // "פראג, חורף שעבר · הסתיים לפני 258 ימים" under a heading that says "what is
+  // next in line". A finished trip is not next in line, and neither is a trip
+  // with no dates — nothing can be "next" in a sequence it is not in. Both
+  // still appear, in the grid below, which is what that tier is for.
+  const NEAR_COUNT = 3;
+  const near = ordered
+    .filter(
+      (entry) =>
+        entry.trip.id !== upcoming?.id &&
+        (entry.phase.kind === "during" || entry.phase.kind === "before"),
+    )
+    .slice(0, NEAR_COUNT);
 
   return (
     <AppShell
@@ -163,6 +225,10 @@ export default async function ProfilePage() {
             // palette this trip ended up with after deconfliction.
             hues={auraByTrip.get(upcoming.id) ?? []}
             initial={user?.email?.[0]}
+            // The same phase the ordering used, not one the hero works out for
+            // itself: a trip already under way shows which day of it you are on
+            // instead of a countdown that has run out.
+            phase={featured?.phase}
             // Cancels AppShell pt-5: the hero is the first thing in main and
             // should meet the header. The component does not carry this itself —
             // the harness renders it under a scene title, where it would be
@@ -244,6 +310,27 @@ export default async function ProfilePage() {
             tripId={upcoming?.id ?? trips[0]?.id ?? null}
           />
 
+          {/* The middle tier. Present only when there is a second trip to put
+              in it — with one trip the hero has already said everything, and an
+              empty heading over nothing is worse than no section. */}
+          {near.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <SectionHeading level="section">
+                {/* "מה הבא בתור" and not "טיולים קרובים": the tier is ordered by
+                    proximity and the reader is looking at the order, so the
+                    heading should name the sequence rather than restate the
+                    property every row already shows. */}
+                מה הבא בתור
+              </SectionHeading>
+              <UpcomingTrips
+                entries={near}
+                citiesByTrip={citiesByTrip}
+                auraByTrip={auraByTrip}
+                enterDelayMs={220}
+              />
+            </section>
+          )}
+
           <section className="flex flex-col gap-3">
             {trips.length > 0 && (
               <SectionHeading
@@ -257,12 +344,17 @@ export default async function ProfilePage() {
                 it. 220ms is two steps in: this section is the second or third
                 child depending on which conditional blocks above rendered, and
                 a one-step error either way is not visible. */}
+            {/* Ordered, not as listTrips returned it: the grid is the index
+                of everything, and an index that answers "what do I have" is
+                still easier to read when the soonest thing is first. Same order
+                as the tiers above, so a trip does not move between them. */}
             <TripList
-              trips={trips}
+              trips={ordered.map((entry) => entry.trip)}
               today={today}
               citiesByTrip={citiesByTrip}
               auraByTrip={auraByTrip}
-              enterDelayMs={220}
+              dayCounts={dayCounts}
+              enterDelayMs={330}
             />
           </section>
         </>

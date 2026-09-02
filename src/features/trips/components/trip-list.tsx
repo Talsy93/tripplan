@@ -2,7 +2,8 @@ import Link from "next/link";
 import { AuraField, Card, EmptyState } from "@/components/ui";
 import { NewTripButton } from "./create-trip-form";
 import { formatShortDate } from "../domain/trip";
-import { phaseLabel, tripPhase } from "../domain/trip-days";
+import { tripPhase } from "../domain/trip-days";
+import { standingLabel } from "../domain/trip-order";
 import type { Trip } from "../domain/trip";
 import { Luggage } from "lucide-react";
 
@@ -17,11 +18,18 @@ export function TripList({
   today,
   citiesByTrip,
   auraByTrip,
+  dayCounts,
   enterDelayMs = 0,
 }: {
   trips: Trip[];
   today: string;
   citiesByTrip?: Map<string, string[]>;
+  // How long each trip runs, when the caller happens to know. Only load-bearing
+  // for a trip with a start date and no end date: without it such a trip is
+  // treated as one day long, so it reads as finished the morning after it
+  // leaves. The home screen has the counts and passes them; the preview
+  // harness does not and does not need to.
+  dayCounts?: Map<string, number>;
   // Resolved by the page rather than per row, because the palettes are
   // deconflicted across the whole list — a row cannot work out on its own
   // which colours the other rows already took.
@@ -58,10 +66,14 @@ export function TripList({
       }
     >
       {trips.map((trip) => {
-        // Day count is unknown here — the list does not load itineraries. It
-        // only matters for a trip with a start date and no end date, which
-        // then reads as a single day. Good enough for a badge.
-        const phase = tripPhase(trip.start_date, trip.end_date, today, 0);
+        // The list still does not load itineraries — the counts arrive from the
+        // caller or not at all, and 0 is the old approximation.
+        const phase = tripPhase(
+          trip.start_date,
+          trip.end_date,
+          today,
+          dayCounts?.get(trip.id) ?? 0,
+        );
         const cities = citiesByTrip?.get(trip.id) ?? [];
 
         return (
@@ -115,7 +127,10 @@ export function TripList({
                     two-date range plus a phase plus a count is more than a row
                     in a list can hold without truncating something. */}
                 <span className="min-w-0 truncate text-caption text-muted">
-                  {phaseLabel(phase)}
+                  {/* standingLabel, not phaseLabel: "עוד 12 ימים" rather than
+                      "לפני היציאה". Even down here the countdown is the thing
+                      worth knowing, and the state was never an answer to it. */}
+                  {standingLabel(phase)}
                   {cities.length > 0 && ` · ${cities.length} יעדים`}
                 </span>
               </div>

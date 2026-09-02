@@ -53,6 +53,8 @@ import {
   ShareTrip,
   TripDatesForm,
   TripAuraBand,
+  orderTripsByProximity,
+  pickFeaturedTrip,
   TripList,
   tripAura,
   UnlocatedCities,
@@ -63,6 +65,7 @@ import {
   TodayBefore,
   TodayDuringAside,
   tripOpenItems,
+  UpcomingTrips,
   UpNext,
   WeatherForecast,
   WorkflowGuide,
@@ -258,6 +261,28 @@ function appFrame({
     </AppShell>
   );
 }
+
+// The home screen's three tiers, derived here exactly as profile/page.tsx
+// derives them — the page reads the database and cannot be a scene, so the only
+// way this stays honest is to call the same domain functions on the fixtures.
+//
+// No day counts passed: the fixtures have no itineraries, which is the same
+// position the compact list is in. It costs nothing here because the one trip
+// that would need them ("יפן בסתיו") has an end date.
+const HOME_ORDERED = orderTripsByProximity(f.TRIPS, f.TODAY);
+const HOME_FEATURED = pickFeaturedTrip(HOME_ORDERED);
+const HOME_NEAR = HOME_ORDERED.filter(
+  (entry) =>
+    entry.trip.id !== HOME_FEATURED?.trip.id &&
+    (entry.phase.kind === "during" || entry.phase.kind === "before"),
+).slice(0, 3);
+const HOME_AURAS = assignTripAuras(
+  f.TRIPS.map((trip) => ({
+    id: trip.id,
+    cities: f.TRIP_CITIES.get(trip.id) ?? [],
+    createdAt: trip.created_at,
+  })),
+);
 
 export const SCENES: Scene[] = [
   // ---- the frame itself ----------------------------------------------------
@@ -608,8 +633,8 @@ export const SCENES: Scene[] = [
   // width, and carrying the same colour.
   {
     slug: "home-frame",
-    title: "בית · הרַיל שלא היה",
-    note: "אותה מסגרת בדיוק כמו בתוך טיול: רַיל 248 בקצה, אותו אור. הרַיל נושא את האור של הטיול הקרוב. **מראה גם את כניסת המסך** — הבלוקים עולים אחד אחרי השני והכרטיסים ממשיכים את הרצף במקום להתחיל אותו מחדש; מרעננים כדי לראות שוב",
+    title: "בית · שלוש רמות, לפי קרבה",
+    note: "אותה מסגרת בדיוק כמו בתוך טיול: רַיל 248 בקצה, אותו אור. **הפיקסצ׳רים מציבים את ״יפן בסתיו״ באמצע הטיול** (היום 11.9, הטיול 10–24.9), אז זה גם המקרה שהיה שבור: טיול פעיל היה מסונן החוצה מהתצוגה הגדולה. הסדר כאן הוא פעיל ← עתידי ← בלי תאריכים ← הסתיים. **מראה גם את כניסת המסך** — מרעננים כדי לראות שוב",
     bleed: true,
     render: () => (
       <AppShell
@@ -618,26 +643,29 @@ export const SCENES: Scene[] = [
           <HomeRail
             initial="ט"
             hues={tripAura(FRAME_CITIES)}
-            upcoming={{
-              id: f.TRIP_ID,
-              name: "יפן בסתיו",
-              startDate: f.LONG_START,
-              phase: {
-                kind: "before",
-                daysUntilStart: daysUntil(f.LONG_START),
-              },
-              dayCount: 14,
-            }}
+            // Phase from the domain rather than hand-written as "before". The
+            // fixture trip is mid-flight, and a scene that states its own phase
+            // cannot show the bug this screen was changed to fix.
+            upcoming={
+              HOME_FEATURED && {
+                id: HOME_FEATURED.trip.id,
+                name: HOME_FEATURED.trip.name,
+                startDate: HOME_FEATURED.trip.start_date,
+                phase: HOME_FEATURED.phase,
+                dayCount: 14,
+              }
+            }
           />
         }
         banner={
           <AuraHero
             tripId={f.TRIP_ID}
-            name="יפן בסתיו"
-            startDate={f.LONG_START}
+            name={HOME_FEATURED?.trip.name ?? "יפן בסתיו"}
+            startDate={HOME_FEATURED?.trip.start_date ?? f.LONG_START}
             cities={FRAME_CITIES}
             hues={tripAura(FRAME_CITIES)}
             initial="ט"
+            phase={HOME_FEATURED?.phase}
             className="-mt-5"
           />
         }
@@ -669,20 +697,29 @@ export const SCENES: Scene[] = [
               step except the two enterDelayMs values. */}
           <>
             <HowItWorks defaultOpen={false} tripId={f.TRIP_ID} />
+
+            {HOME_NEAR.length > 0 && (
+              <section className="flex flex-col gap-3">
+                <SectionHeading level="section">מה הבא בתור</SectionHeading>
+                <UpcomingTrips
+                  entries={HOME_NEAR}
+                  citiesByTrip={f.TRIP_CITIES}
+                  auraByTrip={HOME_AURAS}
+                  enterDelayMs={220}
+                />
+              </section>
+            )}
+
             <section className="flex flex-col gap-3">
-              <SectionHeading level="sub">כל הטיולים · 4</SectionHeading>
+              <SectionHeading level="sub">
+                כל הטיולים · {f.TRIPS.length}
+              </SectionHeading>
               <TripList
-                trips={f.TRIPS}
+                trips={HOME_ORDERED.map((entry) => entry.trip)}
                 today={f.TODAY}
                 citiesByTrip={f.TRIP_CITIES}
-                enterDelayMs={220}
-                auraByTrip={assignTripAuras(
-                  f.TRIPS.map((trip) => ({
-                    id: trip.id,
-                    cities: f.TRIP_CITIES.get(trip.id) ?? [],
-                    createdAt: trip.created_at,
-                  })),
-                )}
+                enterDelayMs={330}
+                auraByTrip={HOME_AURAS}
               />
             </section>
           </>

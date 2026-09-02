@@ -6,7 +6,6 @@ export {
   daysUntil,
   formatCountdown,
   formatShortDate,
-  pickUpcomingTrip,
 } from "./domain/trip";
 export type {
   Trip,
@@ -120,6 +119,7 @@ export {
 export {
   getItinerary,
   getItineraryDayCount,
+  getItineraryDayCountByTrip,
   saveItinerary,
 } from "./infrastructure/itinerary-service";
 export { getTripRoute, getCityCenter } from "./infrastructure/route-service";
@@ -288,6 +288,12 @@ export {
   phaseLabel,
 } from "./domain/trip-days";
 export type { TripPhase, NightLodging } from "./domain/trip-days";
+export {
+  orderTripsByProximity,
+  pickFeaturedTrip,
+  standingLabel,
+} from "./domain/trip-order";
+export type { StandingTrip } from "./domain/trip-order";
 export { NightStay } from "./components/night-stay";
 export { lodgingOrigin, entryDestination } from "./domain/directions";
 export { aiErrorMessage, aiErrorFromResponse } from "./domain/ai-errors";
@@ -402,6 +408,7 @@ export { TripAuraBand } from "./components/trip-aura-band";
 export { TripBandSlot } from "./components/trip-band-slot";
 export { StartHere } from "./components/start-here";
 export { TripList } from "./components/trip-list";
+export { UpcomingTrips } from "./components/upcoming-trips";
 export { PlanningPanel } from "./components/planning-panel";
 export { CityGuide } from "./components/city-guide";
 export { SelectedList } from "./components/selected-list";

@@ -111,16 +111,11 @@ export function formatCountdown(days: number): string {
   return `עוד ${days} ימים`;
 }
 
-// The soonest trip whose departure is today or later — the "next trip" to
-// feature on the home screen. Returns null when nothing is scheduled ahead.
-export function pickUpcomingTrip(trips: Trip[]): Trip | null {
-  let best: Trip | null = null;
-  for (const t of trips) {
-    if (!t.start_date || daysUntil(t.start_date) < 0) continue;
-    if (!best || t.start_date < (best.start_date ?? "")) best = t;
-  }
-  return best;
-}
+// pickUpcomingTrip lived here and is gone. It answered "which single trip does
+// the home screen feature" with the earliest start date still in the future,
+// and its filter — `daysUntil(start) < 0 → skip` — excluded the trip you were
+// actually on, so the screen featured the next trip while you were travelling.
+// Ordering the whole screen by proximity replaced it; see domain/trip-order.ts.
 
 // "14.9" — the departure date beside the countdown. Day and month only: the
 // year is implied by the fact that the trip has not happened yet, and printing

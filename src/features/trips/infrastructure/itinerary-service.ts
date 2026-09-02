@@ -113,6 +113,42 @@ export async function getItinerary(tripId: string): Promise<ItineraryDay[]> {
   return [...byDay.values()];
 }
 
+// How many days each of the user's trips runs, in one query.
+//
+// The home screen needs this for every trip at once, and it needs it for a
+// reason worth stating: `tripPhase` cannot tell a trip that is under way from
+// one that is over unless it knows how long the trip lasts. `end_date` answers
+// that when it is set, and when it is not the itinerary's length is the only
+// other evidence there is. Without either, a trip reads as a single day — so
+// the morning after departure a trip you are standing in the middle of is
+// labelled "הסתיים", and it sorts to the bottom of the screen.
+//
+// The plural of getItineraryDayCount below, and not a loop over it: that one
+// orders and limits to a single row, which is right for one trip and is a query
+// per trip for a screen showing ten. This is modelled on getSelectedCitiesByTrip
+// instead — one round trip and a fold. Only `trip_id` and `day_number` are
+// selected, the values are compared and never read, and RLS keeps the scan to
+// trips the caller can see.
+//
+// The max day_number rather than a row count: an itinerary is items per day, so
+// counting rows would report a busy three-day trip as thirty days long.
+export async function getItineraryDayCountByTrip(): Promise<Map<string, number>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("itinerary_items")
+    .select("trip_id, day_number");
+
+  const byTrip = new Map<string, number>();
+  if (error || !data) return byTrip;
+
+  for (const row of data) {
+    if (!row.trip_id || typeof row.day_number !== "number") continue;
+    const current = byTrip.get(row.trip_id) ?? 0;
+    if (row.day_number > current) byTrip.set(row.trip_id, row.day_number);
+  }
+  return byTrip;
+}
+
 // Remove a single itinerary entry (RLS restricts to the user's own trips).
 export async function deleteItineraryEntry(id: string) {
   const supabase = await createClient();

@@ -4,6 +4,7 @@ import { AuraField, Glass, glassClasses } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { daysUntil, formatCountdown, formatShortDate } from "../domain/trip";
 import { cityToneMap } from "../domain/tone";
+import type { TripPhase } from "../domain/trip-days";
 
 // The home screen's hero, built from the approved design rather than by adding
 // light to the old card.
@@ -38,11 +39,25 @@ export function AuraHero({
   cities = [],
   hues = [],
   initial,
+  phase,
   className,
 }: {
   tripId: string;
   name: string;
   startDate: string | null;
+  // Where the trip stands, when the caller has worked it out. Optional, and the
+  // hero is still correct without it — but only for a trip that has not left.
+  //
+  // Without it the hero has one question, "how long until this starts", and a
+  // trip already under way falls off the end of that question: `daysUntil`
+  // returns a negative number and the whole thing collapses to "הטיול יצא
+  // לדרך" under the label "הטיול הקרוב". That is the least this screen can say
+  // about the one trip you are actually on.
+  //
+  // A phase rather than a day number, because the hero should not be deciding
+  // what counts as "during" — tripPhase already does, from the dates and the
+  // itinerary's length, and two answers to that would eventually disagree.
+  phase?: TripPhase;
   cities?: string[];
   hues?: string[];
   // First letter of the signed-in address, for the identity mark. Optional
@@ -54,6 +69,9 @@ export function AuraHero({
   // belongs to whoever placed it.
   className?: string;
 }) {
+  // The trip being lived is the one case that is not a countdown, so it is
+  // taken first and the rest of this component never sees it.
+  const during = phase?.kind === "during" ? phase : null;
   const days = startDate ? daysUntil(startDate) : null;
   // A trip with nowhere to go is not ready to be opened — it is waiting for one
   // decision, and the hero should ask for that decision instead of offering a
@@ -117,12 +135,24 @@ export function AuraHero({
                 Below it, it read as an orphan: a third size on its own row,
                 attached to nothing. */}
             <span className="min-w-0 text-caption font-extrabold text-white/75">
-              {days !== null && days >= 0
-                ? `יוצאים בעוד · ${formatShortDate(startDate!)}`
-                : "הטיול הקרוב"}
+              {during
+                ? `בטיול עכשיו · ${formatShortDate(startDate!)}`
+                : days !== null && days >= 0
+                  ? `יוצאים בעוד · ${formatShortDate(startDate!)}`
+                  : "הטיול הקרוב"}
             </span>
 
-            {days === null ? null : days > 0 ? (
+            {during ? (
+              // The same 72px the countdown gets, because the day you are on is
+              // exactly as much the answer as the days you are waiting. Only
+              // the unit changes, and it is singular by nature.
+              <span className="flex items-baseline gap-2">
+                <span className="text-mega font-black">{during.dayNumber}</span>
+                <span className="text-base font-semibold text-white/80">
+                  יום
+                </span>
+              </span>
+            ) : days === null ? null : days > 0 ? (
               // 72px against the 12px label above it. Measured at 375px: three
               // digits plus the unit come to 165px of the 303px available, so it
               // needs no breakpoint gate.
