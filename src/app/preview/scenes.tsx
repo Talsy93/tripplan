@@ -651,13 +651,13 @@ export const SCENES: Scene[] = [
                   bookings={f.BOOKINGS}
                   now={f.NOW}
                   cities={FRAME_CITIES}
-                  enterDelayMs={45}
+                  enterDelayMs={28}
                 />
               </section>
               <OpenItems
                 tripId={f.TRIP_ID}
                 items={FAR_OPEN}
-                enterDelayMs={90}
+                enterDelayMs={56}
               />
             </>
           }
@@ -675,7 +675,7 @@ export const SCENES: Scene[] = [
                 trips={f.TRIPS}
                 today={f.TODAY}
                 citiesByTrip={f.TRIP_CITIES}
-                enterDelayMs={90}
+                enterDelayMs={56}
                 auraByTrip={assignTripAuras(
                   f.TRIPS.map((trip) => ({
                     id: trip.id,

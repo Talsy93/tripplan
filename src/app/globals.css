@@ -495,7 +495,7 @@
      No reduced-motion guard here: the block at the bottom of this file
      already neutralises every animation and transition in the app. */
   --animate-pop: pop 150ms cubic-bezier(0.34, 1.46, 0.5, 1) both;
-  --animate-rise: rise 250ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  --animate-rise: rise 170ms cubic-bezier(0.32, 0.72, 0, 1) both;
   --animate-stamp: stamp 250ms cubic-bezier(0.34, 1.46, 0.5, 1) both;
   /* No --animate-fill token here on purpose: that effect needs a
      transform-origin as well as an animation, and a plain rule further down
@@ -541,8 +541,23 @@
   to { opacity: 1; transform: none; }
 }
 
+/* Starts at 0.35, not 0, and that is the whole difference between an entrance
+   and a loading state.
+
+   It was 0. With `both` and a delay, a block was therefore *absent* for up to
+   225ms before it began to appear — and absent content is indistinguishable
+   from content that has not rendered yet. Reported as exactly that: "it looks
+   like the page is loading slowly instead of improving anything".
+
+   At 0.35 every block is on screen from the first frame and settles into
+   place, which is the thing being asked for — pieces being slotted in, not
+   pieces arriving from nowhere.
+
+   6px rather than 8: a shorter distance over a shorter time keeps the velocity
+   readable. Below about 4px the movement stops registering and only the fade
+   is left, which is the half that reads as waiting. */
 @keyframes rise {
-  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  from { opacity: 0.35; transform: translate3d(0, 6px, 0); }
   to { opacity: 1; transform: none; }
 }
 
@@ -600,14 +615,20 @@
    The delay is on the child, not on the animation token, so the same
    `animate-rise` utility serves a lone card and a grid of eight.
 
-   Capped at eight and then flat, on purpose. A per-item delay that keeps
+   Capped at six and then flat, on purpose. A per-item delay that keeps
    growing means the twentieth row of a long list waits a second before it
-   exists — which stops being an entrance and becomes a load. Eight covers
-   every grid in the app that is visible without scrolling.
+   exists — which stops being an entrance and becomes a load.
 
-   45ms, measured against the 250ms the rise itself takes: the eighth child
-   starts as the first is finishing, so the group reads as one movement
-   rather than as a queue.
+   28ms against the 170ms the rise takes, and both numbers came down from
+   45/250 after the first version was reported as reading like a slow page
+   load rather than an improvement. Three things were wrong and this is two
+   of them: eight steps of 45ms put the last block 315ms out and 565ms from
+   done, and at 45ms against a 250ms duration eight items overlap for most
+   of their lives — one blurred mass fading in, not pieces being placed.
+
+   Six steps of 28ms put the last block 140ms out. Nested two levels deep,
+   which is the real worst case, the last thing on the home screen now
+   settles at about 280ms instead of 475ms.
 
    `--stagger-base` is what lets one sequence continue into another. The home
    screen stacks blocks and then a grid of trip cards inside the last one, and
@@ -641,31 +662,27 @@
    computed-value time. Components that want their rows chained take an explicit
    `enterDelayMs` instead — see TripList, OpenItems, UpNext. */
 .enter-children > * {
-  animation: rise 250ms cubic-bezier(0.32, 0.72, 0, 1) both;
-  animation-delay: 315ms;
+  animation: rise 170ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation-delay: 140ms;
 }
 .enter-children > *:nth-child(1) { animation-delay: 0ms; }
-.enter-children > *:nth-child(2) { animation-delay: 45ms; }
-.enter-children > *:nth-child(3) { animation-delay: 90ms; }
-.enter-children > *:nth-child(4) { animation-delay: 135ms; }
-.enter-children > *:nth-child(5) { animation-delay: 180ms; }
-.enter-children > *:nth-child(6) { animation-delay: 225ms; }
-.enter-children > *:nth-child(7) { animation-delay: 270ms; }
-.enter-children > *:nth-child(8) { animation-delay: 315ms; }
+.enter-children > *:nth-child(2) { animation-delay: 28ms; }
+.enter-children > *:nth-child(3) { animation-delay: 56ms; }
+.enter-children > *:nth-child(4) { animation-delay: 84ms; }
+.enter-children > *:nth-child(5) { animation-delay: 112ms; }
+.enter-children > *:nth-child(6) { animation-delay: 140ms; }
 
 .enter-children > .enter-skip {
   animation: none;
 }
 
-.stagger > * { animation-delay: calc(var(--stagger-base, 0ms) + 315ms); }
+.stagger > * { animation-delay: calc(var(--stagger-base, 0ms) + 140ms); }
 .stagger > *:nth-child(1) { animation-delay: var(--stagger-base, 0ms); }
-.stagger > *:nth-child(2) { animation-delay: calc(var(--stagger-base, 0ms) + 45ms); }
-.stagger > *:nth-child(3) { animation-delay: calc(var(--stagger-base, 0ms) + 90ms); }
-.stagger > *:nth-child(4) { animation-delay: calc(var(--stagger-base, 0ms) + 135ms); }
-.stagger > *:nth-child(5) { animation-delay: calc(var(--stagger-base, 0ms) + 180ms); }
-.stagger > *:nth-child(6) { animation-delay: calc(var(--stagger-base, 0ms) + 225ms); }
-.stagger > *:nth-child(7) { animation-delay: calc(var(--stagger-base, 0ms) + 270ms); }
-.stagger > *:nth-child(8) { animation-delay: calc(var(--stagger-base, 0ms) + 315ms); }
+.stagger > *:nth-child(2) { animation-delay: calc(var(--stagger-base, 0ms) + 28ms); }
+.stagger > *:nth-child(3) { animation-delay: calc(var(--stagger-base, 0ms) + 56ms); }
+.stagger > *:nth-child(4) { animation-delay: calc(var(--stagger-base, 0ms) + 84ms); }
+.stagger > *:nth-child(5) { animation-delay: calc(var(--stagger-base, 0ms) + 112ms); }
+.stagger > *:nth-child(6) { animation-delay: calc(var(--stagger-base, 0ms) + 140ms); }
 
 body {
   background: var(--background);
