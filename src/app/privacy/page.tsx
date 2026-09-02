@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plane } from "lucide-react";
 import { Banner, Card } from "@/components/ui";
+import { PageEnter } from "@/components/layout";
 
 export const metadata = {
   title: "מדיניות פרטיות · MyTrip",
@@ -115,7 +116,7 @@ export default function PrivacyPage() {
         </Link>
       </header>
 
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 md:px-6">
+      <PageEnter className="mx-auto max-w-3xl flex-1 px-4 py-8 md:px-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-display font-bold">מדיניות פרטיות</h1>
           <p className="text-sm text-muted">עודכן ב-{UPDATED}</p>
@@ -161,7 +162,7 @@ export default function PrivacyPage() {
         >
           חזרה להרשמה
         </Link>
-      </div>
+      </PageEnter>
     </main>
   );
 }

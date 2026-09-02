@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Plane } from "lucide-react";
 import { Banner, Card, buttonClasses } from "@/components/ui";
+import { PageEnter } from "@/components/layout";
 import { getCurrentUser } from "@/features/auth";
 import {
   AcceptInvite,
@@ -49,7 +50,7 @@ export default async function InvitePage({
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-10">
       <Card padding="none" className="w-full max-w-md">
-        <div className="flex flex-col gap-4 p-6 sm:p-8">
+        <PageEnter className="gap-4 p-6 sm:p-8">
           <span className="flex items-center gap-1.5 font-bold text-brand">
             <Plane className="h-5 w-5" aria-hidden="true" />
             MyTrip
@@ -118,7 +119,7 @@ export default async function InvitePage({
               </Link>
             </>
           )}
-        </div>
+        </PageEnter>
       </Card>
     </main>
   );

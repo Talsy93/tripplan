@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CalendarDays, MapPin, Plane } from "lucide-react";
 import { Badge, Card, SectionHeading } from "@/components/ui";
+import { PageEnter } from "@/components/layout";
 import { formatInZone } from "@/lib/datetime";
 import {
   APP_TIME_ZONE,
@@ -62,7 +63,7 @@ export default async function SharedTripPage({
         </Badge>
       </header>
 
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-8 md:px-6">
+      <PageEnter className="mx-auto max-w-3xl flex-1 gap-8 px-4 py-8 md:px-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-display font-bold">{trip.name}</h1>
           {trip.startDate && (
@@ -197,7 +198,7 @@ export default async function SharedTripPage({
             MyTrip
           </Link>
         </footer>
-      </div>
+      </PageEnter>
     </main>
   );
 }

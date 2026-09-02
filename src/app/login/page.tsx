@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CredentialsForm, GoogleButton, login, safeNext } from "@/features/auth";
 import { Banner, Card } from "@/components/ui";
+import { PageEnter } from "@/components/layout";
 
 export const metadata = { title: "התחברות · MyTrip" };
 
@@ -18,7 +19,7 @@ export default async function LoginPage({
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-10">
       <Card padding="none" className="w-full max-w-sm">
-        <div className="flex flex-col gap-4 p-6 sm:p-8">
+        <PageEnter className="gap-4 p-6 sm:p-8">
           <CredentialsForm
             action={login}
             title="התחברות"
@@ -50,7 +51,7 @@ export default async function LoginPage({
           >
             שכחתם סיסמה?
           </Link>
-        </div>
+        </PageEnter>
 
         <p className="border-t border-border bg-surface-2 p-4 text-center text-sm text-muted">
           אין עדיין חשבון?{" "}

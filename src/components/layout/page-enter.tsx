@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/cn";
 
 // The container that makes a page's content arrive one block at a time — on the
 // first screen as it loads, and further down as it is scrolled to.
@@ -38,12 +39,29 @@ import type { ReactNode } from "react";
 // already been read.
 const REVEAL_MARGIN = "0px 0px -12% 0px";
 
+// The same 12%, as a number. The observer takes it as a string and the
+// reachability check below takes it as a fraction, and they have to agree — a
+// block held back by a line it can never cross is content permanently hidden.
+const REVEAL_MARGIN_FRACTION = 0.12;
+
 // Between siblings that cross the line together. Larger than the 28ms of the
 // load sequence: on load the whole screen is arriving at once and speed is the
 // point, here two or three cards are arriving and the sequence is the point.
 const REVEAL_STEP_MS = 70;
 
-export function PageEnter({ children }: { children: ReactNode }) {
+export function PageEnter({
+  children,
+  // The rhythm below is the default and fits a page rendered inside AppShell. A
+  // page that brings its own container — the landing screen, the policy, an auth
+  // card — passes that container's classes here rather than nesting a second div
+  // inside it: a wrapper between a `flex-1` column and its children changes the
+  // layout, and this component must only change the timing. Merged with
+  // tailwind-merge, so naming a gap replaces `gap-6` instead of fighting it.
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   const pathname = usePathname();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -62,15 +80,42 @@ export function PageEnter({ children }: { children: ReactNode }) {
     // hidden. The load sequence alone is the correct fallback.
     if (!("IntersectionObserver" in window)) return;
 
+    // No viewport, no honest answer to "what is below the fold" — and the
+    // dishonest one is catastrophic: every block measures as below a zero-height
+    // window, every block is marked, and the page renders empty. Seen for real
+    // in a hidden preview pane, where innerHeight is 0 while the document lays
+    // out at its full height. The load sequence alone is the right fallback,
+    // same as the two checks above.
+    if (window.innerHeight === 0) return;
+
+    // How far down a block's top can ever get pushed, and how far up it has to
+    // come to be released. A block below the fold on a page that barely scrolls
+    // is the case this pair exists for: the observer's bottom margin holds the
+    // release line 12% above the viewport's bottom edge, and on a page with only
+    // 40px of scroll in it a block sitting just under the fold never reaches
+    // that line. It would then stay at `opacity: 0` for the whole visit — the
+    // one way this mechanism can hide content rather than time it, and the
+    // reason it is checked here rather than trusted to the observer.
+    const maxScroll = Math.max(
+      0,
+      document.documentElement.scrollHeight - window.innerHeight,
+    );
+    const releaseLine = window.innerHeight * (1 - REVEAL_MARGIN_FRACTION);
+
     const pending: Element[] = [];
     for (const child of Array.from(root.children)) {
+      const top = child.getBoundingClientRect().top;
       // Fully below the viewport, not merely crossing it. A block that is half
       // read cannot be reset to `opacity: 0` — that is a visible jump, and the
       // one failure mode this whole mechanism could introduce.
-      if (child.getBoundingClientRect().top >= window.innerHeight) {
-        child.setAttribute("data-reveal", "pending");
-        pending.push(child);
-      }
+      if (top < window.innerHeight) continue;
+      // Scrolling to the bottom of the document has to be enough to bring it
+      // past the line. If it is not, the block joins the load sequence it was
+      // about to be pulled out of, which is the correct answer for something
+      // that is very nearly on screen anyway.
+      if (top - maxScroll >= releaseLine) continue;
+      child.setAttribute("data-reveal", "pending");
+      pending.push(child);
     }
     if (pending.length === 0) return;
 
@@ -106,7 +151,7 @@ export function PageEnter({ children }: { children: ReactNode }) {
     <div
       key={pathname}
       ref={ref}
-      className="enter-children flex w-full flex-col gap-6"
+      className={cn("enter-children flex w-full flex-col gap-6", className)}
     >
       {children}
     </div>

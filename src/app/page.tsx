@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CalendarDays, Compass, MapPinned, Plane } from "lucide-react";
 import { getCurrentUser, LogoutButton } from "@/features/auth";
 import { buttonClasses } from "@/components/ui";
+import { PageEnter } from "@/components/layout";
 
 const SELLING_POINTS = [
   {
@@ -38,7 +39,7 @@ export default async function HomePage() {
         )}
       </header>
 
-      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center gap-10 px-4 py-12 md:px-6">
+      <PageEnter className="mx-auto max-w-3xl flex-1 justify-center gap-10 px-4 py-12 md:px-6">
         <div className="flex flex-col gap-4 text-center">
           <h1 className="text-display font-bold sm:text-hero">
             לתכנן חכם. לטייל טוב יותר.
@@ -70,10 +71,22 @@ export default async function HomePage() {
             control — three of them in a row look like three buttons, and
             visitors were trying to click them. These are prose with an icon
             beside it: no border, no surface, nothing that invites a click
-            except the actual buttons above. */}
-        <ul className="grid gap-x-8 gap-y-6 sm:grid-cols-3">
+            except the actual buttons above.
+
+            stagger + animate-rise on top of that, chained after the block above
+            rather than starting with it: the list is PageEnter's second child
+            and so arrives at 28ms, and 56ms is where its own items pick the
+            sequence up. Without the base all three would land while the heading
+            is still moving, which reads as one block fading in rather than as a
+            page being built. Same idea as the `enterDelayMs` prop on TripList
+            and UpNext, expressed inline because there is no component here to
+            take it. */}
+        <ul
+          className="stagger grid gap-x-8 gap-y-6 sm:grid-cols-3"
+          style={{ "--stagger-base": "56ms" } as React.CSSProperties}
+        >
           {SELLING_POINTS.map(({ Icon, title, body }) => (
-            <li key={title} className="flex flex-col gap-2">
+            <li key={title} className="flex animate-rise flex-col gap-2">
               <Icon
                 className="h-6 w-6 text-primary-ink"
                 aria-hidden="true"
@@ -83,7 +96,7 @@ export default async function HomePage() {
             </li>
           ))}
         </ul>
-      </div>
+      </PageEnter>
 
       {/* The policy has to be findable without starting a signup — somebody
           deciding whether to sign up at all is exactly who wants to read it. */}

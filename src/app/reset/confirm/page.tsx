@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Banner, Card, buttonClasses } from "@/components/ui";
+import { PageEnter } from "@/components/layout";
 import {
   NewPasswordForm,
   exchangeCodeForSession,
@@ -45,7 +46,7 @@ export default async function ResetConfirmPage({
   return (
     <main className="flex min-h-dvh items-center justify-center px-4 py-10">
       <Card padding="none" className="w-full max-w-sm">
-        <div className="flex flex-col gap-4 p-6 sm:p-8">
+        <PageEnter className="gap-4 p-6 sm:p-8">
           {user ? (
             <NewPasswordForm />
           ) : (
@@ -64,7 +65,7 @@ export default async function ResetConfirmPage({
               </Link>
             </>
           )}
-        </div>
+        </PageEnter>
       </Card>
     </main>
   );
