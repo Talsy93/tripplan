@@ -643,6 +643,7 @@ export const SCENES: Scene[] = [
           <HomeRail
             initial="ט"
             hues={tripAura(FRAME_CITIES)}
+            trips={HOME_ORDERED}
             // Phase from the domain rather than hand-written as "before". The
             // fixture trip is mid-flight, and a scene that states its own phase
             // cannot show the bug this screen was changed to fix.

@@ -25,6 +25,7 @@ export function SideNav({
   hues = [],
   initial,
   header,
+  afterItems,
   footer,
 }: {
   items: NavItem[];
@@ -36,6 +37,12 @@ export function SideNav({
   // component: it renders what it is handed and does not know that the thing
   // above is a trip switcher or that the thing below is a countdown.
   header?: ReactNode;
+  // Between the items and the footer, for a list that is navigation but is not
+  // a NavItem. `label` is a string shared with BottomNav, and keeping it that
+  // way is what stops the three presentations drifting — so anything needing
+  // two lines per row, or a row that is not a destination in every
+  // presentation, belongs here instead of being forced through that type.
+  afterItems?: ReactNode;
   footer?: ReactNode;
 }) {
   return (
@@ -93,6 +100,8 @@ export function SideNav({
           {item.label}
         </Link>
       ))}
+
+      {afterItems && <div className="relative">{afterItems}</div>}
 
       {/* mt-auto, so the footer sits on the bottom edge however many items
           there are — the same trick the hero uses for its own lower block. */}

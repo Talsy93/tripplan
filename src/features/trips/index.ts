@@ -362,6 +362,7 @@ export { NowCard } from "./components/now-card";
 export { TodayStats } from "./components/today-stats";
 export { RailTripProgress } from "./components/rail-trip";
 export { RailTripSwitcher } from "./components/rail-trip-switcher";
+export { RailTripList } from "./components/rail-trip-list";
 export { UpNext } from "./components/up-next";
 export { OpenItems } from "./components/open-items";
 export { TripSpend } from "./components/trip-spend";

@@ -1,9 +1,11 @@
-import { ArrowLeft, Map as MapIcon } from "lucide-react";
+import { Map as MapIcon } from "lucide-react";
 import { SideNav } from "@/components/layout";
 import type { NavItem } from "@/components/layout";
 import { RailTripProgress } from "./rail-trip";
+import { RailTripList } from "./rail-trip-list";
 import { NewTripButton } from "./create-trip-form";
 import type { TripPhase } from "../domain/trip-days";
+import type { StandingTrip } from "../domain/trip-order";
 
 // The rail on the home screen.
 //
@@ -17,17 +19,30 @@ import type { TripPhase } from "../domain/trip-days";
 // chrome that will still be showing the same colour once you have crossed into
 // it. Nothing jumps.
 //
-// Two items, and that is honest rather than sparse. The design draws three —
-// "הטיולים שלי", "טיול חדש" and "הפרופיל שלי" — but "טיול חדש" is a dialog
-// rather than a route, so it sits at the top of the rail where a trip's rail
-// keeps its switcher, and there is no account screen to be the third: signing
-// out lives in the app bar, where it is also reachable on a phone.
+// One nav item, then every trip. The design draws three items — "הטיולים שלי",
+// "טיול חדש" and "הפרופיל שלי" — but "טיול חדש" is a dialog rather than a
+// route, so it sits at the top of the rail where a trip's rail keeps its
+// switcher, and there is no account screen to be the third: signing out lives
+// in the app bar, where it is also reachable on a phone.
+//
+// The trips came later, and their absence was the bug. The rail carried the
+// featured trip and nothing else, on the one screen whose entire subject is
+// which trip — reported as "I only see Italy". The rail inside a trip had had a
+// real switcher for a while; this one had a single link. See rail-trip-list.tsx
+// for why that is a list here and a disclosure there.
 export function HomeRail({
   initial,
   hues,
-  // The soonest trip ahead, when there is one. Null on an account with no
-  // upcoming trip, and then the rail is the wordmark, the button and one item.
+  // The featured trip — the one being lived, or the next one out. Null on an
+  // account with nothing scheduled, and then the rail loses its countdown.
+  //
+  // Still separate from `trips` below even though it is one of them: this one
+  // is here for the footer's progress, which needs a day count the list does
+  // not carry and would be one query per trip to supply.
   upcoming,
+  // Every trip, already ordered by proximity. Was absent, and the rail showed
+  // the featured trip alone as a single nav item — "I only see Italy".
+  trips = [],
 }: {
   initial?: string;
   hues: string[];
@@ -38,6 +53,7 @@ export function HomeRail({
     phase: TripPhase;
     dayCount: number;
   } | null;
+  trips?: StandingTrip[];
 }) {
   const items: NavItem[] = [
     {
@@ -48,21 +64,17 @@ export function HomeRail({
     },
   ];
 
-  if (upcoming) {
-    // The single most likely destination from this screen, and the reason the
-    // rail reads as navigation rather than as a label with one entry.
-    items.push({
-      href: `/trips/${upcoming.id}/today`,
-      label: upcoming.name,
-      icon: <ArrowLeft className="h-5 w-5" />,
-    });
-  }
+  // The featured trip used to be pushed here as a second nav item, and it was
+  // the only trip the rail could reach. RailTripList below reaches all of them,
+  // including this one, so a nav item for it would be the same destination
+  // twice in the same rail.
 
   return (
     <SideNav
       items={items}
       hues={hues}
       initial={initial}
+      afterItems={<RailTripList entries={trips} />}
       header={
         // Glass, not the white "onLight" treatment. White is reserved for the
         // one selected item — put it on the button too and the top of the rail

@@ -190,6 +190,7 @@ export default async function ProfilePage() {
         <HomeRail
           initial={user?.email?.[0]}
           hues={upcoming ? (auraByTrip.get(upcoming.id) ?? []) : []}
+          trips={ordered}
           upcoming={
             upcoming
               ? {
