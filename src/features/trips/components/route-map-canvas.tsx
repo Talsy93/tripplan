@@ -118,7 +118,23 @@ export default function RouteMapCanvas({
       center={bounds.center}
       zoom={bounds.zoom}
       scrollWheelZoom={false}
-      className="h-full w-full"
+      // 🐞 `isolate` is the fix for the map covering the phone's bottom bar.
+      //
+      // Leaflet stacks its own layers with fixed z-indexes, and they are high:
+      // panes 200–700, `.leaflet-control` 800, and `.leaflet-top`/`.leaflet-bottom`
+      // — the control corners — **1000**. The bar is `fixed z-40`, so on the map
+      // tab the map painted straight over it: no tab bar, and on a full-screen
+      // map no way back to the rest of the app at all. Reported exactly that way.
+      //
+      // Isolating here rather than raising the bar's z-index, which is the same
+      // argument one number higher and loses it again the next time Leaflet or a
+      // dialog picks a bigger one. `isolation: isolate` makes this element a
+      // stacking context, so every one of those internal z-indexes is contained
+      // and the whole map competes with the page as a single `z-auto` box.
+      //
+      // On the canvas rather than at the three call sites, so the map tab, the
+      // explore pane and the day card all get it.
+      className="isolate h-full w-full"
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

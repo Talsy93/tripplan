@@ -151,6 +151,11 @@ export function RouteMap({
             dir="ltr"
             className={cn(
               "overflow-hidden border-border lg:rounded-card lg:border lg:shadow-soft",
+              // Marks this as the map that reaches the window edges, which is
+              // the only one whose attribution lands underneath the floating
+              // phone bar. globals.css lifts it clear; the small maps inside cards
+              // must not get that lift, because 6rem is most of their height.
+              "map-fullbleed",
               MAP_HEIGHT,
             )}
           >
@@ -167,8 +172,10 @@ export function RouteMap({
               underneath — this is one of the three places in the app where
               translucency does something an opaque fill cannot.
 
-              z-[500]: Leaflet puts its own panes at z-index 400 and its controls
-              at 800, so anything below 400 is drawn under the tiles. */}
+              z-[500] no longer has to out-rank Leaflet: the canvas isolates its
+              own stacking context (see route-map-canvas.tsx), so the whole map
+              is one z-auto box and anything positive above it wins. The number
+              stays because these chips also sit above the card's own shadow. */}
           {route.stops.length > 1 && (
             <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] flex gap-1.5 overflow-x-auto p-2">
               <button

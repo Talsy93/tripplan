@@ -707,6 +707,30 @@ html {
   margin-top: 3.25rem;
 }
 
+/* The attribution, lifted clear of the floating phone bar.
+   ---------------------------------------------------------------------------
+   Same class of problem as the zoom control above, at the other end. On the map
+   tab the map reaches the bottom of the window, and the bar floats over it — so
+   "Leaflet | © OpenStreetMap" rendered in the strip beneath the bar, at the very
+   edge of the screen. Measured at 375: the attribution box was y 795–812 and the
+   bar 720–812.
+
+   Required by OpenStreetMap's tile policy, so it cannot be hidden — only moved.
+   6rem is the bar's height plus its inset, the same figure AppShell's main uses
+   to clear it.
+
+   Scoped to `.map-fullbleed`, and that is the whole reason the class exists:
+   this lift is only correct for the map that meets the window edges. The small
+   maps in the context pane and the day card are 15rem and 11.5rem tall, and
+   6rem of it is a third of the frame.
+
+   Below md only — from there the bar is gone and the map is a card again. */
+@media (max-width: 767px) {
+  .map-fullbleed .leaflet-bottom {
+    margin-bottom: calc(6rem + env(safe-area-inset-bottom));
+  }
+}
+
 /* Nothing in the app animates for someone who asked it not to. */
 @media (prefers-reduced-motion: reduce) {
   *,
