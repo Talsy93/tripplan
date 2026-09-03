@@ -722,6 +722,7 @@ export const SCENES: Scene[] = [
                 entries={HOME_ORDERED}
                 auraByTrip={HOME_AURAS}
                 pointsByTrip={f.TRIP_POINTS}
+                enterDelayMs={330}
               />
             </section>
           </>
