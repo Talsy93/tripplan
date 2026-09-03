@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CalendarDays, MapPin } from "lucide-react";
-import { AuraField, Glass, glassClasses } from "@/components/ui";
+import { AuraField } from "@/components/ui";
 import { HeroRouteSketch } from "./hero-route-sketch";
 import { cn } from "@/lib/cn";
 import { daysUntil, formatCountdown, formatShortDate } from "../domain/trip";
@@ -137,28 +137,32 @@ export function AuraHero({
         <div className="flex min-w-0 items-center justify-between gap-3 lg:hidden">
           {/* Tracked, and Latin only. globals.css: letter-spacing damages
               Hebrew, so the wordmark gets it and no Hebrew label does. */}
-          <span className="text-caption font-extrabold tracking-latin">
+          <span className="text-caption font-semibold tracking-latin text-white/80">
             MYTRIP
           </span>
           {initial && (
-            <Glass
+            // A ring, not a Glass pane. Backdrop blur on a 36px circle costs a
+            // compositing layer to produce an effect nobody can see at that
+            // size, and the frosted disc is the single most 2021 object in the
+            // app. A hairline border says the same thing and is free.
+            <span
               aria-hidden="true"
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold uppercase"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/30 text-sm font-medium uppercase text-white/90"
             >
               {initial}
-            </Glass>
+            </span>
           )}
         </div>
 
         {/* mt-auto, so everything below sits on the bottom edge whatever the
             height turns out to be: the identity row stays at the top and the gap
             between them absorbs the difference. */}
-        <div className="mt-auto flex min-w-0 flex-col gap-4 pt-8 lg:flex-row lg:items-center lg:gap-8 lg:pt-4">
+        <div className="mt-auto flex min-w-0 flex-col gap-4 pt-8 lg:flex-row lg:items-end lg:gap-10 lg:pt-4">
           <div className="flex min-w-0 flex-col lg:shrink-0 lg:text-center">
             {/* The departure date belongs on this line, not under the number.
                 Below it, it read as an orphan: a third size on its own row,
                 attached to nothing. */}
-            <span className="min-w-0 text-caption font-extrabold text-white/75">
+            <span className="min-w-0 text-caption font-medium text-white/65">
               {during
                 ? `בטיול עכשיו · ${formatShortDate(startDate!)}`
                 : days !== null && days >= 0
@@ -171,34 +175,43 @@ export function AuraHero({
               // exactly as much the answer as the days you are waiting. Only
               // the unit changes, and it is singular by nature.
               <span className="flex items-baseline gap-2">
-                <span className="text-mega font-black">{during.dayNumber}</span>
-                <span className="text-base font-semibold text-white/80">
-                  יום
+                <span className="text-mega font-light tracking-tighter">
+                  {during.dayNumber}
                 </span>
+                <span className="text-sm font-medium text-white/70">יום</span>
               </span>
             ) : days === null ? null : days > 0 ? (
               // 72px against the 12px label above it. Measured at 375px: three
               // digits plus the unit come to 165px of the 303px available, so it
               // needs no breakpoint gate.
+              // font-light with negative tracking, not font-black.
+              //
+              // This is the single biggest date stamp on the screen. A 72px
+              // numeral at weight 900 is the "big number hero" of 2019–2021; at
+              // 300 the same number reads as typography rather than as a poster,
+              // and the size alone still carries the hierarchy — which is what
+              // the size was for.
               <span className="flex items-baseline gap-2">
-                <span className="text-mega font-black">{days}</span>
-                <span className="text-base font-semibold text-white/80">
+                <span className="text-mega font-light tracking-tighter">
+                  {days}
+                </span>
+                <span className="text-sm font-medium text-white/70">
                   {days === 1 ? "יום" : "ימים"}
                 </span>
               </span>
             ) : (
-              <span className="text-display font-black sm:text-hero">
+              <span className="text-display font-light tracking-tight sm:text-hero">
                 {formatCountdown(days)}
               </span>
             )}
           </div>
 
-          {/* Only from lg, where the three groups are actually side by side and
-              there is something to divide. */}
-          <span
-            aria-hidden="true"
-            className="hidden w-px self-stretch bg-white/25 lg:block"
-          />
+          {/* The vertical rule that used to sit here is gone. It was drawing a
+              boundary between the countdown and the name — two halves of one
+              sentence — and a line between them lowers the tension the size
+              contrast is there to create. The gap does the separating now, and
+              lg:gap-10 is wider than the old lg:gap-8 by exactly the width the
+              rule and its margins took. */}
 
           <div className="flex min-w-0 flex-col gap-4 lg:flex-1">
             {/* Clamped to two lines: a hero is a summary, and the full name is the
@@ -237,45 +250,41 @@ export function AuraHero({
             )}
 
             {stops.length > 0 && (
-              // Glass rather than the white pills of the old hero: these sit over
-              // the light, so translucency lets them take its colour instead of
-              // punching holes in it.
+              // One line of text, not a row of frosted pills.
               //
-              // A chip cannot break a city name that is one long token, so each is
-              // capped and truncates. The full name is on the map and in the
-              // itinerary.
-              <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
-                {stops.slice(0, 3).map((city) => (
-                  <span
-                    key={city}
-                    className={cn(
-                      glassClasses("dark"),
-                      "min-w-0 max-w-full truncate rounded-full px-3 py-1 text-caption font-medium",
-                    )}
-                  >
-                    {city}
-                  </span>
-                ))}
-                {stops.length > 3 && (
-                  <span
-                    className={cn(
-                      glassClasses("dark"),
-                      "shrink-0 rounded-full px-3 py-1 text-caption font-medium text-white/70",
-                    )}
-                  >
-                    {/* Words, not "+3": in an RTL paragraph the browser puts the
-                      sign after the digit, so "+3" rendered as "3+". */}
-                    ועוד {stops.length - 3}
-                  </span>
-                )}
-              </div>
+              // Glass chips were the second-most dated object here, and they
+              // were also the wrong container: a route is a sequence, and four
+              // separate capsules say "tags" — an unordered set. Written out
+              // with separators it reads as the order you will actually travel
+              // in, takes one line instead of two, and a long city name can
+              // truncate the whole line rather than each capsule truncating
+              // itself into uselessness.
+              //
+              // A middle dot rather than an arrow. This is an RTL paragraph, and
+              // the booking rows already have the scar from that: a "→" between
+              // Hebrew place names renders pointing the wrong way. The dot
+              // asserts no direction, and the reading order carries the sequence
+              // on its own.
+              <p className="min-w-0 truncate text-sm text-white/75">
+                {stops.slice(0, 3).join(" · ")}
+                {stops.length > 3 && ` · ועוד ${stops.length - 3}`}
+              </p>
             )}
           </div>
 
-          <div className="flex min-w-0 items-stretch gap-2 pt-1 lg:shrink-0 lg:pt-0">
+          {/* ms-auto: the actions go to the far end and the space between them
+              and the name is whatever is left, instead of three groups packed
+              evenly across a band. An even distribution is what made this read
+              as a banner. */}
+          <div className="flex min-w-0 items-center gap-1 pt-1 lg:ms-auto lg:shrink-0 lg:pt-0">
             <Link
               href={unplanned ? `/trips/${tripId}/explore` : `/trips/${tripId}`}
-              className="flex min-w-0 flex-1 items-center justify-center rounded-2xl bg-white px-4 py-3.5 text-sm font-bold text-foreground shadow-lift lg:min-w-44 transition-transform duration-200 ease-spring hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-aura-base"
+              // Flat, and that is the whole change. It was rounded-2xl with a
+              // lift shadow and a spring scale on hover — a floating white
+              // capsule, which is the 2019 call-to-action. Same white, same
+              // contrast, no shadow, no growing: the button is a shape on the
+              // surface rather than an object above it.
+              className="flex min-w-0 items-center justify-center rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-aura-base"
             >
               {unplanned ? "בחרו יעדים" : "פתח את הטיול"}
             </Link>
@@ -286,10 +295,9 @@ export function AuraHero({
                   : `/trips/${tripId}/map`
               }
               aria-label={unplanned ? `התאריכים של ${name}` : `המפה של ${name}`}
-              className={cn(
-                glassClasses("dark"),
-                "flex w-14 shrink-0 items-center justify-center rounded-2xl transition-transform duration-200 ease-spring hover:scale-[1.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-aura-base",
-              )}
+              // No frosted box around it either. The icon is the control; the
+              // padding is the target.
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white/70 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-aura-base"
             >
               {unplanned ? (
                 <CalendarDays className="h-5 w-5" aria-hidden="true" />
