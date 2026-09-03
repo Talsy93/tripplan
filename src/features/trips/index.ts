@@ -122,7 +122,11 @@ export {
   getItineraryDayCountByTrip,
   saveItinerary,
 } from "./infrastructure/itinerary-service";
-export { getTripRoute, getCityCenter } from "./infrastructure/route-service";
+export {
+  getTripRoute,
+  getCachedRouteStops,
+  getCityCenter,
+} from "./infrastructure/route-service";
 export {
   addPlaceToTrip,
   addManualPlace,
@@ -405,6 +409,7 @@ export type { AuraPalette } from "./domain/aura-palette";
 export { DomainIcon } from "./components/domain-icon";
 export type { DomainIconName } from "./domain/icons";
 export { AuraHero } from "./components/aura-hero";
+export { HeroRouteMap } from "./components/hero-route-map";
 export { TripAuraBand } from "./components/trip-aura-band";
 export { TripBandSlot } from "./components/trip-band-slot";
 export { StartHere } from "./components/start-here";

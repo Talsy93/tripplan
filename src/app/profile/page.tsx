@@ -10,6 +10,7 @@ import {
   HowItWorks,
   NewTripButton,
   getItinerary,
+  getCachedRouteStops,
   getItineraryDayCountByTrip,
   getSelectedCitiesByTrip,
   getSelectedDestinations,
@@ -27,7 +28,7 @@ import {
   UpcomingTrips,
   UpNext,
 } from "@/features/trips";
-import type { Booking, OpenItem } from "@/features/trips";
+import type { Booking, OpenItem, RouteStop } from "@/features/trips";
 
 export const metadata = { title: "הטיולים שלי · MyTrip" };
 
@@ -83,10 +84,13 @@ export default async function ProfilePage() {
   // departed — so while actually travelling, the screen featured the *next*
   // trip and the one being lived sat in the grid like any other row.
   //
-  // No destination photo here any more. The hero this screen was designed for
-  // is a field of light, and a photo underneath it would be a third thing
-  // competing with the countdown and the route. getPlaceImage still serves the
-  // trip's own "today" tab, where a picture of the place is the subject.
+  // Still no destination photograph, and the map is not a reversal of that.
+  // The photo was removed because it was a second answer to "whose trip is
+  // this?" running against the light — decorative, generic, and true of any
+  // trip to the same city. The route is the opposite: it is drawn from this
+  // trip's own cities, in this trip's own order, and it is the only backdrop
+  // the app can show that is wrong for every other trip. getPlaceImage still
+  // serves the trip's "today" tab, where a picture of the place is the subject.
   const featured = pickFeaturedTrip(ordered);
   const upcoming = featured?.trip ?? null;
   let upcomingCities: string[] = [];
@@ -98,6 +102,10 @@ export default async function ProfilePage() {
   // screen's subject once there is one.
   let upcomingBookings: Booking[] = [];
   let upcomingOpen: OpenItem[] = [];
+  // The hero draws the trip's real route when the app already knows where its
+  // cities are. Cache-only, so this adds a read and never a geocode — see
+  // getCachedRouteStops for why that rule exists on this screen in particular.
+  let upcomingStops: RouteStop[] = [];
 
   if (upcoming) {
     // Route order comes from the itinerary when there is one. Before that,
@@ -107,6 +115,9 @@ export default async function ProfilePage() {
       getItinerary(upcoming.id),
       listBookings(upcoming.id),
     ]);
+    // After the itinerary, because the stop order comes from it — the same
+    // ordering the map tab uses, so the numbered pins agree across screens.
+    upcomingStops = await getCachedRouteStops(upcoming.id, itinerary);
     upcomingDayCount = itinerary.length;
     upcomingBookings = bookings;
     upcomingCities = itineraryStops(itinerary).map((stop) => stop.city);
@@ -230,6 +241,7 @@ export default async function ProfilePage() {
             // itself: a trip already under way shows which day of it you are on
             // instead of a countdown that has run out.
             phase={featured?.phase}
+            routeStops={upcomingStops}
             // Cancels AppShell pt-5: the hero is the first thing in main and
             // should meet the header. The component does not carry this itself —
             // the harness renders it under a scene title, where it would be

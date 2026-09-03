@@ -103,6 +103,66 @@ export async function getTripRoute(
   };
 }
 
+// The route, from cache only — never geocoding, never writing.
+//
+// getTripRoute above is the full version and is the right one for the map tab:
+// it looks up every city it does not already know, reverse-geocodes countries,
+// repairs pins that landed in the wrong hemisphere, and caches all of it.
+//
+// None of that belongs on the home screen. Those lookups are Nominatim round
+// trips against a free, rate-limited service, and putting them behind the first
+// screen of the app means the landing page waits on a third party for cities it
+// may never draw. Worse, it would run them for the *featured* trip on every
+// visit, which is the one trip most likely to already be cached — spending the
+// budget where it is least needed.
+//
+// So this reads what is already known and stops. A city without cached
+// coordinates is simply absent from the result, and a trip where nothing is
+// cached returns an empty array, which the caller reads as "no map to draw" and
+// falls back to the light. The map tab remains the only thing that fills the
+// cache, which also makes the hero honest: it shows what the app has actually
+// established about the trip, not what it could look up given a moment.
+export async function getCachedRouteStops(
+  tripId: string,
+  itinerary: ItineraryDay[] = [],
+): Promise<RouteStop[]> {
+  const cities = orderCities(await getRouteCities(tripId), itinerary);
+  if (cities.length === 0) return [];
+
+  const cityNames = cities.map((c) => c.city);
+  const cached = await getCachedLocations(tripId, cityNames);
+
+  // Places carry coordinates OpenStreetMap gave directly and were never
+  // geocoded, so deriving a centre from them is a read, not a lookup — it
+  // belongs here for the same reason it belongs in getTripRoute.
+  //
+  // Not cached back, unlike there. This function promises not to write, and a
+  // read path that quietly persists is a read path that can fail.
+  const derived = await deriveCityCentresFromPlaces(tripId, cityNames);
+  for (const [city, point] of derived) {
+    if (!cached.has(city)) {
+      cached.set(city, { ...point, country: null, countryCode: null });
+    }
+  }
+
+  const stops: RouteStop[] = [];
+  for (const { city, itemCount, nights, days } of cities) {
+    const found = cached.get(city);
+    if (!found) continue;
+    stops.push({
+      city,
+      latitude: found.latitude,
+      longitude: found.longitude,
+      country: found.country,
+      countryCode: found.countryCode,
+      itemCount,
+      nights,
+      days,
+    });
+  }
+  return withProximityOrderedTail(stops);
+}
+
 // The trip's selected places that have real coordinates, for pinning
 // individually. Only `selected` rows: the table also holds everything the
 // guide ever suggested, and drawing all of it would bury the actual plan.

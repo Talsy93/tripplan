@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { CalendarDays, MapPin } from "lucide-react";
 import { AuraField, Glass, glassClasses } from "@/components/ui";
+import { HeroRouteMap } from "./hero-route-map";
 import { cn } from "@/lib/cn";
 import { daysUntil, formatCountdown, formatShortDate } from "../domain/trip";
 import { cityToneMap } from "../domain/tone";
 import type { TripPhase } from "../domain/trip-days";
+import type { RouteStop } from "../domain/route";
 
 // The home screen's hero, built from the approved design rather than by adding
 // light to the old card.
@@ -40,6 +42,7 @@ export function AuraHero({
   hues = [],
   initial,
   phase,
+  routeStops = [],
   className,
 }: {
   tripId: string;
@@ -58,6 +61,14 @@ export function AuraHero({
   // what counts as "during" — tripPhase already does, from the dates and the
   // itinerary's length, and two answers to that would eventually disagree.
   phase?: TripPhase;
+  // The trip's cities, with coordinates, when the app already knows them.
+  //
+  // Cache-only by contract — see getCachedRouteStops. The home screen must not
+  // geocode: those are Nominatim round trips against a free service, and the
+  // landing page is the worst place in the app to wait on one. A city the map
+  // tab has never resolved is simply absent here, and a trip with none of them
+  // falls back to the light.
+  routeStops?: RouteStop[];
   cities?: string[];
   hues?: string[];
   // First letter of the signed-in address, for the identity mark. Optional
@@ -100,7 +111,20 @@ export function AuraHero({
         className,
       )}
     >
-      <AuraField hues={hues} />
+      {/* The map when the trip knows where it goes, the light when it does not.
+          Never both: two backdrops arguing over one rectangle is the thing that
+          got destination photographs removed, and a map under an aura would be
+          that argument again with tiles in it.
+
+          The fallback is not an edge case. A trip with no located cities is
+          every trip on the day it is created, and the light is the right answer
+          there — a blank map centred on nothing says the app is broken, and the
+          field says the trip has not been planned yet, which is true. */}
+      {routeStops.length > 0 ? (
+        <HeroRouteMap stops={routeStops} />
+      ) : (
+        <AuraField hues={hues} />
+      )}
 
       {/* min-w-0 throughout: the trip name is user-authored, and nothing above
           it may be widened by it. */}

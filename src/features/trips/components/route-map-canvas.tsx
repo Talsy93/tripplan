@@ -93,11 +93,24 @@ export default function RouteMapCanvas({
   stops,
   places = [],
   focus = null,
+  still = false,
 }: {
   stops: RouteStop[];
   places?: RoutePlace[];
   // Where to fly to. Null leaves the map wherever the user left it.
   focus?: [number, number] | null;
+  // A map to look at rather than to use: no dragging, no zooming, no popups,
+  // and no individual place pins — just the route and its cities.
+  //
+  // For the home screen's hero, where the map is the backdrop to a countdown
+  // and not the subject. A draggable map there would fight the page for every
+  // vertical swipe on a phone, which is the one interaction a hero must never
+  // capture, and popups would put a white bubble over the trip's name.
+  //
+  // A flag on this component rather than a second canvas: Leaflet's setup —
+  // the isolate stacking context, the divIcon markers, the tile attribution —
+  // is exactly the part that must not exist twice.
+  still?: boolean;
 }) {
   // Bounds are computed from the cities alone. The places sit inside them by
   // definition, and including them would let one mis-tagged point zoom the
@@ -135,6 +148,15 @@ export default function RouteMapCanvas({
       // On the canvas rather than at the three call sites, so the map tab, the
       // explore pane and the day card all get it.
       className="isolate h-full w-full"
+      // Every way in, closed at once. Leaflet has no single "static" switch, so
+      // this is the full list; missing one leaves a map that mostly ignores you
+      // and then suddenly does not.
+      dragging={!still}
+      touchZoom={!still}
+      doubleClickZoom={!still}
+      boxZoom={!still}
+      keyboard={!still}
+      zoomControl={!still}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -156,8 +178,12 @@ export default function RouteMapCanvas({
       )}
 
       {/* Places first, so a city's numbered disc always draws over them and
-          stays the thing you can read at a glance. */}
-      {places.map((place) => (
+          stays the thing you can read at a glance.
+
+          None of them in `still` mode: a dozen small dots behind a countdown
+          is texture, not information, and the cities alone say where the trip
+          goes. */}
+      {(still ? [] : places).map((place) => (
         <Marker
           key={`${place.city}|${place.name}`}
           position={[place.latitude, place.longitude]}
@@ -185,7 +211,11 @@ export default function RouteMapCanvas({
             index + 1,
             tones.get(stop.city) ?? toneByIndex(index),
           )}
+          // Not clickable in still mode, so the pin cannot swallow a tap that
+          // was meant for the hero's own link underneath it.
+          interactive={!still}
         >
+          {!still && (
           <Popup>
             <div dir="rtl" className="text-center">
               <strong>{stop.city}</strong>
@@ -201,6 +231,7 @@ export default function RouteMapCanvas({
               )}
             </div>
           </Popup>
+          )}
         </Marker>
       ))}
     </MapContainer>

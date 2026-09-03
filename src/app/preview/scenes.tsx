@@ -668,6 +668,7 @@ export const SCENES: Scene[] = [
             hues={tripAura(FRAME_CITIES)}
             initial="ט"
             phase={HOME_FEATURED?.phase}
+            routeStops={f.STOPS}
             className="-mt-5"
           />
         }
@@ -871,6 +872,40 @@ export const SCENES: Scene[] = [
         cities={["טוקיו", "קיוטו", "אוסקה", "נארה"]}
         hues={tripAura(["טוקיו", "קיוטו", "אוסקה", "נארה"])}
         initial="t"
+      />
+    ),
+  },
+  {
+    slug: "hero-map",
+    title: "Hero · המפה כרקע",
+    note: "המסלול האמיתי במקום שדה האור. אריחי OpenStreetMap — חינמיים, בלי מפתח, וכבר בשימוש בטאב המפה. המפה כאן **סטטית**: אין גרירה, אין זום, אין פופאפים, כדי שהיא לא תיקח החלקה אנכית בטלפון. הסקרים אנכי ולא אופקי, כי תוכן ה-Hero יושב על mt-auto — כלומר בתחתית בשתי הפריסות",
+    bleed: true,
+    render: () => (
+      <AuraHero
+        tripId={f.TRIP_ID}
+        name="יפן בסתיו"
+        startDate={f.LONG_START}
+        cities={FRAME_CITIES}
+        hues={tripAura(FRAME_CITIES)}
+        initial="ט"
+        routeStops={f.STOPS}
+      />
+    ),
+  },
+  {
+    slug: "hero-map-unlocated",
+    title: "Hero · טיול שהמפה לא מכירה",
+    note: "**המצב החשוב יותר.** `getCachedRouteStops` קוראת מהמטמון בלבד ולעולם לא מבצעת geocoding, אז טיול שהמפה שלו טרם נפתחה מגיע בלי קואורדינטות — וזה כל טיול ביום שנוצר. אז חוזרים לשדה האור, ולא למפה ריקה שממורכזת על שום מקום",
+    bleed: true,
+    render: () => (
+      <AuraHero
+        tripId={f.TRIP_ID}
+        name="יפן בסתיו"
+        startDate={f.LONG_START}
+        cities={FRAME_CITIES}
+        hues={tripAura(FRAME_CITIES)}
+        initial="ט"
+        routeStops={[]}
       />
     ),
   },
