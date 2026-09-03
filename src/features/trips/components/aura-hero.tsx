@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { CalendarDays, MapPin } from "lucide-react";
 import { AuraField, Glass, glassClasses } from "@/components/ui";
-import { HeroRouteMap } from "./hero-route-map";
+import { HeroRouteSketch } from "./hero-route-sketch";
 import { cn } from "@/lib/cn";
 import { daysUntil, formatCountdown, formatShortDate } from "../domain/trip";
 import { cityToneMap } from "../domain/tone";
@@ -111,20 +111,20 @@ export function AuraHero({
         className,
       )}
     >
-      {/* The map when the trip knows where it goes, the light when it does not.
-          Never both: two backdrops arguing over one rectangle is the thing that
-          got destination photographs removed, and a map under an aura would be
-          that argument again with tiles in it.
+      {/* The light always, and the route drawn over it when the trip knows
+          where it goes.
 
-          The fallback is not an edge case. A trip with no located cities is
-          every trip on the day it is created, and the light is the right answer
-          there — a blank map centred on nothing says the app is broken, and the
-          field says the trip has not been planned yet, which is true. */}
-      {routeStops.length > 0 ? (
-        <HeroRouteMap stops={routeStops} />
-      ) : (
-        <AuraField hues={hues} />
-      )}
+          Both, unlike the tiled version this replaced, and that is the point of
+          replacing it. Real tiles had to *be* the background — a photograph of
+          the world cannot sit under a field of light without one of them
+          winning — so a trip with a route lost its colour entirely. A drawing is
+          transparent: the light stays exactly what it was and the route is a
+          line on top of it.
+
+          The no-route case therefore stops being a fallback and becomes simply
+          one fewer layer, which is what it always should have been. */}
+      <AuraField hues={hues} />
+      <HeroRouteSketch stops={routeStops} />
 
       {/* min-w-0 throughout: the trip name is user-authored, and nothing above
           it may be widened by it. */}

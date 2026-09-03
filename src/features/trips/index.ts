@@ -410,7 +410,7 @@ export type { AuraPalette } from "./domain/aura-palette";
 export { DomainIcon } from "./components/domain-icon";
 export type { DomainIconName } from "./domain/icons";
 export { AuraHero } from "./components/aura-hero";
-export { HeroRouteMap } from "./components/hero-route-map";
+export { HeroRouteSketch } from "./components/hero-route-sketch";
 export { TripsWorldMap } from "./components/trips-world-map";
 export { TripAuraBand } from "./components/trip-aura-band";
 export { TripBandSlot } from "./components/trip-band-slot";
