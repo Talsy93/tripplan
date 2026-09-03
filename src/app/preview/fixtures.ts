@@ -326,6 +326,30 @@ export const STOPS: RouteStop[] = [
   },
 ];
 
+// Located cities per trip, for the home screen's map.
+//
+// Deliberately uneven, and the third trip is the point: d3 has no entry at all.
+// A trip the map cannot place must still appear in the legend, and this is the
+// fixture that proves it does rather than quietly vanishing.
+//
+// Three continents on purpose too — Tokyo, Rome, Prague — because the bounds
+// fitting is only interesting when the points are far apart.
+export const TRIP_POINTS = new Map<
+  string,
+  { city: string; latitude: number; longitude: number }[]
+>([
+  [
+    id("d1"),
+    [
+      { city: "טוקיו", latitude: 35.68, longitude: 139.77 },
+      { city: "קיוטו", latitude: 35.01, longitude: 135.77 },
+      { city: "אוסקה", latitude: 34.69, longitude: 135.5 },
+    ],
+  ],
+  [id("d2"), [{ city: "רומא", latitude: 41.9, longitude: 12.5 }]],
+  [id("d4"), [{ city: "פראג", latitude: 50.08, longitude: 14.44 }]],
+]);
+
 export const ROUTE: TripRoute = {
   stops: STOPS,
   places: [],

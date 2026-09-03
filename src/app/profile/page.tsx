@@ -11,6 +11,7 @@ import {
   NewTripButton,
   getItinerary,
   getCachedRouteStops,
+  getCachedStopsByTrip,
   getItineraryDayCountByTrip,
   getSelectedCitiesByTrip,
   getSelectedDestinations,
@@ -24,7 +25,7 @@ import {
   todayIn,
   tripOpenItems,
   tripPhase,
-  TripList,
+  TripsWorldMap,
   UpcomingTrips,
   UpNext,
 } from "@/features/trips";
@@ -33,7 +34,7 @@ import type { Booking, OpenItem, RouteStop } from "@/features/trips";
 export const metadata = { title: "הטיולים שלי · MyTrip" };
 
 export default async function ProfilePage() {
-  const [user, trips, citiesByTrip, dayCounts] = await Promise.all([
+  const [user, trips, citiesByTrip, dayCounts, pointsByTrip] = await Promise.all([
     getCurrentUser(),
     listTrips(),
     // One query for every trip's cities, which is what each trip's light is
@@ -45,6 +46,9 @@ export default async function ProfilePage() {
     // would read as finished the morning after it left. Same shape as the query
     // above: one round trip, not one per row.
     getItineraryDayCountByTrip(),
+    // And one for every trip's located cities, for the map that replaced the
+    // grid. Cache-only like the hero's — the home screen still never geocodes.
+    getCachedStopsByTrip(),
   ]);
 
   // One light per trip, assigned across the whole list rather than per trip, so
@@ -353,20 +357,29 @@ export default async function ProfilePage() {
                 כל הטיולים · {trips.length}
               </SectionHeading>
             )}
-            {/* The cards continue the column's sequence instead of restarting
-                it. 220ms is two steps in: this section is the second or third
-                child depending on which conditional blocks above rendered, and
-                a one-step error either way is not visible. */}
-            {/* Ordered, not as listTrips returned it: the grid is the index
-                of everything, and an index that answers "what do I have" is
-                still easier to read when the soonest thing is first. Same order
-                as the tiers above, so a trip does not move between them. */}
-            <TripList
-              trips={ordered.map((entry) => entry.trip)}
-              today={today}
-              citiesByTrip={citiesByTrip}
+            {/* The grid of tiles became a map with the list beside it.
+
+                Same content, different question. The grid answered "what do I
+                have"; this also answers "where are they, and how far apart" —
+                which is the one thing no arrangement of a list can be made to
+                say, and the reason this direction was worth building over the
+                cheaper ones.
+
+                It follows the hero, which is now also a map. That was the
+                deciding argument: a screen that opens on a map and then
+                continues into a grid of tiles is speaking two languages.
+
+                Every trip is still in the legend, including the ones the map
+                cannot place — see TripsWorldMap for why the legend is built
+                from the trips rather than from the pins. "I want all my trips
+                shown, always" survives the change.
+
+                Still ordered by proximity, so a trip does not move between the
+                tiers above and this one. 330ms is three steps in. */}
+            <TripsWorldMap
+              entries={ordered}
               auraByTrip={auraByTrip}
-              dayCounts={dayCounts}
+              pointsByTrip={pointsByTrip}
               enterDelayMs={330}
             />
           </section>

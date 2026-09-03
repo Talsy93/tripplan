@@ -163,6 +163,100 @@ export async function getCachedRouteStops(
   return withProximityOrderedTail(stops);
 }
 
+// Every trip's located cities, in one query.
+//
+// The plural of getCachedRouteStops, and the same promise: cache only, no
+// geocoding, no writes. The home screen draws all of the user's trips on one
+// map, and doing that by calling the singular version per trip would be a query
+// per trip — the exact shape getSelectedCitiesByTrip and
+// getItineraryDayCountByTrip already exist to avoid on this screen.
+//
+// One query rather than two, unlike the singular path. That one reads the
+// overview rows and then separately derives centres from place rows; here both
+// live in the same table and the same result set, so the split happens in the
+// fold below instead of over the network.
+//
+// Precision matters less here than there. A world map at country scale does not
+// care whether Kyoto is placed at its overview coordinate or at the average of
+// six restaurants in it — both land on the same pixel. What matters is that a
+// trip with any located city gets a pin, so it does not silently vanish from a
+// screen that is supposed to show everything.
+export async function getCachedStopsByTrip(): Promise<
+  Map<string, { city: string; latitude: number; longitude: number }[]>
+> {
+  const supabase = await createClient();
+  // RLS keeps this to the caller's own trips, the same as every other
+  // cross-trip read on this screen.
+  const { data, error } = await supabase
+    .from("suggested_destinations")
+    .select("trip_id, city, category, latitude, longitude")
+    .not("latitude", "is", null)
+    .not("longitude", "is", null)
+    .not("city", "is", null);
+
+  const byTrip = new Map<
+    string,
+    { city: string; latitude: number; longitude: number }[]
+  >();
+  if (error || !data) {
+    if (error) console.error("getCachedStopsByTrip failed:", error.message);
+    return byTrip;
+  }
+
+  // Two passes over one result set. An overview row is the city's own cached
+  // centre and wins outright; anything else contributes to an average that is
+  // only used when no overview row exists for that city.
+  const centres = new Map<string, { latitude: number; longitude: number }>();
+  const sums = new Map<
+    string,
+    { latitude: number; longitude: number; count: number }
+  >();
+
+  for (const row of data) {
+    if (
+      !row.trip_id ||
+      !row.city ||
+      typeof row.latitude !== "number" ||
+      typeof row.longitude !== "number"
+    ) {
+      continue;
+    }
+    const key = `${row.trip_id}|${row.city}`;
+    if (row.category === OVERVIEW_CATEGORY) {
+      centres.set(key, { latitude: row.latitude, longitude: row.longitude });
+      continue;
+    }
+    const running = sums.get(key);
+    if (running) {
+      running.latitude += row.latitude;
+      running.longitude += row.longitude;
+      running.count += 1;
+    } else {
+      sums.set(key, {
+        latitude: row.latitude,
+        longitude: row.longitude,
+        count: 1,
+      });
+    }
+  }
+
+  for (const [key, sum] of sums) {
+    if (centres.has(key)) continue;
+    centres.set(key, {
+      latitude: sum.latitude / sum.count,
+      longitude: sum.longitude / sum.count,
+    });
+  }
+
+  for (const [key, point] of centres) {
+    const separator = key.indexOf("|");
+    const tripId = key.slice(0, separator);
+    const city = key.slice(separator + 1);
+    byTrip.set(tripId, [...(byTrip.get(tripId) ?? []), { city, ...point }]);
+  }
+  return byTrip;
+}
+
 // The trip's selected places that have real coordinates, for pinning
 // individually. Only `selected` rows: the table also holds everything the
 // guide ever suggested, and drawing all of it would bury the actual plan.

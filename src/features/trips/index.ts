@@ -125,6 +125,7 @@ export {
 export {
   getTripRoute,
   getCachedRouteStops,
+  getCachedStopsByTrip,
   getCityCenter,
 } from "./infrastructure/route-service";
 export {
@@ -410,6 +411,7 @@ export { DomainIcon } from "./components/domain-icon";
 export type { DomainIconName } from "./domain/icons";
 export { AuraHero } from "./components/aura-hero";
 export { HeroRouteMap } from "./components/hero-route-map";
+export { TripsWorldMap } from "./components/trips-world-map";
 export { TripAuraBand } from "./components/trip-aura-band";
 export { TripBandSlot } from "./components/trip-band-slot";
 export { StartHere } from "./components/start-here";

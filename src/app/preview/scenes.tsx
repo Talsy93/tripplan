@@ -56,6 +56,7 @@ import {
   orderTripsByProximity,
   pickFeaturedTrip,
   TripList,
+  TripsWorldMap,
   tripAura,
   UnlocatedCities,
   NowCard,
@@ -717,12 +718,11 @@ export const SCENES: Scene[] = [
               <SectionHeading level="sub">
                 כל הטיולים · {f.TRIPS.length}
               </SectionHeading>
-              <TripList
-                trips={HOME_ORDERED.map((entry) => entry.trip)}
-                today={f.TODAY}
-                citiesByTrip={f.TRIP_CITIES}
-                enterDelayMs={330}
+              <TripsWorldMap
+                entries={HOME_ORDERED}
                 auraByTrip={HOME_AURAS}
+                pointsByTrip={f.TRIP_POINTS}
+                enterDelayMs={330}
               />
             </section>
           </>
@@ -1013,6 +1013,26 @@ export const SCENES: Scene[] = [
   },
 
   // ---- the trip list -------------------------------------------------------
+  {
+    slug: "trips-map",
+    title: "כל הטיולים · מפה ומקרא",
+    note: "המפה החליפה את רשת הכרטיסים. **הבדיקה כאן היא הטיול השלישי** — אין לו קואורדינטות, אז אין לו סיכה, והוא חייב בכל זאת להופיע במקרא עם נקודה חלולה. מקרא שנבנה מהסיכות היה מעלים אותו מהמסך. המפה סטטית בכוונה: השורות הן מה שלוחצים",
+    render: () => (
+      <TripsWorldMap
+        entries={HOME_ORDERED}
+        auraByTrip={HOME_AURAS}
+        pointsByTrip={f.TRIP_POINTS}
+      />
+    ),
+  },
+  {
+    slug: "trips-map-unlocated",
+    title: "כל הטיולים · אף אחד לא ממופה",
+    note: "חשבון חדש: אף טיול לא נפתח בטאב המפה, אז אין קואורדינטות לאף אחד. המפה נעלמת לגמרי במקום להציג מלבן אפור ממורכז על האוקיינוס, והמקרא נפרס לרוחב מלא — אותה החלטה שה-Hero עושה כשהוא חוזר לשדה האור",
+    render: () => (
+      <TripsWorldMap entries={HOME_ORDERED} auraByTrip={HOME_AURAS} />
+    ),
+  },
   {
     slug: "trip-list",
     title: "רשימת הטיולים",
