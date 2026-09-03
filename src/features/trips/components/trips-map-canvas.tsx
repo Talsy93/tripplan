@@ -13,9 +13,9 @@
 // Tiles come from OpenStreetMap, free and keyless, the same as everywhere else
 // in this app. Attribution is required by their usage policy.
 
-import { Fragment } from "react";
+import { Fragment, useEffect } from "react";
 import L from "leaflet";
-import { MapContainer, Marker, Polyline, TileLayer } from "react-leaflet";
+import { MapContainer, Marker, Polyline, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 export type MappedTrip = {
@@ -39,18 +39,71 @@ export type MappedTrip = {
 // No text inside, which also sidesteps a contrast problem rather than losing to
 // it: the aura leads run from #4fe0cc to #ffd75e, and there is no single ink
 // that stays readable on all eight.
-function tripDot(hue: string) {
+function tripDot(hue: string, focused: boolean) {
+  const size = focused ? 1.375 : 0.75;
+  const px = focused ? 22 : 12;
   return L.divIcon({
     className: "",
+    // The focused trip's dots grow and everything else recedes. Two changes at
+    // once — size and opacity — because either alone is too quiet at this
+    // scale: a world map can put four trips inside one country, and a 2px
+    // difference in diameter is not an answer to "which one am I looking at".
     html: `<div style="
-      width:0.875rem;height:0.875rem;border-radius:9999px;
+      width:${size}rem;height:${size}rem;border-radius:9999px;
       background:${hue};
-      border:3px solid var(--surface);
+      border:${focused ? 3 : 2}px solid var(--surface);
       box-shadow:var(--elevation-lift);
+      opacity:${focused ? 1 : 0.5};
+      transition:opacity 250ms ease;
     "></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
+    iconSize: [px, px],
+    iconAnchor: [px / 2, px / 2],
   });
+}
+
+// Flies the map to whichever trip the deck has centred.
+//
+// A child of MapContainer rather than a prop on it, for the reason
+// route-map-canvas gives about its own MapFocus: `bounds` and `center` are read
+// once at construction, and the only way to reach the live Leaflet instance
+// afterwards is from inside the tree.
+//
+// Falls back to the full extent when nothing is focused, so the map opens
+// showing everything and returns there rather than staying wherever the last
+// card left it.
+function DeckFocus({
+  focus,
+  all,
+}: {
+  focus: [number, number][] | null;
+  all: L.LatLngBoundsExpression;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    // Someone who asked for no motion gets the destination without the
+    // journey. Leaflet animates by default and this is the one place in the
+    // app where a viewport slides several thousand kilometres.
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (!focus || focus.length === 0) {
+      map.flyToBounds(all, { padding: [24, 24], animate: !still, duration: 0.9 });
+      return;
+    }
+    if (focus.length === 1) {
+      map.flyTo(focus[0], Math.max(map.getZoom(), 5), {
+        animate: !still,
+        duration: 0.9,
+      });
+      return;
+    }
+    map.flyToBounds(L.latLngBounds(focus).pad(0.4), {
+      animate: !still,
+      duration: 0.9,
+    });
+  }, [focus, all, map]);
+
+  return null;
 }
 
 // Fits every point on screen at once.
@@ -68,9 +121,21 @@ function boundsOf(trips: MappedTrip[]): L.LatLngBoundsExpression | null {
   return L.latLngBounds(all).pad(0.25);
 }
 
-export default function TripsMapCanvas({ trips }: { trips: MappedTrip[] }) {
+export default function TripsMapCanvas({
+  trips,
+  focusedId = null,
+}: {
+  trips: MappedTrip[];
+  // Which trip the deck has centred. Null means "show everything".
+  focusedId?: string | null;
+}) {
   const bounds = boundsOf(trips);
   if (!bounds) return null;
+
+  const focused = trips.find((trip) => trip.id === focusedId) ?? null;
+  const focusPoints =
+    focused?.points.map((p): [number, number] => [p.latitude, p.longitude]) ??
+    null;
 
   return (
     <MapContainer
@@ -95,6 +160,8 @@ export default function TripsMapCanvas({ trips }: { trips: MappedTrip[] }) {
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
 
+      <DeckFocus focus={focusPoints} all={bounds} />
+
       {trips.map((trip) => (
         // A Fragment, not a div: react-leaflet children attach themselves to the
         // map through context, so a wrapper element would add a stray node to
@@ -111,8 +178,9 @@ export default function TripsMapCanvas({ trips }: { trips: MappedTrip[] }) {
               ])}
               pathOptions={{
                 color: trip.hue,
-                weight: 2,
-                opacity: 0.55,
+                weight: focusedId === trip.id ? 3 : 2,
+                opacity:
+                  focusedId === null ? 0.55 : focusedId === trip.id ? 0.9 : 0.25,
                 dashArray: "4 6",
               }}
             />
@@ -121,7 +189,7 @@ export default function TripsMapCanvas({ trips }: { trips: MappedTrip[] }) {
             <Marker
               key={`${trip.id}|${point.city}`}
               position={[point.latitude, point.longitude]}
-              icon={tripDot(trip.hue)}
+              icon={tripDot(trip.hue, focusedId === null || focusedId === trip.id)}
               interactive={false}
               // The map is decoration for a list that already names everything.
               // Announcing every pin would read the same trips out twice.

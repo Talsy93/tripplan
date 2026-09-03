@@ -380,7 +380,6 @@ export default async function ProfilePage() {
               entries={ordered}
               auraByTrip={auraByTrip}
               pointsByTrip={pointsByTrip}
-              enterDelayMs={330}
             />
           </section>
         </>
