@@ -13,6 +13,7 @@ import {
   deleteBooking as deleteBookingRow,
   updateBooking as updateBookingRow,
 } from "../infrastructure/booking-service";
+import { ensureCityCard } from "../infrastructure/guide-service";
 
 // Everything the form submits, as plain strings, so a rejected attempt can be
 // handed back to the fields it came from.
@@ -145,6 +146,12 @@ export async function addBooking(
     };
   }
 
+  // After the booking is safely written, never before: a city card is a
+  // convenience built on top of a reservation, and it must not be able to fail
+  // the thing it is describing. ensureCityCard swallows its own errors for the
+  // same reason.
+  await ensureCityCard(parsed.data.tripId, parsed.data.city);
+
   revalidatePath(`/trips/${parsed.data.tripId}`, "layout");
   // No values: this is what lets the form clear itself on success.
   return {};
@@ -197,6 +204,12 @@ export async function editBooking(
       values: submittedValues(formData),
     };
   }
+
+  // Editing can move a booking to a city the trip does not have yet, exactly
+  // like adding one can — correcting "טוקיו" to "קיוטו" has to bring Kyoto with
+  // it. The old city is deliberately left behind: the user may have other
+  // bookings or saved places there, and this function cannot know.
+  await ensureCityCard(parsed.data.tripId, parsed.data.city);
 
   revalidatePath(`/trips/${parsed.data.tripId}`, "layout");
   return {};

@@ -115,6 +115,7 @@ export {
   getSelectedCitiesByTrip,
   getPrimaryDestination,
   appendCities,
+  ensureCityCard,
 } from "./infrastructure/guide-service";
 export {
   getItinerary,

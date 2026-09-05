@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useActionState, useEffect, useRef, useState } from "react";
+import { Fragment, useActionState, useEffect, useId, useRef, useState } from "react";
 import {
   Banner,
   Button,
@@ -187,6 +187,10 @@ export function BookingForm({
   // directly would throw away what was typed on exactly the submission that
   // needs it kept.
   const durationParts = splitDuration(was("durationMinutes"));
+
+  // The datalist needs an id, and two of these forms can be on one page — the
+  // add form on the bookings screen and the edit dialog over it.
+  const cityListId = useId();
 
   // Adding sits directly on the page and needs Card's own surface; editing
   // already lives inside a Dialog, which is a surface of its own — nesting
@@ -404,15 +408,35 @@ export function BookingForm({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="text-muted">יעד בטיול (לא חובה)</span>
-            <Select name="city" defaultValue={was("city")}>
-              <option value="">—</option>
+            <span className="text-muted">עיר או אזור (לא חובה)</span>
+            {/* An input with a datalist, not a select.
+
+                It was a picker limited to the trip's existing cities, which made
+                a booking unable to say anything the trip did not already know:
+                you could book a hotel in Kyoto only if Kyoto was somehow already
+                a destination. Reported as exactly that — adding a hotel or a
+                flight should put its city on the trip.
+
+                A datalist keeps the picker's whole benefit, which is that the
+                existing cities are one tap away and spelled the way the rest of
+                the trip spells them, and drops its only limitation. Typing a new
+                one now creates it — see ensureCityCard. */}
+            <Input
+              name="city"
+              list={cityListId}
+              maxLength={120}
+              autoComplete="off"
+              placeholder="למשל קיוטו"
+              defaultValue={was("city")}
+            />
+            <datalist id={cityListId}>
               {cities.map((city) => (
-                <option key={city} value={city}>
-                  {city}
-                </option>
+                <option key={city} value={city} />
               ))}
-            </Select>
+            </datalist>
+            <span className="text-caption text-muted">
+              עיר שעוד לא בטיול תתווסף אליו, ואפשר יהיה לפתוח לה מדריך.
+            </span>
           </label>
           <label className="flex min-w-0 flex-col gap-1 text-sm">
             <span className="text-muted">מספר אישור (לא חובה)</span>

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { geocodePlaces } from "@/lib/geocode";
+import { normaliseName } from "@/lib/text";
 import {
   DISTRICT_MERGE_RADIUS_KM,
   isSameDestination,
@@ -348,11 +349,22 @@ export async function getSavedCities(
   tripId: string,
 ): Promise<AiCitySuggestion[]> {
   const supabase = await createClient();
+  // No source filter any more.
+  //
+  // It was `source = 'ai'`, from when the AI was the only thing that could name
+  // a city. Booking a hotel in Kyoto now names one too (see ensureCityCard), and
+  // those rows are honestly `manual` — filtering them out would have meant the
+  // city you just booked a room in did not appear on the screen that lists the
+  // trip's cities.
+  //
+  // `category is null` is what actually identifies a city card, and it is
+  // sufficient on its own: every manual *place* is written with a category
+  // (place-service falls back to "attractions" rather than leaving it null), so
+  // nothing else can land in this result.
   const { data, error } = await supabase
     .from("suggested_destinations")
     .select("name, description")
     .eq("trip_id", tripId)
-    .eq("source", "ai")
     .is("category", null)
     .order("created_at", { ascending: true });
 
@@ -361,6 +373,60 @@ export async function getSavedCities(
     name: row.name,
     description: row.description ?? "",
   }));
+}
+
+// Makes sure a city the user named on a booking exists as a city of the trip.
+//
+// Booking a hotel in a city is the clearest possible statement that the trip
+// goes there, and until now it said nothing: the booking form's city field was
+// a picker limited to cities the trip already had, so a reservation could never
+// introduce one. The city then had no card, no guide, and no way in — you could
+// not ask the app what to do in the place you had just booked a bed in.
+//
+// Written as a level-1 card — `category` null, `selected` false — which is the
+// same shape the AI's own city suggestions take. That is what puts it in the
+// explore screen's list and gives it a door to /trips/[id]/city/[city].
+//
+// `source: "manual"` and not "ai", which is both honest and load bearing:
+// saveCities deletes `source = 'ai'` cards when regenerating suggestions from a
+// new prompt, so a city that came from a real reservation survives that and an
+// invented one does not. The two must not be confused.
+//
+// Idempotent by name. There is no unique index to lean on here — these rows
+// carry NULL city and NULL category, and Postgres treats NULLs as distinct, so
+// migration 0003's index never fires for them (its own comment says so). The
+// check is therefore a read, and normalised: "טוקיו " and "טוקיו" are one city,
+// and a trip does not want both.
+export async function ensureCityCard(
+  tripId: string,
+  city: string | undefined | null,
+): Promise<void> {
+  const name = city?.trim();
+  if (!name) return;
+
+  const existing = await getSavedCities(tripId);
+  const wanted = normaliseName(name);
+  if (existing.some((entry) => normaliseName(entry.name) === wanted)) return;
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("suggested_destinations").insert({
+    trip_id: tripId,
+    name,
+    // No description. The AI writes a sentence about why a city suits the trip;
+    // there is nothing to say about a city you chose yourself by booking a room
+    // in it, and inventing one would be putting words in the app's mouth.
+    description: "",
+    source: "manual" as const,
+    selected: false,
+  });
+
+  if (error) {
+    // Deliberately not surfaced to the caller. The booking itself saved; the
+    // city card is a convenience on top of it, and failing the save because a
+    // suggestion row could not be written would be losing the reservation to
+    // protect a nicety.
+    console.error("ensureCityCard failed:", error.message);
+  }
 }
 
 // Adds cities to the trip's suggestions without touching the ones already
