@@ -69,6 +69,34 @@ function airlineColumn(value: string | undefined) {
   return code ? { airline: code } : {};
 }
 
+// 0022's column on an **insert**, where the same spread-if-set rule as the two
+// above applies: a new booking that is not on standby sends nothing, so a
+// database without 0022 still saves every booking except the ones actually
+// using the feature.
+//
+// Updates cannot do this, and standbyUpdate below is why.
+function standbyInsert(value: boolean | undefined) {
+  return value === true ? { standby: true } : {};
+}
+
+// 0022's column on an **update**, always sent — including when it is false.
+//
+// The spread-if-set trick is wrong here and quietly so. Unticking the box has
+// to write `false`, and a helper that omits the key when the value is false
+// would accept the edit, report success, and leave the booking on standby: the
+// user's correction silently discarded. That is the one failure this codebase
+// consistently refuses, and it is worse than the alternative.
+//
+// The alternative being: on a database where 0022 has not run, editing any
+// booking now fails with the migration named. That is loud, actionable, and
+// bounded — and unlike duration and airline there is nothing to lose by it,
+// because without the column no booking can be on standby in the first place,
+// so the only thing the failure blocks is an edit that had no standby work to
+// do anyway.
+function standbyUpdate(value: boolean | undefined) {
+  return { standby: value === true };
+}
+
 export async function createBooking(input: CreateBookingInput) {
   const startsAt = toInstant(input.startsAt);
   // The schema guarantees a well-formed string, so this is unreachable in
@@ -121,6 +149,7 @@ export async function createBooking(input: CreateBookingInput) {
     // failure is reported by name below.
     ...durationColumn(input.durationMinutes),
     ...airlineColumn(input.airline),
+    ...standbyInsert(input.standby),
   });
 
   // A boolean until now. It reports a kind instead, so the one failure a
@@ -168,6 +197,7 @@ export async function updateBooking(input: UpdateBookingInput) {
         cost_currency: input.costCurrency || null,
         ...durationColumn(input.durationMinutes),
         ...airlineColumn(input.airline),
+        ...standbyUpdate(input.standby),
       },
       { count: "exact" },
     )

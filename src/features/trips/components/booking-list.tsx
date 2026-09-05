@@ -27,6 +27,7 @@ import {
   doubleBookedLodgingIds,
   durationMinutesLabel,
   findConnections,
+  isStandby,
   layoverLabel,
 } from "../domain/booking";
 import { cn } from "@/lib/cn";
@@ -241,6 +242,15 @@ export function BookingList({
                           the duration live. Renders nothing when the booking
                           has no airline, which is most of them. */}
                       <AirlineChip code={booking.airline} className="shrink-0" />
+                      {/* 0022. Before the clash badge, because it explains
+                          it: a held booking is the reason an overlap is fine,
+                          and reading "double lodging" first and "standby"
+                          second is reading them in the wrong order. */}
+                      {isStandby(booking) && (
+                        <Badge tone="neutral" className="shrink-0">
+                          סטנד-ביי
+                        </Badge>
+                      )}
                       {clashing && (
                         <Badge tone="warning" className="shrink-0">
                           לינה כפולה

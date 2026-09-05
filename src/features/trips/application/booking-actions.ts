@@ -36,6 +36,7 @@ const FORM_FIELDS = [
   "costCurrency",
   "durationMinutes",
   "airline",
+  "standby",
 ] as const;
 
 // The one write failure a reader can act on, named. Everything else keeps the
@@ -47,7 +48,7 @@ const FORM_FIELDS = [
 // real and a reader can be standing in it.
 function bookingWriteError(kind: string, fallback: string): string {
   return kind === "schema"
-    ? "אחד השדות ״משך הנסיעה״ או ״חברת תעופה״ עדיין לא קיים במסד הנתונים. הריצו את המיגרציות 0020_booking_duration.sql ו-0021_booking_airline.sql, או השאירו את השדות ריקים."
+    ? "המסד לא מעודכן לגרסת הקוד. הריצו ב-Supabase את 0020_booking_duration.sql, 0021_booking_airline.sql ו-0022_booking_standby.sql, ואז נסו שוב."
     : fallback;
 }
 
@@ -79,6 +80,10 @@ function submittedValues(formData: FormData) {
   // default — silently turning "not booked yet" back into "booked" when a
   // rejected submission is handed back for correction.
   values.booked = formData.get("booked") !== null ? "on" : "off";
+  // Recorded either way for the same reason `booked` is: an unticked checkbox
+  // is absent from FormData, so without this a rejected submission would hand
+  // the form back with standby quietly cleared.
+  values.standby = formData.get("standby") !== null ? "on" : "off";
 
   // The loop above copied the `durationMinutes` *input*, which since the field
   // became two boxes holds only the minutes part. Echoing that would hand back
@@ -116,6 +121,7 @@ export async function addBooking(
     freeCancellationUntil: formData.get("freeCancellationUntil") || undefined,
     bookBy: formData.get("bookBy") || undefined,
     booked: checkboxValue(formData, "booked"),
+    standby: checkboxValue(formData, "standby"),
     reminderDaysBefore: optionalNumber(formData.get("reminderDaysBefore")),
     costAmount: formData.get("costAmount") || undefined,
     // Two boxes in, one figure out. The form asks for hours and minutes
@@ -177,6 +183,7 @@ export async function editBooking(
     freeCancellationUntil: formData.get("freeCancellationUntil") || undefined,
     bookBy: formData.get("bookBy") || undefined,
     booked: checkboxValue(formData, "booked"),
+    standby: checkboxValue(formData, "standby"),
     reminderDaysBefore: optionalNumber(formData.get("reminderDaysBefore")),
     costAmount: formData.get("costAmount") || undefined,
     // Two boxes in, one figure out. The form asks for hours and minutes

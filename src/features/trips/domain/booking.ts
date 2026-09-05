@@ -92,6 +92,15 @@ export const bookingSchema = z.object({
   // 0021. The airline's IATA code, uppercase. Optional for the same
   // hand-run-migration reason duration_minutes is — see above and the README.
   airline: z.string().nullable().optional(),
+  // 0022. Held, but not counted on: a room you have reserved over dates you
+  // have also reserved elsewhere, and one of the two will be cancelled.
+  //
+  // Optional here for the same hand-run-migration reason as the two above, and
+  // that is why isStandby() below exists rather than reading the field
+  // directly: on a database where 0022 has not run the key is absent, and
+  // `booking.standby === true` is the only test that treats absent, null and
+  // false alike.
+  standby: z.boolean().nullable().optional(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 
@@ -174,6 +183,8 @@ const bookingFields = {
           Number(value) <= 20160),
       { error: "משך הנסיעה צריך להיות מספר דקות בין 1 ל-20160." },
     ),
+  // 0022. A checkbox, like `booked`.
+  standby: z.boolean().optional(),
   // 0021. Shape-checked here and membership-checked nowhere, on purpose: the
   // list of carriers in domain/airlines.ts is curated and grows, and a code
   // written before an airline was added must not become invalid when it is.
@@ -265,6 +276,23 @@ export function parseDuration(minutes: string | undefined): number | null {
   if (!minutes) return null;
   const value = Number(minutes);
   return Number.isInteger(value) && value > 0 && value <= 20160 ? value : null;
+}
+
+// Whether this booking is being held rather than relied on.
+//
+// A function and not a field read, because the field is optional: between
+// deploying 0022 and running its SQL the key is simply absent from the row, and
+// every caller that asks "should this count?" must read absent, null and false
+// as the same answer. One place to be wrong instead of five.
+//
+// The three things it turns off are the three things a held booking should not
+// influence — the days a city asks for, the trip's cost, and the double-booking
+// warning. It deliberately does not turn off the cancellation reminder: a
+// standby booking is exactly the one whose free-cancellation deadline matters
+// most, because letting it pass is how you end up paying for the room you meant
+// to drop.
+export function isStandby(booking: { standby?: boolean | null }): boolean {
+  return booking.standby === true;
 }
 
 // "11ש 25ד" — the duration as a traveller reads it off a ticket.
@@ -666,6 +694,9 @@ export function doubleBookedLodgingIds(
   const stays: { id: string; from: string; to: string }[] = [];
   for (const booking of bookings) {
     if (booking.kind !== "lodging") continue;
+    // A held booking is *expected* to overlap — that is what holding one means.
+    // Warning about it would be the app objecting to the plan.
+    if (isStandby(booking)) continue;
     const from = dateOf(booking.starts_at);
     if (!from) continue;
     const rawTo = booking.ends_at ? dateOf(booking.ends_at) : null;

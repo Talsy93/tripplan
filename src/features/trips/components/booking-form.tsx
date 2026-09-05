@@ -72,6 +72,7 @@ function bookingDefaults(booking: Booking | undefined): Partial<Record<Field, st
         : String(DEFAULT_REMINDER_DAYS),
     costAmount: booking.cost_amount !== null ? String(booking.cost_amount) : "",
     airline: booking.airline ?? "",
+    standby: booking.standby ? "on" : "off",
     durationMinutes:
       booking.duration_minutes !== null ? String(booking.duration_minutes) : "",
     costCurrency: booking.cost_currency ?? "",
@@ -115,6 +116,12 @@ export function BookingForm({
   const [booked, setBooked] = useState(() =>
     state.values ? state.values.booked === "on" : (booking?.booked ?? true),
   );
+  // Same remount-and-echo dance as `booked` above, for the same reason: a
+  // controlled checkbox loses to React's form reset, so the DOM owns it and the
+  // echo is what survives a rejected submission.
+  const [standby, setStandby] = useState(() =>
+    state.values ? state.values.standby === "on" : (booking?.standby ?? false),
+  );
   const [leadChoice, setLeadChoice] = useState<string>(() => {
     const initial = defaults.reminderDaysBefore;
     if (initial === undefined) return String(DEFAULT_REMINDER_DAYS);
@@ -143,6 +150,7 @@ export function BookingForm({
   if (state !== seenState) {
     setSeenState(state);
     setBooked(state.values ? state.values.booked === "on" : true);
+    setStandby(state.values ? state.values.standby === "on" : false);
     setFormGeneration((generation) => generation + 1);
   }
 
@@ -517,6 +525,30 @@ export function BookingForm({
               <span className="block text-xs text-muted">
                 בטלו את הסימון אם זה משהו שעוד צריך להזמין — למשל רכבת שדורשת
                 הזמנה מראש.
+              </span>
+            </span>
+          </label>
+
+          {/* 0022. Beside "כבר הזמנתי" rather than anywhere else, because the
+              two are the same kind of statement about the same booking — and
+              deliberately not folded into it. A standby booking *is* reserved:
+              it has a confirmation number and a cancellation deadline, and the
+              reminders that watch that deadline are the ones that matter most
+              on exactly these. Only what it counts towards changes. */}
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              key={formGeneration}
+              type="checkbox"
+              name="standby"
+              defaultChecked={standby}
+              onChange={(event) => setStandby(event.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--primary)]"
+            />
+            <span>
+              בסטנד-ביי — עוד לא סופי
+              <span className="block text-xs text-muted">
+                לכפילויות שאחת מהן תבוטל. לא ייספר בעלות הכוללת, לא יוסיף ימים
+                לעיר, ולא ייחשב לינה כפולה. תזכורות הביטול ממשיכות לעבוד.
               </span>
             </span>
           </label>

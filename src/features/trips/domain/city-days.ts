@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { bookingNights } from "./booking";
+import { bookingNights, isStandby } from "./booking";
 import type { Booking } from "./booking";
 
 // How many days the trip spends in each city — the number the itinerary builder
@@ -51,10 +51,18 @@ export type CityDayPlan = {
 // Nights per city from the lodging bookings alone.
 //
 // Summed rather than taken from the longest stay: a city can hold two
-// consecutive hotels, and in that case the trip is there for both. Overlapping
-// stays are the double-booking case, which doubleBookedLodgingIds already
-// reports separately — summing them overstates the city by design, because the
-// honest answer is "you have not decided yet" and the warning already says so.
+// consecutive hotels, and in that case the trip is there for both.
+//
+// Overlapping stays used to be summed too, on the grounds that "you have not
+// decided yet" was the honest answer and the double-booking warning said so.
+// 0022 gave the traveller a way to actually say it, and a booking marked
+// standby is now skipped — so a city held twice over one weekend asks for the
+// days it needs rather than double. That inflation is what produced "the cities
+// want 52 days but your dates give 43" on a trip whose real answer was 43.
+//
+// Overlaps that are *not* marked are still summed and still warned about. The
+// change is that the traveller has a way to distinguish the two, not that the
+// app now guesses.
 //
 // One caveat, found while testing this: bookingNights counts calendar days in
 // the *runtime's* local zone, so a stay that crosses local midnight is a night
@@ -67,6 +75,7 @@ function bookedNightsByCity(bookings: Booking[]): Map<string, number> {
 
   for (const booking of bookings) {
     if (booking.kind !== "lodging") continue;
+    if (isStandby(booking)) continue;
     const city = booking.city?.trim();
     if (!city) continue;
 

@@ -133,6 +133,9 @@ const bookingBase = {
   // 0021. Null on the base too: most bookings name no carrier, and a lodging
   // row can never have one.
   airline: null,
+  // 0022. False on the base: standby is the exception, and a fixture set where
+  // it is the default would be testing the wrong shape.
+  standby: false,
 } as const;
 
 export const BOOKINGS: Booking[] = [
@@ -173,6 +176,30 @@ export const BOOKINGS: Booking[] = [
     note: "צאו מהיציאה המערבית של התחנה ואז שמאלה.",
     cost_amount: 4800,
     cost_currency: "ILS",
+  },
+  // 0022. A second hotel over the same nights as a2, held while the choice is
+  // made — the case the column exists for.
+  //
+  // Every assertion about standby is visible on this one row: the card carries
+  // the badge, the "לינה כפולה" warning does *not* fire even though the dates
+  // genuinely overlap, its 4 nights do not reach the city's day count, and its
+  // 5,200 do not reach the total. A fixture with none of those consequences
+  // would have proved only that a checkbox renders.
+  {
+    ...bookingBase,
+    id: id("a5"),
+    kind: "lodging",
+    title: "פארק האייאט (סטנד-ביי)",
+    origin: null,
+    destination: null,
+    city: "טוקיו",
+    starts_at: "2026-09-11T15:00:00Z",
+    ends_at: "2026-09-15T11:00:00Z",
+    address: "3-7-1-2 Nishishinjuku, Tokyo",
+    free_cancellation_until: "2026-09-06",
+    cost_amount: 5200,
+    cost_currency: "ILS",
+    standby: true,
   },
   {
     ...bookingBase,
