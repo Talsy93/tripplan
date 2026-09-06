@@ -1,5 +1,5 @@
 import { addDays, daysBetween, weekdayLabel } from "./weather";
-import { BOOKING_KINDS } from "./booking";
+import { BOOKING_KINDS, isStandby } from "./booking";
 import type { Booking } from "./booking";
 
 // Where a trip is in time, and which calendar date each itinerary day falls on.
@@ -298,9 +298,24 @@ export function lodgingByDay(
     );
     if (covering.length === 0) continue;
 
+    // A held booking never wins the night.
+    //
+    // Overlapping stays are resolved below by "the most recent check-in is
+    // where you actually went to sleep", which is right for a genuine conflict
+    // and exactly wrong once 0022 exists: two hotels over one weekend is now a
+    // deliberate hold, and the tie-break could hand the night to the room the
+    // traveller has already decided to cancel. The itinerary would then name a
+    // hotel that is about to stop existing.
+    //
+    // Standby stays are not discarded outright, only deprioritised. When the
+    // held room is the *only* thing covering a night, showing it is better than
+    // showing nothing: it is still where you would sleep if nothing changes.
+    const contenders = covering.filter((stay) => !isStandby(stay.booking));
+    const pool = contenders.length > 0 ? contenders : covering;
+
     // Overlapping stays are a data conflict, not a scenario to average: the
     // most recent check-in is where you actually went to sleep.
-    const chosen = covering.reduce((best, stay) =>
+    const chosen = pool.reduce((best, stay) =>
       stay.checkIn > best.checkIn ||
       (stay.checkIn === best.checkIn &&
         stay.booking.starts_at > best.booking.starts_at)
