@@ -181,10 +181,11 @@ export const BOOKINGS: Booking[] = [
   // made — the case the column exists for.
   //
   // Every assertion about standby is visible on this one row: the card carries
-  // the badge, the "לינה כפולה" warning does *not* fire even though the dates
-  // genuinely overlap, its 4 nights do not reach the city's day count, and its
-  // 5,200 do not reach the total. A fixture with none of those consequences
-  // would have proved only that a checkbox renders.
+  // both badges — "סטנד-ביי" and, since the dates genuinely overlap a2's, the
+  // "לינה כפולה" warning that keeps the room to be cancelled in sight — while
+  // its 4 nights do not reach the city's day count and its 5,200 do not reach
+  // the total. A fixture with none of those consequences would have proved only
+  // that a checkbox renders.
   {
     ...bookingBase,
     id: id("a5"),

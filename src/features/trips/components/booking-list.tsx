@@ -245,7 +245,9 @@ export function BookingList({
                       {/* 0022. Before the clash badge, because it explains
                           it: a held booking is the reason an overlap is fine,
                           and reading "double lodging" first and "standby"
-                          second is reading them in the wrong order. */}
+                          second is reading them in the wrong order. Both show
+                          together — the clash badge is what remembers that a
+                          room still has to be cancelled. */}
                       {isStandby(booking) && (
                         <Badge tone="neutral" className="shrink-0">
                           סטנד-ביי

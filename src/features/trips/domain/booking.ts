@@ -681,6 +681,14 @@ export function layoverLabel(minutes: number): string {
 // Nights, not raw timestamps: two hotels booked for the same dates overlap even
 // though check-in times differ by hours, and a hotel whose check-out is the
 // other's check-in does not overlap at all — you moved.
+//
+// Standby stays count here, unlike everywhere else 0022 touches. Holding a room
+// is what *creates* the overlap, so leaving those rows out silenced the one
+// booking the traveller still has to act on — and it took the badge off the
+// real hotel too, because a clash needs two sides and the held one had been
+// dropped from the set. Both badges now show, in that order: standby says why
+// the overlap is deliberate, "double lodging" says a room is still waiting to
+// be cancelled.
 export function doubleBookedLodgingIds(
   bookings: Booking[],
   zone: string,
@@ -694,9 +702,6 @@ export function doubleBookedLodgingIds(
   const stays: { id: string; from: string; to: string }[] = [];
   for (const booking of bookings) {
     if (booking.kind !== "lodging") continue;
-    // A held booking is *expected* to overlap — that is what holding one means.
-    // Warning about it would be the app objecting to the plan.
-    if (isStandby(booking)) continue;
     const from = dateOf(booking.starts_at);
     if (!from) continue;
     const rawTo = booking.ends_at ? dateOf(booking.ends_at) : null;
