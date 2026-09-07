@@ -236,11 +236,35 @@ function Tile({ name }: { name: Parameters<typeof DomainIcon>[0]["name"] }) {
 }
 
 // A range, or a single time when there is no meaningful end.
-function timeRange(start: number, end: number, continuesNextDay = false) {
-  if (continuesNextDay) return `${formatMinutes(start)} → מחר`;
+//
+// `overnight` is what a booking running past midnight passes instead of its
+// clamped end: the arrival's real clock time and how many days later it falls.
+// It used to be a bare boolean and the row read "22:00 → מחר", which was
+// reported as a bug and was one — the arrival time had been typed in, and the
+// screen was refusing to show it. Now it reads "22:00 — 06:30 +1", the way a
+// ticket writes it; "מחר" survives only for the case where the arrival time
+// genuinely is not known on this day.
+function timeRange(
+  start: number,
+  end: number,
+  overnight?: { minutes: number | null; daysLater: number },
+) {
+  if (overnight) {
+    if (overnight.minutes === null) return `${formatMinutes(start)} → מחר`;
+    return `${formatMinutes(start)} — ${formatMinutes(overnight.minutes)}${dayOffset(
+      overnight.daysLater,
+    )}`;
+  }
   return end > start
     ? `${formatMinutes(start)} — ${formatMinutes(end)}`
     : formatMinutes(start);
+}
+
+// "+1" for the next morning, "+2" for the one after — the notation every
+// airline prints, and short enough to sit beside a time without wrapping. Empty
+// for a same-day arrival, so a normal row is unchanged.
+function dayOffset(daysLater: number): string {
+  return daysLater > 0 ? ` +${daysLater}` : "";
 }
 
 // A booking: paid for, timestamped, and not editable here.
@@ -256,6 +280,11 @@ function BookingRow({
   compact: boolean;
 }) {
   const { booking, startMinutes, endMinutes, continuesNextDay } = placed;
+  // Passed together, because printing the time without the "+1" is how "lands
+  // at 06:30" gets read as "lands this morning".
+  const overnight = continuesNextDay
+    ? { minutes: placed.endClockMinutes, daysLater: placed.daysLater }
+    : undefined;
   const kind = BOOKING_KINDS[booking.kind];
   const where = bookingWhere(booking);
 
@@ -278,7 +307,7 @@ function BookingRow({
         <Tile name={kind.icon} />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="min-w-0 text-caption font-bold tabular-nums text-muted">
-            {timeRange(startMinutes, endMinutes, continuesNextDay)}
+            {timeRange(startMinutes, endMinutes, overnight)}
           </span>
           <span className="min-w-0 text-sm font-bold wrap-anywhere">
             {booking.title}
@@ -307,7 +336,11 @@ function BookingRow({
               </span>
               <Endpoint
                 time={
-                  continuesNextDay ? "מחר" : formatMinutes(endMinutes)
+                  overnight
+                    ? overnight.minutes === null
+                      ? "מחר"
+                      : `${formatMinutes(overnight.minutes)}${dayOffset(overnight.daysLater)}`
+                    : formatMinutes(endMinutes)
                 }
                 place={booking.destination!}
               />

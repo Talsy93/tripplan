@@ -257,6 +257,13 @@ export const BOOKINGS: Booking[] = [
   },
 ];
 
+// The connecting flight, by name rather than by index. A scene that needs
+// *this* booking should not have to know where it sits in the list — and the
+// list grows from the top as often as from the bottom.
+export const OVERNIGHT_FLIGHT: Booking = BOOKINGS.find(
+  (booking) => booking.title === "EK313",
+)!;
+
 export const LODGING: NightLodging = {
   booking: BOOKINGS[1],
   isCheckIn: true,

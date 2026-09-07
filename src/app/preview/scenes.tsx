@@ -1408,6 +1408,18 @@ export const SCENES: Scene[] = [
     render: () => <DayTimeline day={f.ITINERARY[0]} date="2026-09-11" />,
   },
   {
+    slug: "day-timeline-overnight",
+    title: "ציר הזמן · טיסת לילה",
+    note: "יוצאת ב-17:00 ונוחתת למחרת ב-08:30. השורה אומרת ״17:00 — 08:30 +1״ ולא ״17:00 → מחר״ — הדיווח היה ״למה מופיע מחר במקום שעת ההגעה שהכנסתי״, וזו הייתה שעת הגעה שנשמרה ולא הוצגה",
+    render: () => (
+      <DayTimeline
+        day={f.ITINERARY[1]}
+        bookings={[f.OVERNIGHT_FLIGHT]}
+        date="2026-09-24"
+      />
+    ),
+  },
+  {
     slug: "day-timeline-empty",
     title: "ציר הזמן · יום ריק",
     note: "יום בלי פעילויות — המצב שמציע רעיונות",

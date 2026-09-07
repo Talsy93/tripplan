@@ -62,6 +62,20 @@ export type TimelineBooking = {
   // flight, most often. The block is clipped at the axis and says so, rather
   // than being drawn with a negative height.
   continuesNextDay: boolean;
+  // The arrival's own clock time, whatever day it falls on — 06:30 for a flight
+  // that leaves at 22:00 and lands the next morning.
+  //
+  // `endMinutes` cannot carry it: that is a position on *this* day's axis, so a
+  // booking running past midnight is clamped to 1440 and the real arrival is
+  // gone. The report was "why does it say 'tomorrow' instead of the arrival
+  // time I entered" — it said tomorrow because that was genuinely all that was
+  // left. Null when the booking has no end time at all, or when this day is a
+  // middle day it neither starts nor finishes on.
+  endClockMinutes: number | null;
+  // How many calendar days after this one the arrival falls: 0 for same-day, 1
+  // for the next morning. What lets the row print "06:30 +1" rather than making
+  // the reader wonder which 06:30 it means.
+  daysLater: number;
 };
 
 export type DayTimeline = {
@@ -157,6 +171,11 @@ function toTimelineBooking(
       startMinutes: 0,
       endMinutes: MINUTES_PER_DAY,
       continuesNextDay: true,
+      // Deliberately null on a middle day. The arrival is real but it is not on
+      // this day and not on the next one either, so printing its clock time
+      // beside this day's rows would be answering a question nobody asked.
+      endClockMinutes: null,
+      daysLater: daysBetween(date, end.day),
     };
   }
 
@@ -184,7 +203,23 @@ function toTimelineBooking(
     startMinutes,
     endMinutes: Math.min(endMinutes, MINUTES_PER_DAY),
     continuesNextDay: end !== null && !endsToday,
+    // Kept whether or not the arrival is on this day: the row prints the time
+    // either way, and only the "+1" depends on which day it is.
+    endClockMinutes: end ? end.minutes : null,
+    daysLater: end ? daysBetween(date, end.day) : 0,
   };
+}
+
+// Whole days from one YYYY-MM-DD to another.
+//
+// Parsed as UTC midnights on purpose: these are plain dates, and reading them
+// in the machine's own zone is how a difference of one day comes back as 0.96
+// and floors to zero.
+function daysBetween(from: string, to: string): number {
+  const a = Date.parse(`${from}T00:00:00Z`);
+  const b = Date.parse(`${to}T00:00:00Z`);
+  if (Number.isNaN(a) || Number.isNaN(b)) return 0;
+  return Math.round((b - a) / (MINUTES_PER_DAY * 60 * 1000));
 }
 
 // A booking with no end time still needs a block tall enough to read. Also the
