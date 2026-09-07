@@ -136,6 +136,10 @@ const bookingBase = {
   // 0022. False on the base: standby is the exception, and a fixture set where
   // it is the default would be testing the wrong shape.
   standby: false,
+  // 0023. Null on the base, because a direct booking is the overwhelming
+  // majority and every card has to render without a route — including the ones
+  // written before the column existed, where null is literally what is there.
+  stops: null,
 } as const;
 
 export const BOOKINGS: Booking[] = [
@@ -215,6 +219,41 @@ export const BOOKINGS: Booking[] = [
     note: LONG_URL,
     booked: false,
     book_by: "2026-09-01",
+  },
+  // 0023. The way home, with a stop — one ticket, one price, one confirmation
+  // code, and the card that used to be two.
+  //
+  // Everything the column has to prove is on this row: the badge counts one
+  // stop, the summary line still reads Tokyo → Tel Aviv (the endpoints never
+  // moved), "דרך דובאי" names the airport without widening the card, and the
+  // unfolded route shows two legs with two flight numbers and 2ש׳ 45ד׳ on the
+  // ground between them. The layover is derived from the stop's own two times,
+  // which is sound for exactly the reason the 15h30m total is not — see
+  // layoverBetween.
+  {
+    ...bookingBase,
+    id: id("a6"),
+    kind: "flight",
+    title: "EK313",
+    origin: "הנדה, טוקיו",
+    destination: "נתב״ג",
+    city: "טוקיו",
+    starts_at: "2026-09-24T14:00:00Z",
+    ends_at: "2026-09-25T05:30:00Z",
+    confirmation: "EK7Q2M",
+    cost_amount: 2900,
+    cost_currency: "ILS",
+    duration_minutes: 930,
+    airline: "EK",
+    stops: [
+      {
+        place: "דובאי",
+        arrives_at: "2026-09-24T22:30:00Z",
+        departs_at: "2026-09-25T01:15:00Z",
+        flight: "EK931",
+        airline: "EK",
+      },
+    ],
   },
 ];
 

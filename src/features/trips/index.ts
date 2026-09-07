@@ -214,11 +214,7 @@ export {
 } from "./domain/expenses";
 export type { CurrencyTotal, CurrencyCode } from "./domain/expenses";
 export { ExpenseSummary } from "./components/expense-summary";
-export {
-  findConnections,
-  connectedBookingIds,
-  layoverLabel,
-} from "./domain/booking";
+export { findConnections, layoverLabel } from "./domain/booking";
 export type { Connection } from "./domain/booking";
 export { dominantCountry, stopsByCountry } from "./domain/route";
 export {

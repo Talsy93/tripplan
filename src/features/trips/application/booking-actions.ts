@@ -37,6 +37,10 @@ const FORM_FIELDS = [
   "durationMinutes",
   "airline",
   "standby",
+  // 0023. The route, as the JSON string the editor keeps in a hidden field —
+  // which is also exactly the shape the echo needs, so a rejected submission
+  // hands the stops back without them having to be rebuilt from anything.
+  "stops",
 ] as const;
 
 // The one write failure a reader can act on, named. Everything else keeps the
@@ -48,7 +52,7 @@ const FORM_FIELDS = [
 // real and a reader can be standing in it.
 function bookingWriteError(kind: string, fallback: string): string {
   return kind === "schema"
-    ? "המסד לא מעודכן לגרסת הקוד. הריצו ב-Supabase את 0020_booking_duration.sql, 0021_booking_airline.sql ו-0022_booking_standby.sql, ואז נסו שוב."
+    ? "המסד לא מעודכן לגרסת הקוד. הריצו ב-Supabase את 0020_booking_duration.sql, 0021_booking_airline.sql, 0022_booking_standby.sql ו-0023_booking_stops.sql, ואז נסו שוב."
     : fallback;
 }
 
@@ -133,6 +137,9 @@ export async function addBooking(
     ),
     costCurrency: formData.get("costCurrency") || undefined,
     airline: formData.get("airline") || undefined,
+    // 0023. One field for the whole route. Validated by the schema, converted
+    // to instants by the service — see parseStopsInput.
+    stops: formData.get("stops") || undefined,
   });
 
   if (!parsed.success) {
@@ -195,6 +202,9 @@ export async function editBooking(
     ),
     costCurrency: formData.get("costCurrency") || undefined,
     airline: formData.get("airline") || undefined,
+    // 0023. One field for the whole route. Validated by the schema, converted
+    // to instants by the service — see parseStopsInput.
+    stops: formData.get("stops") || undefined,
   });
 
   if (!parsed.success) {

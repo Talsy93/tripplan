@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowDown, Pencil, Plane, X } from "lucide-react";
+import { Fragment, useState } from "react";
+import { ArrowDown, ChevronDown, Pencil, Plane, X } from "lucide-react";
 import {
   Badge,
   Banner,
@@ -21,14 +21,16 @@ import {
   bookingAlert,
   bookingNights,
   bookingTodoAlert,
+  bookingStops,
   bookingWhere,
   cancellationAlert,
-  connectedBookingIds,
   doubleBookedLodgingIds,
   durationMinutesLabel,
   findConnections,
+  flightRoute,
   isStandby,
   layoverLabel,
+  stopsLabel,
 } from "../domain/booking";
 import { cn } from "@/lib/cn";
 import { formatInZone } from "@/lib/datetime";
@@ -36,7 +38,13 @@ import { formatMoney } from "../domain/expenses";
 import { APP_TIME_ZONE } from "../domain/weather";
 import { removeBooking } from "../application/booking-actions";
 import { BookingForm } from "./booking-form";
-import type { Booking, BookingAlert, BookingKind } from "../domain/booking";
+import type {
+  Booking,
+  BookingAlert,
+  BookingKind,
+  RouteLeg,
+  RouteStop,
+} from "../domain/booking";
 import { DomainIcon } from "./domain-icon";
 import { AirlineChip } from "./airline-chip";
 import { Luggage } from "lucide-react";
@@ -137,8 +145,15 @@ export function BookingList({
   // Same reasoning: two flights connect whether or not the current filter
   // shows both. The layover is rendered between them only when they are
   // actually adjacent on screen, which the map below checks per row.
+  //
+  // 0023 took the "קונקשן" badge off these rows and left the strip. The badge
+  // was on *both* halves of every connecting journey — reported as "why is
+  // there a connection badge on every flight card" — and it was answering a
+  // question the ticket itself now answers: a journey with a stop is one card
+  // with one badge saying how many stops (see stopsLabel). What survives here
+  // is the case that is genuinely two tickets, where the only honest thing to
+  // say is how long the gap between them is.
   const connections = findConnections(bookings);
-  const connected = connectedBookingIds(connections);
   const layoverAfter = new Map(
     connections.map((connection) => [connection.from.id, connection]),
   );
@@ -176,6 +191,8 @@ export function BookingList({
           const kind = BOOKING_KINDS[booking.kind];
           const nights = bookingNights(booking);
           const clashing = doubleBooked.has(booking.id);
+          // 0023. How many times this one ticket touches down on the way.
+          const stopCount = bookingStops(booking).length;
 
           // The layover strip is drawn only when the connecting leg is the
           // very next card on screen. Under a filter that hides it, a strip
@@ -258,13 +275,15 @@ export function BookingList({
                           לינה כפולה
                         </Badge>
                       )}
-                      {connected.has(booking.id) && (
+                      {/* 0023. One badge for the whole journey, on the one
+                          card that is the whole journey. */}
+                      {stopCount > 0 && (
                         <Badge
                           tone="action"
                           className="shrink-0"
-                          title="חלק ממסלול עם קונקשן"
+                          title="הכרטיס כולל קונקשן — המסלול המלא בתוך הכרטיס"
                         >
-                          קונקשן
+                          {stopsLabel(stopCount)}
                         </Badge>
                       )}
                       {alerts.map((alert) => (
@@ -325,11 +344,16 @@ export function BookingList({
                           קוד הזמנה: {booking.confirmation}
                         </span>
                       )}
-                      {booking.cost_amount !== null && booking.cost_currency && (
-                        <span dir="ltr" className="tabular-nums">
-                          עלות: {formatMoney(booking.cost_amount, booking.cost_currency)}
-                        </span>
-                      )}
+                      {booking.cost_amount !== null &&
+                        booking.cost_currency && (
+                          <span dir="ltr" className="tabular-nums">
+                            עלות:{" "}
+                            {formatMoney(
+                              booking.cost_amount,
+                              booking.cost_currency,
+                            )}
+                          </span>
+                        )}
                       {/* Shown even when no alert is active, so the deadline that
                           was entered is visible rather than only surfacing days
                           later when it becomes urgent. */}
@@ -431,61 +455,236 @@ export function BookingList({
 // Equal flexible thirds instead, each free to shrink and wrap its own text.
 function TransportLeg({ booking }: { booking: Booking }) {
   const kind = BOOKING_KINDS[booking.kind];
+  // 0023. The stops in the middle of this ticket. The summary row above stays
+  // exactly what it was — where you leave and where you land — because that is
+  // what a boarding pass leads with; the legs are one press away.
+  const stops = bookingStops(booking);
+  const [open, setOpen] = useState(false);
 
+  // The endpoints row carries no `dir="ltr"`. It did, and it was the bug: with
+  // it the origin sits on the left and the destination on the right, which is
+  // correct for someone reading "TLV → NRT" and backwards for everyone reading
+  // this app. The names are Hebrew — "נתב״ג", "הנדה, טוקיו" — so a Hebrew reader
+  // starts at the right and reads the destination first. Reported as "in Hebrew
+  // the route looks reversed", which is exactly what it was.
+  //
+  // Following the document instead puts the origin on the start edge, and a
+  // Latin name inside it still renders left-to-right on its own — that is what
+  // `dir="auto"` on each name is for.
   return (
-    // No `dir="ltr"`. It was here, and it is the bug: with it the origin sits on
-    // the left and the destination on the right, which is correct for someone
-    // reading "TLV → NRT" and backwards for everyone reading this app. The names
-    // are Hebrew — "נתב״ג", "הנדה, טוקיו" — so a Hebrew reader starts at the
-    // right and reads the destination first. Reported as "in Hebrew the route
-    // looks reversed", which is exactly what it was.
-    //
-    // Following the document instead puts the origin on the start edge, and a
-    // Latin name inside it still renders left-to-right on its own — that is what
-    // `dir="auto"` on each name is for.
-    <div className="flex items-start gap-2 px-4 pb-4 sm:gap-3">
-      <Endpoint place={booking.origin} when={booking.starts_at} />
+    <div className="flex min-w-0 flex-col">
+      <div className="flex items-start gap-2 px-4 pb-4 sm:gap-3">
+        <Endpoint place={booking.origin} when={booking.starts_at} />
 
-      {/* Never the part that gives way: the connector is decorative, so it
+        {/* Never the part that gives way: the connector is decorative, so it
           shrinks to its icon before either place name loses a character. */}
-      <div className="flex min-w-8 shrink flex-col items-center gap-1 pt-1.5">
-        <div className="flex w-full items-center gap-1">
-          <span className="h-px flex-1 border-t border-dashed border-border" />
-          {/* Mirrored, because the glyph points somewhere. Lucide draws the
+        <div className="flex min-w-8 shrink flex-col items-center gap-1 pt-1.5">
+          <div className="flex w-full items-center gap-1">
+            <span className="h-px flex-1 border-t border-dashed border-border" />
+            {/* Mirrored, because the glyph points somewhere. Lucide draws the
               plane nose-up-right, which in an RTL row points back at the origin
               — the same reversal the container had. */}
-          <Plane
-            className="h-4 w-4 shrink-0 -scale-x-100 text-primary"
-            aria-hidden="true"
-          />
-          <span className="h-px flex-1 border-t border-dashed border-border" />
-        </div>
-        {/* The ticket's own figure, never a computed one. `starts_at` and
+            <Plane
+              className="h-4 w-4 shrink-0 -scale-x-100 text-primary"
+              aria-hidden="true"
+            />
+            <span className="h-px flex-1 border-t border-dashed border-border" />
+          </div>
+          {/* The ticket's own figure, never a computed one. `starts_at` and
             `ends_at` are both stored by reading the typed wall clock in one
             zone, so their difference on this flight is 18h45m against a real
             11h25m — see migration 0020. A booking without it shows nothing
             here rather than a number that is wrong by the offset between two
             countries. */}
-        {/* `typeof`, not `!== null`. listBookings *casts* its rows rather than
+          {/* `typeof`, not `!== null`. listBookings *casts* its rows rather than
             parsing them, so on a database where 0020 has not been run the column
             is simply absent and this field is `undefined` — which `!== null`
             waves through, and durationMinutesLabel then renders "NaNש׳ NaNד׳".
             The type says `number | null` and the runtime disagrees; the check
             has to answer to the runtime. */}
-        {typeof booking.duration_minutes === "number" && (
-          <span className="whitespace-nowrap text-caption tabular-nums text-muted">
-            {durationMinutesLabel(booking.duration_minutes)}
-          </span>
-        )}
+          {typeof booking.duration_minutes === "number" && (
+            <span className="whitespace-nowrap text-caption tabular-nums text-muted">
+              {durationMinutesLabel(booking.duration_minutes)}
+            </span>
+          )}
+        </div>
+
+        <Endpoint
+          place={booking.destination}
+          when={booking.ends_at}
+          align="end"
+        />
+
+        <span className="sr-only">
+          {kind.label} מ{booking.origin ?? "מקור לא ידוע"} ל
+          {booking.destination ?? "יעד לא ידוע"}
+          {stops.length > 0 &&
+            `, דרך ${stops.map((stop) => stop.place).join(", ")}`}
+        </span>
       </div>
 
-      <Endpoint place={booking.destination} when={booking.ends_at} align="end" />
+      {/* 0023. The full route, folded away. A direct booking renders none of
+          this and is byte-for-byte the card it always was.
 
-      <span className="sr-only">
-        {kind.label} מ{booking.origin ?? "מקור לא ידוע"} ל
-        {booking.destination ?? "יעד לא ידוע"}
-      </span>
+          `type="button"` is not decoration: this sits inside the list's card,
+          which is inside a form nowhere — but a bare <button> in a future one
+          would submit it, and the same omission has already cost this codebase
+          a bug in the route editor. */}
+      {stops.length > 0 && (
+        <>
+          {/* Which airport, on its own full-width line rather than in the
+              connector column above. That column is deliberately the part of
+              the row that gives way first (see the comment on TransportLeg),
+              and "Dubai International" in it would size the grid track the
+              whole card sits in — the bug that made one long flight widen
+              every screen on a phone. Here it can simply wrap. */}
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 pb-3">
+            <span
+              dir="auto"
+              className="min-w-0 text-caption text-muted wrap-anywhere"
+            >
+              דרך {stops.map((stop) => stop.place).join(" · ")}
+            </span>
+            <button
+              type="button"
+              onClick={() => setOpen((was) => !was)}
+              aria-expanded={open}
+              className="flex shrink-0 items-center gap-1 rounded-control text-caption text-primary"
+            >
+              {open ? "סגירת המסלול" : "המסלול המלא"}
+              <ChevronDown
+                className={cn(
+                  "h-3.5 w-3.5 transition-transform",
+                  open && "rotate-180",
+                )}
+                aria-hidden="true"
+              />
+            </button>
+          </div>
+          {open && <RouteDetails booking={booking} />}
+        </>
+      )}
     </div>
+  );
+}
+
+// The ticket unfolded: every leg with its own flight number, and every stop
+// with the wait on the ground.
+//
+// Drawn as one vertical line rather than as repeated origin→destination rows.
+// Two stacked ticket rows read as two bookings, which is the exact confusion
+// 0023 exists to end; a single line down the side says "this is one journey"
+// before a word of it is read.
+function RouteDetails({ booking }: { booking: Booking }) {
+  const route = flightRoute(booking);
+
+  return (
+    <ol className="flex flex-col border-t border-dashed border-border px-4 py-3">
+      <RoutePoint place={booking.origin} at={booking.starts_at} />
+      {route.legs.map((leg, index) => (
+        <Fragment key={index}>
+          <RouteLegRow leg={leg} />
+          {index < route.stops.length ? (
+            <RouteStopRow stop={route.stops[index]} />
+          ) : (
+            <RoutePoint place={leg.to} at={leg.arrivesAt} />
+          )}
+        </Fragment>
+      ))}
+    </ol>
+  );
+}
+
+// An end of the journey: a filled dot, the place, and the time.
+function RoutePoint({
+  place,
+  at,
+}: {
+  place: string | null;
+  at: string | null;
+}) {
+  return (
+    <li className="flex min-w-0 items-baseline gap-2">
+      <span
+        className="mt-1 h-2 w-2 shrink-0 self-start rounded-full bg-primary"
+        aria-hidden="true"
+      />
+      <span
+        dir="auto"
+        className="min-w-0 flex-1 text-sm font-semibold wrap-anywhere"
+      >
+        {place ?? "—"}
+      </span>
+      {at && (
+        <span
+          dir="ltr"
+          className="shrink-0 text-caption tabular-nums text-muted"
+          suppressHydrationWarning
+        >
+          {formatWhen(at)}
+        </span>
+      )}
+    </li>
+  );
+}
+
+// A stop: a hollow dot — you are not staying — the two times, and the wait.
+function RouteStopRow({ stop }: { stop: RouteStop }) {
+  return (
+    <li className="flex min-w-0 items-baseline gap-2">
+      <span
+        className="mt-1 h-2 w-2 shrink-0 self-start rounded-full border-2 border-primary bg-surface"
+        aria-hidden="true"
+      />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span dir="auto" className="text-sm font-semibold wrap-anywhere">
+          {stop.place}
+        </span>
+        {stop.layoverMinutes !== null && (
+          <span className="text-caption text-muted">
+            {layoverLabel(stop.layoverMinutes)}
+          </span>
+        )}
+      </span>
+      {(stop.arrivesAt || stop.departsAt) && (
+        <span
+          dir="ltr"
+          className="shrink-0 text-caption tabular-nums text-muted"
+          suppressHydrationWarning
+        >
+          {stop.arrivesAt ? formatWhen(stop.arrivesAt) : "—"}
+          {" → "}
+          {stop.departsAt ? formatWhen(stop.departsAt) : "—"}
+        </span>
+      )}
+    </li>
+  );
+}
+
+// The line between two points, carrying the number of the flight that flies it.
+//
+// The dashed border sits on a fixed-width box aligned with the dots above and
+// below rather than on the row itself, so the line runs *through* the middle of
+// the list instead of framing it.
+function RouteLegRow({ leg }: { leg: RouteLeg }) {
+  return (
+    <li className="flex min-w-0 items-center gap-2">
+      <span className="flex w-2 justify-center self-stretch" aria-hidden="true">
+        <span className="my-0.5 w-px border-s border-dashed border-border-strong" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 py-1.5 text-caption text-muted">
+        <Plane
+          className="h-3.5 w-3.5 shrink-0 -scale-x-100"
+          aria-hidden="true"
+        />
+        {leg.flight && (
+          <span dir="auto" className="wrap-anywhere">
+            {leg.flight}
+          </span>
+        )}
+        <AirlineChip code={leg.airline} />
+      </span>
+    </li>
   );
 }
 

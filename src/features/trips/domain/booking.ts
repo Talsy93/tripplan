@@ -49,6 +49,26 @@ export const BOOKING_KINDS: Record<
   },
 };
 
+// 0023. Where a journey touches down on the way — the middle of a ticket that
+// the booking's own origin and destination cannot hold.
+//
+// One entry per stop, in the order they happen. The times are instants, written
+// by the same wall-clock conversion as starts_at and ends_at, and `flight` is
+// the leg *leaving* this stop: the arriving leg's number is the booking's own
+// title, so nothing is stored twice. See the migration and flightRoute below.
+//
+// Every field but the place is nullable. A ticket that says only "via Dubai" is
+// a real ticket, and refusing to record it until the times are typed would push
+// the traveller back to two rows — the thing this column exists to stop.
+export const bookingStopSchema = z.object({
+  place: z.string().min(1),
+  arrives_at: z.string().nullable().optional(),
+  departs_at: z.string().nullable().optional(),
+  flight: z.string().nullable().optional(),
+  airline: z.string().nullable().optional(),
+});
+export type BookingStop = z.infer<typeof bookingStopSchema>;
+
 export const bookingSchema = z.object({
   id: z.uuid(),
   trip_id: z.uuid(),
@@ -101,6 +121,13 @@ export const bookingSchema = z.object({
   // `booking.standby === true` is the only test that treats absent, null and
   // false alike.
   standby: z.boolean().nullable().optional(),
+  // 0023. The stops in the middle of this ticket, or null for a direct one.
+  //
+  // Optional for the hand-run-migration reason the three above are, and read
+  // through bookingStops() rather than directly for a second reason on top of
+  // it: listBookings *casts* its rows, so nothing has actually checked that
+  // this jsonb holds the shape the type claims. One place to be defensive.
+  stops: z.array(bookingStopSchema).nullable().optional(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 
@@ -185,6 +212,26 @@ const bookingFields = {
     ),
   // 0022. A checkbox, like `booked`.
   standby: z.boolean().optional(),
+  // 0023. The stops, as the JSON the form's route editor keeps in a hidden
+  // field.
+  //
+  // One string rather than five parallel indexed fields (stopPlace[], …).
+  // FormData has no notion of a repeated *group*: five getAll() arrays have to
+  // be zipped back together by position, and a row where one box was left blank
+  // shifts every field after it onto the wrong stop. The rows are already React
+  // state in the editor, so serialising them once is both simpler and the only
+  // shape that cannot mis-pair.
+  //
+  // Parsed by parseStopsInput below, which is also what this refinement calls —
+  // so "this is not a route" is reported here, at the form boundary, rather
+  // than by a jsonb column refusing an insert.
+  stops: z
+    .string()
+    .max(8000)
+    .optional()
+    .refine((value) => parseStopsInput(value) !== null, {
+      error: "אחת מהעצירות לא מלאה — צריך לפחות שם של תחנה.",
+    }),
   // 0021. Shape-checked here and membership-checked nowhere, on purpose: the
   // list of carriers in domain/airlines.ts is curated and grows, and a code
   // written before an airline was added must not become invalid when it is.
@@ -247,7 +294,42 @@ function withBookingRefinements<
     .refine((value) => !value.costAmount || value.costCurrency, {
       error: "יש לבחור מטבע לסכום שהוזן.",
       path: ["costCurrency"],
+    })
+    // 0023. A route has to run forwards. Every time that was typed must be at
+    // or after the one before it, walking departure → stop 1 arrival → stop 1
+    // departure → … → final arrival, and blanks are simply skipped rather than
+    // breaking the chain: a stop recorded as "via Dubai" with no times still
+    // sits between two legs that do have them.
+    //
+    // Caught here rather than left to render, because the card draws this
+    // sequence as a timeline — a stop typed with the wrong month draws a
+    // journey that lands before it departs, and the traveller reads it as the
+    // app being broken instead of as a typo.
+    .refine((value) => stopsInOrder(value), {
+      error: "המסלול לא בסדר הזמנים — צריך שכל שעה תהיה אחרי זו שלפניה.",
+      path: ["stops"],
     });
+}
+
+// Whether the whole chain of typed times runs forwards. Compared as the strings
+// a datetime-local input produces, which sort correctly for a fixed format.
+function stopsInOrder(value: {
+  startsAt: string;
+  endsAt?: string;
+  stops?: string;
+}): boolean {
+  const stops = parseStopsInput(value.stops);
+  // Malformed JSON is the other refinement's error to report, not this one's.
+  if (stops === null) return true;
+
+  const chain: string[] = [value.startsAt];
+  for (const stop of stops) {
+    if (stop.arrivesAt) chain.push(stop.arrivesAt);
+    if (stop.departsAt) chain.push(stop.departsAt);
+  }
+  if (value.endsAt) chain.push(value.endsAt);
+
+  return chain.every((at, index) => index === 0 || chain[index - 1] <= at);
 }
 
 export const createBookingSchema = withBookingRefinements(z.object(bookingFields));
@@ -278,6 +360,63 @@ export function parseDuration(minutes: string | undefined): number | null {
   return Number.isInteger(value) && value > 0 && value <= 20160 ? value : null;
 }
 
+// 0023. A stop as the *form* holds it: camelCase, and with wall-clock strings
+// straight out of two datetime-local inputs rather than instants. The service
+// converts them at the one boundary where a typed time becomes an instant, the
+// same way it does startsAt and endsAt.
+const bookingStopInputSchema = z.object({
+  place: z.string().trim().min(1).max(120),
+  arrivesAt: z.string().trim().max(40).optional(),
+  departsAt: z.string().trim().max(40).optional(),
+  flight: z.string().trim().max(120).optional(),
+  airline: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .max(3)
+    .optional()
+    .refine((value) => !value || /^[A-Z0-9]{2,3}$/.test(value)),
+});
+export type BookingStopInput = z.infer<typeof bookingStopInputSchema>;
+
+// The submitted route, or null if what arrived is not one.
+//
+// Null means "reject the form" and `[]` means "a direct flight", and the two
+// must not collapse into each other: an empty field is a direct flight, while
+// malformed JSON is a bug or a tampered submission and has to be refused rather
+// than silently saved as no stops at all.
+//
+// A row where every box was left blank is dropped instead of failing. The
+// editor adds an empty row the moment "add a stop" is pressed, and a traveller
+// who presses it and changes their mind has not made a mistake — but a row with
+// times and no place has, which is why the place is still required on whatever
+// survives the filter.
+export function parseStopsInput(
+  value: string | undefined,
+): BookingStopInput[] | null {
+  if (!value || !value.trim()) return [];
+
+  let raw: unknown;
+  try {
+    raw = JSON.parse(value);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(raw)) return null;
+
+  const filled = raw.filter(
+    (entry) =>
+      entry !== null &&
+      typeof entry === "object" &&
+      Object.values(entry as Record<string, unknown>).some(
+        (field) => typeof field === "string" && field.trim() !== "",
+      ),
+  );
+
+  const parsed = z.array(bookingStopInputSchema).max(8).safeParse(filled);
+  return parsed.success ? parsed.data : null;
+}
+
 // Whether this booking is being held rather than relied on.
 //
 // A function and not a field read, because the field is optional: between
@@ -285,12 +424,15 @@ export function parseDuration(minutes: string | undefined): number | null {
 // every caller that asks "should this count?" must read absent, null and false
 // as the same answer. One place to be wrong instead of five.
 //
-// The three things it turns off are the three things a held booking should not
-// influence — the days a city asks for, the trip's cost, and the double-booking
-// warning. It deliberately does not turn off the cancellation reminder: a
-// standby booking is exactly the one whose free-cancellation deadline matters
-// most, because letting it pass is how you end up paying for the room you meant
-// to drop.
+// The two things it turns off are the two a held booking should not influence:
+// the days a city asks for and the trip's cost. Both are sums, and a room you
+// intend to drop inflates them.
+//
+// It deliberately does not turn off the cancellation reminder, and no longer
+// turns off the "לינה כפולה" warning either — that was its third job at first
+// and it was wrong. Both of those are the app pointing at the room that still
+// has to be cancelled, which is precisely what a standby booking is. Silencing
+// them there silenced them where they matter most.
 export function isStandby(booking: { standby?: boolean | null }): boolean {
   return booking.standby === true;
 }
@@ -647,17 +789,6 @@ export function findConnections(bookings: Booking[]): Connection[] {
   return connections;
 }
 
-// The ids of every booking that is part of some connection, so a list can tell
-// at a glance whether a row stands alone.
-export function connectedBookingIds(connections: Connection[]): Set<string> {
-  const ids = new Set<string>();
-  for (const connection of connections) {
-    ids.add(connection.from.id);
-    ids.add(connection.to.id);
-  }
-  return ids;
-}
-
 // "3 שעות ו-20 דק׳ המתנה" — the layover, in the units a traveller thinks in.
 export function layoverLabel(minutes: number): string {
   if (minutes < 60) return `${minutes} דק׳ המתנה`;
@@ -668,6 +799,114 @@ export function layoverLabel(minutes: number): string {
   return rest === 0
     ? `${hoursLabel} המתנה`
     : `${hoursLabel} ו-${rest} דק׳ המתנה`;
+}
+
+// ---- The route inside one ticket (0023) -----------------------------------
+
+// The stops on a booking, defensively.
+//
+// listBookings casts rather than parses, so this jsonb has been checked by
+// nothing at runtime: on a database where 0023 has not run the key is absent,
+// and on one where a row was written by hand it could hold anything. Every
+// reader goes through here and gets an array — the same "one place to be wrong
+// instead of five" that isStandby() exists for.
+export function bookingStops(booking: {
+  stops?: BookingStop[] | null;
+}): BookingStop[] {
+  const stops = booking.stops;
+  if (!Array.isArray(stops)) return [];
+  return stops.filter(
+    (stop): stop is BookingStop =>
+      stop !== null &&
+      typeof stop === "object" &&
+      typeof stop.place === "string" &&
+      stop.place.trim() !== "",
+  );
+}
+
+// "עצירה אחת" / "2 עצירות" — what the badge on a connecting ticket says.
+//
+// Counts stops, not legs, because that is the number a traveller compares
+// tickets by: "direct or one stop" is the question, and two legs *are* one stop.
+export function stopsLabel(count: number): string {
+  return count === 1 ? "עצירה אחת" : `${count} עצירות`;
+}
+
+// One leg of a journey — a single take-off and landing.
+export type RouteLeg = {
+  from: string | null;
+  to: string | null;
+  departsAt: string | null;
+  arrivesAt: string | null;
+  // The number printed on this leg's ticket. Leg 1 takes the booking's own
+  // title; every later leg takes it from the stop it starts at.
+  flight: string | null;
+  airline: string | null;
+};
+
+// A pause between two legs, with the wait on the ground when both times are in.
+export type RouteStop = {
+  place: string;
+  arrivesAt: string | null;
+  departsAt: string | null;
+  layoverMinutes: number | null;
+};
+
+// The whole ticket, unfolded: legs.length is always stops.length + 1, so a card
+// can render leg, stop, leg, stop, leg without checking the ends.
+//
+// Derived rather than stored. The endpoints and the first and last times are
+// already on the booking, and duplicating them into the jsonb is how the two
+// copies start disagreeing after an edit.
+export function flightRoute(booking: Booking): {
+  legs: RouteLeg[];
+  stops: RouteStop[];
+} {
+  const stops = bookingStops(booking);
+
+  const routeStops: RouteStop[] = stops.map((stop) => ({
+    place: stop.place,
+    arrivesAt: stop.arrives_at ?? null,
+    departsAt: stop.departs_at ?? null,
+    layoverMinutes: layoverBetween(stop.arrives_at, stop.departs_at),
+  }));
+
+  const legs: RouteLeg[] = [];
+  for (let i = 0; i <= stops.length; i += 1) {
+    const before = i === 0 ? null : stops[i - 1];
+    const after = i === stops.length ? null : stops[i];
+    legs.push({
+      from: before ? before.place : booking.origin,
+      to: after ? after.place : booking.destination,
+      departsAt: before ? (before.departs_at ?? null) : booking.starts_at,
+      arrivesAt: after ? (after.arrives_at ?? null) : booking.ends_at,
+      // The leg out of a stop carries that stop's number; the first leg is the
+      // booking itself, whose title *is* the flight number field.
+      flight: before ? (before.flight ?? null) : booking.title,
+      airline: before ? (before.airline ?? null) : (booking.airline ?? null),
+    });
+  }
+
+  return { legs, stops: routeStops };
+}
+
+// Minutes on the ground at a stop.
+//
+// Subtracting these two instants is sound, and subtracting a flight's own
+// starts_at from its ends_at is not — the difference between them is worth
+// stating. Both of these were typed as wall-clock readings of the *same* place,
+// so whatever offset the conversion applied it applied to both and it cancels;
+// a flight's two ends are read in two different countries, which is why 0020
+// asks for the duration instead of computing it.
+function layoverBetween(
+  arrives: string | null | undefined,
+  departs: string | null | undefined,
+): number | null {
+  if (!arrives || !departs) return null;
+  const from = new Date(arrives).getTime();
+  const to = new Date(departs).getTime();
+  if (Number.isNaN(from) || Number.isNaN(to) || to < from) return null;
+  return Math.round((to - from) / MINUTE_MS);
 }
 
 // ---- Double booking -------------------------------------------------------

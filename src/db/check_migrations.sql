@@ -112,7 +112,25 @@ with checks(migration, checks_for, present) as (
     ('0020_booking_duration', 'trip_bookings.duration_minutes',
       exists (select 1 from information_schema.columns
               where table_schema = 'public' and table_name = 'trip_bookings'
-                and column_name = 'duration_minutes'))
+                and column_name = 'duration_minutes')),
+
+    -- 0021, 0022 and 0023 are all columns on trip_bookings, and all three are
+    -- read by code that ships before the SQL is run by hand — which is exactly
+    -- what this file exists to catch. They were missing from it until 0023.
+    ('0021_booking_airline', 'trip_bookings.airline',
+      exists (select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'trip_bookings'
+                and column_name = 'airline')),
+
+    ('0022_booking_standby', 'trip_bookings.standby',
+      exists (select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'trip_bookings'
+                and column_name = 'standby')),
+
+    ('0023_booking_stops', 'trip_bookings.stops',
+      exists (select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'trip_bookings'
+                and column_name = 'stops'))
 )
 select
   migration,

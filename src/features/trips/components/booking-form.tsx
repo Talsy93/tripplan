@@ -13,11 +13,13 @@ import {
   useToast,
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
+import { Plus, X } from "lucide-react";
 import { addBooking, editBooking } from "../application/booking-actions";
 import {
   BOOKING_KINDS,
   DEFAULT_REMINDER_DAYS,
   REMINDER_PRESETS,
+  bookingStops,
   splitDuration,
   toDateTimeLocal,
 } from "../domain/booking";
@@ -38,6 +40,58 @@ const KINDS = Object.keys(BOOKING_KINDS) as BookingKind[];
 const CUSTOM = "custom";
 
 type Field = keyof CreateBookingInput;
+
+// 0023. One stop as the editor holds it: five strings, all of them possibly
+// blank, in the camelCase shape parseStopsInput reads. Blank rather than
+// optional so every box is an ordinary uncontrolled-to-controlled input with a
+// string value and never `undefined`.
+type StopRow = {
+  place: string;
+  arrivesAt: string;
+  departsAt: string;
+  flight: string;
+  airline: string;
+};
+
+const EMPTY_STOP: StopRow = {
+  place: "",
+  arrivesAt: "",
+  departsAt: "",
+  flight: "",
+  airline: "",
+};
+
+// The route the editor should start from: what was just submitted and rejected
+// if there is such a thing, otherwise the booking being edited, otherwise
+// nothing.
+//
+// The echo comes back as the same JSON that was posted, so a rejected
+// submission restores the route exactly — including a half-typed stop, which is
+// usually the reason it was rejected.
+function stopRowsFrom(echo: string | undefined, booking: Booking | undefined): StopRow[] {
+  if (echo) {
+    try {
+      const raw: unknown = JSON.parse(echo);
+      if (Array.isArray(raw)) {
+        return raw.map((entry) => ({
+          ...EMPTY_STOP,
+          ...(entry as Partial<StopRow>),
+        }));
+      }
+    } catch {
+      // Not JSON at all. Falling through to the booking is better than an
+      // empty editor: the user has a route on screen either way.
+    }
+  }
+
+  return bookingStops(booking ?? { stops: null }).map((stop) => ({
+    place: stop.place,
+    arrivesAt: stop.arrives_at ? toDateTimeLocal(stop.arrives_at) : "",
+    departsAt: stop.departs_at ? toDateTimeLocal(stop.departs_at) : "",
+    flight: stop.flight ?? "",
+    airline: stop.airline ?? "",
+  }));
+}
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -122,6 +176,15 @@ export function BookingForm({
   const [standby, setStandby] = useState(() =>
     state.values ? state.values.standby === "on" : (booking?.standby ?? false),
   );
+  // 0023. The stops live in React state and reach the action as one hidden
+  // JSON field. They cannot be uncontrolled inputs like the rest of this form:
+  // rows are added and removed, and a `name="stopPlace"` repeated five times
+  // comes back as five parallel arrays that have to be zipped by position — one
+  // blank box and every later field lands on the wrong stop.
+  const [stops, setStops] = useState<StopRow[]>(() =>
+    stopRowsFrom(state.values?.stops, booking),
+  );
+
   const [leadChoice, setLeadChoice] = useState<string>(() => {
     const initial = defaults.reminderDaysBefore;
     if (initial === undefined) return String(DEFAULT_REMINDER_DAYS);
@@ -151,6 +214,12 @@ export function BookingForm({
     setSeenState(state);
     setBooked(state.values ? state.values.booked === "on" : true);
     setStandby(state.values ? state.values.standby === "on" : false);
+    // Same reason the two checkboxes above are re-seeded here: the form's DOM
+    // is reset once the action finishes, and this state has to be reset with
+    // it. On a rejected submission that restores what was typed; on a
+    // successful add the action returns no values, so the route clears exactly
+    // as every other field does.
+    setStops(stopRowsFrom(state.values?.stops, booking));
     setFormGeneration((generation) => generation + 1);
   }
 
@@ -217,6 +286,15 @@ export function BookingForm({
         <input type="hidden" name="tripId" value={tripId} />
         <input type="hidden" name="kind" value={kind} />
         {isEdit && <input type="hidden" name="id" value={booking.id} />}
+        {/* 0023. The whole route in one field. Rendered for lodging too, as an
+            empty array, so switching a booking's kind to "hotel" clears the
+            stops it had as a flight rather than leaving them behind in the
+            column. */}
+        <input
+          type="hidden"
+          name="stops"
+          value={JSON.stringify(isTransport ? stops : [])}
+        />
 
         {/* A summary at the top, because the field that failed can be below the
             fold on a phone — and a form that silently refuses to submit is the
@@ -343,6 +421,18 @@ export function BookingForm({
             <FieldError message={errorFor("endsAt")} />
           </label>
         </div>
+
+        {/* 0023. Transport only. The stops are what turn two bookings back
+            into one ticket — see the migration for why they are a column on the
+            booking rather than rows of their own. */}
+        {isTransport && (
+          <RouteEditor
+            stops={stops}
+            onChange={setStops}
+            withAirline={kind === "flight"}
+            error={errorFor("stops")}
+          />
+        )}
 
         {/* Transport only, and asked for rather than computed.
 
@@ -660,5 +750,155 @@ export function BookingForm({
         {state.error && <Banner tone="danger">{state.error}</Banner>}
       </form>
     </Wrapper>
+  );
+}
+
+// 0023. The middle of a ticket: "Tel Aviv → Dubai → Tokyo" entered as one
+// flight with one stop, the way it is sold and the way it is printed.
+//
+// Collapsed to a single line until there is a stop, because the overwhelming
+// majority of bookings are direct and a form that asks every traveller about
+// connections is a form that got longer for nothing. Adding a stop is one
+// press; a direct flight sees one sentence.
+//
+// Each stop asks for the flight *leaving* it rather than the one arriving,
+// which is why the first leg has no row here at all — its number is the
+// booking's own "flight number" field above. Nothing is typed twice.
+function RouteEditor({
+  stops,
+  onChange,
+  withAirline,
+  error,
+}: {
+  stops: StopRow[];
+  onChange: (stops: StopRow[]) => void;
+  // Airlines only for flights, for the reason the field above gives: the list
+  // in domain/airlines.ts cannot contain a train operator.
+  withAirline: boolean;
+  error?: string;
+}) {
+  const update = (index: number, patch: Partial<StopRow>) => {
+    onChange(stops.map((stop, i) => (i === index ? { ...stop, ...patch } : stop)));
+  };
+
+  return (
+    <fieldset className="flex min-w-0 flex-col gap-2 border-0 p-0 text-sm">
+      <legend className="text-muted">עצירות בדרך (קונקשן)</legend>
+
+      {stops.length === 0 && (
+        <p className="text-caption text-muted">
+          טיסה ישירה. אם יש קונקשן — הוסיפו את התחנה, והכרטיס יוצג כמסלול אחד.
+        </p>
+      )}
+
+      {stops.map((stop, index) => (
+        <div
+          key={index}
+          className="flex min-w-0 flex-col gap-2 rounded-control border border-border bg-surface-sunken p-3"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-caption font-semibold text-muted">
+              עצירה {index + 1}
+            </span>
+            {/* A plain button, not an IconButton: this sits inside a form and a
+                button with no explicit type submits it — which would post the
+                form on every attempt to drop a stop. */}
+            <button
+              type="button"
+              onClick={() => onChange(stops.filter((_, i) => i !== index))}
+              className="flex items-center gap-1 rounded-control px-2 py-1 text-caption text-danger-ink hover:bg-danger/10"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
+              הסרה
+            </button>
+          </div>
+
+          <label className="flex min-w-0 flex-col gap-1">
+            <span className="text-caption text-muted">תחנה</span>
+            <Input
+              value={stop.place}
+              onChange={(event) => update(index, { place: event.target.value })}
+              maxLength={120}
+              placeholder="דובאי"
+            />
+          </label>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-caption text-muted">נחיתה (לא חובה)</span>
+              <Input
+                type="datetime-local"
+                dir="ltr"
+                value={stop.arrivesAt}
+                onChange={(event) =>
+                  update(index, { arrivesAt: event.target.value })
+                }
+              />
+            </label>
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-caption text-muted">
+                המשך הטיסה (לא חובה)
+              </span>
+              <Input
+                type="datetime-local"
+                dir="ltr"
+                value={stop.departsAt}
+                onChange={(event) =>
+                  update(index, { departsAt: event.target.value })
+                }
+              />
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <label className="flex min-w-0 flex-col gap-1">
+              <span className="text-caption text-muted">
+                מספר הטיסה מכאן (לא חובה)
+              </span>
+              <Input
+                value={stop.flight}
+                onChange={(event) => update(index, { flight: event.target.value })}
+                maxLength={120}
+                placeholder="EK932"
+              />
+            </label>
+            {withAirline && (
+              <label className="flex min-w-0 flex-col gap-1">
+                <span className="text-caption text-muted">
+                  חברת תעופה (לא חובה)
+                </span>
+                <Select
+                  value={stop.airline}
+                  onChange={(event) =>
+                    update(index, { airline: event.target.value })
+                  }
+                >
+                  <option value="">ללא</option>
+                  {AIRLINES.map((airline) => (
+                    <option key={airline.code} value={airline.code}>
+                      {airline.name} · {airline.code}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+            )}
+          </div>
+        </div>
+      ))}
+
+      <div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => onChange([...stops, { ...EMPTY_STOP }])}
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          הוספת עצירה
+        </Button>
+      </div>
+
+      <FieldError message={error} />
+    </fieldset>
   );
 }

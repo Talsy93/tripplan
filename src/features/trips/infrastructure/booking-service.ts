@@ -1,6 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { wallClockToInstant } from "@/lib/datetime";
-import { deadlineDate, parseCost, parseDuration } from "../domain/booking";
+import {
+  deadlineDate,
+  parseCost,
+  parseDuration,
+  parseStopsInput,
+} from "../domain/booking";
 import { isSchemaOutOfDate } from "@/lib/supabase/schema-errors";
 import { APP_TIME_ZONE } from "../domain/weather";
 import type {
@@ -97,6 +102,46 @@ function standbyUpdate(value: boolean | undefined) {
   return { standby: value === true };
 }
 
+// 0023's column. The route as the database holds it: snake_case keys, and the
+// two times converted here — the one boundary where a typed wall clock becomes
+// an instant, exactly like starts_at and ends_at above it.
+//
+// Empty strings become nulls rather than being kept. A stop with a place and no
+// times is a real entry ("via Dubai, times to come"); a stop carrying "" would
+// make bookingStops and the card both have to re-decide what blank means.
+function stopRows(value: string | undefined) {
+  const stops = parseStopsInput(value) ?? [];
+  return stops.map((stop) => ({
+    place: stop.place,
+    arrives_at: stop.arrivesAt ? toInstant(stop.arrivesAt) : null,
+    departs_at: stop.departsAt ? toInstant(stop.departsAt) : null,
+    flight: stop.flight || null,
+    airline: stop.airline || null,
+  }));
+}
+
+// On an **insert**, spread-if-set like durationColumn and airlineColumn: a
+// direct flight sends no `stops` key at all, so a database where 0023 has not
+// been run still saves every booking except the ones actually using the column.
+function stopsInsert(value: string | undefined) {
+  const rows = stopRows(value);
+  return rows.length > 0 ? { stops: rows } : {};
+}
+
+// On an **update**, always sent — including when the route is now empty, and
+// for the reason standbyUpdate gives at length: deleting the last stop has to
+// write something, and a helper that omitted the key would accept the edit,
+// report success, and leave the stop in place. A correction silently discarded
+// is the one failure this codebase refuses.
+//
+// Null rather than `[]` for an empty route. Both read as "direct" (see
+// bookingStops), and null is what the column already means on every row that
+// predates 0023 — one representation of nothing instead of two.
+function stopsUpdate(value: string | undefined) {
+  const rows = stopRows(value);
+  return { stops: rows.length > 0 ? rows : null };
+}
+
 export async function createBooking(input: CreateBookingInput) {
   const startsAt = toInstant(input.startsAt);
   // The schema guarantees a well-formed string, so this is unreachable in
@@ -150,6 +195,7 @@ export async function createBooking(input: CreateBookingInput) {
     ...durationColumn(input.durationMinutes),
     ...airlineColumn(input.airline),
     ...standbyInsert(input.standby),
+    ...stopsInsert(input.stops),
   });
 
   // A boolean until now. It reports a kind instead, so the one failure a
@@ -198,6 +244,7 @@ export async function updateBooking(input: UpdateBookingInput) {
         ...durationColumn(input.durationMinutes),
         ...airlineColumn(input.airline),
         ...standbyUpdate(input.standby),
+        ...stopsUpdate(input.stops),
       },
       { count: "exact" },
     )
