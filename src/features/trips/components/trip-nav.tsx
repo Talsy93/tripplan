@@ -3,8 +3,23 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Compass, Map as MapIcon, Menu, Sun } from "lucide-react";
-import { BottomNav, SideNav, type NavItem } from "@/components/layout";
+import {
+  Backpack,
+  BookOpen,
+  CalendarDays,
+  Compass,
+  Home,
+  Map as MapIcon,
+  Menu,
+  MessageCircle,
+  Sun,
+} from "lucide-react";
+import {
+  BottomNav,
+  IconRail,
+  SideNav,
+  type NavItem,
+} from "@/components/layout";
 import { cn } from "@/lib/cn";
 import {
   TRIP_TABS,
@@ -12,13 +27,10 @@ import {
   type TripTabSegment,
 } from "../domain/trip-tabs";
 
-// Keyed by segment, so adding a tab without giving it an icon fails to compile
-// rather than rendering a gap.
 const ICONS: Record<TripTabSegment, typeof Sun> = {
   today: Sun,
   days: CalendarDays,
   explore: Compass,
-  map: MapIcon,
   more: Menu,
 };
 
@@ -32,21 +44,102 @@ function useTripNavItems(tripId: string): NavItem[] {
       href,
       label: tab.label,
       icon: <Icon className="h-5 w-5" />,
-      // Matched on a segment boundary, not by bare prefix: a sub-screen such
-      // as /more/phrases must keep "עוד" lit, while /days must not light up
-      // for a hypothetical /d.
       active: pathname === href || pathname.startsWith(`${href}/`),
     };
   });
 }
 
-// One list, three presentations: a fixed bar on phones, a pill row on tablets,
-// and a rail on desktop. Building all three from the same array is what stops
-// them drifting — the six-tab version they replace existed in exactly one place
-// for the same reason.
-//
-// This component covers the first two. The rail is rendered by TripSideNav into
-// AppShell's `sidebar` slot, because it has to sit outside the content column.
+// The panel's tab row (v5). Segmented, links rather than buttons: each tab is
+// a route, so the browser's back button and a shared URL both keep working.
+// Built from TRIP_TABS like every other presentation, so a tab appears in all
+// of them or in none.
+export function TripTabs({ tripId }: { tripId: string }) {
+  const items = useTripNavItems(tripId);
+
+  return (
+    <nav
+      aria-label="חלקי הטיול"
+      className="flex gap-1 rounded-control border border-border bg-surface-2 p-1"
+    >
+      {items.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          aria-current={item.active ? "page" : undefined}
+          className={cn(
+            "flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[calc(var(--radius-control)-2px)] px-2 py-1.5 text-sm font-semibold",
+            "transition-[background-color,color,box-shadow] duration-press ease-snap",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            item.active
+              ? "bg-surface text-foreground shadow-card"
+              : "text-muted hover:text-foreground",
+          )}
+        >
+          <span aria-hidden="true" className="hidden sm:inline lg:hidden xl:inline">
+            {item.icon}
+          </span>
+          <span className="truncate">{item.label}</span>
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+// The icon rail while inside a trip. Sections, not tabs: the tabs live in the
+// panel, and the rail gets between the home screen, this trip, and the trip's
+// reference material.
+export function TripRail({
+  tripId,
+  initial,
+  footer,
+}: {
+  tripId: string;
+  initial?: string;
+  footer?: ReactNode;
+}) {
+  const pathname = usePathname();
+  const inTrip = pathname.startsWith(`/trips/${tripId}`);
+  const inMore = (segment: string) =>
+    pathname.startsWith(`/trips/${tripId}/more/${segment}`);
+
+  const items: NavItem[] = [
+    {
+      href: "/profile",
+      label: "הטיולים שלי",
+      icon: <Home className="h-5 w-5" />,
+    },
+    {
+      href: tripTabHref(tripId, "today"),
+      label: "הטיול",
+      icon: <MapIcon className="h-5 w-5" />,
+      active:
+        inTrip && !inMore("guides") && !inMore("chat") && !inMore("gear"),
+    },
+    {
+      href: `/trips/${tripId}/more/guides`,
+      label: "מדריכי הערים",
+      icon: <BookOpen className="h-5 w-5" />,
+      active: inMore("guides"),
+    },
+    {
+      href: `/trips/${tripId}/more/chat`,
+      label: "הצ׳אט של הטיול",
+      icon: <MessageCircle className="h-5 w-5" />,
+      active: inMore("chat"),
+    },
+    {
+      href: `/trips/${tripId}/more/gear`,
+      label: "ציוד ואריזה",
+      icon: <Backpack className="h-5 w-5" />,
+      active: inMore("gear"),
+    },
+  ];
+
+  return <IconRail items={items} initial={initial} footer={footer} />;
+}
+
+// --- the pre-v5 presentations, kept for the preview harness -----------------
+
 export function TripNav({ tripId }: { tripId: string }) {
   const items = useTripNavItems(tripId);
 

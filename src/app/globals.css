@@ -29,29 +29,31 @@
      old pair was 1.03:1. --border-strong is for dividers that need to carry
      structure (pane edges, table rules) rather than just hint at it.
      -------------------------------------------------------------------- */
-  --background: #eceef2;
+  /* v5 — "מפה חיה" (2026-09-11). The canvas is a cool grey the map tiles sit
+     on; every panel over it is white with a 1px border and (mostly) no shadow.
+     Shadows are reserved for things that float over the map. */
+  --background: #f3f5f9;
   --surface: #ffffff;
-  --surface-2: #f4f6f9;
-  --surface-sunken: #e2e6ed;
-  --border: #dcdfe6;
-  --border-strong: #c2c8d2;
-  --foreground: #1a1d21;
-  --muted: #5f6673;
+  --surface-2: #f3f5f9;
+  --surface-sunken: #e8ecf2;
+  --border: #e2e7ef;
+  --border-strong: #cbd3df;
+  --foreground: #0c1424;
+  --muted: #5a6473;
 
   /* --- brand -------------------------------------------------------------
-     The navy is Booking's signature and is used only for the app frame —
-     sidebar and header. The action blue is the single accent that means
-     "this is the thing to press".
+     One action colour — "navigation blue" — and nothing else is blue. The
+     frame (rail, header) is white; the brand token is kept for the wordmark.
      -------------------------------------------------------------------- */
-  --brand: #003b95;
+  --brand: #2457f5;
   --brand-foreground: #ffffff;
 
-  --primary: #0071c2;
-  --primary-hover: #005a9e;
+  --primary: #2457f5;
+  --primary-hover: #1b44c7;
   --primary-foreground: #ffffff;
-  --primary-tint: #e5f0fa;
-  --primary-ink: #005a9e;
-  --ring: #0071c2;
+  --primary-tint: #e8eeff;
+  --primary-ink: #1b44c7;
+  --ring: #2457f5;
 
   /* --- role trios --------------------------------------------------------
      tint = pale background, ink = readable text on that tint, solid = the
@@ -61,19 +63,19 @@
      `action` is the trio form of --primary, so a soft button and a primary
      button read as the same colour idea.
      -------------------------------------------------------------------- */
-  --action-tint: #e5f0fa;
-  --action-ink: #005a9e;
-  --action: #0071c2;
+  --action-tint: #e8eeff;
+  --action-ink: #1b44c7;
+  --action: #2457f5;
 
-  /* Booking's yellow. Reserved for "look here" — deals, counts, reminders.
-     It is never an action; pressing yellow is not a thing in this app. */
-  --callout-tint: #fff4d6;
-  --callout-ink: #7a4f00;
-  --callout: #feba02;
+  /* Amber. Reserved for "now" — the live pin, the running item, a reminder.
+     It is never an action; pressing amber is not a thing in this app. */
+  --callout-tint: #fff1d6;
+  --callout-ink: #8a5300;
+  --callout: #f59e0b;
 
-  --success-tint: #e3f3e6;
-  --success-ink: #1e6b32;
-  --success: #2e8b45;
+  --success-tint: #dcfce7;
+  --success-ink: #166534;
+  --success: #16a34a;
 
   --danger-tint: #fdeaea;
   --danger-ink: #b02525;
@@ -106,10 +108,12 @@
      Leaflet pin as a raw CSS string outside React's tree, so var() is the
      only way it can reach a token at all.
      -------------------------------------------------------------------- */
-  --elevation-soft: 0 1px 2px rgba(16, 24, 40, 0.06);
-  --elevation-card: 0 1px 3px rgba(16, 24, 40, 0.09), 0 1px 2px rgba(16, 24, 40, 0.04);
-  --elevation-lift: 0 6px 16px rgba(16, 24, 40, 0.12);
-  --elevation-modal: 0 16px 40px rgba(16, 24, 40, 0.20);
+  /* v5: resting surfaces carry no shadow at all — a border does the work.
+     `lift` is what floats over the map (pills, hover cards, the sheet). */
+  --elevation-soft: 0 0 0 0 transparent;
+  --elevation-card: 0 1px 2px rgba(12, 20, 36, 0.05);
+  --elevation-lift: 0 1px 2px rgba(12, 20, 36, 0.06), 0 6px 20px rgba(12, 20, 36, 0.10);
+  --elevation-modal: 0 16px 40px rgba(12, 20, 36, 0.22);
 
   /* --- tone palette -----------------------------------------------------
      Six pastels assigned to cities and categories, by position in the route
@@ -343,11 +347,14 @@
      globally, which is the single highest-impact readability change in the
      whole phase. No letter-spacing anywhere — it damages Hebrew.
      -------------------------------------------------------------------- */
-  --font-sans: var(--font-heebo);
-  --font-display: var(--font-heebo);
+  /* v5: two faces again, and this time on purpose. Rubik carries headings and
+     numbers (the day count, the countdown, pin numbers); Noto Sans Hebrew
+     carries everything read as text. Both ship Hebrew and Latin in one file. */
+  --font-sans: var(--font-noto-sans-hebrew);
+  --font-display: var(--font-rubik);
 
-  --text-sm--line-height: 1.7;
-  --text-base--line-height: 1.7;
+  --text-sm--line-height: 1.55;
+  --text-base--line-height: 1.55;
 
   --text-caption: 0.75rem;
   --text-caption--line-height: 1.5;
@@ -391,10 +398,12 @@
      inputs at 32–44px tall, and a radius near half the height turns them
      into pills, which is a different and louder decision than this one.
      -------------------------------------------------------------------- */
-  --radius-control: 0.75rem;
-  --radius-card: 1.125rem;
-  --radius-tile: 1.25rem;
-  --radius-modal: 1.5rem;
+  /* v5 tightened these back down: a workspace with a map, a panel and pins is
+     a tool, and 12px is where a card reads as organised rather than soft. */
+  --radius-control: 0.625rem;
+  --radius-card: 0.75rem;
+  --radius-tile: 0.875rem;
+  --radius-modal: 1.25rem;
 
   /* elevation — raw values are --elevation-* on :root, for the reason
      documented there. The names differ on purpose: --shadow-* is Tailwind's own
@@ -429,6 +438,11 @@
   --container-main: 41.25rem;
   --container-pane: 23.25rem;
   --container-content: 77.75rem;
+
+  /* v5 — the workspace. `rail` is the icon rail (64px), `panel` the column
+     beside the map that holds whatever a tab renders. */
+  --container-rail: 4rem;
+  --container-panel: 27.5rem;
 
   /* A measure for running text, in characters rather than pixels, so it
      tracks the type size instead of fighting it.
@@ -819,7 +833,8 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-heebo), Arial, Helvetica, sans-serif;
+  font-family: var(--font-noto-sans-hebrew), Arial, Helvetica, sans-serif;
+  font-variant-numeric: tabular-nums;
 }
 
 /* A backstop, not a fix.

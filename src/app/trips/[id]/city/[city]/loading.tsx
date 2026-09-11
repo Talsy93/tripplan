@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui";
 export default function Loading() {
   return (
     <div className="flex min-h-dvh">
-      <div className="sticky top-0 hidden h-dvh w-sidebar shrink-0 bg-aura-base lg:block" />
+      <div className="sticky top-0 hidden h-dvh w-rail shrink-0 border-e border-border bg-surface lg:block" />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="h-14 border-b border-border bg-surface" />

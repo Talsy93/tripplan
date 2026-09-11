@@ -9,8 +9,7 @@
 export const TRIP_TABS = [
   { segment: "today", label: "היום" },
   { segment: "days", label: "ימים" },
-  { segment: "explore", label: "מה עושים?" },
-  { segment: "map", label: "מפה" },
+  { segment: "explore", label: "יעדים" },
   { segment: "more", label: "עוד" },
 ] as const;
 

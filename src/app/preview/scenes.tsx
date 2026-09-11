@@ -71,8 +71,14 @@ import {
   WeatherForecast,
   WorkflowGuide,
   WorkflowSummary,
+  HomeMap,
+  HomePanel,
+  TripRail,
+  TripTabs,
+  TripWorkspace,
+  WorkspaceMap,
 } from "@/features/trips";
-import type { TripPhase } from "@/features/trips";
+import type { MappedTrip, TripPhase } from "@/features/trips";
 import {
   AuraField,
   Badge,
@@ -86,6 +92,8 @@ import {
   AppHeader,
   AppShell,
   BottomNav,
+  BottomSheet,
+  IconRail,
   SideNav,
   TwoPane,
 } from "@/components/layout";
@@ -287,6 +295,89 @@ const HOME_AURAS = assignTripAuras(
 );
 
 export const SCENES: Scene[] = [
+  // ---- v5 · "מפה חיה" -------------------------------------------------------
+  //
+  // The two frames of the redesign. Everything below them is a component
+  // measured on its own; these are the shells those components now live in.
+  // Check at 1440 (rail · panel · map), 768 (map + sheet) and 375.
+  {
+    slug: "workspace-v5",
+    title: "v5 · סדנת הטיול · רַיל, פאנל, מפה",
+    note: "מ-lg: רַיל 64px, פאנל 440px עם הטאבים, והמפה ממלאת את השאר. מתחת: המפה היא המסך והפאנל הוא Bottom Sheet נגרר",
+    bleed: true,
+    render: () => (
+      <TripWorkspace
+        rail={<TripRail tripId={f.TRIP_ID} initial="ט" />}
+        header={
+          <AppHeader
+            wide
+            title="יפן בסתיו"
+            badge={
+              <span className="flex shrink-0 items-center gap-1.5">
+                <Badge tone="neutral" className="hidden sm:inline-flex">24.9–7.10</Badge>
+                <Badge tone="callout">יום 3 בטיול</Badge>
+              </span>
+            }
+            trailing={<Button variant="outline" size="sm">שיתוף</Button>}
+          />
+        }
+        tabs={<TripTabs tripId={f.TRIP_ID} />}
+        map={<WorkspaceMap stops={f.STOPS} places={f.ROUTE.places} liveCity="טוקיו" />}
+      >
+        <NowCard day={f.ITINERARY[0]} date={f.TODAY} now={`${f.TODAY}T07:10:00Z`} />
+        <DayPager
+          tripId={f.TRIP_ID}
+          days={f.ITINERARY}
+          initialDay={1}
+          startDate={f.TODAY}
+          currentDay={1}
+          bookingsByDay={{}}
+          lodgingByDay={{}}
+        />
+      </TripWorkspace>
+    ),
+  },
+  {
+    slug: "home-v5",
+    title: "v5 · הבית · מפת כל הטיולים ופאנל צף",
+    note: "כל טיול עם קואורדינטות הוא נקודה על המפה; הפאנל צף מעליה מ-lg וגליל תחתון מתחת. הטיול הקרוב כרטיס, השאר שורות ממוספרות",
+    bleed: true,
+    render: () => {
+      const ordered = orderTripsByProximity(f.TRIPS, f.TODAY);
+      const featured = pickFeaturedTrip(ordered);
+      const mapped: MappedTrip[] = ordered.flatMap(({ trip }) => {
+        const points = f.TRIP_POINTS.get(trip.id) ?? [];
+        return points.length
+          ? [{ id: trip.id, name: trip.name, hue: trip.id === featured?.trip.id ? "var(--primary)" : "var(--border-strong)", points }]
+          : [];
+      });
+      return (
+        <div className="flex min-h-dvh">
+          <div className="sticky top-0 hidden h-dvh w-rail shrink-0 lg:block">
+            <IconRail
+              items={[{ href: "#home", label: "הטיולים שלי", icon: <MapIcon className="h-5 w-5" />, active: true }]}
+              initial="ט"
+            />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <AppHeader wide brand className="lg:hidden" />
+            <div className="relative h-[calc(100dvh-3.5rem)] min-w-0 flex-1 lg:h-dvh">
+              <div className="absolute inset-0"><HomeMap trips={mapped} /></div>
+              <BottomSheet desktop="floating" initial="half">
+                <HomePanel
+                  entries={ordered}
+                  featured={featured}
+                  featuredCities={["טוקיו", "קיוטו", "אוסקה", "נארה"]}
+                  featuredDayCount={14}
+                  featuredOpen={[{ id: "b", text: "עוד אין טיסות בטיול", detail: null, urgency: "now", path: "more/trip" }]}
+                />
+              </BottomSheet>
+            </div>
+          </div>
+        </div>
+      );
+    },
+  },
   // ---- the frame itself ----------------------------------------------------
   //
   // Every other scene here is a component measured on its own. This one is the

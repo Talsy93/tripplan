@@ -50,7 +50,7 @@ export function SegmentedControl({
       role="group"
       aria-label={ariaLabel}
       className={cn(
-        "flex self-start rounded-full border border-border bg-surface-2",
+        "flex self-start rounded-control border border-border bg-surface-2",
         // Scrolls sideways instead of pushing the page wider.
         //
         // The control sizes itself to its segments, and the count is data: the
@@ -80,7 +80,7 @@ export function SegmentedControl({
             aria-pressed={active}
             onClick={() => onChange(item.id)}
             className={cn(
-              "rounded-full font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "rounded-[calc(var(--radius-control)-2px)] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               "transition-[background-color,color,transform] duration-press ease-snap active:scale-[0.96]",
               segments[size],
               // Ink, not a white pill on a grey track. The white-on-surface-2
@@ -90,7 +90,7 @@ export function SegmentedControl({
               // "selected" looks the same everywhere in the app; and ink
               // says state where the action blue would say press me.
               active
-                ? "bg-foreground text-surface"
+                ? "bg-surface text-foreground shadow-card"
                 : "text-muted hover:text-foreground",
             )}
           >

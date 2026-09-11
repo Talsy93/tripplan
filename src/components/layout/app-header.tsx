@@ -22,6 +22,7 @@ export function AppHeader({
   back,
   trailing,
   brand = false,
+  wide = false,
   className,
 }: {
   title?: ReactNode;
@@ -35,6 +36,9 @@ export function AppHeader({
   trailing?: ReactNode;
   // The wordmark, for a screen with no rail to put it in.
   brand?: boolean;
+  // Full width, for a workspace whose panel and map already fill the window.
+  // Without it the bar's contents are capped to the content column.
+  wide?: boolean;
   className?: string;
 }) {
   return (
@@ -47,7 +51,12 @@ export function AppHeader({
       {/* Capped and centred on the same box as the content underneath, so the
           bar's contents line up with the first card rather than drifting to
           the far edge of a 1900px window while the content stays centred. */}
-      <div className="mx-auto flex h-full w-full max-w-content items-center gap-3 px-4 md:px-6 lg:px-8">
+      <div
+        className={cn(
+          "mx-auto flex h-full w-full items-center gap-3 px-4",
+          wide ? "lg:px-5" : "max-w-content md:px-6 lg:px-8",
+        )}
+      >
         {brand && (
           <Link
             href="/profile"

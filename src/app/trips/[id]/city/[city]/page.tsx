@@ -12,14 +12,8 @@ import {
   getSelectedCitiesByTrip,
   getTrip,
   listTrips,
-  RailTripSwitcher,
-  TripSideNav,
+  TripRail,
   tripHueStyle,
-  APP_TIME_ZONE,
-  getItineraryDayCount,
-  RailTripProgress,
-  todayIn,
-  tripPhase,
 } from "@/features/trips";
 
 export async function generateMetadata({
@@ -54,12 +48,11 @@ export default async function CityPage({
   // light is assigned across the whole list (domain/aura.ts), so the only way
   // this rail shows the colour the tab bar behind it shows is to run the same
   // assignment.
-  const [initialGuide, citiesByTrip, trips, dayCount, user, itinerary] =
+  const [initialGuide, citiesByTrip, trips, user, itinerary] =
     await Promise.all([
       getSavedCityGuide(id, cityName),
       getSelectedCitiesByTrip(),
       listTrips(),
-      getItineraryDayCount(id),
       getCurrentUser(),
       getItinerary(id),
     ]);
@@ -86,13 +79,6 @@ export default async function CityPage({
     ? dateOfDay(trip.start_date, stop.days[stop.days.length - 1] ?? 1)
     : null;
 
-  const phase = tripPhase(
-    trip.start_date,
-    trip.end_date,
-    todayIn(APP_TIME_ZONE, new Date()),
-    dayCount,
-  );
-
   return (
     <AppShell
       // No `brand`: the rail carries the wordmark now, the same as everywhere
@@ -114,30 +100,7 @@ export default async function CityPage({
       // No tab is current — this screen is a level below all five, and the rail
       // says so by lighting none of them. What it is here for is that the frame
       // does not move when you arrive.
-      sidebar={
-        <TripSideNav
-          tripId={trip.id}
-          hues={hues}
-          initial={user?.email?.[0]}
-          header={
-            <RailTripSwitcher
-              name={trip.name}
-              phase={phase}
-              // Already in hand for the aura assignment above — the
-              // switcher costs no extra query.
-              trips={trips}
-              currentId={trip.id}
-            />
-          }
-          footer={
-            <RailTripProgress
-              phase={phase}
-              dayCount={dayCount}
-              startDate={trip.start_date}
-            />
-          }
-        />
-      }
+      sidebar={<TripRail tripId={trip.id} initial={user?.email?.[0]} />}
     >
       {/* The trip's light, published to the guide below as CSS variables — the
           same thing the (tabs) layout does for its own children. Without it a

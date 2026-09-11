@@ -1,16 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { Heebo } from "next/font/google";
+import { Noto_Sans_Hebrew, Rubik } from "next/font/google";
 import { ToastProvider } from "@/components/ui";
 import "./globals.css";
 
-// One family for the whole app. Phase D dropped Secular One as the display
-// face: hierarchy now comes from size and weight on a single family, which is
-// what makes a type system read as one voice instead of two. --font-display in
-// globals.css points here, so the remaining font-display call sites are inert
-// rather than broken while they are cleaned up.
-const heebo = Heebo({
-  variable: "--font-heebo",
+// Two families, each with one job (v5, "מפה חיה"). Noto Sans Hebrew is the
+// reading face — body, rows, labels. Rubik is the display face — headings and
+// the numbers that carry the screen (day count, countdown, pin numbers).
+// globals.css maps them to --font-sans / --font-display.
+const notoSansHebrew = Noto_Sans_Hebrew({
+  variable: "--font-noto-sans-hebrew",
   subsets: ["hebrew", "latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const rubik = Rubik({
+  variable: "--font-rubik",
+  subsets: ["hebrew", "latin"],
+  weight: ["500", "600", "700"],
 });
 
 // Required for env(safe-area-inset-*) to resolve to anything but 0 on iOS.
@@ -62,7 +68,7 @@ export default function RootLayout({
     <html
       lang="he"
       dir="rtl"
-      className={`${heebo.variable} h-full antialiased`}
+      className={`${notoSansHebrew.variable} ${rubik.variable} h-full antialiased`}
     >
       {/* dvh, not vh: mobile browser chrome makes 100vh taller than the
           visible area, which a fixed bottom bar makes obvious. */}

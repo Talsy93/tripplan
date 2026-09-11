@@ -68,7 +68,15 @@ function boundsOf(trips: MappedTrip[]): L.LatLngBoundsExpression | null {
   return L.latLngBounds(all).pad(0.25);
 }
 
-export default function TripsMapCanvas({ trips }: { trips: MappedTrip[] }) {
+export default function TripsMapCanvas({
+  trips,
+  // Pan and zoom. Off inside a card in a scrolling page; on when the map is
+  // the screen (the v5 home).
+  interactive = false,
+}: {
+  trips: MappedTrip[];
+  interactive?: boolean;
+}) {
   const bounds = boundsOf(trips);
   if (!bounds) return null;
 
@@ -78,13 +86,13 @@ export default function TripsMapCanvas({ trips }: { trips: MappedTrip[] }) {
       // Still, for the reason the hero's map is still: this sits in a page that
       // scrolls vertically, and a draggable map inside one takes every swipe
       // that was meant for the page. The legend beside it is what you click.
-      dragging={false}
-      touchZoom={false}
-      doubleClickZoom={false}
-      scrollWheelZoom={false}
-      boxZoom={false}
-      keyboard={false}
-      zoomControl={false}
+      dragging={interactive}
+      touchZoom={interactive}
+      doubleClickZoom={interactive}
+      scrollWheelZoom={interactive}
+      boxZoom={interactive}
+      keyboard={interactive}
+      zoomControl={interactive}
       // `isolate` for the same reason route-map-canvas gives: Leaflet's internal
       // z-indexes go up to 1000, and without a stacking context of its own this
       // map would paint over the phone's fixed navigation bar.

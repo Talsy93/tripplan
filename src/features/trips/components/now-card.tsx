@@ -111,10 +111,10 @@ export function NowCard({
   return (
     <section
       aria-label={isNow ? "מה עכשיו" : "הבא בתור"}
-      className="flex min-w-0 flex-col gap-3 rounded-tile bg-aura-veil p-4 text-white shadow-lift sm:p-5"
+      className="flex min-w-0 flex-col gap-3 rounded-card border border-callout bg-surface p-4 shadow-[0_0_0_3px_var(--callout-tint)] sm:p-5"
     >
       <div className="flex min-w-0 items-center justify-between gap-2">
-        <span className="flex min-w-0 items-center gap-1.5 text-caption font-extrabold text-white/70">
+        <span className="flex min-w-0 items-center gap-1.5 text-caption font-extrabold text-callout-ink">
           <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           {isNow ? "עכשיו" : "הבא בתור"}
         </span>
@@ -128,7 +128,7 @@ export function NowCard({
             className={
               soon
                 ? "shrink-0 rounded-full bg-callout px-2.5 py-0.5 text-caption font-bold text-callout-ink"
-                : "shrink-0 rounded-full bg-white/15 px-2.5 py-0.5 text-caption font-bold text-white/85"
+                : "shrink-0 rounded-full bg-surface-2 px-2.5 py-0.5 text-caption font-bold text-muted"
             }
           >
             {isNow
@@ -140,7 +140,7 @@ export function NowCard({
 
       <div className="flex min-w-0 items-start gap-3">
         {icon && (
-          <span className="shrink-0 pt-1 text-white/70">
+          <span className="shrink-0 pt-1 text-callout-ink">
             <DomainIcon name={icon} className="h-5 w-5 shrink-0" />
           </span>
         )}
@@ -151,7 +151,7 @@ export function NowCard({
           <h2 className="min-w-0 text-title font-black wrap-anywhere">
             {itemTitle(focus)}
           </h2>
-          <p className="min-w-0 text-caption text-white/70 wrap-anywhere">
+          <p className="min-w-0 text-caption text-muted wrap-anywhere">
             {start !== null && (
               <span dir="ltr" className="tabular-nums">
                 {formatMinutes(start)}
@@ -169,7 +169,7 @@ export function NowCard({
             href={googleMapsSearchUrl(query)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-control bg-white px-4 py-3 text-sm font-bold text-foreground transition-transform duration-press ease-snap active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-aura-veil"
+            className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-control bg-primary px-4 py-3 text-sm font-bold text-primary-foreground transition-[background-color,transform] duration-press ease-snap hover:bg-primary-hover active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           >
             <Navigation className="h-4 w-4 shrink-0" aria-hidden="true" />
             ניווט
@@ -186,7 +186,7 @@ export function NowCard({
         {isNow && next && (
           <a
             href="#day-schedule"
-            className="flex min-w-0 flex-1 items-center justify-center rounded-control border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold transition-colors duration-press hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-aura-veil"
+            className="flex min-w-0 flex-1 items-center justify-center rounded-control border border-border-strong bg-surface px-4 py-3 text-sm font-semibold transition-colors duration-press hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           >
             הבא בתור
           </a>

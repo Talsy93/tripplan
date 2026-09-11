@@ -69,7 +69,7 @@ export function AppShell({
         // Full height, from the very top of the window: the rail is beside the
         // header rather than under it, and it stops at the bottom of the
         // viewport rather than of the document.
-        <div className="sticky top-0 hidden h-dvh w-sidebar shrink-0 lg:block">
+        <div className="sticky top-0 hidden h-dvh w-rail shrink-0 lg:block">
           {sidebar}
         </div>
       )}

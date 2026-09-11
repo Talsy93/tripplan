@@ -29,19 +29,28 @@ import { cityToneMap, toneByIndex, type Tone } from "../domain/tone";
 // The pin is filled with the tone's *ink* rather than its dot: the dots are
 // pale by design and a number on top of one is not readable at 32px. Ink is
 // dark enough to carry white text while still saying which city this is.
-function numberedIcon(position: number, tone: Tone) {
+//
+// v5 ("מפה חיה") flattened that to one pin language: every stop is navigation
+// blue with a white ring, and the city tone survives only on the small place
+// dots. The number is set in the display face — the same face as the number
+// beside the row in the panel — which is what lets a reader match the two
+// without a legend. `live` is the city the traveller is in right now: amber,
+// larger, with a soft halo.
+function numberedIcon(position: number, live = false) {
+  const size = live ? "2.25rem" : "1.875rem";
   return L.divIcon({
     className: "",
     html: `<div style="
       display:flex;align-items:center;justify-content:center;
-      width:2rem;height:2rem;border-radius:9999px;
-      background:var(--${tone}-ink);color:var(--primary-foreground);
+      width:${size};height:${size};border-radius:9999px;
+      background:${live ? "var(--callout)" : "var(--primary)"};
+      color:${live ? "var(--foreground)" : "var(--primary-foreground)"};
       border:2px solid var(--surface);
-      box-shadow:var(--elevation-lift);
-      font-weight:700;font-size:0.875rem;
+      box-shadow:${live ? "0 0 0 8px rgba(245,158,11,0.25), " : ""}var(--elevation-lift);
+      font-family:var(--font-rubik),sans-serif;font-weight:700;font-size:0.8125rem;
     ">${position}</div>`,
-    iconSize: [32, 32],
-    iconAnchor: [16, 16],
+    iconSize: live ? [36, 36] : [30, 30],
+    iconAnchor: live ? [18, 18] : [15, 15],
     popupAnchor: [0, -18],
   });
 }
@@ -57,7 +66,7 @@ function placeIcon(tone: Tone) {
     className: "",
     html: `<div style="
       width:0.75rem;height:0.75rem;border-radius:9999px;
-      background:var(--${tone}-ink);
+      background:var(--${tone}-dot);
       border:2px solid var(--surface);
       box-shadow:var(--elevation-soft);
     "></div>`,
@@ -93,11 +102,18 @@ export default function RouteMapCanvas({
   stops,
   places = [],
   focus = null,
+  liveCity = null,
+  interactive = false,
 }: {
   stops: RouteStop[];
   places?: RoutePlace[];
   // Where to fly to. Null leaves the map wherever the user left it.
   focus?: [number, number] | null;
+  // The city whose pin is drawn live (amber). Null draws every pin the same.
+  liveCity?: string | null;
+  // Scroll-wheel zoom. Off inside a scrolling page, where the wheel is for
+  // the page; on in the workspace, where the map is the screen.
+  interactive?: boolean;
 }) {
   // Bounds are computed from the cities alone. The places sit inside them by
   // definition, and including them would let one mis-tagged point zoom the
@@ -117,7 +133,7 @@ export default function RouteMapCanvas({
     <MapContainer
       center={bounds.center}
       zoom={bounds.zoom}
-      scrollWheelZoom={false}
+      scrollWheelZoom={interactive}
       // 🐞 `isolate` is the fix for the map covering the phone's bottom bar.
       //
       // Leaflet stacks its own layers with fixed z-indexes, and they are high:
@@ -181,10 +197,7 @@ export default function RouteMapCanvas({
         <Marker
           key={stop.city}
           position={[stop.latitude, stop.longitude]}
-          icon={numberedIcon(
-            index + 1,
-            tones.get(stop.city) ?? toneByIndex(index),
-          )}
+          icon={numberedIcon(index + 1, stop.city === liveCity)}
         >
           <Popup>
             <div dir="rtl" className="text-center">

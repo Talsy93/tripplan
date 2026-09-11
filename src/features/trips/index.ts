@@ -384,12 +384,17 @@ export { CityGuideList } from "./components/city-guide-list";
 export { CityBand } from "./components/city-band";
 export { MoreMenu } from "./components/more-menu";
 export { HomeRail } from "./components/home-rail";
+export { HomeMap } from "./components/home-map";
+export { HomePanel } from "./components/home-panel";
+export type { MappedTrip } from "./components/trips-map-canvas";
 export type { CityGuideEntry } from "./components/city-guide-list";
 export type { RouteCity } from "./components/route-cities";
 export { tripOpenItems } from "./domain/open-items";
 export type { OpenItem } from "./domain/open-items";
 export { MoreBackLink } from "./components/more-back-link";
-export { TripNav, TripSideNav } from "./components/trip-nav";
+export { TripNav, TripRail, TripSideNav, TripTabs } from "./components/trip-nav";
+export { TripWorkspace } from "./components/trip-workspace";
+export { WorkspaceMap } from "./components/workspace-map";
 export { TRIP_TABS, tripTabHref, defaultTripTab } from "./domain/trip-tabs";
 export type { TripTabSegment } from "./domain/trip-tabs";
 export {
