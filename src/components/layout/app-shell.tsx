@@ -95,7 +95,7 @@ export function AppShell({
 
           <main
             className={cn(
-              "flex w-full flex-1 flex-col px-4 pt-5 md:px-6 lg:px-8",
+              "@container flex w-full flex-1 flex-col px-4 pt-5 md:px-6 lg:px-8",
               nav
                 ? // 6rem, not 5: the phone bar floats now, so its own inset
                   // counts on top of its height. Measured at 375px — the bar is

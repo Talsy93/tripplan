@@ -1,42 +1,24 @@
 import type { ReactNode } from "react";
 
-// A screen's content beside its context.
+// A main column with an optional context pane beside it.
 //
-// The phone puts five things behind five tabs because it has room for one at a
-// time. A desktop has room for two, and the second one is not "more of the
-// same" — it is the thing you would otherwise switch tabs to glance at and then
-// switch back from. Putting it in a pane removes the round trip.
-//
-// A component a page renders rather than a slot on AppShell, and that is forced
-// rather than chosen: AppShell is rendered by the layout, and in App Router a
-// page cannot pass props up to its own layout. The split belongs to the page
-// anyway — only the page knows what its own context is.
-//
-// Safe to use only below a full-bleed banner, never beside one: an element that
-// cancels the shell's padding with negative margins would run sideways into the
-// pane instead of off the screen. AppShell's `banner` slot exists for exactly
-// that reason.
+// v5 made this respond to its *container*, not the viewport. It used to split
+// at xl (1280px of window), which was right when the content column was the
+// window minus a rail. Inside the workspace panel it is not: at 1440px the
+// panel is about 800px wide, and a viewport query happily cut that into a
+// 400px main column and a 372px pane. `@4xl` (56rem = 896px of container) is
+// the narrowest width at which both columns still hold what they draw — the
+// 660px card grid and the 372px pane. Whoever renders this puts `@container`
+// on the scrolling column (AppShell's main, TripWorkspace's panel).
 export function TwoPane({
   children,
   aside,
 }: {
   children: ReactNode;
-  // Optional, because a screen can be in a state where the pane has nothing to
-  // say — a trip two months out has no forecast and may have no costs yet. An
-  // empty 372px strip beside the content is worse than no strip: it reads as
-  // something that failed to load.
   aside?: ReactNode;
 }) {
-  // One column, centred in the content area rather than pinned to its start
-  // edge. Left at the start, the 660px measure would sit against the rail with
-  // 520px of white beside it at 1920 — the same lopsided void this whole pass
-  // is about, one level in.
   if (!aside) {
     return (
-      // enter-children + enter-skip: the blocks inside this column arrive one
-      // at a time, and the column itself does not rise as one — see
-      // `.enter-children` in globals.css. Without the opt-out both happen and
-      // the blocks start before the box holding them.
       <div className="enter-skip enter-children mx-auto flex w-full min-w-0 max-w-main flex-col gap-6">
         {children}
       </div>
@@ -44,36 +26,11 @@ export function TwoPane({
   }
 
   return (
-    // xl, not lg. At 1024 the rail has already taken 15.5rem, and a 23.25rem
-    // pane on top of it would leave the main column narrower than a phone's
-    // content at a desktop's type size. Below xl the pane's contents simply
-    // follow the main column, which is where they were before this existed — so
-    // nothing is hidden at any width, it only moves.
-    // 23.25rem spelled out rather than var(--container-pane): the container
-    // tokens live in an `@theme inline` block, which means Tailwind substitutes
-    // them into utilities and never emits them as custom properties — a var()
-    // here would resolve to nothing. `max-w-pane` reads the same token through
-    // a utility and does work; a grid template has no utility to read it.
-    // enter-skip, because the two columns below stagger their own contents.
-    // The grid itself must not also rise: it is not a block, it is where the
-    // blocks are.
-    <div className="enter-skip grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_23.25rem]">
-      {/* Capped at 660px, but only from xl — the width the pane appears at.
-          Below that there is one column and it should fill: measured at 768,
-          an unguarded cap left 45px of dead space at the end of every row,
-          which reads as an accidental indent rather than as a measure. */}
-      <div className="enter-children flex min-w-0 flex-col gap-6 xl:max-w-main">
+    <div className="enter-skip grid min-w-0 gap-6 @4xl:grid-cols-[minmax(0,1fr)_23.25rem]">
+      <div className="enter-children flex min-w-0 flex-col gap-6 @4xl:max-w-main">
         {children}
       </div>
-      {/* Sticky at top-20: AppHeader is 3.5rem and the content starts 1.25rem
-          below it, so 5rem clears both. self-start is what lets a short pane
-          stop rather than stretching to the main column's height — without it
-          `sticky` has nothing to move within. */}
-      {/* The pane runs its own sequence rather than continuing the main
-          column's. At xl they are side by side, so one cascade down the left
-          and then another down the right would read as the screen loading
-          twice. */}
-      <aside className="enter-children flex min-w-0 flex-col gap-4 xl:sticky xl:top-20 xl:self-start">
+      <aside className="enter-children flex min-w-0 flex-col gap-4 @4xl:sticky @4xl:top-0 @4xl:self-start">
         {aside}
       </aside>
     </div>

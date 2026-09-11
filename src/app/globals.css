@@ -32,10 +32,10 @@
   /* v5 — "מפה חיה" (2026-09-11). The canvas is a cool grey the map tiles sit
      on; every panel over it is white with a 1px border and (mostly) no shadow.
      Shadows are reserved for things that float over the map. */
-  --background: #f3f5f9;
+  --background: #edf0f5;
   --surface: #ffffff;
   --surface-2: #f3f5f9;
-  --surface-sunken: #e8ecf2;
+  --surface-sunken: #e3e8ef;
   --border: #e2e7ef;
   --border-strong: #cbd3df;
   --foreground: #0c1424;

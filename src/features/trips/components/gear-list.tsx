@@ -106,7 +106,7 @@ export function GearList({
           {/* Groups side by side once there is room. A packing list is many
               short rows, so on a wide screen one column leaves most of the
               width empty and pushes "אחר" below the fold. */}
-          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 @xl:grid-cols-2 @3xl:grid-cols-3">
             {groups.map((group) => (
               <Card
                 key={group.category}
@@ -203,7 +203,7 @@ export function GearList({
           >
             התחלה מהירה
           </SectionHeading>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
             {GEAR_CATEGORY_ORDER.map((category) => (
               <Card key={category} className="flex min-w-0 flex-col gap-2">
                 <span className="flex items-center gap-2 text-sm font-bold">

@@ -129,7 +129,7 @@ export function PlanningPanel({ tripId, initialCities }: PlanningPanelProps) {
           forbids. It holds here for the reason AuraPanel documents: the veil is
           what the rule is about, and the field below is an opaque input. */}
       <AuraPanel>
-        <span className="flex min-w-0 items-center gap-1.5 text-caption font-extrabold text-white/75">
+        <span className="flex min-w-0 items-center gap-1.5 text-caption font-extrabold text-primary-ink">
           <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           מותאם לטיול שלכם
         </span>
@@ -144,7 +144,7 @@ export function PlanningPanel({ tripId, initialCities }: PlanningPanelProps) {
           </Field>
           <Button
             type="submit"
-            variant="onLight"
+            variant="primary"
             loading={loading}
             disabled={prompt.trim().length < 3}
             className="self-start"
@@ -160,7 +160,7 @@ export function PlanningPanel({ tripId, initialCities }: PlanningPanelProps) {
 
       {cities.length > 0 && (
         <>
-          <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <ul className="grid gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
             {cities.map((city, index) => (
               <li key={`${city.name}-${index}`}>
                 <Link

@@ -193,82 +193,42 @@ function appFrame({
   showBanner?: boolean;
   children: ReactNode;
 }) {
-  const items = FRAME_NAV.map((item) => ({
-    ...item,
-    active: item.href === `#${active}`,
-  }));
-
+  // v5: every frame scene renders in the workspace. The rail, the tabs and
+  // the map are the real components; only the header is hand-built, because
+  // the scene has no trip record to derive the dates badge from.
+  void active;
+  void showBanner;
   return (
-    <AppShell
+    <TripWorkspace
+      rail={<TripRail tripId={f.TRIP_ID} initial="ט" />}
       header={
         <AppHeader
+          wide
           title={title}
-          badge={badge}
+          badge={
+            <span className="flex shrink-0 items-center gap-1.5">
+              {startDate && (
+                <Badge tone="neutral" className="hidden sm:inline-flex">
+                  {startDate.slice(8, 10)}.{startDate.slice(5, 7)}
+                </Badge>
+              )}
+              {badge}
+            </span>
+          }
           trailing={<ShareButton tripId={f.TRIP_ID} memberCount={2} isShared />}
         />
       }
-      sidebar={
-        <SideNav
-          items={items}
-          hues={tripAura(cities)}
-          initial="ט"
-          header={
-            <RailTripSwitcher
-              name={title}
-              phase={phase}
-              trips={f.TRIPS}
-              currentId={f.TRIPS[0].id}
-            />
-          }
-          footer={
-            <RailTripProgress
-              phase={phase}
-              dayCount={14}
-              startDate={startDate}
-            />
-          }
+      tabs={<TripTabs tripId={f.TRIP_ID} />}
+      map={
+        <WorkspaceMap
+          stops={cities.length > 0 ? f.STOPS : []}
+          places={cities.length > 0 ? f.ROUTE.places : []}
+          liveCity={phase.kind === "during" ? "טוקיו" : null}
         />
-      }
-      // All three presentations at once, the way TripNav renders them: the
-      // floating bar below md, the pill row between md and lg, the rail from
-      // lg. Only one is ever visible, and the shell's bottom padding is sized
-      // for the first — so it has to be here or that padding is untested at
-      // 375.
-      nav={
-        <>
-          <div className="mt-4 hidden gap-1 self-start rounded-full border border-border bg-surface-2 p-1 md:flex lg:hidden">
-            {items.map((item) => (
-              <span
-                key={item.href}
-                className={
-                  item.active
-                    ? "flex items-center gap-2 rounded-full bg-surface px-4 py-1.5 text-sm font-semibold shadow-soft"
-                    : "flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-semibold text-muted"
-                }
-              >
-                {item.icon}
-                {item.label}
-              </span>
-            ))}
-          </div>
-          <BottomNav items={items} />
-        </>
-      }
-      banner={
-        showBanner ? (
-          <TripAuraBand
-            name={title}
-            startDate={startDate}
-            phase={phase}
-            dayCount={14}
-            cities={cities}
-            hues={tripAura(cities)}
-          />
-        ) : undefined
       }
     >
       {children}
-    </AppShell>
+    </TripWorkspace>
   );
 }
 

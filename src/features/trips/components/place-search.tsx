@@ -326,7 +326,7 @@ export function PlaceSearch({
         />
       )}
       {status.kind === "results" && status.places.length > 0 && (
-        <ul className="grid gap-2 xl:grid-cols-2">
+        <ul className="grid gap-2 @2xl:grid-cols-2">
           {status.places.slice(0, visibleCount).map((place) => {
             const days = added.get(place.id);
             return (
@@ -551,7 +551,7 @@ export function PlaceSearch({
           in once the chip row above them was gone. Sticky and full-bleed
           (matching <main>'s own padding so the bar reaches the edges it
           scrolls under), it stays in view for as long as the results do. */}
-      <div className="sticky top-14 z-20 -mx-4 flex flex-col gap-2 border-b border-border bg-surface/95 px-4 py-2 backdrop-blur md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
+      <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-b border-border bg-surface/95 px-4 py-2 backdrop-blur md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
         <div className="flex items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-1.5 text-sm font-bold">
             <MapPin
@@ -723,7 +723,7 @@ export function PlaceSearch({
           <p className="text-sm text-muted">
             המלצות ה-AI לאזור {status.area}. הן נשמרות במדריך של {city}.
           </p>
-          <ul className="grid gap-2 xl:grid-cols-2">
+          <ul className="grid gap-2 @2xl:grid-cols-2">
             {status.items.map((item) => {
               const name = `${item.name} (${status.area})`;
               return (

@@ -251,7 +251,7 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
       <div className="flex flex-col gap-3">
         <Skeleton className="h-24" />
         <Skeleton className="h-5 w-32" />
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
           <Skeleton className="h-36" />
           <Skeleton className="h-36" />
           <Skeleton className="h-36" />
@@ -370,7 +370,7 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
                 </SectionHeading>
                 {/* A guide card is a paragraph and a button, so three across is
                     comfortable on a desktop. It was one column at every width. */}
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
                   {items.map((item, index) => (
                     <GuideCard
                       key={`${item.name}-${index}`}

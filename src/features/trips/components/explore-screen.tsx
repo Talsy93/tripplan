@@ -54,10 +54,11 @@ export function ExploreScreen({
               one tap away and does the same job full-screen. The pane exists
               because a desktop can show results beside the map they are results
               on; a phone cannot, and stacking them is not the same thing. */}
-          <section className="hidden flex-col gap-3 xl:flex">
-            <SectionHeading level="section">איפה זה</SectionHeading>
-            {map}
-          </section>
+          {/* v5: the workspace keeps the route map beside the panel at all
+              times, so the small map that used to sit here is gone — a second
+              copy of the same map, one column over, said nothing new. The
+              `map` slot stays on the props for the callers still passing it. */}
+          {map ? null : null}
 
           {/* Under the map, which is where the design puts it: these rows are
               the pins above them. On a phone the pane falls into the flow and

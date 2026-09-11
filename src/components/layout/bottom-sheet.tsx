@@ -32,7 +32,10 @@ export function BottomSheet({
 }: {
   header?: ReactNode;
   children: ReactNode;
-  desktop?: "column" | "floating";
+  // `main`: the panel is the screen's main column and grows to fill what the
+  // rail and a side pane leave. `column`: a fixed 440px column beside a canvas.
+  // `floating`: a card over the canvas.
+  desktop?: "main" | "column" | "floating";
   initial?: Snap;
   className?: string;
 }) {
@@ -111,6 +114,8 @@ export function BottomSheet({
         "max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-40 max-lg:h-[var(--sheet-h)] max-lg:rounded-t-modal max-lg:border-t max-lg:border-border max-lg:shadow-modal",
         dragHeight === null && "max-lg:transition-[height] max-lg:duration-settle max-lg:ease-snap",
         // desktop: a column or a floating card
+        desktop === "main" &&
+          "lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:min-w-0 lg:flex-1",
         desktop === "column" &&
           "lg:sticky lg:top-14 lg:h-[calc(100dvh-3.5rem)] lg:w-panel lg:shrink-0 lg:border-e lg:border-border",
         desktop === "floating" &&

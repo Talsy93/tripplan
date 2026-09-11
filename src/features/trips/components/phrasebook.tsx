@@ -146,7 +146,7 @@ export function Phrasebook({
           <SectionHeading level="section">{section.title}</SectionHeading>
           {/* A phrase card is short, so a wide screen fits three of them and a
               two-week phrasebook stops being a single scrolling column. */}
-          <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          <ul className="grid gap-2 @md:grid-cols-2 @3xl:grid-cols-3">
             {section.phrases.map((phrase) => (
               <li key={`${section.title}|${phrase.he}`} className="min-w-0">
                 {/* wrap-anywhere on every line here: a transliteration or a

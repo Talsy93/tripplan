@@ -58,7 +58,7 @@ export function TripList({
 
   return (
     <ul
-      className="stagger grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+      className="stagger grid gap-3 @md:grid-cols-2 @3xl:grid-cols-3"
       style={
         enterDelayMs > 0
           ? ({ "--stagger-base": `${enterDelayMs}ms` } as React.CSSProperties)

@@ -186,7 +186,7 @@ export function BookingList({
           a 320px phone. Removing the floor lets the track take the space it is
           given; `wrap-anywhere` below is what then makes the text fit into it.
           Both halves are needed, and neither is sufficient alone. */}
-      <ul className="grid gap-3 xl:grid-cols-2">
+      <ul className="grid gap-3 @2xl:grid-cols-2">
         {shown.map((booking, index) => {
           const kind = BOOKING_KINDS[booking.kind];
           const nights = bookingNights(booking);
