@@ -18,6 +18,8 @@ import { CityDaysEditor } from "./city-days-editor";
 import { DayStrip } from "./day-strip";
 import { DaySuggestionsDialog } from "./day-suggestions-dialog";
 import { DayTimeline } from "./day-timeline";
+import { remindersForDay } from "../domain/day-reminders";
+import type { DayReminder } from "../domain/day-reminders";
 import { EditEntryDialog } from "./edit-entry-dialog";
 import { EmptyDays, RouteCities } from "./route-cities";
 import { TripCalendar } from "./trip-calendar";
@@ -60,6 +62,8 @@ type ItineraryProps = {
   // The day the calendar says it is, or null outside the trip. Decides which
   // day the screen opens on, and marks "today" in the strip and the calendar.
   currentDay?: number | null;
+  // Reminders pinned to days (migration 0024), shown inside each day.
+  reminders?: DayReminder[];
 };
 
 export function Itinerary({
@@ -72,6 +76,7 @@ export function Itinerary({
   tripDayCount = null,
   bookingsByDay = {},
   currentDay = null,
+  reminders = [],
 }: ItineraryProps) {
   const [scheduled, setScheduled] = useState<ItineraryDay[]>(initialItinerary);
   const [building, setBuilding] = useState(false);
@@ -428,6 +433,8 @@ export function Itinerary({
           removal lives in the edit dialog the chevron opens. */}
       <DayTimeline
         day={active}
+        tripId={tripId}
+        reminders={remindersForDay(reminders, active.day)}
         onEdit={setEditingId}
         bookings={bookingsByDay[active.day] ?? []}
         date={activeDate}

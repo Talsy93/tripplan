@@ -234,6 +234,11 @@ export type ItineraryEntry = {
   // are typed in once rather than looked up again on the day.
   travelNote: string | null;
   travelMinutes: number | null;
+  // A booked table or timed ticket (migration 0024). When the day is re-timed
+  // around an arrival it keeps its hour and anchors what follows it. Optional
+  // so the many places that build an entry for display (fixtures, the share
+  // page) need not say "false"; absent means not fixed.
+  fixed?: boolean;
 };
 export type ItineraryDay = {
   day: number;

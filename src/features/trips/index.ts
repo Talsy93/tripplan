@@ -369,6 +369,44 @@ export { UpNext } from "./components/up-next";
 export { OpenItems } from "./components/open-items";
 export { TripSpend } from "./components/trip-spend";
 export { TodayBefore } from "./components/today-before";
+export { TodayPrep } from "./components/today-prep";
+export { CurrencyTile } from "./components/currency-converter";
+export { DailyExpensesTile } from "./components/daily-expenses";
+export { AddReminderButton, ReminderRow } from "./components/reminder-dialog";
+export { RescheduleDialog } from "./components/reschedule-dialog";
+export { ArrivalWatcher } from "./components/arrival-watcher";
+export { RescheduleButton } from "./components/reschedule-button";
+export {
+  destinationCurrency,
+  convert,
+  rateLine,
+  HOME_CURRENCY,
+} from "./domain/currency";
+export type { ExchangeRate } from "./domain/currency";
+export {
+  dailyExpenseSchema,
+  expensesForDay,
+  expenseTotals,
+} from "./domain/expenses";
+export type { DailyExpense } from "./domain/expenses";
+export { dayReminderSchema, remindersForDay } from "./domain/day-reminders";
+export type { DayReminder } from "./domain/day-reminders";
+export {
+  prepItemSchema,
+  suggestPrepItems,
+  prepProgress,
+  duePrep,
+} from "./domain/prep";
+export type { PrepItem, PrepSuggestion } from "./domain/prep";
+export {
+  reflowFromArrival,
+  detectArrival,
+  distanceMeters,
+} from "./domain/reflow";
+export type { TimeChange } from "./domain/reflow";
+export { listExpenses } from "./infrastructure/expense-service";
+export { listDayReminders } from "./infrastructure/reminder-service";
+export { listPrepItems } from "./infrastructure/prep-service";
 export { TodayDuringAside } from "./components/today-during-aside";
 export {
   DayForecastPanel,

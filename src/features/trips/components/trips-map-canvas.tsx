@@ -39,17 +39,19 @@ export type MappedTrip = {
 // No text inside, which also sidesteps a contrast problem rather than losing to
 // it: the aura leads run from #4fe0cc to #ffd75e, and there is no single ink
 // that stays readable on all eight.
-function tripDot(hue: string) {
+// A flag planted at each city — the pole's foot is the coordinate. A dot said
+// "something is here"; a flag says "we were / will be here", which is what a
+// map of your trips is about, and it reads from across the room.
+function tripFlag(hue: string) {
   return L.divIcon({
     className: "",
-    html: `<div style="
-      width:0.875rem;height:0.875rem;border-radius:9999px;
-      background:${hue};
-      border:3px solid var(--surface);
-      box-shadow:var(--elevation-lift);
-    "></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
+    html: `<svg width="26" height="30" viewBox="0 0 26 30" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible;filter:drop-shadow(0 2px 3px rgba(12,20,36,.35))">
+      <path d="M6 2 L6 29" stroke="var(--foreground)" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M7 3 H23 L19 9.5 L23 16 H7 Z" fill="${hue}" stroke="var(--surface)" stroke-width="1.6" stroke-linejoin="round"/>
+      <circle cx="6" cy="29" r="2.2" fill="var(--foreground)"/>
+    </svg>`,
+    iconSize: [26, 30],
+    iconAnchor: [6, 29],
   });
 }
 
@@ -129,7 +131,7 @@ export default function TripsMapCanvas({
             <Marker
               key={`${trip.id}|${point.city}`}
               position={[point.latitude, point.longitude]}
-              icon={tripDot(trip.hue)}
+              icon={tripFlag(trip.hue)}
               interactive={false}
               // The map is decoration for a list that already names everything.
               // Announcing every pin would read the same trips out twice.

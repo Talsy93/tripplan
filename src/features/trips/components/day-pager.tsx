@@ -10,6 +10,10 @@ import { clampDay, dateOfDay, dayOfTripLabel } from "../domain/trip-days";
 import { DayStrip } from "./day-strip";
 import { DayTimeline } from "./day-timeline";
 import { NightStay } from "./night-stay";
+import { AddReminderButton } from "./reminder-dialog";
+import { RescheduleButton } from "./reschedule-button";
+import { remindersForDay } from "../domain/day-reminders";
+import type { DayReminder } from "../domain/day-reminders";
 import type { Booking } from "../domain/booking";
 import type { NightLodging } from "../domain/trip-days";
 import type { ItineraryDay } from "../domain/ai-suggestion";
@@ -28,8 +32,15 @@ export function DayPager({
   currentDay,
   bookingsByDay,
   lodgingByDay,
+  reminders = [],
+  nowIso,
 }: {
   tripId: string;
+  // Reminders for the whole trip (migration 0024); filtered per day here.
+  reminders?: DayReminder[];
+  // When given, the day can be re-timed around "we are here now" — the
+  // reschedule button appears. Only the running trip passes it.
+  nowIso?: string;
   days: ItineraryDay[];
   initialDay: number;
   startDate: string | null;
@@ -135,6 +146,19 @@ export function DayPager({
           answers for one departure was the real reason to pick one. */}
       <NightStay stay={stayAlreadyListed ? null : stay} />
 
+      {/* The two things you do to a day while living it: pin a reminder to an
+          hour, and tell the plan where you actually are. */}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <AddReminderButton
+          tripId={tripId}
+          dayNumber={active.day}
+          dayCount={dayCount}
+        />
+        {nowIso && (
+          <RescheduleButton tripId={tripId} day={active} nowIso={nowIso} />
+        )}
+      </div>
+
       {/* Directions run from where you slept, so the timeline can offer a
           route to each of the day's places. */}
       {/* The bookings are listed above as cards already, so the timeline gets
@@ -147,6 +171,8 @@ export function DayPager({
       <div id="day-schedule" className="scroll-mt-20">
         <DayTimeline
           day={active}
+          tripId={tripId}
+          reminders={remindersForDay(reminders, active.day)}
           variant="compact"
           bookings={bookings}
           date={date}

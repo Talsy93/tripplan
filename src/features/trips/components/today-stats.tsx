@@ -1,28 +1,17 @@
 import Link from "next/link";
-import { HelpCircle, Wallet } from "lucide-react";
+import { HelpCircle } from "lucide-react";
+import { getExchangeRate } from "@/lib/currency";
 import { getDailyForecast } from "@/lib/weather";
-import { costTotalsByCurrency, formatMoney } from "../domain/expenses";
+import { destinationCurrency, HOME_CURRENCY } from "../domain/currency";
+import type { ExchangeRate } from "../domain/currency";
+import { expensesForDay } from "../domain/expenses";
+import type { DailyExpense } from "../domain/expenses";
 import { describeWeather } from "../domain/weather";
 import { getTripRoute } from "../infrastructure/route-service";
-import type { Booking } from "../domain/booking";
 import type { NightLodging } from "../domain/trip-days";
+import { CurrencyTile } from "./currency-converter";
+import { DailyExpensesTile } from "./daily-expenses";
 import { DomainIcon } from "./domain-icon";
-
-// Three numbers under the "now" card.
-//
-// Everything else on this screen is one thing at a time — what you are doing,
-// then the day in order. These are the three facts you would otherwise switch
-// tabs to check and switch back from: is it going to rain, how much has this
-// cost so far, and where am I sleeping. None of them is worth a card; together
-// they are worth a row.
-//
-// Three, not five. The row is 375px wide before anything else, and a fourth
-// tile puts each of them under 88px — narrow enough that "8,000 ₪" starts
-// ellipsing, which defeats the point of showing a number at all.
-//
-// A tile with no answer renders as a dash rather than disappearing: a row that
-// changes length between days reads as a bug, and "no forecast for this date" is
-// itself worth knowing.
 
 type Tile = {
   key: string;
@@ -33,99 +22,73 @@ type Tile = {
   href: string | null;
 };
 
+// The strip of facts under "עכשיו": the weather where you are, what you spent
+// today (tap to add or fix), the exchange rate (tap to convert), and where you
+// sleep tonight. Two of the four are client tiles with dialogs behind them;
+// the data they need is fetched here, once, on the server.
+//
+// Behind its own Suspense in the page, because it is the one part of the
+// screen that goes to the network (forecast, rates).
 export async function TodayStats({
   tripId,
   tripName,
   date,
+  dayNumber,
   city,
-  bookings,
+  expenses,
   lodging,
 }: {
   tripId: string;
   tripName: string;
-  // The calendar date of the day being shown, YYYY-MM-DD. Null before the trip
-  // starts, and then there is no "today" to describe.
   date: string | null;
-  // Which city the day is in, for the forecast. Null falls back to the route's
-  // first stop.
+  dayNumber: number | null;
   city: string | null;
-  // Every booking in the trip — the cost total is trip-to-date, not today's.
-  bookings: Booking[];
+  expenses: DailyExpense[];
   lodging: NightLodging | null;
 }) {
-  const tiles: Tile[] = [];
+  const route = await getTripRoute(tripId, tripName);
+  const stop =
+    route.stops.find((candidate) => candidate.city === city) ??
+    route.stops[0] ??
+    null;
 
-  // ---- weather ------------------------------------------------------------
-  // One city, one day. WeatherPanel fans out a request per city across the
-  // whole trip window; this needs a single date, so it asks for one.
-  //
-  // Coordinates come from the route the map already resolved and cached, so
-  // this costs no geocoding — the same reason WeatherPanel reads it.
+  // The trip's money: the currency most of its stops use. The tile prefers the
+  // current stop's country when it differs (a day trip across a border).
+  const currency =
+    destinationCurrency([stop?.countryCode]) ??
+    destinationCurrency(route.stops.map((candidate) => candidate.countryCode));
+
+  const [weatherToday, rate] = await Promise.all([
+    date && stop
+      ? getDailyForecast({
+          latitude: stop.latitude,
+          longitude: stop.longitude,
+          startDate: date,
+          endDate: date,
+        }).then((days) => days?.find((day) => day.date === date) ?? null)
+      : Promise.resolve(null),
+    currency
+      ? getExchangeRate(HOME_CURRENCY, currency)
+      : Promise.resolve<ExchangeRate | null>(null),
+  ]);
+
   let weather: Tile | null = null;
-  if (date) {
-    const route = await getTripRoute(tripId, tripName);
-    const stop =
-      route.stops.find((candidate) => candidate.city === city) ??
-      route.stops[0] ??
-      null;
-
-    if (stop) {
-      const days = await getDailyForecast({
-        latitude: stop.latitude,
-        longitude: stop.longitude,
-        startDate: date,
-        endDate: date,
-      });
-      const today = days?.find((day) => day.date === date) ?? null;
-      if (today) {
-        const described = describeWeather(today.code);
-        weather = {
-          key: "weather",
-          label: described.label,
-          value: `${Math.round(today.maxC)}°`,
-          hint:
-            today.rainChance !== null && today.rainChance > 0
-              ? `גשם ${today.rainChance}%`
-              : `מינימום ${Math.round(today.minC)}°`,
-          icon: <DomainIcon name={described.icon} className="h-4 w-4" />,
-          href: `/trips/${tripId}/more/trip`,
-        };
-      }
-    }
+  if (weatherToday) {
+    const described = describeWeather(weatherToday.code);
+    weather = {
+      key: "weather",
+      label: described.label,
+      value: `${Math.round(weatherToday.maxC)}°`,
+      hint:
+        weatherToday.rainChance !== null && weatherToday.rainChance > 0
+          ? `גשם ${weatherToday.rainChance}%`
+          : `מינימום ${Math.round(weatherToday.minC)}°`,
+      icon: <DomainIcon name={described.icon} className="h-4 w-4" />,
+      href: `/trips/${tripId}/more/trip`,
+    };
   }
 
-  tiles.push(
-    weather ?? {
-      key: "weather",
-      label: "מזג אוויר",
-      value: "—",
-      hint: "אין תחזית לתאריך",
-      icon: <HelpCircle className="h-4 w-4" aria-hidden="true" />,
-      href: null,
-    },
-  );
-
-  // ---- spend --------------------------------------------------------------
-  // The largest currency total rather than a sum across currencies: adding
-  // shekels to yen would need a rate, and a made-up rate on the fold of the
-  // screen someone checks daily is worse than showing one honest number.
-  const totals = costTotalsByCurrency(bookings);
-  const biggest = totals[0] ?? null;
-  tiles.push({
-    key: "spend",
-    label: "הוצאות",
-    value: biggest ? formatMoney(biggest.total, biggest.currency) : "—",
-    hint: biggest
-      ? totals.length > 1
-        ? `ועוד ${totals.length - 1} מטבעות`
-        : "עד כה"
-      : "עוד לא הוזן",
-    icon: <Wallet className="h-4 w-4" aria-hidden="true" />,
-    href: `/trips/${tripId}/more/trip`,
-  });
-
-  // ---- tonight ------------------------------------------------------------
-  tiles.push({
+  const lodgingTile: Tile = {
     key: "lodging",
     label: lodging?.isCheckIn ? "צ׳ק־אין" : "לינה הלילה",
     value: lodging ? lodging.booking.title : "—",
@@ -136,15 +99,39 @@ export async function TodayStats({
       : "אין לינה מוזמנת",
     icon: <DomainIcon name="lodging" className="h-4 w-4" />,
     href: `/trips/${tripId}/more/trip`,
-  });
+  };
 
   return (
-    <ul className="grid grid-cols-3 gap-2">
-      {tiles.map((tile) => (
-        <li key={tile.key} className="min-w-0">
-          <StatTile tile={tile} />
-        </li>
-      ))}
+    <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <li className="min-w-0">
+        <StatTile
+          tile={
+            weather ?? {
+              key: "weather",
+              label: "מזג אוויר",
+              value: "—",
+              hint: "אין תחזית לתאריך",
+              icon: <HelpCircle className="h-4 w-4" aria-hidden="true" />,
+              href: null,
+            }
+          }
+        />
+      </li>
+      <li className="min-w-0">
+        <DailyExpensesTile
+          tripId={tripId}
+          dayNumber={dayNumber ?? 1}
+          expenses={dayNumber === null ? [] : expensesForDay(expenses, dayNumber)}
+          currency={currency ?? HOME_CURRENCY}
+          rate={rate}
+        />
+      </li>
+      <li className="min-w-0">
+        <CurrencyTile rate={rate} />
+      </li>
+      <li className="min-w-0">
+        <StatTile tile={lodgingTile} />
+      </li>
     </ul>
   );
 }
@@ -156,9 +143,6 @@ function StatTile({ tile }: { tile: Tile }) {
         <span className="shrink-0">{tile.icon}</span>
         <span className="min-w-0 truncate">{tile.label}</span>
       </span>
-      {/* The value is the reason the tile exists, so it is the one thing allowed
-          to shrink the label rather than the other way round. truncate and not
-          wrap: three tiles in a row have to stay the same height. */}
       <span className="min-w-0 truncate text-sm font-black">{tile.value}</span>
       {tile.hint && (
         <span className="min-w-0 truncate text-caption text-muted">
@@ -168,17 +152,15 @@ function StatTile({ tile }: { tile: Tile }) {
     </>
   );
 
-  const shared =
-    "flex h-full min-w-0 flex-col items-center gap-0.5 rounded-card bg-surface px-2 py-2.5 text-center shadow-soft";
+  const className =
+    "flex h-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-card border border-border bg-surface px-2 py-2.5 text-center";
 
-  if (!tile.href) {
-    return <div className={shared}>{body}</div>;
-  }
+  if (!tile.href) return <div className={className}>{body}</div>;
 
   return (
     <Link
       href={tile.href}
-      className={`${shared} transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background`}
+      className={`${className} transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
     >
       {body}
     </Link>

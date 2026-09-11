@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
 import {
+  applyTimeChanges,
   deleteItineraryEntry as deleteEntry,
   updateItineraryEntry as updateEntry,
 } from "../infrastructure/itinerary-service";
@@ -16,6 +17,34 @@ import {
 export async function deleteItineraryEntry(id: string) {
   if (!z.uuid().safeParse(id).success) return;
   await deleteEntry(id);
+}
+
+// The day re-timed around where you are (domain/reflow.ts computes the
+// changes on the client from the day it already has; this persists them).
+const timeChangesSchema = z
+  .array(
+    z.object({
+      id: z.uuid(),
+      startLabel: z.string().max(5),
+      endLabel: z.string().max(5),
+    }),
+  )
+  .min(1)
+  .max(60);
+
+export async function applyDayReflow(
+  tripId: string,
+  changes: unknown,
+): Promise<{ ok: boolean; message?: string }> {
+  if (!z.uuid().safeParse(tripId).success) return { ok: false };
+  const parsed = timeChangesSchema.safeParse(changes);
+  if (!parsed.success) return { ok: false, message: "השינויים לא תקינים." };
+
+  const { error } = await applyTimeChanges(tripId, parsed.data);
+  if (error) return { ok: false, message: "העדכון נכשל. נסו שוב." };
+
+  revalidatePath(`/trips/${tripId}`, "layout");
+  return { ok: true };
 }
 
 // Zod validates and normalises in one pass — the times that come back are

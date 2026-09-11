@@ -52,6 +52,7 @@ export function EditEntryDialog({
   const [travelMinutes, setTravelMinutes] = useState(
     entry.travelMinutes === null ? "" : String(entry.travelMinutes),
   );
+  const [fixed, setFixed] = useState(entry.fixed ?? false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
   // Covers the revalidation as well as the write, so the dialog cannot close
@@ -72,6 +73,7 @@ export function EditEntryDialog({
         note: note.trim() || null,
         travelNote: travelNote.trim() || null,
         travelMinutes: travelMinutes.trim() === "" ? null : Number(travelMinutes),
+        fixed,
       });
 
       if (result.ok) {
@@ -179,6 +181,25 @@ export function EditEntryDialog({
             aria-invalid={Boolean(errors.travelMinutes)}
           />
         </Field>
+
+        {/* Anchoring. When the day is re-timed around an early or late arrival
+            (the "הגענו" button, or the GPS prompt), a fixed entry keeps its hour
+            and everything planned after it stays put too. */}
+        <label className="flex items-start gap-3 rounded-control border border-border bg-surface-2 px-3 py-2.5">
+          <input
+            type="checkbox"
+            checked={fixed}
+            onChange={(event) => setFixed(event.target.checked)}
+            className="mt-1 h-4 w-4 shrink-0 accent-[var(--primary)]"
+          />
+          <span className="flex min-w-0 flex-col">
+            <span className="text-sm font-semibold">הזמנה קבועה</span>
+            <span className="text-caption text-muted">
+              שולחן שהוזמן, כרטיס לשעה מסוימת. השעה לא תזוז כשמעדכנים את הלו״ז
+              לפי איפה שאתם.
+            </span>
+          </span>
+        </label>
 
         {message && <Banner tone="danger">{message}</Banner>}
 

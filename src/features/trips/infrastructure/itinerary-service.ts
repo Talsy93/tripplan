@@ -45,6 +45,9 @@ function coordinateKey(city: string | null, name: string) {
 const ITINERARY_COLUMNS =
   "id, day_number, position, title, start_label, end_label, note, city";
 const TRAVEL_COLUMNS = ", travel_note, travel_minutes";
+// Migration 0024. Read in a third tier so a database without it degrades to
+// "nothing is fixed" instead of an empty itinerary.
+const FIXED_COLUMNS = ", fixed";
 
 export async function getItinerary(tripId: string): Promise<ItineraryDay[]> {
   const supabase = await createClient();
@@ -58,11 +61,18 @@ export async function getItinerary(tripId: string): Promise<ItineraryDay[]> {
       .order("position", { ascending: true });
 
   const [first, coordinates] = await Promise.all([
-    read(ITINERARY_COLUMNS + TRAVEL_COLUMNS),
+    read(ITINERARY_COLUMNS + TRAVEL_COLUMNS + FIXED_COLUMNS),
     getEntryCoordinates(tripId),
   ]);
 
   let { data, error } = first;
+
+  if (error && isSchemaOutOfDate(error.message)) {
+    console.error(
+      "getItinerary: fixed column missing, migration 0024 not applied yet",
+    );
+    ({ data, error } = await read(ITINERARY_COLUMNS + TRAVEL_COLUMNS));
+  }
 
   // Code can reach production before its migration is run — that is exactly what
   // happened with 0013 — and two optional display columns must not be able to
@@ -108,6 +118,7 @@ export async function getItinerary(tripId: string): Promise<ItineraryDay[]> {
       longitude: point?.longitude ?? null,
       travelNote: (row.travel_note as string | null) ?? null,
       travelMinutes: (row.travel_minutes as number | null) ?? null,
+      fixed: (row.fixed as boolean | null) ?? false,
     });
   }
   return [...byDay.values()];
@@ -301,6 +312,7 @@ export async function updateItineraryEntry(
     note: string | null;
     travelNote: string | null;
     travelMinutes: number | null;
+    fixed?: boolean;
   },
 ) {
   const supabase = await createClient();
@@ -309,6 +321,7 @@ export async function updateItineraryEntry(
     .from("itinerary_items")
     .update(
       {
+        fixed: patch.fixed ?? false,
         // Empty strings are stored as null: "no time set" is an absence, and
         // the timeline already treats an unparseable label that way.
         start_label: patch.startLabel || null,
@@ -325,5 +338,27 @@ export async function updateItineraryEntry(
   if (error) return { error: error.message };
   if (count === 0) return { error: "not-found" };
 
+  return { error: null };
+}
+
+// Re-timing a day (domain/reflow.ts): several entries, new labels, one call.
+// Sequential updates rather than an upsert — an upsert on itinerary_items would
+// need every not-null column of every row, and there are at most a dozen rows.
+export async function applyTimeChanges(
+  tripId: string,
+  changes: { id: string; startLabel: string; endLabel: string }[],
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  for (const change of changes) {
+    const { error } = await supabase
+      .from("itinerary_items")
+      .update({
+        start_label: change.startLabel || null,
+        end_label: change.endLabel || null,
+      })
+      .eq("id", change.id)
+      .eq("trip_id", tripId);
+    if (error) return { error: error.message };
+  }
   return { error: null };
 }

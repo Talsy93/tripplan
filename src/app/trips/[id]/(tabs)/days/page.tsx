@@ -10,6 +10,7 @@ import {
   Itinerary,
   listBookings,
   listCityDays,
+  listDayReminders,
   lodgingByDay,
   todayIn,
   tripDayCount,
@@ -24,13 +25,15 @@ export default async function DaysPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [trip, itinerary, bookings, selected, overrides] = await Promise.all([
-    getTrip(id),
-    getItinerary(id),
-    listBookings(id),
-    getSelectedDestinations(id),
-    listCityDays(id),
-  ]);
+  const [trip, itinerary, bookings, selected, overrides, reminders] =
+    await Promise.all([
+      getTrip(id),
+      getItinerary(id),
+      listBookings(id),
+      getSelectedDestinations(id),
+      listCityDays(id),
+      listDayReminders(id),
+    ]);
   if (!trip) notFound();
 
   // The itinerary may cover fewer days than the trip's dates allow, and the
@@ -68,6 +71,7 @@ export default async function DaysPage({
       lodgingByDay={lodging}
       bookingsByDay={bookingsPerDay}
       cityDays={cityDayPlan(cities, bookings, overrides)}
+      reminders={reminders}
       tripDayCount={tripDayCount(trip.start_date, trip.end_date)}
       // Which day the screen opens on. Resolved on the server, in the trip's
       // own zone, for the same reason every other date on this page is: the

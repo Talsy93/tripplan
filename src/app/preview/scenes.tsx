@@ -71,6 +71,11 @@ import {
   WeatherForecast,
   WorkflowGuide,
   WorkflowSummary,
+  ArrivalWatcher,
+  CurrencyTile,
+  DailyExpensesTile,
+  suggestPrepItems,
+  TodayPrep,
   HomeMap,
   HomePanel,
   TripRail,
@@ -78,7 +83,7 @@ import {
   TripWorkspace,
   WorkspaceMap,
 } from "@/features/trips";
-import type { MappedTrip, TripPhase } from "@/features/trips";
+import type { MappedTrip, PrepItem, TripPhase } from "@/features/trips";
 import {
   AuraField,
   Badge,
@@ -255,6 +260,122 @@ const HOME_AURAS = assignTripAuras(
 );
 
 export const SCENES: Scene[] = [
+  // ---- the tools of the "היום" tab (migration 0024) ------------------------
+  //
+  // The day while the trip runs: the facts strip with the two client tiles
+  // (spend, money) fed a fixed rate, the pager with reminders slotted into the
+  // timeline, the reschedule button, and the GPS watcher's opt-in row.
+  {
+    slug: "today-tools",
+    title: "היום · הוצאות, מטבע, תזכורות, עדכון לו״ז",
+    note: "האריח ״הוצאות היום״ ו״מטבע״ נפתחים לדיאלוגים; תזכורת ב-11:00 נכנסת לתוך הלו״ז; ״הגענו / עדכון לו״ז״ מראה מה יזוז ומה מעוגן. השער קבוע (1 ₪ = 46.2 ¥)",
+    bleed: true,
+    render: () =>
+      appFrame({
+        title: "יפן בסתיו",
+        active: "today",
+        phase: { kind: "during", dayNumber: 1 },
+        startDate: f.TODAY,
+        cities: FRAME_CITIES,
+        badge: <Badge tone="callout">יום 1 בטיול</Badge>,
+        children: (
+          <TwoPane>
+            <NowCard day={f.ITINERARY[0]} date={f.TODAY} now={`${f.TODAY}T07:10:00Z`} />
+            <ArrivalWatcher tripId={f.TRIP_ID} day={f.ITINERARY[0]} />
+            <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <li className="min-w-0">
+                <div className="flex h-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-card border border-border bg-surface px-2 py-2.5 text-center">
+                  <span className="text-caption font-semibold text-muted">בהיר</span>
+                  <span className="text-sm font-black">21°</span>
+                  <span className="text-caption text-muted">מינימום 14°</span>
+                </div>
+              </li>
+              <li className="min-w-0">
+                <DailyExpensesTile
+                  tripId={f.TRIP_ID}
+                  dayNumber={1}
+                  currency="JPY"
+                  rate={{ base: "ILS", quote: "JPY", rate: 46.2, date: f.TODAY }}
+                  expenses={[
+                    { id: "00000000-0000-0000-0000-00000000e001", trip_id: f.TRIP_ID, day_number: 1, amount: 2400, currency: "JPY", note: "צהריים בשוק", created_at: f.NOW },
+                    { id: "00000000-0000-0000-0000-00000000e002", trip_id: f.TRIP_ID, day_number: 1, amount: 1800, currency: "JPY", note: "כרטיסים לסקייטרי", created_at: f.NOW },
+                  ]}
+                />
+              </li>
+              <li className="min-w-0">
+                <CurrencyTile rate={{ base: "ILS", quote: "JPY", rate: 46.2, date: f.TODAY }} />
+              </li>
+              <li className="min-w-0">
+                <div className="flex h-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-card border border-border bg-surface px-2 py-2.5 text-center">
+                  <span className="text-caption font-semibold text-muted">לינה הלילה</span>
+                  <span className="min-w-0 truncate text-sm font-black">{f.LODGING.booking.title}</span>
+                  <span className="text-caption text-muted">טוקיו</span>
+                </div>
+              </li>
+            </ul>
+            <DayPager
+              tripId={f.TRIP_ID}
+              days={f.ITINERARY}
+              initialDay={1}
+              startDate={f.TODAY}
+              currentDay={1}
+              bookingsByDay={{}}
+              lodgingByDay={{}}
+              nowIso={`${f.TODAY}T07:10:00Z`}
+              reminders={[
+                { id: "00000000-0000-0000-0000-00000000a001", trip_id: f.TRIP_ID, day_number: 1, time_label: "11:00", title: "להתקשר למלון על צ׳ק-אין מאוחר", done: false, created_at: f.NOW },
+                { id: "00000000-0000-0000-0000-00000000a002", trip_id: f.TRIP_ID, day_number: 1, time_label: "18:30", title: "לקנות כרטיס Suica לרכבת של מחר", done: true, created_at: f.NOW },
+              ]}
+            />
+          </TwoPane>
+        ),
+      }),
+  },
+  // ---- the "היום" tab before departure: preparations ----------------------
+  {
+    slug: "today-prep",
+    title: "היום · לפני היציאה — הכנות",
+    note: "ספירה לאחור, רשימת הכנות עם שורה שלמה ושורה שעבר מועדה, צ׳יפים של הצעות (צ׳ק-אין נגזר מהטיסה הראשונה), מה פתוח, מה קרוב",
+    bleed: true,
+    render: () => {
+      const prepItems: PrepItem[] = [
+        { id: "00000000-0000-0000-0000-00000000c001", trip_id: f.TRIP_ID, title: "דרכון בתוקף לפחות 6 חודשים מיום החזרה", done: true, due_date: null, url: null, kind: "passport", created_at: f.NOW },
+        { id: "00000000-0000-0000-0000-00000000c002", trip_id: f.TRIP_ID, title: "ביטוח נסיעות — פוליסה שמורה ומספר חירום", done: false, due_date: "2026-09-08", url: "https://example.com/policy.pdf", kind: "insurance", created_at: f.NOW },
+        { id: "00000000-0000-0000-0000-00000000c003", trip_id: f.TRIP_ID, title: "להזמין שולחן ב-Sushi Dai ליום 2", done: false, due_date: "2026-09-13", url: null, kind: null, created_at: f.NOW },
+      ];
+      return appFrame({
+        title: "יפן בסתיו",
+        active: "today",
+        phase: { kind: "before", daysUntilStart: 9 },
+        startDate: f.NEAR_START,
+        cities: FRAME_CITIES,
+        badge: <Badge tone="action">בעוד 9 ימים</Badge>,
+        children: (
+          <TodayPrep
+            tripId={f.TRIP_ID}
+            tripName="יפן בסתיו"
+            startDate={f.NEAR_START}
+            today={f.TODAY}
+            bookings={f.BOOKINGS}
+            now={f.NOW}
+            cities={FRAME_CITIES}
+            open={[
+              { id: "flights", text: "עוד אין טיסת חזרה", detail: "הלו״ז לא יודע מתי היום האחרון נגמר", urgency: "now", path: "more/trip" },
+            ]}
+            prepItems={prepItems}
+            suggestions={suggestPrepItems({
+              bookings: f.BOOKINGS,
+              startDate: f.NEAR_START,
+              existing: prepItems,
+              isShared: false,
+              hasGear: true,
+              pushEnabled: false,
+            })}
+          />
+        ),
+      });
+    },
+  },
   // ---- v5 · "מפה חיה" -------------------------------------------------------
   //
   // The two frames of the redesign. Everything below them is a component

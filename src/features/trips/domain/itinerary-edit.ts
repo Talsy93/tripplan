@@ -54,6 +54,8 @@ export const updateItineraryEntrySchema = z
       .min(0, "זמן הגעה לא יכול להיות שלילי")
       .max(1440, "עד 24 שעות")
       .nullable(),
+    // Anchored: keeps its hour when the day is re-timed (domain/reflow.ts).
+    fixed: z.boolean().optional().default(false),
   })
   // A start without an end is fine — the timeline gives it a default block —
   // but an end without a start is not, because there is nothing to hang it on

@@ -21,15 +21,25 @@ import {
   durationLabel,
   formatMinutes,
   isNightGap,
+  parseTimeLabel,
 } from "../domain/timeline";
 import type { Booking } from "../domain/booking";
 import type { ItineraryDay } from "../domain/ai-suggestion";
+import type { DayReminder } from "../domain/day-reminders";
 import type {
+  DayItem,
   TimelineBooking,
   TimelineEntry,
   Transition,
 } from "../domain/timeline";
 import { DomainIcon } from "./domain-icon";
+import { ReminderRow } from "./reminder-dialog";
+
+function itemStartMinutes(item: DayItem): number | null {
+  if (item.kind === "gap") return item.startMinutes;
+  if (item.kind === "booking") return item.booking.startMinutes;
+  return item.entry.startMinutes;
+}
 
 // The day, as a stack of cards.
 //
@@ -69,8 +79,15 @@ export function DayTimeline({
   // rendering — the share view has no business offering to change the day.
   addHref,
   addLabel = "הוסיפו משהו ליום הזה",
+  // Reminders pinned to this day (migration 0024), slotted in at their hour.
+  reminders = [],
+  // Needed to tick a reminder off or remove it. Absent on a read-only
+  // rendering (the share page), where the row shows and does nothing.
+  tripId,
 }: {
   day: ItineraryDay;
+  reminders?: DayReminder[];
+  tripId?: string;
   // Opens the edit dialog. Optional so the read-only uses of this component
   // (the day pager on the "today" tab) stay read-only — and a row with nothing
   // to open renders without a chevron rather than with a dead one.
@@ -89,7 +106,40 @@ export function DayTimeline({
   const sequence = daySequence(timeline);
   const compact = variant === "compact";
 
-  const rows = sequence.map((item) => {
+  // Reminders are merged into the sequence by hour: each one lands before the
+  // first item that starts after it. A stable walk rather than a re-sort, so
+  // the gaps the sequence computed stay glued to their neighbours.
+  const pending = [...reminders]
+    .map((reminder) => ({
+      reminder,
+      start: parseTimeLabel(reminder.time_label) ?? 0,
+    }))
+    .sort((a, b) => a.start - b.start);
+  const merged: (DayItem | { kind: "reminder"; key: string; reminder: DayReminder })[] = [];
+  for (const item of sequence) {
+    const start = itemStartMinutes(item);
+    while (pending.length > 0 && start !== null && pending[0].start <= start) {
+      const { reminder } = pending.shift()!;
+      merged.push({ kind: "reminder", key: `reminder-${reminder.id}`, reminder });
+    }
+    merged.push(item);
+  }
+  for (const { reminder } of pending) {
+    merged.push({ kind: "reminder", key: `reminder-${reminder.id}`, reminder });
+  }
+
+  const rows = merged.map((item) => {
+    if (item.kind === "reminder") {
+      return (
+        <ReminderRow
+          key={item.key}
+          tripId={tripId ?? ""}
+          reminder={item.reminder}
+          compact={compact}
+          readOnly={!tripId}
+        />
+      );
+    }
     if (item.kind === "gap") {
       return (
         <GapRow
