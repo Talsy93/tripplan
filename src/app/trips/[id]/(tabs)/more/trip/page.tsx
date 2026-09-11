@@ -22,13 +22,14 @@ export default async function TripDetailsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const trip = await getTrip(id);
-  if (!trip) notFound();
 
-  const [selected, bookings] = await Promise.all([
+  // The trip joins the wave rather than gating it — see /more/gear for why.
+  const [trip, selected, bookings] = await Promise.all([
+    getTrip(id),
     getSelectedDestinations(id),
     listBookings(id),
   ]);
+  if (!trip) notFound();
 
   const cities = [...new Set(selected.map((item) => item.city))].filter(
     Boolean,

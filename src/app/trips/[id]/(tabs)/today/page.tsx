@@ -53,17 +53,43 @@ export default async function TodayPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const trip = await getTrip(id);
-  if (!trip) notFound();
 
-  const [itinerary, selected, bookings, reminders, expenses] =
-    await Promise.all([
-      getItinerary(id),
-      getSelectedDestinations(id),
-      listBookings(id),
-      listDayReminders(id),
-      listExpenses(id),
-    ]);
+  // One wave, not three.
+  //
+  // This page used to read the trip, then its five day-reads, then — on the
+  // preparations screen — four more: three round trips to Frankfurt stacked
+  // back to back, which is most of what a tab switch was waiting for. Every
+  // read the page can need now goes out together and costs one.
+  //
+  // The last four (prep items, share token, members, gear) belong to the
+  // preparations screen alone, and which screen this is cannot be known until
+  // the itinerary is back. Asking for them regardless costs four indexed reads
+  // that run beside the others and are dropped during the trip. Waiting to find
+  // out costs a whole round trip, every time, on the screen that is shown most.
+  const [
+    trip,
+    itinerary,
+    selected,
+    bookings,
+    reminders,
+    expenses,
+    prepItems,
+    shareToken,
+    members,
+    gear,
+  ] = await Promise.all([
+    getTrip(id),
+    getItinerary(id),
+    getSelectedDestinations(id),
+    listBookings(id),
+    listDayReminders(id),
+    listExpenses(id),
+    listPrepItems(id),
+    getShareToken(id),
+    listMembers(id),
+    listGear(id),
+  ]);
+  if (!trip) notFound();
 
   const now = new Date();
   const nowIso = now.toISOString();
@@ -110,13 +136,6 @@ export default async function TodayPage({
 
   // --- before the trip: preparations ------------------------------------
   if (!live && !showDay) {
-    const [prepItems, shareToken, members, gear] = await Promise.all([
-      listPrepItems(id),
-      getShareToken(id),
-      listMembers(id),
-      listGear(id),
-    ]);
-
     const suggestions = suggestPrepItems({
       bookings,
       startDate: trip.start_date,

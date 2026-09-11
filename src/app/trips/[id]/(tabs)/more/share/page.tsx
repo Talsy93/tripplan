@@ -21,10 +21,10 @@ export default async function SharePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const trip = await getTrip(id);
-  if (!trip) notFound();
 
-  const [members, shareToken, origin] = await Promise.all([
+  // The trip joins the wave rather than gating it — see /more/gear for why.
+  const [trip, members, shareToken, origin] = await Promise.all([
+    getTrip(id),
     listMembers(id),
     getShareToken(id),
     // Resolved on the server. A "use client" component is still rendered on the
@@ -33,6 +33,7 @@ export default async function SharePage({
     // link.
     requestOrigin(),
   ]);
+  if (!trip) notFound();
 
   // The owner is in that list and is not somebody the trip is shared *with*.
   const named = members.filter((member) => !member.is_owner).length;

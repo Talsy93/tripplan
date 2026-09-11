@@ -15,10 +15,11 @@ export default async function GearPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const trip = await getTrip(id);
-  if (!trip) notFound();
 
-  const items = await listGear(id);
+  // Together rather than one after the other: the list does not depend on the
+  // trip row, so making it wait for one turned this page into two round trips.
+  const [trip, items] = await Promise.all([getTrip(id), listGear(id)]);
+  if (!trip) notFound();
 
   return (
     <>

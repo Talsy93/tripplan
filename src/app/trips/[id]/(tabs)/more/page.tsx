@@ -17,19 +17,21 @@ export default async function MorePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const trip = await getTrip(id);
-  if (!trip) notFound();
 
-  // Five reads for five live subtitle lines. They run together, and they are the
-  // whole cost of a menu that answers "is there anything I still need to do?"
-  // without opening anything.
-  const [bookings, gear, members, selected, shareToken] = await Promise.all([
-    listBookings(id),
-    listGear(id),
-    listMembers(id),
-    getSelectedDestinations(id),
-    getShareToken(id),
-  ]);
+  // Five reads for five live subtitle lines, and the trip alongside them rather
+  // than ahead of them: awaiting it first made this tab two round trips to the
+  // database where one will do. Together they are the whole cost of a menu that
+  // answers "is there anything I still need to do?" without opening anything.
+  const [trip, bookings, gear, members, selected, shareToken] =
+    await Promise.all([
+      getTrip(id),
+      listBookings(id),
+      listGear(id),
+      listMembers(id),
+      getSelectedDestinations(id),
+      getShareToken(id),
+    ]);
+  if (!trip) notFound();
 
   return (
     <MoreMenu

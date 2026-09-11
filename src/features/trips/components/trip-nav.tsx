@@ -53,6 +53,18 @@ function useTripNavItems(tripId: string): NavItem[] {
 // a route, so the browser's back button and a shared URL both keep working.
 // Built from TRIP_TABS like every other presentation, so a tab appears in all
 // of them or in none.
+//
+// `prefetch` is on deliberately. Next's default for a dynamic route fetches
+// only as far as its loading.tsx, so clicking a tab bought a skeleton
+// immediately and then waited on a round trip to the database for the content —
+// the wait that made switching tabs feel slow. These four links are the app's
+// most-used navigation and they are on screen the whole time a trip is open, so
+// the three you are not on are worth rendering ahead of the click; they are then
+// held by staleTimes.static (see next.config.ts) for three minutes.
+//
+// The cost is three background renders when a trip opens. If that ever becomes
+// the wrong trade — many more tabs, or a tab that is expensive to render —
+// this prop is the one line to remove.
 export function TripTabs({ tripId }: { tripId: string }) {
   const items = useTripNavItems(tripId);
 
@@ -65,6 +77,7 @@ export function TripTabs({ tripId }: { tripId: string }) {
         <Link
           key={item.href}
           href={item.href}
+          prefetch
           aria-current={item.active ? "page" : undefined}
           className={cn(
             "flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[calc(var(--radius-control)-2px)] px-2 py-1.5 text-sm font-semibold",

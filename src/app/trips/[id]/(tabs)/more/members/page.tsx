@@ -28,10 +28,10 @@ export default async function MembersPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const trip = await getTrip(id);
-  if (!trip) notFound();
 
-  const [user, owner, members, invites, origin] = await Promise.all([
+  // The trip joins the wave rather than gating it — see /more/gear for why.
+  const [trip, user, owner, members, invites, origin] = await Promise.all([
+    getTrip(id),
     getCurrentUser(),
     isTripOwner(id),
     listMembers(id),
@@ -40,6 +40,7 @@ export default async function MembersPage({
     listOpenInvites(id),
     requestOrigin(),
   ]);
+  if (!trip) notFound();
 
   return (
     <>

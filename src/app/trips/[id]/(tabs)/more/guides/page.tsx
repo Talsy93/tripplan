@@ -17,13 +17,15 @@ export default async function CityGuidesPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const trip = await getTrip(id);
-  if (!trip) notFound();
 
-  const [selected, savedCities] = await Promise.all([
+  // The trip rides in the same wave as the two lists rather than ahead of them:
+  // nothing here needs it first, and awaiting it alone cost a round trip.
+  const [trip, selected, savedCities] = await Promise.all([
+    getTrip(id),
     getSelectedDestinations(id),
     getSavedCities(id),
   ]);
+  if (!trip) notFound();
 
   // Two sources, and both belong here. A city with things picked in it is
   // obviously in the trip; a city that discovery suggested and nobody has opened
