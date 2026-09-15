@@ -2,10 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
-import { createTripSchema, type TripFormState } from "../domain/trip";
+import {
+  createTripSchema,
+  renameTripSchema,
+  type TripFormState,
+} from "../domain/trip";
 import {
   createTrip as insertTrip,
   deleteTrip as removeTrip,
+  updateTripName,
 } from "../infrastructure/trips-service";
 
 export async function createTrip(
@@ -57,3 +62,21 @@ export async function deleteTrip(tripId: string): Promise<{ ok: boolean }> {
 // Kept as a note rather than silently vanishing, because the feature was a
 // deliberate answer to "law 05 wants a reversible half of destroying a trip",
 // and the answer now is that deleting is the only such action and it asks first.
+
+export async function renameTrip(
+  tripId: string,
+  name: string,
+): Promise<{ ok: boolean; message?: string }> {
+  const parsed = renameTripSchema.safeParse({ tripId, name });
+  if (!parsed.success) {
+    const first = z.flattenError(parsed.error).fieldErrors.name?.[0];
+    return { ok: false, message: first ?? "השם אינו תקין." };
+  }
+
+  const { error } = await updateTripName(parsed.data.tripId, parsed.data.name);
+  if (error) return { ok: false, message: "שמירת השם נכשלה. נסו שוב." };
+
+  revalidatePath(`/trips/${parsed.data.tripId}`, "layout");
+  revalidatePath("/profile");
+  return { ok: true };
+}

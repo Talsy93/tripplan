@@ -42,6 +42,8 @@ export function GearList({
   // the row has to render the value the user just chose either way.
   const [pending, setPending] = useState<Map<string, boolean>>(new Map());
   const [removed, setRemoved] = useState<string[]>([]);
+  // The starter lists, once the list has items: folded until asked for.
+  const [showStarters, setShowStarters] = useState(false);
   const { showToast } = useToast();
 
   // The props are the source of truth. `pending` only overrides a row while its
@@ -195,26 +197,59 @@ export function GearList({
         </>
       )}
 
-      {visible.length === 0 && (
+      {/* The starter lists. Open on an empty list, because that is what an
+          empty list needs; once anything has been added they fold behind a
+          button rather than vanish — the second shirt is as easy to forget as
+          the first. Only categories with something left to offer are drawn,
+          and a label already on the list is not offered again. */}
+      {(visible.length === 0 || showStarters) && (
         <div className="flex flex-col gap-4">
           <SectionHeading
             level="sub"
             description="בחרו מהרשימות למטה, או הוסיפו כל דבר אחר בשדה שלמעלה."
+            actions={
+              visible.length > 0 ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowStarters(false)}
+                >
+                  סגירת ההצעות
+                </Button>
+              ) : undefined
+            }
           >
-            התחלה מהירה
+            {visible.length === 0 ? "התחלה מהירה" : "הצעות לאריזה"}
           </SectionHeading>
           <div className="grid gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
-            {GEAR_CATEGORY_ORDER.map((category) => (
+            {GEAR_CATEGORY_ORDER.filter(
+              (category) => starterSuggestions(category, visible).length > 0,
+            ).map((category) => (
               <Card key={category} className="flex min-w-0 flex-col gap-2">
                 <span className="flex items-center gap-2 text-sm font-bold">
                   <DomainIcon name={GEAR_CATEGORIES[category].icon} />
                   {GEAR_CATEGORIES[category].label}
                 </span>
-                <StarterRow tripId={tripId} category={category} items={[]} />
+                <StarterRow
+                  tripId={tripId}
+                  category={category}
+                  items={visible}
+                />
               </Card>
             ))}
           </div>
         </div>
+      )}
+
+      {visible.length > 0 && !showStarters && (
+        <Button
+          variant="outline"
+          className="self-start"
+          onClick={() => setShowStarters(true)}
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          פתחו את ההצעות לאריזה
+        </Button>
       )}
     </div>
   );

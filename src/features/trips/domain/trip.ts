@@ -129,3 +129,14 @@ export function formatShortDate(isoDate: string): string {
 // from the trip's dates instead — see phaseLabel in ./trip-days and iron rule
 // #6 in ARCHITECTURE.md. The column is still parsed above because it exists and
 // is non-null, not because anything displays it.
+
+// Renaming. Separate from createTripSchema because the dates are not in play
+// and the name here is the only thing being validated.
+export const renameTripSchema = z.object({
+  tripId: z.uuid(),
+  name: z
+    .string()
+    .trim()
+    .min(1, { error: "יש להזין שם לטיול." })
+    .max(80, { error: "עד 80 תווים." }),
+});

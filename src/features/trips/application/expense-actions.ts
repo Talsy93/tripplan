@@ -50,7 +50,7 @@ export async function addExpense(
   });
   if (!ok) return { ok: false, message: "ההוספה נכשלה. נסו שוב." };
 
-  revalidatePath(`/trips/${tripId}`, "layout");
+  revalidatePath(`/trips/${tripId}/today`);
   return { ok: true };
 }
 
@@ -71,7 +71,7 @@ export async function editExpense(
   });
   if (!ok) return { ok: false, message: "העדכון נכשל. נסו שוב." };
 
-  revalidatePath(`/trips/${tripId}`, "layout");
+  revalidatePath(`/trips/${tripId}/today`);
   return { ok: true };
 }
 
@@ -82,6 +82,6 @@ export async function removeExpense(
   if (!tripIdSchema.safeParse(tripId).success) return false;
   if (!z.uuid().safeParse(id).success) return false;
   const ok = await deleteExpense(id);
-  if (ok) revalidatePath(`/trips/${tripId}`, "layout");
+  if (ok) revalidatePath(`/trips/${tripId}/today`);
   return ok;
 }

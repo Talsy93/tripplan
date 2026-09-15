@@ -432,6 +432,15 @@ export type { OpenItem } from "./domain/open-items";
 export { MoreBackLink } from "./components/more-back-link";
 export { TripNav, TripRail, TripSideNav, TripTabs } from "./components/trip-nav";
 export { TripWorkspace } from "./components/trip-workspace";
+export { TripNameButton } from "./components/trip-name-button";
+export { RailEditorButton, useRailShortcuts } from "./components/rail-editor";
+export {
+  RAIL_CATALOG,
+  DEFAULT_RAIL,
+  normalizeRail,
+  railShortcuts,
+} from "./domain/rail-shortcuts";
+export type { RailShortcut, RailShortcutKey } from "./domain/rail-shortcuts";
 export { WorkspaceMap } from "./components/workspace-map";
 export { TRIP_TABS, tripTabHref, defaultTripTab } from "./domain/trip-tabs";
 export type { TripTabSegment } from "./domain/trip-tabs";

@@ -36,7 +36,8 @@ export async function addDayReminder(
   const ok = await createDayReminder({ tripId, ...parsed.data });
   if (!ok) return { ok: false, message: "ההוספה נכשלה. נסו שוב." };
 
-  revalidatePath(`/trips/${tripId}`, "layout");
+  revalidatePath(`/trips/${tripId}/today`);
+  revalidatePath(`/trips/${tripId}/days`);
   return { ok: true };
 }
 
@@ -48,7 +49,10 @@ export async function toggleDayReminder(
   if (!tripIdSchema.safeParse(tripId).success) return false;
   if (!z.uuid().safeParse(id).success) return false;
   const ok = await setDayReminderDone(id, done);
-  if (ok) revalidatePath(`/trips/${tripId}`, "layout");
+  if (ok) {
+    revalidatePath(`/trips/${tripId}/today`);
+    revalidatePath(`/trips/${tripId}/days`);
+  }
   return ok;
 }
 
@@ -59,6 +63,9 @@ export async function removeDayReminder(
   if (!tripIdSchema.safeParse(tripId).success) return false;
   if (!z.uuid().safeParse(id).success) return false;
   const ok = await deleteDayReminder(id);
-  if (ok) revalidatePath(`/trips/${tripId}`, "layout");
+  if (ok) {
+    revalidatePath(`/trips/${tripId}/today`);
+    revalidatePath(`/trips/${tripId}/days`);
+  }
   return ok;
 }

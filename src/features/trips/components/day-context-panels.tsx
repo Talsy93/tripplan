@@ -3,6 +3,8 @@ import { addDays } from "../domain/weather";
 import { getTripRoute } from "../infrastructure/route-service";
 import { DayMapCard } from "./day-map-card";
 import { DayWeatherCard } from "./day-weather-card";
+import { OtherDestinationsWeather } from "./other-weather";
+import type { CityWeather } from "../domain/weather";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 
 // The two panels on the day screen's context pane that have to go to the
@@ -70,13 +72,32 @@ export async function DayForecastPanel({
     null;
   if (!stop) return null;
 
-  const days = await getDailyForecast({
-    latitude: stop.latitude,
-    longitude: stop.longitude,
-    startDate: date,
-    endDate: addDays(date, 3),
-  });
+  // Today's city in the open, and the rest of the route folded under it —
+  // a trip that crosses from Japan to Thailand tomorrow wants both, and a
+  // one-city trip never sees the fold. All the forecasts go out together.
+  const others = route.stops.filter((candidate) => candidate.city !== stop.city);
+  const window = { startDate: date, endDate: addDays(date, 3) };
+  const [days, ...otherDays] = await Promise.all([
+    getDailyForecast({ latitude: stop.latitude, longitude: stop.longitude, ...window }),
+    ...others.map((other) =>
+      getDailyForecast({
+        latitude: other.latitude,
+        longitude: other.longitude,
+        ...window,
+      }),
+    ),
+  ]);
   if (!days || days.length === 0) return null;
 
-  return <DayWeatherCard city={stop.city} days={days} today={date} />;
+  const otherCities: CityWeather[] = others.map((other, index) => ({
+    city: other.city,
+    days: otherDays[index] ?? [],
+  }));
+
+  return (
+    <div className="flex flex-col gap-2">
+      <DayWeatherCard city={stop.city} days={days} today={date} />
+      <OtherDestinationsWeather cities={otherCities} today={date} />
+    </div>
+  );
 }

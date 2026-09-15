@@ -29,6 +29,16 @@ export async function createTrip(
   return { error: error?.message ?? null };
 }
 
+export async function updateTripName(tripId: string, name: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("trips")
+    .update({ name })
+    .eq("id", tripId);
+
+  return { error: error?.message ?? null };
+}
+
 export async function updateTripDates(
   tripId: string,
   startDate: string,

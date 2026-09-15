@@ -3,16 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Backpack,
-  BookOpen,
-  CalendarDays,
-  Compass,
-  Map as MapIcon,
-  Menu,
-  MessageCircle,
-  Sun,
-} from "lucide-react";
+import { CalendarDays, Compass, Menu, Sun } from "lucide-react";
 import {
   BottomNav,
   IconRail,
@@ -25,6 +16,8 @@ import {
   tripTabHref,
   type TripTabSegment,
 } from "../domain/trip-tabs";
+import { railShortcuts } from "../domain/rail-shortcuts";
+import { RAIL_ICONS, RailEditorButton, useRailShortcuts } from "./rail-editor";
 
 const ICONS: Record<TripTabSegment, typeof Sun> = {
   today: Sun,
@@ -97,9 +90,12 @@ export function TripTabs({ tripId }: { tripId: string }) {
   );
 }
 
-// The icon rail while inside a trip. Sections, not tabs: the tabs live in the
-// panel, and the rail gets between the home screen, this trip, and the trip's
-// reference material.
+// The icon rail while inside a trip: the traveller's own shortcuts.
+//
+// Which parts of the trip appear here, and in what order, comes from the
+// catalogue in domain/rail-shortcuts.ts and the choice stored in this browser
+// (rail-editor.tsx). The button at the foot of the rail edits it. No "home"
+// item: the wordmark at the top is the way home.
 export function TripRail({
   tripId,
   initial,
@@ -110,41 +106,31 @@ export function TripRail({
   footer?: ReactNode;
 }) {
   const pathname = usePathname();
-  const inTrip = pathname.startsWith(`/trips/${tripId}`);
-  const inMore = (segment: string) =>
-    pathname.startsWith(`/trips/${tripId}/more/${segment}`);
+  const keys = useRailShortcuts();
 
-  // No "home" item: the wordmark at the top of the rail is the way home, and a
-  // second control to the same place read as two tabs for one screen.
-  const items: NavItem[] = [
-    {
-      href: tripTabHref(tripId, "today"),
-      label: "הטיול",
-      icon: <MapIcon className="h-5 w-5" />,
-      active:
-        inTrip && !inMore("guides") && !inMore("chat") && !inMore("gear"),
-    },
-    {
-      href: `/trips/${tripId}/more/guides`,
-      label: "מדריכי הערים",
-      icon: <BookOpen className="h-5 w-5" />,
-      active: inMore("guides"),
-    },
-    {
-      href: `/trips/${tripId}/more/chat`,
-      label: "הצ׳אט של הטיול",
-      icon: <MessageCircle className="h-5 w-5" />,
-      active: inMore("chat"),
-    },
-    {
-      href: `/trips/${tripId}/more/gear`,
-      label: "ציוד ואריזה",
-      icon: <Backpack className="h-5 w-5" />,
-      active: inMore("gear"),
-    },
-  ];
+  const items: NavItem[] = railShortcuts(keys).map((shortcut) => {
+    const Icon = RAIL_ICONS[shortcut.key];
+    const href = `/trips/${tripId}/${shortcut.path}`;
+    return {
+      href,
+      label: shortcut.label,
+      icon: <Icon className="h-5 w-5" />,
+      active: pathname === href || pathname.startsWith(`${href}/`),
+    };
+  });
 
-  return <IconRail items={items} initial={initial} footer={footer} />;
+  return (
+    <IconRail
+      items={items}
+      initial={initial}
+      footer={
+        <>
+          <RailEditorButton />
+          {footer}
+        </>
+      }
+    />
+  );
 }
 
 // --- the pre-v5 presentations, kept for the preview harness -----------------

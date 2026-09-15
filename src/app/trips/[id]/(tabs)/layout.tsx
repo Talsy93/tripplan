@@ -22,6 +22,7 @@ import {
   todayIn,
   tripHueStyle,
   tripPhase,
+  TripNameButton,
   TripRail,
   TripTabs,
   TripWorkspace,
@@ -154,7 +155,7 @@ export default async function TripTabsLayout({
       header={
         <AppHeader
           wide
-          title={trip.name}
+          title={<TripNameButton tripId={trip.id} name={trip.name} />}
           back={
             <Link
               href="/profile"

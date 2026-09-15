@@ -11,6 +11,7 @@ import {
   MoreBackLink,
   PushToggle,
   TripDatesForm,
+  TripNameButton,
   WeatherPanel,
 } from "@/features/trips";
 
@@ -39,6 +40,11 @@ export default async function TripDetailsPage({
     <>
       <MoreBackLink tripId={trip.id} />
       <SectionHeading level="page">פרטי הטיול</SectionHeading>
+
+      <section className="flex flex-col gap-3">
+        <SectionHeading level="section">שם הטיול</SectionHeading>
+        <TripNameButton tripId={trip.id} name={trip.name} variant="row" />
+      </section>
 
       {/* Dates and reminders are short and unrelated to each other, so they sit
           side by side from lg and stop being two thin bands across a wide

@@ -48,9 +48,26 @@ export function PrepList({
   const [pending, setPending] = useState<Map<string, boolean>>(new Map());
   const [removed, setRemoved] = useState<string[]>([]);
   const [adding, startAdding] = useTransition();
+  // Suggestions accepted but not yet back from the server, shown at once as
+  // provisional rows. Reconciled by `kind`: the moment the real row arrives
+  // in `items`, the provisional one is dropped.
+  const [optimistic, setOptimistic] = useState<PrepItem[]>([]);
   const { showToast } = useToast();
 
-  const visible = items
+  const knownKinds = new Set<string>(
+    items.flatMap((item) => (item.kind ? [item.kind] : [])),
+  );
+  const provisional = optimistic.filter(
+    (item) => item.kind === null || !knownKinds.has(item.kind),
+  );
+  const acceptedKinds = new Set<string>(
+    provisional.flatMap((item) => (item.kind ? [item.kind] : [])),
+  );
+  const offered = suggestions.filter(
+    (suggestion) => !acceptedKinds.has(suggestion.kind),
+  );
+
+  const visible = [...items, ...provisional]
     .filter((item) => !removed.includes(item.id))
     .map((item) => {
       const override = pending.get(item.id);
@@ -80,12 +97,32 @@ export function PrepList({
   }
 
   function accept(list: PrepSuggestion[]) {
+    const now = new Date().toISOString();
+    setOptimistic((current) => [
+      ...current,
+      ...list.map((suggestion) => ({
+        id: `pending-${suggestion.kind}`,
+        trip_id: tripId,
+        title: suggestion.title,
+        done: false,
+        due_date: suggestion.dueDate,
+        url: null,
+        kind: suggestion.kind,
+        created_at: now,
+      })),
+    ]);
     startAdding(async () => {
       const ok = await addPrepSuggestions(
         tripId,
         list.map(({ kind, title, dueDate }) => ({ kind, title, dueDate })),
       );
-      if (!ok) showToast("ההוספה נכשלה. נסו שוב.", "danger");
+      if (!ok) {
+        const kinds = new Set(list.map((suggestion) => suggestion.kind));
+        setOptimistic((current) =>
+          current.filter((item) => item.kind === null || !kinds.has(item.kind)),
+        );
+        showToast("ההוספה נכשלה. נסו שוב.", "danger");
+      }
     });
   }
 
@@ -124,7 +161,7 @@ export function PrepList({
 
       <PrepForm tripId={tripId} />
 
-      {suggestions.length > 0 && (
+      {offered.length > 0 && (
         <div className="flex flex-col gap-2 rounded-card border border-dashed border-border-strong p-3">
           <div className="flex items-center justify-between gap-2">
             <span className="flex items-center gap-1.5 text-caption font-bold text-muted">
@@ -133,7 +170,7 @@ export function PrepList({
             </span>
             <button
               type="button"
-              onClick={() => accept(suggestions)}
+              onClick={() => accept(offered)}
               disabled={adding}
               className="text-caption font-semibold text-primary-ink hover:underline disabled:opacity-60"
             >
@@ -141,7 +178,7 @@ export function PrepList({
             </button>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {suggestions.map((suggestion) => (
+            {offered.map((suggestion) => (
               <button
                 key={suggestion.kind}
                 type="button"
@@ -157,7 +194,7 @@ export function PrepList({
         </div>
       )}
 
-      {visible.length === 0 && suggestions.length === 0 && (
+      {visible.length === 0 && offered.length === 0 && (
         <Card className="text-sm text-muted">הכול סומן. נסיעה טובה.</Card>
       )}
 
@@ -216,6 +253,7 @@ function PrepRow({
   onToggle: (next: boolean) => void;
   onRemove: () => void;
 }) {
+  const provisional = item.id.startsWith("pending-");
   const [linking, setLinking] = useState(false);
   const [url, setUrl] = useState(item.url ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -238,11 +276,18 @@ function PrepRow({
   }
 
   return (
-    <li className={cn("flex flex-col gap-2 px-3 py-2.5", item.done && "opacity-60")}>
+    <li
+      className={cn(
+        "flex flex-col gap-2 px-3 py-2.5",
+        item.done && "opacity-60",
+        provisional && "animate-pulse",
+      )}
+    >
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={() => onToggle(!item.done)}
+          disabled={provisional}
           aria-pressed={item.done}
           aria-label={item.done ? "סמנו כלא בוצע" : "סמנו כבוצע"}
           className={cn(
@@ -295,6 +340,7 @@ function PrepRow({
         <button
           type="button"
           onClick={onRemove}
+          disabled={provisional}
           aria-label="הסרה מהרשימה"
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-muted hover:bg-danger-tint hover:text-danger-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
