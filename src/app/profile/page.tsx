@@ -1,6 +1,4 @@
-import { Home } from "lucide-react";
 import { AppHeader, BottomSheet, IconRail } from "@/components/layout";
-import type { NavItem } from "@/components/layout";
 import { getCurrentUser, LogoutButton } from "@/features/auth";
 import {
   APP_TIME_ZONE,
@@ -88,19 +86,12 @@ export default async function ProfilePage() {
     ];
   });
 
-  const railItems: NavItem[] = [
-    {
-      href: "/profile",
-      label: "הטיולים שלי",
-      icon: <Home className="h-5 w-5" />,
-      active: true,
-    },
-  ];
-
   return (
     <div className="flex min-h-dvh">
       <div className="sticky top-0 hidden h-dvh w-rail shrink-0 lg:block">
-        <IconRail items={railItems} initial={user?.email?.[0]} />
+        {/* The wordmark is the home control; no second item for the same
+            screen. Sections of the app that are not a trip go here later. */}
+        <IconRail items={[]} initial={user?.email?.[0]} />
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col">

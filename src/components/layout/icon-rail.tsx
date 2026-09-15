@@ -29,10 +29,14 @@ export function IconRail({
       aria-label="ניווט ראשי"
       className="flex h-full w-rail flex-col items-center gap-1.5 border-e border-border bg-surface px-2.5 pb-4 pt-3"
     >
+      {/* The wordmark is also the way home — the only control for it. It used
+          to sit above a "הטיולים שלי" item that went to the same place, which
+          read as two tabs for one screen. */}
       <Link
         href="/profile"
         aria-label="MyTrip — הטיולים שלי"
-        className="mb-3 flex h-9 w-9 items-center justify-center rounded-control bg-primary text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        title="הטיולים שלי"
+        className="mb-3 flex h-9 w-9 items-center justify-center rounded-control bg-primary text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       >
         <MapPin className="h-5 w-5" aria-hidden="true" />
       </Link>

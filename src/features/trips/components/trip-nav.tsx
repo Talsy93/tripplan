@@ -8,7 +8,6 @@ import {
   BookOpen,
   CalendarDays,
   Compass,
-  Home,
   Map as MapIcon,
   Menu,
   MessageCircle,
@@ -115,12 +114,9 @@ export function TripRail({
   const inMore = (segment: string) =>
     pathname.startsWith(`/trips/${tripId}/more/${segment}`);
 
+  // No "home" item: the wordmark at the top of the rail is the way home, and a
+  // second control to the same place read as two tabs for one screen.
   const items: NavItem[] = [
-    {
-      href: "/profile",
-      label: "הטיולים שלי",
-      icon: <Home className="h-5 w-5" />,
-    },
     {
       href: tripTabHref(tripId, "today"),
       label: "הטיול",

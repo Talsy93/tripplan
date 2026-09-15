@@ -435,10 +435,7 @@ export const SCENES: Scene[] = [
       return (
         <div className="flex min-h-dvh">
           <div className="sticky top-0 hidden h-dvh w-rail shrink-0 lg:block">
-            <IconRail
-              items={[{ href: "#home", label: "הטיולים שלי", icon: <MapIcon className="h-5 w-5" />, active: true }]}
-              initial="ט"
-            />
+            <IconRail items={[]} initial="ט" />
           </div>
           <div className="flex min-w-0 flex-1 flex-col">
             <AppHeader wide brand className="lg:hidden" />
