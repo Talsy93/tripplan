@@ -18,6 +18,8 @@ import { CityDaysEditor } from "./city-days-editor";
 import { DayStrip } from "./day-strip";
 import { DaySuggestionsDialog } from "./day-suggestions-dialog";
 import { DayTimeline } from "./day-timeline";
+import { AddReminderButton } from "./reminder-dialog";
+import { AnchorsButton } from "./anchors-dialog";
 import { remindersForDay } from "../domain/day-reminders";
 import type { DayReminder } from "../domain/day-reminders";
 import { EditEntryDialog } from "./edit-entry-dialog";
@@ -384,6 +386,17 @@ export function Itinerary({
       </div>
 
       <NightStay stay={stay} />
+
+      {/* Pin an hour, lock the booked ones — the same two controls the היום
+          tab has, so a day is shaped the same wherever it is looked at. */}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <AddReminderButton
+          tripId={tripId}
+          dayNumber={active.day}
+          dayCount={dayCount}
+        />
+        <AnchorsButton tripId={tripId} day={active} />
+      </div>
 
       {/* An entirely free day gets the offer to fill it, right here — the point
           of showing empty days at all. Asking the AI is one click, and it opens

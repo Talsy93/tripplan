@@ -5,6 +5,7 @@ import * as z from "zod";
 import {
   applyTimeChanges,
   deleteItineraryEntry as deleteEntry,
+  setEntriesFixed,
   updateItineraryEntry as updateEntry,
 } from "../infrastructure/itinerary-service";
 import { setCityDays as writeCityDays } from "../infrastructure/city-days-service";
@@ -44,6 +45,28 @@ export async function applyDayReflow(
   if (error) return { ok: false, message: "העדכון נכשל. נסו שוב." };
 
   revalidatePath(`/trips/${tripId}`, "layout");
+  return { ok: true };
+}
+
+// Which entries of a day are anchored, set together from the lock dialog.
+const anchorsSchema = z
+  .array(z.object({ id: z.uuid(), fixed: z.boolean() }))
+  .min(1)
+  .max(60);
+
+export async function setItineraryAnchors(
+  tripId: string,
+  changes: unknown,
+): Promise<{ ok: boolean; message?: string }> {
+  if (!z.uuid().safeParse(tripId).success) return { ok: false };
+  const parsed = anchorsSchema.safeParse(changes);
+  if (!parsed.success) return { ok: false, message: "השינויים לא תקינים." };
+
+  const { error } = await setEntriesFixed(tripId, parsed.data);
+  if (error) return { ok: false, message: "השמירה נכשלה. נסו שוב." };
+
+  revalidatePath(`/trips/${tripId}/today`);
+  revalidatePath(`/trips/${tripId}/days`);
   return { ok: true };
 }
 

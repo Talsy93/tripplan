@@ -362,3 +362,25 @@ export async function applyTimeChanges(
   }
   return { error: null };
 }
+
+// Anchoring several entries at once (the lock dialog). Two updates at most —
+// one for the ids being anchored, one for the ids being released.
+export async function setEntriesFixed(
+  tripId: string,
+  changes: { id: string; fixed: boolean }[],
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  for (const fixed of [true, false]) {
+    const ids = changes
+      .filter((change) => change.fixed === fixed)
+      .map((change) => change.id);
+    if (ids.length === 0) continue;
+    const { error } = await supabase
+      .from("itinerary_items")
+      .update({ fixed })
+      .eq("trip_id", tripId)
+      .in("id", ids);
+    if (error) return { error: error.message };
+  }
+  return { error: null };
+}

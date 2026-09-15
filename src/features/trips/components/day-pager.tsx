@@ -11,6 +11,7 @@ import { DayStrip } from "./day-strip";
 import { DayTimeline } from "./day-timeline";
 import { NightStay } from "./night-stay";
 import { AddReminderButton } from "./reminder-dialog";
+import { AnchorsButton } from "./anchors-dialog";
 import { RescheduleButton } from "./reschedule-button";
 import { remindersForDay } from "../domain/day-reminders";
 import type { DayReminder } from "../domain/day-reminders";
@@ -154,6 +155,7 @@ export function DayPager({
           dayNumber={active.day}
           dayCount={dayCount}
         />
+        <AnchorsButton tripId={tripId} day={active} />
         {nowIso && (
           <RescheduleButton tripId={tripId} day={active} nowIso={nowIso} />
         )}

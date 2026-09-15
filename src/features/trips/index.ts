@@ -376,6 +376,7 @@ export { AddReminderButton, ReminderRow } from "./components/reminder-dialog";
 export { RescheduleDialog } from "./components/reschedule-dialog";
 export { ArrivalWatcher } from "./components/arrival-watcher";
 export { RescheduleButton } from "./components/reschedule-button";
+export { AnchorsButton } from "./components/anchors-dialog";
 export {
   destinationCurrency,
   convert,

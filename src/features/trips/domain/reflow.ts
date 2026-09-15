@@ -43,14 +43,18 @@ export function reflowFromArrival(
   if (index < 0) return [];
 
   const arrived = timed[index];
+  // An anchored item never moves — not even when you are standing at it. A
+  // booked table at 12:30 is at 12:30 whether you turned up at 12:10 or 12:50;
+  // the day around it is what has to give.
+  if (arrived.entry.fixed) return [];
+
   const delta = nowMinutes - arrived.start;
   if (Math.abs(delta) < REFLOW_THRESHOLD_MINUTES) return [];
 
   const changes: TimeChange[] = [];
   for (let i = index; i < timed.length; i++) {
     const { entry, start } = timed[i];
-    // The arrival itself moves even if it is fixed — you are there. Anything
-    // fixed after it anchors the rest of the day.
+    // Anything anchored after the arrival holds the rest of the day in place.
     if (i > index && entry.fixed) break;
 
     const end = parseTimeLabel(entry.endLabel);

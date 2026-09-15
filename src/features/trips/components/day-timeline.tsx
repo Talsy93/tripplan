@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   Clock,
   Footprints,
+  Lock,
   MoonStar,
   Plus,
 } from "lucide-react";
@@ -446,12 +447,14 @@ function EntryRow({
 }) {
   const { entry, startMinutes, endMinutes } = placed;
 
+  const anchored = entry.fixed ? "מעוגן" : null;
+
   if (compact) {
     return (
       <CompactRow
         time={formatMinutes(startMinutes)}
         title={entry.title}
-        sub={entry.note || null}
+        sub={[entry.note || null, anchored].filter(Boolean).join(" · ") || null}
       />
     );
   }
@@ -466,8 +469,14 @@ function EntryRow({
         <span className="min-w-0 text-caption font-bold tabular-nums text-muted">
           {timeRange(startMinutes, endMinutes)}
         </span>
-        <span className="min-w-0 text-sm font-bold wrap-anywhere">
+        <span className="flex min-w-0 items-center gap-1.5 text-sm font-bold wrap-anywhere">
           {entry.title}
+          {anchored && (
+            <Lock
+              className="h-3.5 w-3.5 shrink-0 text-muted"
+              aria-label="מעוגן — לא זז בעדכון הלו״ז"
+            />
+          )}
         </span>
         {entry.note && (
           <span className="min-w-0 text-caption text-muted wrap-anywhere">

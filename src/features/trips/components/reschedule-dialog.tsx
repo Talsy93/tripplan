@@ -89,7 +89,8 @@ export function RescheduleDialog({
       <div className="flex flex-col gap-4">
         <p className="text-sm text-muted">
           עכשיו {formatMinutes(nowMinutes)}. בחרו את המקום שהגעתם אליו — הוא יתחיל
-          עכשיו, ומה שאחריו יזוז באותו פער. הזמנות קבועות נשארות בשעה שלהן.
+          עכשיו, ומה שאחריו יזוז באותו פער. פריטים מעוגנים (עם מנעול) לא זזים,
+          ועוצרים את הגלישה אחריהם; לעגן או לשחרר — בכפתור ״עיגון״.
         </p>
 
         <ul className="flex flex-col gap-1.5">
@@ -170,17 +171,23 @@ function EntryOption({
   selected: boolean;
   onSelect: () => void;
 }) {
+  // An anchored entry is shown, so the day reads whole, but cannot be picked:
+  // it does not move, so there is nothing to re-time from it.
+  const locked = Boolean(entry.fixed);
   return (
     <li>
       <button
         type="button"
         onClick={onSelect}
+        disabled={locked}
         aria-pressed={selected}
         className={cn(
           "flex w-full min-w-0 items-center gap-3 rounded-control border px-3 py-2 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          selected
-            ? "border-primary bg-primary-tint"
-            : "border-border bg-surface hover:bg-surface-2",
+          locked
+            ? "cursor-default border-border bg-surface-2 text-muted"
+            : selected
+              ? "border-primary bg-primary-tint"
+              : "border-border bg-surface hover:bg-surface-2",
         )}
       >
         <span className="w-11 shrink-0 text-caption font-bold tabular-nums text-muted">
@@ -189,8 +196,11 @@ function EntryOption({
         <span className="min-w-0 flex-1 truncate text-sm font-semibold">
           {entry.title}
         </span>
-        {entry.fixed ? (
-          <Lock className="h-4 w-4 shrink-0 text-muted" aria-label="הזמנה קבועה" />
+        {locked ? (
+          <span className="flex shrink-0 items-center gap-1 text-caption font-semibold text-muted">
+            <Lock className="h-4 w-4" aria-hidden="true" />
+            מעוגן
+          </span>
         ) : selected ? (
           <MapPinCheck className="h-4 w-4 shrink-0 text-primary-ink" aria-hidden="true" />
         ) : null}
