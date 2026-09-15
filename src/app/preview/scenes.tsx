@@ -295,7 +295,10 @@ export const SCENES: Scene[] = [
                   tripId={f.TRIP_ID}
                   dayNumber={1}
                   currency="JPY"
-                  rate={{ base: "ILS", quote: "JPY", rate: 46.2, date: f.TODAY }}
+                  rates={[
+                    { base: "ILS", quote: "JPY", rate: 46.2, date: f.TODAY },
+                    { base: "ILS", quote: "KRW", rate: 410.5, date: f.TODAY },
+                  ]}
                   expenses={[
                     { id: "00000000-0000-0000-0000-00000000e001", trip_id: f.TRIP_ID, day_number: 1, amount: 2400, currency: "JPY", note: "צהריים בשוק", created_at: f.NOW },
                     { id: "00000000-0000-0000-0000-00000000e002", trip_id: f.TRIP_ID, day_number: 1, amount: 1800, currency: "JPY", note: "כרטיסים לסקייטרי", created_at: f.NOW },
@@ -303,7 +306,13 @@ export const SCENES: Scene[] = [
                 />
               </li>
               <li className="min-w-0">
-                <CurrencyTile rate={{ base: "ILS", quote: "JPY", rate: 46.2, date: f.TODAY }} />
+                <CurrencyTile
+                  rates={[
+                    { base: "ILS", quote: "JPY", rate: 46.2, date: f.TODAY },
+                    { base: "ILS", quote: "KRW", rate: 410.5, date: f.TODAY },
+                  ]}
+                  initialQuote="JPY"
+                />
               </li>
               <li className="min-w-0">
                 <div className="flex h-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-card border border-border bg-surface px-2 py-2.5 text-center">

@@ -94,6 +94,21 @@ export function destinationCurrency(
   return best;
 }
 
+// Every currency the trip touches, most-used first — the list a traveller
+// picks from when the trip crosses a border. Home currency excluded.
+export function tripCurrencies(
+  countryCodes: (string | null | undefined)[],
+): string[] {
+  const counts = new Map<string, number>();
+  for (const code of countryCodes) {
+    if (!code) continue;
+    const currency = CURRENCY_BY_COUNTRY[code.toUpperCase()];
+    if (!currency || currency === HOME_CURRENCY) continue;
+    counts.set(currency, (counts.get(currency) ?? 0) + 1);
+  }
+  return [...counts].sort((a, b) => b[1] - a[1]).map(([currency]) => currency);
+}
+
 export type ExchangeRate = {
   base: string;
   quote: string;

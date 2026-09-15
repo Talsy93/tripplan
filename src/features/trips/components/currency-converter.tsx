@@ -1,19 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeftRight, Coins } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Coins } from "lucide-react";
 import { Dialog, Input } from "@/components/ui";
+import { cn } from "@/lib/cn";
 import { convert, rateLine } from "../domain/currency";
 import type { ExchangeRate } from "../domain/currency";
 import { currencySymbol, formatMoney } from "../domain/expenses";
 
 // The money tile on the day screen and the converter behind it.
 //
-// The tile says the two lines a traveller actually needs at a glance — what
-// one shekel buys, and what a round amount of the local money costs. Tapping
-// it opens a two-way converter: type in either box and the other follows.
-export function CurrencyTile({ rate }: { rate: ExchangeRate | null }) {
+// A trip can cross borders, so the tile is handed every currency the trip
+// touches and opens on the one for today's country (the itinerary says where
+// you are). Tapping it opens a two-way converter; when there is more than one
+// currency, a row of chips switches between them — the tile follows.
+export function CurrencyTile({
+  rates,
+  initialQuote = null,
+}: {
+  rates: ExchangeRate[];
+  // The currency of today's country, per the itinerary. Null falls back to
+  // the trip's most-used currency.
+  initialQuote?: string | null;
+}) {
   const [open, setOpen] = useState(false);
+  const [quote, setQuote] = useState<string | null>(initialQuote);
+
+  const rate =
+    rates.find((candidate) => candidate.quote === (quote ?? initialQuote)) ??
+    rates[0] ??
+    null;
 
   if (!rate) {
     return (
@@ -29,6 +45,7 @@ export function CurrencyTile({ rate }: { rate: ExchangeRate | null }) {
   }
 
   const lines = rateLine(rate, formatMoney);
+  const several = rates.length > 1;
 
   return (
     <>
@@ -40,6 +57,9 @@ export function CurrencyTile({ rate }: { rate: ExchangeRate | null }) {
         <span className="flex min-w-0 items-center justify-center gap-1 text-caption font-semibold text-muted">
           <Coins className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="min-w-0 truncate">{rate.quote}</span>
+          {several && (
+            <ChevronDown className="h-3 w-3 shrink-0" aria-hidden="true" />
+          )}
         </span>
         <span className="min-w-0 truncate text-sm font-black tabular-nums" dir="ltr">
           {lines.forward}
@@ -49,7 +69,13 @@ export function CurrencyTile({ rate }: { rate: ExchangeRate | null }) {
         </span>
       </button>
 
-      <ConverterDialog rate={rate} open={open} onClose={() => setOpen(false)} />
+      <ConverterDialog
+        rates={rates}
+        rate={rate}
+        onPick={setQuote}
+        open={open}
+        onClose={() => setOpen(false)}
+      />
     </>
   );
 }
@@ -57,11 +83,15 @@ export function CurrencyTile({ rate }: { rate: ExchangeRate | null }) {
 const QUICK = [10, 50, 100, 500, 1000, 5000];
 
 function ConverterDialog({
+  rates,
   rate,
+  onPick,
   open,
   onClose,
 }: {
+  rates: ExchangeRate[];
   rate: ExchangeRate;
+  onPick: (quote: string) => void;
   open: boolean;
   onClose: () => void;
 }) {
@@ -86,6 +116,35 @@ function ConverterDialog({
       title={`המרה · ${rate.quote} ⇄ ${rate.base}`}
     >
       <div className="flex flex-col gap-4">
+        {rates.length > 1 && (
+          <div
+            role="group"
+            aria-label="מטבע"
+            className="flex flex-wrap gap-1.5"
+          >
+            {rates.map((candidate) => {
+              const active = candidate.quote === rate.quote;
+              return (
+                <button
+                  key={candidate.quote}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => onPick(candidate.quote)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-control border px-3 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    active
+                      ? "border-foreground bg-foreground text-surface"
+                      : "border-border-strong bg-surface text-foreground hover:bg-surface-2",
+                  )}
+                >
+                  <span dir="ltr">{currencySymbol(candidate.quote).trim()}</span>
+                  {candidate.quote}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
           <AmountBox
             label={rate.quote}

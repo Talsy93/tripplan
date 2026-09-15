@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { HelpCircle } from "lucide-react";
-import { getExchangeRate } from "@/lib/currency";
+import { getExchangeRates } from "@/lib/currency";
 import { getDailyForecast } from "@/lib/weather";
-import { destinationCurrency, HOME_CURRENCY } from "../domain/currency";
-import type { ExchangeRate } from "../domain/currency";
+import {
+  destinationCurrency,
+  HOME_CURRENCY,
+  tripCurrencies,
+} from "../domain/currency";
 import { expensesForDay } from "../domain/expenses";
 import type { DailyExpense } from "../domain/expenses";
 import { describeWeather } from "../domain/weather";
@@ -52,13 +55,15 @@ export async function TodayStats({
     route.stops[0] ??
     null;
 
-  // The trip's money: the currency most of its stops use. The tile prefers the
-  // current stop's country when it differs (a day trip across a border).
-  const currency =
-    destinationCurrency([stop?.countryCode]) ??
-    destinationCurrency(route.stops.map((candidate) => candidate.countryCode));
+  // Every currency the trip touches, and the one for today: the current stop's
+  // country, falling back to the trip's most-used. A trip across a border gets
+  // a chooser in the money tile; a one-country trip never sees it.
+  const currencies = tripCurrencies(
+    route.stops.map((candidate) => candidate.countryCode),
+  );
+  const currency = destinationCurrency([stop?.countryCode]) ?? currencies[0] ?? null;
 
-  const [weatherToday, rate] = await Promise.all([
+  const [weatherToday, rates] = await Promise.all([
     date && stop
       ? getDailyForecast({
           latitude: stop.latitude,
@@ -67,9 +72,7 @@ export async function TodayStats({
           endDate: date,
         }).then((days) => days?.find((day) => day.date === date) ?? null)
       : Promise.resolve(null),
-    currency
-      ? getExchangeRate(HOME_CURRENCY, currency)
-      : Promise.resolve<ExchangeRate | null>(null),
+    getExchangeRates(HOME_CURRENCY, currencies),
   ]);
 
   let weather: Tile | null = null;
@@ -123,11 +126,11 @@ export async function TodayStats({
           dayNumber={dayNumber ?? 1}
           expenses={dayNumber === null ? [] : expensesForDay(expenses, dayNumber)}
           currency={currency ?? HOME_CURRENCY}
-          rate={rate}
+          rates={rates}
         />
       </li>
       <li className="min-w-0">
-        <CurrencyTile rate={rate} />
+        <CurrencyTile rates={rates} initialQuote={currency} />
       </li>
       <li className="min-w-0">
         <StatTile tile={lodgingTile} />

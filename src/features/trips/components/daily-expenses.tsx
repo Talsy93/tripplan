@@ -25,22 +25,24 @@ export function DailyExpensesTile({
   dayNumber,
   expenses,
   currency,
-  rate,
+  rates = [],
 }: {
   tripId: string;
   dayNumber: number;
   expenses: DailyExpense[];
-  // The currency to default a new expense to — the destination's.
+  // The currency to default a new expense to — today's country's.
   currency: string;
-  rate: ExchangeRate | null;
+  // Every rate the trip has, so a total in any of its currencies converts.
+  rates?: ExchangeRate[];
 }) {
   const [open, setOpen] = useState(false);
   const totals = expenseTotals(expenses);
   const main = totals[0] ?? null;
 
+  const mainRate = main ? rateFor(rates, main.currency) : null;
   const inHome =
-    main && rate && main.currency === rate.quote
-      ? formatMoney(convert(main.total, rate, "toBase"), rate.base)
+    main && mainRate
+      ? formatMoney(convert(main.total, mainRate, "toBase"), mainRate.base)
       : null;
 
   return (
@@ -71,7 +73,7 @@ export function DailyExpensesTile({
         dayNumber={dayNumber}
         expenses={expenses}
         currency={currency}
-        rate={rate}
+        rates={rates}
         open={open}
         onClose={() => setOpen(false)}
       />
@@ -81,12 +83,16 @@ export function DailyExpensesTile({
 
 type Draft = { amount: string; currency: string; note: string };
 
+function rateFor(rates: ExchangeRate[], currency: string): ExchangeRate | null {
+  return rates.find((rate) => rate.quote === currency) ?? null;
+}
+
 function ExpensesDialog({
   tripId,
   dayNumber,
   expenses,
   currency,
-  rate,
+  rates,
   open,
   onClose,
 }: {
@@ -94,7 +100,7 @@ function ExpensesDialog({
   dayNumber: number;
   expenses: DailyExpense[];
   currency: string;
-  rate: ExchangeRate | null;
+  rates: ExchangeRate[];
   open: boolean;
   onClose: () => void;
 }) {
@@ -166,18 +172,21 @@ function ExpensesDialog({
       <div className="flex flex-col gap-4">
         {totals.length > 0 && (
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            {totals.map((total) => (
-              <span key={total.currency} className="flex flex-col">
-                <span className="text-title font-black tabular-nums">
-                  {formatMoney(total.total, total.currency)}
-                </span>
-                {rate && total.currency === rate.quote && (
-                  <span className="text-caption tabular-nums text-muted">
-                    ≈ {formatMoney(convert(total.total, rate, "toBase"), rate.base)}
+            {totals.map((total) => {
+              const rate = rateFor(rates, total.currency);
+              return (
+                <span key={total.currency} className="flex flex-col">
+                  <span className="text-title font-black tabular-nums">
+                    {formatMoney(total.total, total.currency)}
                   </span>
-                )}
-              </span>
-            ))}
+                  {rate && (
+                    <span className="text-caption tabular-nums text-muted">
+                      ≈ {formatMoney(convert(total.total, rate, "toBase"), rate.base)}
+                    </span>
+                  )}
+                </span>
+              );
+            })}
           </div>
         )}
 
