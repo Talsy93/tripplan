@@ -13,10 +13,10 @@ import {
   Marker,
   Polyline,
   Popup,
-  TileLayer,
   useMap,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { BaseTiles, MapAutosize } from "./map-base";
 import { routeBounds, type RoutePlace, type RouteStop } from "../domain/route";
 import { cityToneMap, toneByIndex, type Tone } from "../domain/tone";
 
@@ -152,10 +152,11 @@ export default function RouteMapCanvas({
       // explore pane and the day card all get it.
       className="isolate h-full w-full"
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      <BaseTiles />
+
+      {/* No refit: this map is handed an explicit centre and zoom, which do
+          not depend on the size of the box, so re-measuring is all it needs. */}
+      <MapAutosize />
 
       <MapFocus target={focus} />
 

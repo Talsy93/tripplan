@@ -15,8 +15,9 @@
 
 import { Fragment } from "react";
 import L from "leaflet";
-import { MapContainer, Marker, Polyline, TileLayer } from "react-leaflet";
+import { MapContainer, Marker, Polyline } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { BaseTiles, MapAutosize } from "./map-base";
 
 export type MappedTrip = {
   id: string;
@@ -100,10 +101,13 @@ export default function TripsMapCanvas({
       // map would paint over the phone's fixed navigation bar.
       className="isolate h-full w-full"
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      <BaseTiles />
+
+      {/* Refit, unlike the route map: this one's view *is* the bounds, and
+          Leaflet picked the zoom from whatever width the box had at mount. A
+          world map that came up in a box of 40px fitted every trip into one
+          tile and stayed there. */}
+      <MapAutosize refit={(map) => map.fitBounds(bounds)} />
 
       {trips.map((trip) => (
         // A Fragment, not a div: react-leaflet children attach themselves to the
