@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowUpDown,
@@ -35,6 +36,7 @@ import type {
 } from "../domain/timeline";
 import { DomainIcon } from "./domain-icon";
 import { ReminderRow } from "./reminder-dialog";
+import { BookingDetails } from "./booking-details";
 
 function itemStartMinutes(item: DayItem): number | null {
   if (item.kind === "gap") return item.startMinutes;
@@ -301,9 +303,23 @@ function GapRow({
 
 // The category tile that leads a full row. Takes the city's colour from the
 // nearest .tone-* ancestor, which is what makes a long day scannable by city.
-function Tile({ name }: { name: Parameters<typeof DomainIcon>[0]["name"] }) {
+function Tile({
+  name,
+  // On a card that is itself tinted, the tile inverts to the plain surface.
+  // Keeping bg-tone there would be a tint on a tint, and going solid blue would
+  // be the app's button shape — see BookingRow for why neither is wanted.
+  onTint = false,
+}: {
+  name: Parameters<typeof DomainIcon>[0]["name"];
+  onTint?: boolean;
+}) {
   return (
-    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-tone text-tone-ink">
+    <span
+      className={cn(
+        "flex h-10 w-10 shrink-0 items-center justify-center rounded-control",
+        onTint ? "bg-surface text-primary-ink" : "bg-tone text-tone-ink",
+      )}
+    >
       <DomainIcon name={name} className="h-5 w-5 shrink-0" />
     </span>
   );
@@ -361,24 +377,75 @@ function BookingRow({
     : undefined;
   const kind = BOOKING_KINDS[booking.kind];
   const where = bookingWhere(booking);
+  const [showing, setShowing] = useState(false);
+
+  // A journey, coloured and openable.
+  //
+  // Asked for as two things that turn out to be one: "give the flights in the
+  // schedule a colour that highlights and distinguishes them", and "pressing
+  // them should bring up the flight's details".
+  //
+  // They deserve both. Everything else on a day is a choice — a museum can be
+  // swapped for a market, an hour can slide — and a flight is the one row that
+  // cannot move and that the rest of the day is arranged around. It was drawn
+  // exactly like the museum.
+  //
+  // The colour is the action blue, and that is a deliberate bend of "one action
+  // colour": a pale tint with dark ink is not the app's button, which is solid
+  // blue with white text, and there is no second strong colour free — amber is
+  // spoken for by "now". The tile inverts to white on the tint rather than
+  // going solid blue, which is what would have read as a button.
+  const transport = kind.isTransport;
 
   if (compact) {
     return (
-      <CompactRow
-        time={formatMinutes(startMinutes)}
-        title={booking.title}
-        sub={where ?? null}
-        icon={kind.icon}
-      />
+      <>
+        <CompactRow
+          time={formatMinutes(startMinutes)}
+          title={booking.title}
+          sub={where ?? null}
+          icon={kind.icon}
+          highlight={transport}
+          onOpen={() => setShowing(true)}
+          openLabel={`פרטי ${kind.label} ${booking.title}`}
+        />
+        {showing && (
+          <BookingDetails
+            booking={booking}
+            open
+            onClose={() => setShowing(false)}
+          />
+        )}
+      </>
     );
   }
 
   const ticket = kind.isTransport && booking.origin && booking.destination;
 
   return (
-    <Card padding="none" className="p-3.5">
+    <Card
+      padding="none"
+      className={cn(
+        "p-3.5 transition-colors",
+        transport && "border-primary bg-primary-tint hover:bg-primary-tint/70",
+      )}
+      // The whole card opens the details. A row of a schedule is a thing you
+      // point at rather than a control you aim for, so the target is the row —
+      // and `button` on the card would swallow the layout, hence the role on a
+      // div with the keyboard handled explicitly.
+      role="button"
+      tabIndex={0}
+      onClick={() => setShowing(true)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          setShowing(true);
+        }
+      }}
+      aria-label={`פרטי ${kind.label} ${booking.title}`}
+    >
       <div className="flex min-w-0 items-start gap-3">
-        <Tile name={kind.icon} />
+        <Tile name={kind.icon} onTint={transport} />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="min-w-0 text-caption font-bold tabular-nums text-muted">
             {timeRange(startMinutes, endMinutes, overnight)}
@@ -439,6 +506,14 @@ function BookingRow({
             </span>
           )}
         </div>
+      )}
+
+      {showing && (
+        <BookingDetails
+          booking={booking}
+          open
+          onClose={() => setShowing(false)}
+        />
       )}
     </Card>
   );
@@ -566,20 +641,45 @@ function CompactRow({
   title,
   sub,
   icon,
+  // A journey rather than an activity: tinted, with a blue spine. The compact
+  // list is one card of divided rows, so the row cannot take a border of its
+  // own — the spine that already separates every row carries the colour, and
+  // the background does the rest.
+  highlight = false,
+  onOpen,
+  openLabel,
 }: {
   time: string;
   title: string;
   sub: string | null;
   icon?: Parameters<typeof DomainIcon>[0]["name"];
+  highlight?: boolean;
+  onOpen?: () => void;
+  openLabel?: string;
 }) {
+  const Row = onOpen ? "button" : "div";
+
   return (
-    <div className="flex min-w-0 items-center gap-3 px-4 py-3">
+    <Row
+      {...(onOpen
+        ? { type: "button" as const, onClick: onOpen, "aria-label": openLabel }
+        : {})}
+      className={cn(
+        "flex w-full min-w-0 items-center gap-3 px-4 py-3 text-start transition-colors",
+        highlight && "bg-primary-tint",
+        onOpen && "hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+        highlight && onOpen && "hover:bg-primary-tint/70",
+      )}
+    >
       <span className="w-10 shrink-0 text-caption font-bold tabular-nums text-muted">
         {time}
       </span>
       <span
         aria-hidden="true"
-        className="h-8 w-[3px] shrink-0 rounded-full bg-tone-dot"
+        className={cn(
+          "h-8 w-[3px] shrink-0 rounded-full",
+          highlight ? "bg-primary" : "bg-tone-dot",
+        )}
       />
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="min-w-0 truncate text-sm font-bold">{title}</span>
@@ -590,10 +690,16 @@ function CompactRow({
         )}
       </span>
       {icon && (
-        <span className="shrink-0 text-tone-ink">
+        <span className={cn("shrink-0", highlight ? "text-primary-ink" : "text-tone-ink")}>
           <DomainIcon name={icon} className="h-[18px] w-[18px] shrink-0" />
         </span>
       )}
-    </div>
+      {onOpen && (
+        <ChevronLeft
+          className="h-4 w-4 shrink-0 text-border-strong"
+          aria-hidden="true"
+        />
+      )}
+    </Row>
   );
 }

@@ -334,8 +334,8 @@ export const SCENES: Scene[] = [
               initialDay={1}
               startDate={f.TODAY}
               currentDay={1}
-              bookingsByDay={{}}
-              lodgingByDay={{}}
+              bookingsByDay={{ 1: [f.BOOKINGS[0]] }}
+              lodgingByDay={{ 1: f.LODGING }}
               nowIso={`${f.TODAY}T07:10:00Z`}
               reminders={[
                 { id: "00000000-0000-0000-0000-00000000a001", trip_id: f.TRIP_ID, day_number: 1, time_label: "11:00", title: "להתקשר למלון על צ׳ק-אין מאוחר", done: false, created_at: f.NOW },
@@ -1533,8 +1533,42 @@ export const SCENES: Scene[] = [
   {
     slug: "expenses",
     title: "הוצאות הטיול",
-    note: "סיכום לפי מטבע, עם פריט אחד בלי עלות",
+    note: "סיכום לפי מטבע, עם פריט אחד בלי עלות. יעד אחד בלבד — אין מה לסנן, אז אין מסנן",
     render: () => <ExpenseSummary bookings={f.BOOKINGS} />,
+  },
+  {
+    slug: "expenses-filter",
+    title: "הוצאות הטיול · המסנן",
+    note: "מכמה יעדים ומעלה מופיע כפתור אחד שאומר מה מוצג, ומאחוריו בורר. היה שורת צ׳יפים לכל יעד — והבורר גם עונה טוב יותר, כי כל שורה נושאת את הסכום שלה, אז ההשוואה קורית ברשימה במקום דרכה",
+    render: () => (
+      <ExpenseSummary
+        bookings={[
+          ...f.BOOKINGS,
+          {
+            ...f.BOOKINGS[0],
+            id: "00000000-0000-0000-0000-00000000e001",
+            title: "שינקנסן לקיוטו",
+            kind: "train" as const,
+            city: "קיוטו",
+            cost_amount: 1450,
+          },
+          {
+            ...f.BOOKINGS[1],
+            id: "00000000-0000-0000-0000-00000000e002",
+            title: "ריוקאן בקיוטו",
+            city: "קיוטו",
+            cost_amount: 2700,
+          },
+          {
+            ...f.BOOKINGS[1],
+            id: "00000000-0000-0000-0000-00000000e003",
+            title: "ביטוח נסיעות",
+            city: null,
+            cost_amount: 380,
+          },
+        ]}
+      />
+    ),
   },
   {
     slug: "trip-dates",

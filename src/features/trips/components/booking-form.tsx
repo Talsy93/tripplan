@@ -14,14 +14,13 @@ import {
   useToast,
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { ArrowLeft, ChevronDown, Plus, X } from "lucide-react";
+import { ChevronDown, Plus, X } from "lucide-react";
 import { addBooking, editBooking } from "../application/booking-actions";
 import {
   BOOKING_KINDS,
   DEFAULT_REMINDER_DAYS,
   REMINDER_PRESETS,
   bookingStops,
-  journeyLegs,
   splitDuration,
   toDateTimeLocal,
 } from "../domain/booking";
@@ -32,7 +31,6 @@ import type {
   BookingFormState,
   BookingKind,
   CreateBookingInput,
-  RouteLeg,
 } from "../domain/booking";
 import { DomainIcon } from "./domain-icon";
 
@@ -136,35 +134,6 @@ function bookingDefaults(booking: Booking | undefined): Partial<Record<Field, st
   };
 }
 
-// 0024. What the route preview reads while the form is being typed.
-//
-// The four boxes that make up leg 1 — the flight number, the carrier, and the
-// two ends of the journey — stay uncontrolled like everything else here:
-// `defaultValue` plus the remount dance in the body is what survives React's
-// post-action reset, and driving them from state would undo that. So their
-// values are *mirrored* into state on change instead, and seeded from exactly
-// the source `was()` uses, so a rejected submission redraws the route it was
-// rejected with.
-type RouteSeed = {
-  title: string;
-  airline: string;
-  origin: string;
-  destination: string;
-};
-
-function routeSeed(
-  values: BookingFormState["values"],
-  defaults: Partial<Record<Field, string>>,
-): RouteSeed {
-  const pick = (field: Field) => values?.[field] ?? defaults[field] ?? "";
-  return {
-    title: pick("title"),
-    airline: pick("airline"),
-    origin: pick("origin"),
-    destination: pick("destination"),
-  };
-}
-
 // The form changes shape with the kind: transport asks where from and where to,
 // lodging asks for one address. Keeping it one form rather than three means one
 // action and one validation path.
@@ -217,13 +186,6 @@ export function BookingForm({
     stopRowsFrom(state.values?.stops, booking),
   );
 
-  // 0024. The mirror of leg 1, for the route preview. See routeSeed above.
-  const [route, setRoute] = useState<RouteSeed>(() =>
-    routeSeed(state.values, defaults),
-  );
-  const mirror = (patch: Partial<RouteSeed>) =>
-    setRoute((current) => ({ ...current, ...patch }));
-
   // 0024. Whether the folded block below starts open: only when there is
   // already something in it worth seeing, which on a new booking there never
   // is. `useState` with no setter rather than a plain const, so this is worked
@@ -273,9 +235,6 @@ export function BookingForm({
     // successful add the action returns no values, so the route clears exactly
     // as every other field does.
     setStops(stopRowsFrom(state.values?.stops, booking));
-    // Same reason again: the four boxes behind the route preview are reset with
-    // the rest of the form, and the mirror has to be reset with them.
-    setRoute(routeSeed(state.values, defaults));
     setFormGeneration((generation) => generation + 1);
   }
 
@@ -382,7 +341,6 @@ export function BookingForm({
             required
             maxLength={120}
             defaultValue={was("title")}
-            onChange={(event) => mirror({ title: event.target.value })}
             aria-invalid={Boolean(errorFor("title"))}
             className={fieldClass("title")}
           />
@@ -405,7 +363,6 @@ export function BookingForm({
             <Select
               name="airline"
               defaultValue={was("airline")}
-              onChange={(event) => mirror({ airline: event.target.value })}
               aria-invalid={Boolean(errorFor("airline"))}
               className={fieldClass("airline")}
             >
@@ -432,7 +389,6 @@ export function BookingForm({
                 name="origin"
                 maxLength={120}
                 defaultValue={was("origin")}
-                onChange={(event) => mirror({ origin: event.target.value })}
               />
             </label>
             <label className="flex min-w-0 flex-col gap-1 text-sm">
@@ -441,9 +397,6 @@ export function BookingForm({
                 name="destination"
                 maxLength={120}
                 defaultValue={was("destination")}
-                onChange={(event) =>
-                  mirror({ destination: event.target.value })
-                }
               />
               {/* 0024. The field that the connection makes ambiguous, said
                   plainly rather than left to be worked out. With a stop in the
@@ -509,9 +462,6 @@ export function BookingForm({
             onChange={setStops}
             withAirline={kind === "flight"}
             error={errorFor("stops")}
-            leg1={route}
-            startsAt={was("startsAt")}
-            endsAt={was("endsAt")}
           />
         )}
 
@@ -884,13 +834,18 @@ export function AddBookingButton({
 
   return (
     <>
+      {/* `sm` and a short label, because this now lives in the section heading
+          rather than on a line of its own — see the trip page for why. The long
+          form is still the dialog's title, which is where a full sentence has
+          room. */}
       <Button
         variant="outline"
+        size="sm"
         onClick={() => setOpen(true)}
         className="self-start"
       >
         <Plus className="h-4 w-4" aria-hidden="true" />
-        הוספת טיסה, רכבת או לינה
+        הוספה
       </Button>
 
       <Dialog
@@ -924,9 +879,6 @@ function RouteEditor({
   onChange,
   withAirline,
   error,
-  leg1,
-  startsAt,
-  endsAt,
 }: {
   stops: StopRow[];
   onChange: (stops: StopRow[]) => void;
@@ -934,35 +886,10 @@ function RouteEditor({
   // in domain/airlines.ts cannot contain a train operator.
   withAirline: boolean;
   error?: string;
-  // 0024. The four boxes above that make up the first leg, mirrored here so the
-  // preview can show the whole journey rather than only its middle.
-  leg1: RouteSeed;
-  startsAt: string;
-  endsAt: string;
 }) {
   const update = (index: number, patch: Partial<StopRow>) => {
     onChange(stops.map((stop, i) => (i === index ? { ...stop, ...patch } : stop)));
   };
-
-  // Built by the same function the saved card is built by, so what is drawn
-  // here while typing is what will be there afterwards — not a second opinion
-  // about it.
-  const legs = journeyLegs({
-    origin: leg1.origin || null,
-    destination: leg1.destination || null,
-    departsAt: startsAt || null,
-    arrivesAt: endsAt || null,
-    flight: leg1.title || null,
-    airline: leg1.airline || null,
-    stops: stops.map((stop) => ({
-      place: stop.place,
-      arrivesAt: stop.arrivesAt || null,
-      departsAt: stop.departsAt || null,
-      flight: stop.flight || null,
-      airline: stop.airline || null,
-    })),
-  });
-
   return (
     <fieldset className="flex min-w-0 flex-col gap-2 border-0 p-0 text-sm">
       {/* 0024. The explanation is behind the button rather than printed under
@@ -976,13 +903,16 @@ function RouteEditor({
         </InfoTip>
       </legend>
 
-      {stops.length === 0 ? (
+      {/* 0024. The live "המסלול שנבנה" preview stood here and has been removed:
+          the tooltip above answers the same question, and the two together were
+          the form explaining itself twice. What it drew is still built by
+          journeyLegs — on the saved card, where the route is read rather than
+          entered. */}
+      {stops.length === 0 && (
         <p className="text-caption text-muted">
           טיסה ישירה. יש קונקשן, או שני כרטיסים שמרכיבים את הנסיעה? הוסיפו
           עצירה.
         </p>
-      ) : (
-        <RoutePreview legs={legs} />
       )}
 
       {stops.map((stop, index) => (
@@ -1101,63 +1031,6 @@ function RouteEditor({
   );
 }
 
-// 0024. The journey as it is being typed, drawn back.
-//
-// Reported as "choosing a connecting ticket is not clear — if I actually have
-// two tickets that make up the destination, it is not clear how I build the
-// whole one". Every field needed to express that was already here and the model
-// was already right; what was missing was any sign of what the boxes were
-// adding up to. Three things in particular have to be worked out from nothing:
-// that the number at the top belongs to the first leg, that "אל־" stays the
-// final destination, and that a stop's boxes describe the flight *leaving* it.
-//
-// So rather than relabel three fields and hope, the form shows the answer. Legs
-// appear and change as the boxes are filled, and a leg that is still missing its
-// ends says so — which turns "did I put Dubai in the right place" from a guess
-// into a glance.
-//
-// Built by journeyLegs, the same function the saved card is built by. A preview
-// with a rule of its own would be a second opinion, and the first time the two
-// disagreed the preview would be worse than nothing.
-function RoutePreview({ legs }: { legs: RouteLeg[] }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-2 rounded-control border border-primary bg-primary-tint p-3">
-      <span className="text-caption font-bold text-primary-ink">
-        המסלול שנבנה
-      </span>
-
-      <ol className="flex min-w-0 flex-col gap-1">
-        {legs.map((leg, index) => (
-          <li
-            key={index}
-            className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-caption"
-          >
-            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary font-display text-xs font-bold tabular-nums text-primary-foreground">
-              {index + 1}
-            </span>
-
-            {/* A flex row rather than "from ← to" as one string. The places are
-                user-typed and may be Hebrew or Latin, and a bare arrow
-                character between two runs of opposite direction lands wherever
-                the bidi algorithm decides. Separate elements in an RTL row are
-                laid out by the row, which is a question with one answer. */}
-            <span className="flex min-w-0 flex-1 items-center gap-1.5 font-semibold">
-              <Place name={leg.from} />
-              <ArrowLeft
-                className="h-3 w-3 shrink-0 text-primary-ink"
-                aria-hidden="true"
-              />
-              <Place name={leg.to} />
-            </span>
-
-            <span className="shrink-0 text-muted">{flightLabel(leg)}</span>
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
-
 // 0024. What a connecting ticket actually is, in the order someone filling this
 // form needs it: what the whole booking is first, then which box holds what.
 //
@@ -1186,26 +1059,6 @@ function ConnectionHelp() {
           כלומר הכרטיס השני.
         </span>
       </span>
-      <span className="block text-muted">
-        המסלול שייבנה מוצג כאן למטה תוך כדי, כדי שתראו שיצא נכון.
-      </span>
     </span>
   );
-}
-
-// An end of a leg that has not been typed yet. Shown as a gap rather than left
-// out, because the gap is the useful part: it is the box still to fill.
-function Place({ name }: { name: string | null }) {
-  if (!name) {
-    return <span className="shrink-0 text-muted">(חסר)</span>;
-  }
-  return <span className="min-w-0 truncate">{name}</span>;
-}
-
-// "LY971 · LY", or as much of it as there is.
-function flightLabel(leg: RouteLeg): string {
-  const parts = [leg.flight, leg.airline].filter(
-    (part): part is string => Boolean(part && part.trim()),
-  );
-  return parts.length > 0 ? parts.join(" · ") : "בלי מספר";
 }

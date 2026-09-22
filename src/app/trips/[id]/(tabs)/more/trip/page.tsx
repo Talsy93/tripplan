@@ -75,7 +75,18 @@ export default async function TripDetailsPage({
       </section>
 
       <section className="flex flex-col gap-3">
-        <SectionHeading level="section">טיסות, רכבות ולינה</SectionHeading>
+        {/* The add button sits in the heading, not under the list.
+            Reported: it disappeared off the bottom of the screen. It was after
+            the list, so the more bookings a trip had the further you had to
+            scroll to add another — the one control whose reachability should
+            not depend on how much is already there. In the heading it is at a
+            fixed place, above the thing it adds to. */}
+        <SectionHeading
+          level="section"
+          actions={<AddBookingButton tripId={trip.id} cities={cities} />}
+        >
+          טיסות, רכבות ולינה
+        </SectionHeading>
         {/* "Now" is stamped on the server so the alert badges don't disagree
             between the server and client renders. */}
         <BookingList
@@ -84,7 +95,6 @@ export default async function TripDetailsPage({
           cities={cities}
           now={new Date().toISOString()}
         />
-        <AddBookingButton tripId={trip.id} cities={cities} />
       </section>
 
       <section className="flex flex-col gap-3">
