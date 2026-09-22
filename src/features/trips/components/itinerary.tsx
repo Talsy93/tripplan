@@ -479,11 +479,19 @@ export function Itinerary({
           <AirportTransferButton
             tripId={tripId}
             dayNumber={active.day}
+            dayCount={dayCount}
             airport={arrival.place}
             landingMinutes={arrival.minutes}
-            defaultDestination={
-              stay?.booking.address ?? stay?.booking.title ?? ""
-            }
+            // **The hotel by name, not just its address.** Reported: the
+            // default should name the hotel so it can be accepted on sight.
+            // It was the address alone whenever one existed, which is the
+            // string the model wants and the one the traveller cannot
+            // recognise — "Kabukicho, Shinjuku City 1-2-3" is not an answer to
+            // "is this the right hotel". Both now: the name to recognise, the
+            // address to be precise about.
+            defaultDestination={[stay?.booking.title, stay?.booking.address]
+              .filter(Boolean)
+              .join(", ")}
             city={activeCity}
           />
         )}

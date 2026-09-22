@@ -140,12 +140,25 @@ export async function addAirportTransfer(
   const parsed = addTransferSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "הפרטים לא תקינים." };
 
-  const { dayNumber, airport, destination, landingMinutes, city, option } =
-    parsed.data;
+  const {
+    dayNumber,
+    dayCount,
+    airport,
+    destination,
+    landingMinutes,
+    city,
+    option,
+  } = parsed.data;
   const entry = transferEntry(option, { airport, destination, landingMinutes });
 
+  // A late landing pushes the whole transfer onto the next day — clearing a
+  // 23:30 arrival puts you outside the terminal at 01:00, and the schedule
+  // continues there. Clamped to the trip's own length so a landing on the last
+  // night cannot create a day the trip does not have.
+  const day = Math.min(dayNumber + entry.dayOffset, dayCount);
+
   const { error } = await addEntry(tripId, {
-    dayNumber,
+    dayNumber: day,
     title: entry.title,
     startLabel: entry.startLabel,
     endLabel: entry.endLabel,

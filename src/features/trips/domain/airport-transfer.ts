@@ -85,7 +85,10 @@ export type TransferRequest = z.infer<typeof transferRequestSchema>;
 // The option travels out to the client and returns, so it is re-validated on
 // the way in — by then it is ordinary user input, whatever produced it.
 export const addTransferSchema = z.object({
+  // The landing day. The entry may end up on the day after it — see
+  // transferTimes — which is why the length of the trip has to come too.
   dayNumber: z.number().int().min(1).max(60),
+  dayCount: z.number().int().min(1).max(60),
   airport: z.string().trim().min(1).max(120),
   destination: z.string().trim().min(1).max(200),
   city: z.string().trim().max(120).nullable().optional(),
@@ -155,18 +158,57 @@ export function arrivalOnDay(
 // day's earliest free hour — immigration, baggage and getting to the platform.
 // Shared rather than re-picked, so the day cannot say "nothing before 10:00"
 // while the transfer it suggests leaves at 09:00.
+const MINUTES_PER_DAY = 24 * 60;
+
+export type TransferTiming = {
+  // Clock times within the day each one falls on, not offsets from the landing.
+  leavesAt: number;
+  arrivesAt: number;
+  // How many days after the landing the traveller actually leaves the airport.
+  // 0 almost always; 1 when the landing is late enough that clearing it takes
+  // you past midnight.
+  dayOffset: number;
+  // The ride itself crosses midnight — it starts on one day and ends on the
+  // next. Distinct from `dayOffset`, which is about where it starts.
+  arrivesNextDay: boolean;
+};
+
+// When the traveller is actually out of the airport, and when this option puts
+// them at the door.
+//
+// **Midnight is a real case here, not an edge one.** Reported: "my landing is
+// late, so leaving the airport is at the start of the next day — the schedule
+// has to continue into the next day's times."
+//
+// It does, and the first version of this got it wrong in a way that hid the
+// problem instead of showing it: it clamped the arrival to 23:59 and left the
+// entry on the landing day, so a 23:30 landing produced "leaves 01:00, arrives
+// 23:59" on a day that was already over. Both numbers wrong, on the wrong day.
+//
+// So the day is part of the answer now. Land at 23:30, clear the airport at
+// 01:00, and this returns 01:00 with `dayOffset: 1` — the schedule continues
+// on the next day, at the next day's times, which is what was asked for.
 export function transferTimes(
   landingMinutes: number,
   option: TransferOption,
-): { leavesAt: number; arrivesAt: number } {
-  const leavesAt = landingMinutes + ARRIVAL_BUFFER_MIN;
+): TransferTiming {
+  const leavesRaw = landingMinutes + ARRIVAL_BUFFER_MIN;
+  const arrivesRaw = leavesRaw + option.durationMinutes;
+
+  const dayOffset = Math.floor(leavesRaw / MINUTES_PER_DAY);
+  const leavesAt = leavesRaw % MINUTES_PER_DAY;
+  const arrivesNextDay =
+    Math.floor(arrivesRaw / MINUTES_PER_DAY) > dayOffset;
+
   return {
     leavesAt,
-    // Clamped to the end of the day. A transfer that would spill past midnight
-    // is real — a 23:00 landing exists — and the schedule has no day after this
-    // one to put it on, so it ends at 23:59 rather than wrapping to 00:45 and
-    // sorting to the top of the morning.
-    arrivesAt: Math.min(leavesAt + option.durationMinutes, 24 * 60 - 1),
+    // The true clock time either way. A ride that crosses midnight reads
+    // "23:40 — 00:25", which is how a ticket writes it and how the timeline
+    // already draws an overnight flight; inventing 23:59 to keep end > start
+    // would be replacing a fact with a tidier fiction.
+    arrivesAt: arrivesRaw % MINUTES_PER_DAY,
+    dayOffset,
+    arrivesNextDay,
   };
 }
 
@@ -181,6 +223,10 @@ export function transferEntry(
   option: TransferOption,
   input: { airport: string; destination: string; landingMinutes: number },
 ): {
+  // Days after the landing day that this entry belongs on. The caller adds it
+  // to the day number — see addAirportTransfer, which also clamps it to the
+  // trip's length.
+  dayOffset: number;
   title: string;
   startLabel: string;
   endLabel: string;
@@ -188,7 +234,10 @@ export function transferEntry(
   travelNote: string;
   travelMinutes: number;
 } {
-  const { leavesAt, arrivesAt } = transferTimes(input.landingMinutes, option);
+  const { leavesAt, arrivesAt, dayOffset, arrivesNextDay } = transferTimes(
+    input.landingMinutes,
+    option,
+  );
 
   const details = [
     TRANSFER_MODE_LABELS[option.mode],
@@ -197,11 +246,22 @@ export function transferEntry(
   ].filter((part) => part.trim().length > 0);
 
   return {
+    dayOffset,
     title: `${input.airport} ← ${input.destination}`,
     startLabel: formatMinutes(leavesAt),
     endLabel: formatMinutes(arrivesAt),
     // The steps are the thing you actually read while standing in arrivals.
-    note: [option.name, option.summary, ...option.steps]
+    //
+    // A ride that crosses midnight says so in words. The two labels are
+    // "23:40" and "00:25", which is correct and also the one case where an end
+    // earlier than a start is not a mistake — so it is named rather than left
+    // to be worked out.
+    note: [
+      option.name,
+      option.summary,
+      ...option.steps,
+      arrivesNextDay ? "ההגעה כבר למחרת" : "",
+    ]
       .filter(Boolean)
       .join(" · "),
     travelNote: details.join(" · "),

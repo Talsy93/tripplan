@@ -41,17 +41,22 @@ import type { TransferOption } from "../domain/airport-transfer";
 export function AirportTransferButton({
   tripId,
   dayNumber,
+  // How long the trip is, so a transfer pushed past midnight cannot be placed
+  // on a day the trip does not have.
+  dayCount,
   // The arrival this transfer follows: where it lands and at what minute of the
   // day, already resolved by the screen that knows which booking it is.
   airport,
   landingMinutes,
   // Pre-filled destination — the hotel that covers this night, when there is
-  // one. The traveller can type over it, which is why it is asked at all.
+  // one, by name and address. The traveller can type over it, which is why it
+  // is asked at all.
   defaultDestination,
   city,
 }: {
   tripId: string;
   dayNumber: number;
+  dayCount: number;
   airport: string;
   landingMinutes: number;
   defaultDestination: string;
@@ -80,6 +85,7 @@ export function AirportTransferButton({
           key={generation}
           tripId={tripId}
           dayNumber={dayNumber}
+          dayCount={dayCount}
           airport={airport}
           landingMinutes={landingMinutes}
           defaultDestination={defaultDestination}
@@ -94,6 +100,7 @@ export function AirportTransferButton({
 function TransferDialog({
   tripId,
   dayNumber,
+  dayCount,
   airport,
   landingMinutes,
   defaultDestination,
@@ -102,6 +109,7 @@ function TransferDialog({
 }: {
   tripId: string;
   dayNumber: number;
+  dayCount: number;
   airport: string;
   landingMinutes: number;
   defaultDestination: string;
@@ -115,6 +123,21 @@ function TransferDialog({
   const [adding, setAdding] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const { showToast } = useToast();
+
+  // When the traveller is out of the terminal, independent of which option they
+  // pick — the buffer is the same for all of them, so it can be said once at the
+  // top. A zero-duration option is used only to reach that number.
+  const clearing = transferTimes(landingMinutes, {
+    mode: "taxi",
+    name: "",
+    summary: "",
+    durationMinutes: 1,
+    costText: "",
+    frequencyText: "",
+    steps: [],
+  });
+  const clearsAt = clearing.leavesAt;
+  const clearsNextDay = clearing.dayOffset > 0;
 
   async function load() {
     setLoading(true);
@@ -159,6 +182,7 @@ function TransferDialog({
     startTransition(async () => {
       const result = await addAirportTransfer(tripId, {
         dayNumber,
+        dayCount,
         airport,
         destination,
         city,
@@ -184,11 +208,21 @@ function TransferDialog({
       title="ההגעה מהשדה"
     >
       <div className="flex min-w-0 flex-col gap-4">
+        {/* Through the same function the options use, not `+ 90` inline. That
+            shortcut printed "25:00" on a late landing — the exact case this
+            screen now has to get right. */}
         <p className="text-caption text-muted">
           הנחיתה ב{airport} בשעה {formatMinutes(landingMinutes)}. אחרי ביקורת
-          דרכונים, כבודה והגעה לרציף — יוצאים בערך ב
-          {formatMinutes(landingMinutes + 90)}.
+          דרכונים, כבודה והגעה לרציף — יוצאים בערך ב{formatMinutes(clearsAt)}
+          {clearsNextDay && ", כבר למחרת"}.
         </p>
+
+        {clearsNextDay && (
+          <Banner tone="info">
+            הנחיתה מאוחרת, אז היציאה מהשדה היא כבר ביום שאחרי — ומה שתבחרו ייכנס
+            ללו&quot;ז של אותו יום, בשעות שלו.
+          </Banner>
+        )}
 
         <Field label="לאן נוסעים" hint="ברירת המחדל היא הלינה של אותו לילה">
           <Input
@@ -266,7 +300,10 @@ function OptionCard({
   disabled: boolean;
   onChoose: () => void;
 }) {
-  const { leavesAt, arrivesAt } = transferTimes(landingMinutes, option);
+  const { leavesAt, arrivesAt, dayOffset, arrivesNextDay } = transferTimes(
+    landingMinutes,
+    option,
+  );
   const Icon = option.mode === "taxi" ? Car : Bus;
 
   return (
@@ -291,9 +328,19 @@ function OptionCard({
           </span>
         </span>
         {/* The answer the traveller came for: not "53 minutes" but "you are
-            there at 11:05". */}
-        <span className="shrink-0 text-caption font-bold tabular-nums" dir="ltr">
-          {formatMinutes(leavesAt)}–{formatMinutes(arrivesAt)}
+            there at 11:05". The "+1" is the same notation the timeline uses for
+            a flight that lands the next day — an end earlier than its start is
+            correct here, and the marker is what says so. */}
+        <span className="flex shrink-0 flex-col items-end">
+          <span className="text-caption font-bold tabular-nums" dir="ltr">
+            {formatMinutes(leavesAt)}–{formatMinutes(arrivesAt)}
+            {arrivesNextDay && " +1"}
+          </span>
+          {dayOffset > 0 && (
+            <span className="text-caption font-semibold text-callout-ink">
+              למחרת
+            </span>
+          )}
         </span>
       </div>
 

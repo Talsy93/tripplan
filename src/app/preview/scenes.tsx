@@ -1704,9 +1704,26 @@ export const SCENES: Scene[] = [
       <AirportTransferButton
         tripId={f.TRIP_ID}
         dayNumber={1}
+        dayCount={14}
         airport="הנדה, טוקיו"
         landingMinutes={8 * 60 + 30}
-        defaultDestination="Kabukicho, Shinjuku City, Tokyo 1-2-3"
+        defaultDestination="מלון שינג׳וקו גרנד, Kabukicho, Shinjuku City, Tokyo 1-2-3"
+        city="טוקיו"
+      />
+    ),
+  },
+  {
+    slug: "airport-transfer-late",
+    title: "ההגעה מהשדה · נחיתת לילה",
+    note: "נוחתים ב-23:30, אז היציאה מהשדה היא ב-01:00 — כבר למחרת. הכותרת אומרת זאת, הכרטיסים מסומנים ״למחרת״, והפריט נכנס ליום שאחרי בשעות שלו. קודם זה הדפיס ״25:00״ והצמיד את הפריט ליום שכבר נגמר",
+    render: () => (
+      <AirportTransferButton
+        tripId={f.TRIP_ID}
+        dayNumber={1}
+        dayCount={14}
+        airport="נריטה, טוקיו"
+        landingMinutes={23 * 60 + 30}
+        defaultDestination="מלון שינג׳וקו גרנד, Kabukicho, Shinjuku City, Tokyo 1-2-3"
         city="טוקיו"
       />
     ),
