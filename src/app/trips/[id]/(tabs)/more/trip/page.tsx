@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { SectionHeading, Skeleton } from "@/components/ui";
+import { CloudSun, Wallet } from "lucide-react";
+import { Disclosure, SectionHeading, Skeleton } from "@/components/ui";
 import {
   AddBookingButton,
   BookingList,
@@ -67,12 +68,20 @@ export default async function TripDetailsPage({
         </section>
       </div>
 
-      <section className="flex flex-col gap-3">
-        <SectionHeading level="section">מזג אוויר ביעדים</SectionHeading>
+      {/* Folded, like the expenses below it. Neither is what this page is for —
+          it is where you fix the name, the dates and the bookings — and both
+          were full-height panels between the reader and the next thing they
+          came to edit. The heading says which destinations are covered, which
+          is the part worth reading without opening anything. */}
+      <Disclosure
+        leading={<CloudSun className="h-4 w-4" />}
+        title="מזג אוויר ביעדים"
+        detail={cities.length > 0 ? cities.join(", ") : undefined}
+      >
         <Suspense fallback={<Skeleton className="h-28 w-full" />}>
           <WeatherPanel trip={trip} />
         </Suspense>
-      </section>
+      </Disclosure>
 
       <section className="flex flex-col gap-3">
         {/* The add button sits in the heading, not under the list.
@@ -97,10 +106,13 @@ export default async function TripDetailsPage({
         />
       </section>
 
-      <section className="flex flex-col gap-3">
-        <SectionHeading level="section">הוצאות הטיול</SectionHeading>
+      <Disclosure
+        leading={<Wallet className="h-4 w-4" />}
+        title="הוצאות הטיול"
+        detail="סיכום לפי מטבע ויעד, מתוך ההזמנות שלמעלה"
+      >
         <ExpenseSummary bookings={bookings} />
-      </section>
+      </Disclosure>
 
       {/* Sharing and deletion both used to end this page. Sharing has had a
           screen of its own since it grew members and roles, and deletion moved

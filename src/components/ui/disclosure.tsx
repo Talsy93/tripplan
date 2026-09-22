@@ -56,6 +56,10 @@ export function Disclosure({
   // Open on arrival. For the one section on a screen that is the screen's
   // subject; everything else should cost a press.
   defaultOpen = false,
+  // For a body that brings its own padding — a divided list whose rows are
+  // already inset. Without it the row's px-3 sits inside the body's p-3 and the
+  // list reads as indented from the heading it belongs to.
+  flush = false,
   children,
   className,
 }: {
@@ -65,6 +69,7 @@ export function Disclosure({
   leading?: ReactNode;
   tone?: DisclosureTone;
   defaultOpen?: boolean;
+  flush?: boolean;
   children: ReactNode;
   className?: string;
 }) {
@@ -121,7 +126,12 @@ export function Disclosure({
         />
       </summary>
 
-      <div className="flex min-w-0 flex-col gap-3 border-t border-border p-3">
+      <div
+        className={cn(
+          "flex min-w-0 flex-col border-t border-border",
+          !flush && "gap-3 p-3",
+        )}
+      >
         {children}
       </div>
     </details>

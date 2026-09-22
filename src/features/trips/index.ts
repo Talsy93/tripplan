@@ -416,6 +416,7 @@ export {
 } from "./components/day-context-panels";
 export { DayMapCard } from "./components/day-map-card";
 export { DayWeatherCard } from "./components/day-weather-card";
+export { OtherDestinationsWeather } from "./components/other-weather";
 export { DayStrip } from "./components/day-strip";
 export { TripCalendar } from "./components/trip-calendar";
 export { EmptyDays, RouteCities } from "./components/route-cities";

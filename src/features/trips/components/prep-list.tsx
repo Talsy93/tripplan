@@ -11,10 +11,12 @@ import {
   Trash2,
 } from "lucide-react";
 import {
+  Badge,
   Banner,
   Button,
   Card,
   Dialog,
+  Disclosure,
   Field,
   Input,
   SectionHeading,
@@ -166,22 +168,22 @@ export function PrepList({
           disclosure existed to avoid on the page. */}
       <AddPrepButton tripId={tripId} />
 
+      {/* Offered, not entered — the tone the Disclosure reserves for that, and
+          closed. These are things the traveller has not asked for, sitting
+          above the list they came to read; the heading says how many there are,
+          which is all the decision "do I want to look" needs.
+
+          "הוסיפו את כולם" moved from the heading into the body. A button inside
+          a <summary> is a button inside the control that opens the section: the
+          press target of the two overlap and only one of them can win. */}
       {offered.length > 0 && (
-        <div className="flex flex-col gap-2 rounded-card border border-dashed border-border-strong p-3">
-          <div className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-1.5 text-caption font-bold text-muted">
-              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-              כדאי לזכור
-            </span>
-            <button
-              type="button"
-              onClick={() => accept(offered)}
-              disabled={adding}
-              className="text-caption font-semibold text-primary-ink hover:underline disabled:opacity-60"
-            >
-              הוסיפו את כולם
-            </button>
-          </div>
+        <Disclosure
+          tone="suggest"
+          leading={<Sparkles className="h-4 w-4" />}
+          title="כדאי לזכור"
+          detail="הצעות לפי היעדים והתאריכים של הטיול"
+          meta={<Badge tone="neutral">{offered.length}</Badge>}
+        >
           <div className="flex flex-wrap gap-1.5">
             {offered.map((suggestion) => (
               <button
@@ -196,7 +198,15 @@ export function PrepList({
               </button>
             ))}
           </div>
-        </div>
+          <button
+            type="button"
+            onClick={() => accept(offered)}
+            disabled={adding}
+            className="self-start text-caption font-semibold text-primary-ink hover:underline disabled:opacity-60"
+          >
+            הוסיפו את כולם
+          </button>
+        </Disclosure>
       )}
 
       {visible.length === 0 && offered.length === 0 && (
@@ -221,25 +231,25 @@ export function PrepList({
       )}
 
       {done.length > 0 && (
-        <details className="group">
-          <summary className="cursor-pointer text-caption font-semibold text-muted hover:text-foreground">
-            הושלמו · {done.length}
-          </summary>
-          <Card padding="none" className="mt-2 overflow-hidden">
-            <ul className="divide-y divide-border">
-              {done.map((item) => (
-                <PrepRow
-                  key={item.id}
-                  tripId={tripId}
-                  item={item}
-                  today={today}
-                  onToggle={(next) => void toggle(item, next)}
-                  onRemove={() => void remove(item)}
-                />
-              ))}
-            </ul>
-          </Card>
-        </details>
+        <Disclosure
+          leading={<Check className="h-4 w-4" />}
+          title="הושלמו"
+          meta={<Badge tone="neutral">{done.length}</Badge>}
+          flush
+        >
+          <ul className="divide-y divide-border">
+            {done.map((item) => (
+              <PrepRow
+                key={item.id}
+                tripId={tripId}
+                item={item}
+                today={today}
+                onToggle={(next) => void toggle(item, next)}
+                onRemove={() => void remove(item)}
+              />
+            ))}
+          </ul>
+        </Disclosure>
       )}
     </section>
   );

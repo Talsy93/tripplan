@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { ArrowLeft, ChevronDown, Compass } from "lucide-react";
-import { Card } from "@/components/ui";
+import { ArrowLeft, Compass } from "lucide-react";
+import { Disclosure } from "@/components/ui";
 import { WORKFLOW_STEPS } from "../domain/workflow";
 
 // The same seven-then-eight steps as WorkflowGuide, reduced to their titles.
@@ -38,7 +38,8 @@ export function WorkflowSummary({ className }: { className?: string }) {
 
 // "איך זה עובד" on the home screen.
 //
-// Built on native <details>/<summary> rather than useState: it is a server
+// On Disclosure, which is where the hand-rolled summary and chevron that used
+// to live here have gone. Still native <details> underneath: it is a server
 // component this way, it works before hydration, the browser handles the
 // keyboard and the open/closed state is exposed to assistive tech for free.
 // There is no state here worth a client bundle.
@@ -57,42 +58,22 @@ export function HowItWorks({
   tripId: string | null;
 }) {
   return (
-    <Card padding="none" className="overflow-hidden">
-      <details open={defaultOpen} className="group">
-        <summary className="flex cursor-pointer list-none items-center gap-3 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset">
-          <span
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary-ink"
-            aria-hidden="true"
-          >
-            <Compass className="h-5 w-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-base font-semibold">איך זה עובד</span>
-            <span className="block text-sm text-muted">
-              סדר העבודה באפליקציה, משמונה שלבים
-            </span>
-          </span>
-          {/* Rotates on open. The marker is removed by list-none above, so this
-              is the only affordance saying the row expands. */}
-          <ChevronDown
-            className="h-5 w-5 shrink-0 text-muted transition-transform group-open:rotate-180"
-            aria-hidden="true"
-          />
-        </summary>
-
-        <div className="flex flex-col gap-3 border-t border-border px-4 pb-4 pt-3">
-          <WorkflowSummary />
-          {tripId && (
-            <Link
-              href={`/trips/${tripId}/more/guide`}
-              className="flex items-center gap-1 self-start rounded-control text-sm font-semibold text-primary-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              המדריך המלא, עם קישור לכל מסך
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            </Link>
-          )}
-        </div>
-      </details>
-    </Card>
+    <Disclosure
+      defaultOpen={defaultOpen}
+      leading={<Compass className="h-4 w-4" />}
+      title="איך זה עובד"
+      detail="סדר העבודה באפליקציה, משמונה שלבים"
+    >
+      <WorkflowSummary />
+      {tripId && (
+        <Link
+          href={`/trips/${tripId}/more/guide`}
+          className="flex items-center gap-1 self-start rounded-control text-sm font-semibold text-primary-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          המדריך המלא, עם קישור לכל מסך
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+        </Link>
+      )}
+    </Disclosure>
   );
 }

@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   Bus,
   Car,
-  ChevronDown,
   ExternalLink,
   Hotel,
   Map,
@@ -19,6 +18,7 @@ import {
   buttonClasses,
   Chip,
   Dialog,
+  Disclosure,
   Field,
   Input,
   Skeleton,
@@ -415,37 +415,30 @@ function OptionCard({
   // costs, how often it runs, and when it gets you there — and the prose and
   // the step-by-step wait behind the chevron for the one you settled on.
   //
-  // A <details>, not state: the disclosure belongs to the browser, which gives
-  // the keyboard and screen-reader behaviour for free. Same call the booking
-  // form's folded block makes.
+  // On the Disclosure primitive, which was extracted from this block and three
+  // others like it. Still native <details> underneath: the disclosure belongs
+  // to the browser, which gives the keyboard and screen-reader behaviour free.
+  //
+  // tone="suggest" for the reason the tone exists — these came from the model,
+  // and none of them is in the trip until one is pressed.
   return (
-    <details
-      className={cn(
-        "group/opt min-w-0 rounded-control border border-border",
-        option.mode === "taxi" ? "bg-surface" : "bg-surface-sunken",
-      )}
-    >
-      <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2.5 p-3 [&::-webkit-details-marker]:hidden">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-primary-tint text-primary-ink">
-          <Icon className="h-4 w-4" aria-hidden="true" />
-        </span>
-
-        <span className="flex min-w-0 flex-1 flex-col">
-          <span className="min-w-0 text-sm font-bold wrap-anywhere">
-            {option.name}
-          </span>
-          <span className="text-caption text-muted">
-            {TRANSFER_MODE_LABELS[option.mode]}
-            {option.frequencyText && ` · ${option.frequencyText}`}
-            {option.costText && ` · ${option.costText}`}
-          </span>
-        </span>
-
-        {/* The answer the traveller came for: not "53 minutes" but "you are
-            there at 11:05". The "+1" is the same notation the timeline uses for
-            a flight that lands the next day — an end earlier than its start is
-            correct here, and the marker is what says so. */}
-        <span className="flex shrink-0 flex-col items-end">
+    <Disclosure
+      tone="suggest"
+      leading={<Icon className="h-4 w-4" />}
+      title={option.name}
+      detail={
+        <>
+          {TRANSFER_MODE_LABELS[option.mode]}
+          {option.frequencyText && ` · ${option.frequencyText}`}
+          {option.costText && ` · ${option.costText}`}
+        </>
+      }
+      // The answer the traveller came for: not "53 minutes" but "you are there
+      // at 11:05". The "+1" is the same notation the timeline uses for a flight
+      // that lands the next day — an end earlier than its start is correct
+      // here, and the marker is what says so.
+      meta={
+        <span className="flex flex-col items-end">
           <span className="text-caption font-bold tabular-nums" dir="ltr">
             {formatMinutes(leavesAt)}–{formatMinutes(arrivesAt)}
             {arrivesNextDay && " +1"}
@@ -456,112 +449,103 @@ function OptionCard({
             </span>
           )}
         </span>
+      }
+    >
+      <p className="text-caption text-muted wrap-anywhere">{option.summary}</p>
 
-        <ChevronDown
-          className="h-4 w-4 shrink-0 text-muted transition-transform group-open/opt:rotate-180"
-          aria-hidden="true"
-        />
-      </summary>
-
-      <div className="flex min-w-0 flex-col gap-3 border-t border-border p-3">
-        <p className="text-caption text-muted wrap-anywhere">
-          {option.summary}
-        </p>
-
-        {/* One row per stage: when it starts, what you board, where you get on
-            and off, what it costs, and where to buy it. Prose could carry the
-            first two of those and none of the rest. */}
-        {legs.length > 0 && (
-          <ol className="flex min-w-0 flex-col gap-2">
-            {legs.map(({ leg, startsAt }, index) => {
-              const tickets = ticketSearchUrl(leg);
-              return (
-                <li
-                  key={index}
-                  className="flex min-w-0 gap-2.5 border-s-2 border-border ps-2.5"
-                >
-                  <span className="w-11 shrink-0 text-caption font-bold tabular-nums text-muted">
-                    {formatMinutes(startsAt)}
-                  </span>
-                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="min-w-0 text-caption font-semibold wrap-anywhere">
-                      {leg.mode}
-                      {leg.costText && (
-                        <span className="font-normal text-muted">
-                          {" · "}
-                          {leg.costText}
-                        </span>
-                      )}
-                    </span>
-                    {/* The pair that was missing: where you get on and where
-                        you get off. An arrow between them rather than "from X
-                        to Y", because two station names are what you are
-                        scanning for. */}
-                    <span className="flex min-w-0 items-center gap-1 text-caption text-muted">
-                      <span className="min-w-0 wrap-anywhere">{leg.from}</span>
-                      <ArrowLeft
-                        className="h-3 w-3 shrink-0"
-                        aria-hidden="true"
-                      />
-                      <span className="min-w-0 wrap-anywhere">{leg.to}</span>
-                    </span>
-                    {tickets && (
-                      <a
-                        href={tickets}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex w-fit items-center gap-1 rounded text-caption font-semibold text-primary-ink underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        <Ticket className="h-3 w-3" aria-hidden="true" />
-                        כרטיסים ל{leg.operator}
-                        <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                      </a>
+      {/* One row per stage: when it starts, what you board, where you get on
+          and off, what it costs, and where to buy it. Prose could carry the
+          first two of those and none of the rest. */}
+      {legs.length > 0 && (
+        <ol className="flex min-w-0 flex-col gap-2">
+          {legs.map(({ leg, startsAt }, index) => {
+            const tickets = ticketSearchUrl(leg);
+            return (
+              <li
+                key={index}
+                className="flex min-w-0 gap-2.5 border-s-2 border-border ps-2.5"
+              >
+                <span className="w-11 shrink-0 text-caption font-bold tabular-nums text-muted">
+                  {formatMinutes(startsAt)}
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="min-w-0 text-caption font-semibold wrap-anywhere">
+                    {leg.mode}
+                    {leg.costText && (
+                      <span className="font-normal text-muted">
+                        {" · "}
+                        {leg.costText}
+                      </span>
                     )}
                   </span>
-                </li>
-              );
-            })}
-          </ol>
-        )}
+                  {/* The pair that was missing: where you get on and where
+                      you get off. An arrow between them rather than "from X
+                      to Y", because two station names are what you are
+                      scanning for. */}
+                  <span className="flex min-w-0 items-center gap-1 text-caption text-muted">
+                    <span className="min-w-0 wrap-anywhere">{leg.from}</span>
+                    <ArrowLeft
+                      className="h-3 w-3 shrink-0"
+                      aria-hidden="true"
+                    />
+                    <span className="min-w-0 wrap-anywhere">{leg.to}</span>
+                  </span>
+                  {tickets && (
+                    <a
+                      href={tickets}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex w-fit items-center gap-1 rounded text-caption font-semibold text-primary-ink underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Ticket className="h-3 w-3" aria-hidden="true" />
+                      כרטיסים ל{leg.operator}
+                      <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                    </a>
+                  )}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Inside the disclosure on purpose. Choosing one of these commits it
-              to the schedule, and the press that does it belongs next to the
-              detail you opened in order to be sure — not on a row you are still
-              skimming. */}
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            loading={busy}
-            disabled={disabled && !busy}
-            onClick={onChoose}
+      <div className="flex flex-wrap items-center gap-2">
+        {/* Inside the disclosure on purpose. Choosing one of these commits it
+            to the schedule, and the press that does it belongs next to the
+            detail you opened in order to be sure — not on a row you are still
+            skimming. */}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          loading={busy}
+          disabled={disabled && !busy}
+          onClick={onChoose}
+        >
+          הוספה ללו&quot;ז
+        </Button>
+
+        {/* The route handed to Google, threading the stages' stops. This is
+            the one thing the app genuinely cannot do itself — real transit
+            routing is not available for free — so rather than pretend, it
+            opens the tool that has it. A plain URL, no Maps API and no
+            billing (see lib/maps.ts). */}
+        {mapsUrl && (
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              buttonClasses("ghost", "sm"),
+              "text-primary-ink",
+            )}
           >
-            הוספה ללו&quot;ז
-          </Button>
-
-          {/* The route handed to Google, threading the stages' stops. This is
-              the one thing the app genuinely cannot do itself — real transit
-              routing is not available for free — so rather than pretend, it
-              opens the tool that has it. A plain URL, no Maps API and no
-              billing (see lib/maps.ts). */}
-          {mapsUrl && (
-            <a
-              href={mapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={cn(
-                buttonClasses("ghost", "sm"),
-                "text-primary-ink",
-              )}
-            >
-              <Map className="h-4 w-4" aria-hidden="true" />
-              המסלול בגוגל מפות
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
-            </a>
-          )}
-        </div>
+            <Map className="h-4 w-4" aria-hidden="true" />
+            המסלול בגוגל מפות
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+          </a>
+        )}
       </div>
-    </details>
+    </Disclosure>
   );
 }

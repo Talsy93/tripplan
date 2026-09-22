@@ -3,9 +3,11 @@
 import { useMemo, useState } from "react";
 import { Languages, Search, Volume2 } from "lucide-react";
 import {
+  Badge,
   Banner,
   Button,
   Card,
+  Disclosure,
   EmptyState,
   Input,
   SectionHeading,
@@ -36,6 +38,8 @@ export function Phrasebook({
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+
+  const searching = query.trim().length > 0;
 
   // Sections with no surviving phrase drop out entirely, so a search never
   // leaves a heading standing over nothing.
@@ -133,7 +137,7 @@ export function Phrasebook({
         />
       )}
 
-      {phrasebook && query.trim() && sections.length === 0 && (
+      {phrasebook && searching && sections.length === 0 && (
         <EmptyState
           icon={<Search />}
           title="אין ביטוי כזה בשיחון"
@@ -141,9 +145,25 @@ export function Phrasebook({
         />
       )}
 
-      {sections.map((section) => (
-        <section key={section.title} className="flex flex-col gap-2">
-          <SectionHeading level="section">{section.title}</SectionHeading>
+      {/* One section open at a time, not all of them.
+          A built phrasebook is six or seven headings with six phrases each —
+          forty cards in one scroll, where what you want is "how do I ask for
+          the bill". The heading and the count are enough to choose a section
+          by, and the first one is open so the page never arrives empty.
+
+          While a search is running they all open: the sections on screen are
+          the matches, and asking the reader to open each one to find out what
+          matched would make the search useless. The key changes with the search
+          state so React re-mounts the <details> rather than fighting whatever
+          the reader toggled by hand. */}
+      {sections.map((section, index) => (
+        <Disclosure
+          key={`${searching ? "q" : "all"}|${section.title}`}
+          title={section.title}
+          leading={<Languages className="h-4 w-4" />}
+          meta={<Badge tone="neutral">{section.phrases.length}</Badge>}
+          defaultOpen={searching || index === 0}
+        >
           {/* A phrase card is short, so a wide screen fits three of them and a
               two-week phrasebook stops being a single scrolling column. */}
           <ul className="grid gap-2 @md:grid-cols-2 @3xl:grid-cols-3">
@@ -197,7 +217,7 @@ export function Phrasebook({
               </li>
             ))}
           </ul>
-        </section>
+        </Disclosure>
       ))}
     </div>
   );

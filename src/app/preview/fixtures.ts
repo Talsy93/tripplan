@@ -632,6 +632,38 @@ export const PHRASEBOOK: AiPhrasebook = {
         },
       ],
     },
+    // A second and a third section, because one section could not show what the
+    // page actually does with them: the first opens on arrival, the rest stay
+    // shut, and a search opens every section that still has a match in it. With
+    // a single section all three of those look identical.
+    {
+      title: "בדרכים",
+      phrases: [
+        {
+          he: "איפה התחנה הקרובה?",
+          en: "Where is the nearest station?",
+          local: "一番近い駅はどこですか",
+          pronunciation: "ichiban chikai eki wa doko desu ka",
+        },
+        {
+          he: "כמה עולה כרטיס לטוקיו?",
+          en: "How much is a ticket to Tokyo?",
+          local: "東京までいくらですか",
+          pronunciation: "tōkyō made ikura desu ka",
+        },
+      ],
+    },
+    {
+      title: "במלון",
+      phrases: [
+        {
+          he: "אפשר להשאיר את המזוודה?",
+          en: "May I leave my suitcase?",
+          local: "荷物を預かってもらえますか",
+          pronunciation: "nimotsu o azukatte moraemasu ka",
+        },
+      ],
+    },
   ],
 };
 

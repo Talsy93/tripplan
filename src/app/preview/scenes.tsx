@@ -77,6 +77,7 @@ import {
   tripOpenItems,
   UpcomingTrips,
   UpNext,
+  OtherDestinationsWeather,
   WeatherForecast,
   WorkflowGuide,
   WorkflowSummary,
@@ -2001,6 +2002,14 @@ export const SCENES: Scene[] = [
     note: "גלילה אופקית של ימים, לשתי ערים",
     render: () => (
       <WeatherForecast window={f.WEATHER_WINDOW} cities={f.WEATHER} />
+    ),
+  },
+  {
+    slug: "other-weather",
+    title: "מזג אוויר · שאר היעדים",
+    note: "היום שלכם מקבל כרטיס פתוח, והשאר מתקפל לשורה אחת. היה כאן useState עם חץ משלו עד שהפרימיטיב Disclosure הגיע — המעבר הוריד מכאן את ה-\"use client\"",
+    render: () => (
+      <OtherDestinationsWeather cities={f.WEATHER} today="2026-09-10" />
     ),
   },
   {
