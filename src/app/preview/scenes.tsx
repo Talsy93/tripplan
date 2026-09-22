@@ -76,8 +76,7 @@ import {
   DailyExpensesTile,
   suggestPrepItems,
   TodayPrep,
-  HomeMap,
-  HomePanel,
+  HomeScreen,
   TripRail,
   TripTabs,
   TripWorkspace,
@@ -97,7 +96,6 @@ import {
   AppHeader,
   AppShell,
   BottomNav,
-  BottomSheet,
   IconRail,
   SideNav,
   TwoPane,
@@ -430,16 +428,23 @@ export const SCENES: Scene[] = [
   {
     slug: "home-v5",
     title: "v5 · הבית · מפת כל הטיולים ופאנל צף",
-    note: "כל טיול עם קואורדינטות הוא נקודה על המפה; הפאנל צף מעליה מ-lg וגליל תחתון מתחת. הטיול הקרוב כרטיס, השאר שורות ממוספרות",
+    note: "כל טיול עם קואורדינטות הוא נקודה על המפה; הפאנל צף מעליה מ-lg וגליל תחתון מתחת. הטיול הקרוב כרטיס, השאר שורות ממוספרות. לחיצה על טיול מסמנת אותו על המפה (מספר, צבע, המפה טסה אליו), לחיצה נוספת נכנסת אליו",
     bleed: true,
     render: () => {
       const ordered = orderTripsByProximity(f.TRIPS, f.TODAY);
       const featured = pickFeaturedTrip(ordered);
-      const mapped: MappedTrip[] = ordered.flatMap(({ trip }) => {
+      const mapped: MappedTrip[] = ordered.flatMap(({ trip, phase }, index) => {
         const points = f.TRIP_POINTS.get(trip.id) ?? [];
-        return points.length
-          ? [{ id: trip.id, name: trip.name, hue: trip.id === featured?.trip.id ? "var(--primary)" : "var(--border-strong)", points }]
-          : [];
+        if (!points.length) return [];
+        const during = phase.kind === "during";
+        return [{
+          id: trip.id,
+          name: trip.name,
+          hue: during ? "var(--callout)" : trip.id === featured?.trip.id ? "var(--primary)" : "var(--border-strong)",
+          activeHue: during ? "var(--callout)" : "var(--primary)",
+          position: index + 1,
+          points,
+        }];
       });
       return (
         <div className="flex min-h-dvh">
@@ -448,18 +453,14 @@ export const SCENES: Scene[] = [
           </div>
           <div className="flex min-w-0 flex-1 flex-col">
             <AppHeader wide brand className="lg:hidden" />
-            <div className="relative h-[calc(100dvh-3.5rem)] min-w-0 flex-1 lg:h-dvh">
-              <div className="absolute inset-0"><HomeMap trips={mapped} /></div>
-              <BottomSheet desktop="floating" initial="half">
-                <HomePanel
-                  entries={ordered}
-                  featured={featured}
-                  featuredCities={["טוקיו", "קיוטו", "אוסקה", "נארה"]}
-                  featuredDayCount={14}
-                  featuredOpen={[{ id: "b", text: "עוד אין טיסות בטיול", detail: null, urgency: "now", path: "more/trip" }]}
-                />
-              </BottomSheet>
-            </div>
+            <HomeScreen
+              mapped={mapped}
+              entries={ordered}
+              featured={featured}
+              featuredCities={["טוקיו", "קיוטו", "אוסקה", "נארה"]}
+              featuredDayCount={14}
+              featuredOpen={[{ id: "b", text: "עוד אין טיסות בטיול", detail: null, urgency: "now", path: "more/trip" }]}
+            />
           </div>
         </div>
       );

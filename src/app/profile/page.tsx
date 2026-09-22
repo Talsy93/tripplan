@@ -1,4 +1,4 @@
-import { AppHeader, BottomSheet, IconRail } from "@/components/layout";
+import { AppHeader, IconRail } from "@/components/layout";
 import { getCurrentUser, LogoutButton } from "@/features/auth";
 import {
   APP_TIME_ZONE,
@@ -7,8 +7,7 @@ import {
   getItinerary,
   getItineraryDayCountByTrip,
   getSelectedDestinations,
-  HomeMap,
-  HomePanel,
+  HomeScreen,
   itineraryStops,
   listBookings,
   listTrips,
@@ -24,6 +23,11 @@ export const metadata = { title: "הטיולים שלי · MyTrip" };
 // The home screen of the "מפה חיה" direction: every trip on one map, and a
 // panel floating over it (a bottom sheet on a phone) with the next trip and
 // its next step first, then the rest as numbered rows.
+//
+// The map and the panel are two halves of one thing — pressing a trip in the
+// list lights it up on the map — so they are composed by HomeScreen, a client
+// shell that owns the selection and nothing else. Everything below is still
+// fetched and rendered here, on the server.
 export default async function ProfilePage() {
   const [user, trips, dayCounts, pointsByTrip] = await Promise.all([
     getCurrentUser(),
@@ -65,22 +69,33 @@ export default async function ProfilePage() {
     });
   }
 
-  // One dot colour per standing, not per trip: the featured trip is the blue
-  // one, everything else is quiet. The number in the panel does the naming.
-  const mapped: MappedTrip[] = ordered.flatMap(({ trip, phase }) => {
+  // Two colours per trip, and the split is the point.
+  //
+  // `hue` is the resting map: one colour per *standing*, not per trip — the
+  // trip being lived is amber, the next one out is blue, everything else is
+  // quiet grey, and the number in the panel does the naming. `activeHue` is
+  // what the trip wears once it has been selected, which is the only way a
+  // grey trip can come forward without every trip needing a colour of its own.
+  //
+  // `position` is the row number in the panel. Indexed into `ordered` rather
+  // than into this list, because a trip with no located city takes a number
+  // here and no flag.
+  const mapped: MappedTrip[] = ordered.flatMap(({ trip, phase }, index) => {
     const points = pointsByTrip.get(trip.id) ?? [];
     if (points.length === 0) return [];
     const isFeatured = trip.id === featured?.trip.id;
+    const during = phase.kind === "during";
     return [
       {
         id: trip.id,
         name: trip.name,
-        hue:
-          phase.kind === "during"
-            ? "var(--callout)"
-            : isFeatured
-              ? "var(--primary)"
-              : "var(--border-strong)",
+        hue: during
+          ? "var(--callout)"
+          : isFeatured
+            ? "var(--primary)"
+            : "var(--border-strong)",
+        activeHue: during ? "var(--callout)" : "var(--primary)",
+        position: index + 1,
         points,
       },
     ];
@@ -99,27 +114,20 @@ export default async function ProfilePage() {
             carries the mark and the panel carries the title. */}
         <AppHeader wide brand className="lg:hidden" trailing={<LogoutButton />} />
 
-        <div className="relative h-[calc(100dvh-3.5rem)] min-w-0 flex-1 lg:h-dvh">
-          <div className="absolute inset-0">
-            <HomeMap trips={mapped} />
-          </div>
-
-          <BottomSheet desktop="floating" initial="half">
-            <HomePanel
-              entries={ordered}
-              featured={featured}
-              featuredCities={featuredCities}
-              featuredDayCount={featuredDayCount}
-              featuredOpen={featuredOpen}
-              dayCounts={dayCounts}
-              footerAction={
-                <span className="hidden lg:inline-flex">
-                  <LogoutButton />
-                </span>
-              }
-            />
-          </BottomSheet>
-        </div>
+        <HomeScreen
+          mapped={mapped}
+          entries={ordered}
+          featured={featured}
+          featuredCities={featuredCities}
+          featuredDayCount={featuredDayCount}
+          featuredOpen={featuredOpen}
+          dayCounts={dayCounts}
+          footerAction={
+            <span className="hidden lg:inline-flex">
+              <LogoutButton />
+            </span>
+          }
+        />
       </div>
     </div>
   );

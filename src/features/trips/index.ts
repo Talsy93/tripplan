@@ -425,6 +425,7 @@ export { MoreMenu } from "./components/more-menu";
 export { HomeRail } from "./components/home-rail";
 export { HomeMap } from "./components/home-map";
 export { HomePanel } from "./components/home-panel";
+export { HomeScreen } from "./components/home-screen";
 export type { MappedTrip } from "./components/trips-map-canvas";
 export type { CityGuideEntry } from "./components/city-guide-list";
 export type { RouteCity } from "./components/route-cities";

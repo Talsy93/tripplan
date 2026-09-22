@@ -45,18 +45,25 @@ export function TripsWorldMap({
   >;
   enterDelayMs?: number;
 }) {
-  const mapped: MappedTrip[] = entries.flatMap((entry) => {
+  const mapped: MappedTrip[] = entries.flatMap((entry, index) => {
     const points = pointsByTrip?.get(entry.trip.id) ?? [];
     if (points.length === 0) return [];
+    // The lead hue of the palette this trip was assigned. Falls back to the
+    // action blue rather than to nothing: a trip with located cities but no
+    // light is a trip whose cities were never saved as destinations, and a
+    // transparent pin would be a bug that looks like a missing trip.
+    const hue = auraByTrip?.get(entry.trip.id)?.[0] ?? "var(--primary)";
     return [
       {
         id: entry.trip.id,
         name: entry.trip.name,
-        // The lead hue of the palette this trip was assigned. Falls back to the
-        // action blue rather than to nothing: a trip with located cities but no
-        // light is a trip whose cities were never saved as destinations, and a
-        // transparent pin would be a bug that looks like a missing trip.
-        hue: auraByTrip?.get(entry.trip.id)?.[0] ?? "var(--primary)",
+        hue,
+        // This map has no selection — no `onSelect`, so no flag is ever
+        // clickable and none is ever drawn selected. Both fields are still
+        // required by the canvas, and the honest values are "the same colour"
+        // and "the row it sits beside".
+        activeHue: hue,
+        position: index + 1,
         points,
       },
     ];
