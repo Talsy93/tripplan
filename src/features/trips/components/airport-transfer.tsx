@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Bus, Car, Hotel, PlaneLanding, Sparkles } from "lucide-react";
+import {
+  Bus,
+  Car,
+  ChevronDown,
+  Hotel,
+  PlaneLanding,
+  Sparkles,
+} from "lucide-react";
 import {
   Banner,
   Button,
@@ -373,17 +380,34 @@ function OptionCard({
   );
   const Icon = option.mode === "taxi" ? Car : Bus;
 
+  // A heading you can compare, and a disclosure for the rest.
+  //
+  // Asked for after seeing three of these fully unfolded: "show a heading only,
+  // and a dropdown for the extra information." Right, and for a reason the
+  // first version missed — the list is a *comparison*. Three options laid out
+  // in full is three paragraphs and two numbered lists to read before you can
+  // tell which is cheaper, and the answer to "which of these" lives entirely in
+  // the header line.
+  //
+  // So the header carries exactly what a choice needs — how you travel, what it
+  // costs, how often it runs, and when it gets you there — and the prose and
+  // the step-by-step wait behind the chevron for the one you settled on.
+  //
+  // A <details>, not state: the disclosure belongs to the browser, which gives
+  // the keyboard and screen-reader behaviour for free. Same call the booking
+  // form's folded block makes.
   return (
-    <div
+    <details
       className={cn(
-        "flex min-w-0 flex-col gap-2 rounded-control border border-border p-3",
+        "group/opt min-w-0 rounded-control border border-border",
         option.mode === "taxi" ? "bg-surface" : "bg-surface-sunken",
       )}
     >
-      <div className="flex min-w-0 items-start gap-2.5">
+      <summary className="flex min-w-0 cursor-pointer list-none items-center gap-2.5 p-3 [&::-webkit-details-marker]:hidden">
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-primary-tint text-primary-ink">
           <Icon className="h-4 w-4" aria-hidden="true" />
         </span>
+
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="min-w-0 text-sm font-bold wrap-anywhere">
             {option.name}
@@ -394,6 +418,7 @@ function OptionCard({
             {option.costText && ` · ${option.costText}`}
           </span>
         </span>
+
         {/* The answer the traveller came for: not "53 minutes" but "you are
             there at 11:05". The "+1" is the same notation the timeline uses for
             a flight that lands the next day — an end earlier than its start is
@@ -409,32 +434,45 @@ function OptionCard({
             </span>
           )}
         </span>
+
+        <ChevronDown
+          className="h-4 w-4 shrink-0 text-muted transition-transform group-open/opt:rotate-180"
+          aria-hidden="true"
+        />
+      </summary>
+
+      <div className="flex min-w-0 flex-col gap-2 border-t border-border p-3">
+        <p className="text-caption text-muted wrap-anywhere">
+          {option.summary}
+        </p>
+
+        {option.steps.length > 0 && (
+          <ol className="flex flex-col gap-0.5 text-caption text-muted">
+            {option.steps.map((step, index) => (
+              <li key={index} className="flex min-w-0 gap-1.5">
+                <span className="shrink-0 tabular-nums">{index + 1}.</span>
+                <span className="min-w-0 wrap-anywhere">{step}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+
+        {/* Inside the disclosure on purpose. Choosing one of these commits it
+            to the schedule, and the press that does it belongs next to the
+            detail you opened in order to be sure — not on a row you are still
+            skimming. */}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          loading={busy}
+          disabled={disabled && !busy}
+          onClick={onChoose}
+          className="self-start"
+        >
+          הוספה ללו&quot;ז
+        </Button>
       </div>
-
-      <p className="text-caption text-muted wrap-anywhere">{option.summary}</p>
-
-      {option.steps.length > 0 && (
-        <ol className="flex flex-col gap-0.5 text-caption text-muted">
-          {option.steps.map((step, index) => (
-            <li key={index} className="flex min-w-0 gap-1.5">
-              <span className="shrink-0 tabular-nums">{index + 1}.</span>
-              <span className="min-w-0 wrap-anywhere">{step}</span>
-            </li>
-          ))}
-        </ol>
-      )}
-
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        loading={busy}
-        disabled={disabled && !busy}
-        onClick={onChoose}
-        className="self-start"
-      >
-        הוספה ללו&quot;ז
-      </Button>
-    </div>
+    </details>
   );
 }
