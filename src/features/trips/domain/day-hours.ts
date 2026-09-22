@@ -53,7 +53,7 @@ export type DayHours = {
   // support, and the reconcile below enforces whatever is here.
   earliest: number | null;
   latest: number | null;
-  // 0025. The whole day is between a departure and an arrival — a middle day of
+  // The whole day is between a departure and an arrival — a middle day of
   // a long journey. Neither bound above can express it: both ends of the
   // journey are on other dates, so before this such a day arrived at the model
   // with nothing said about it at all.
@@ -111,7 +111,7 @@ export function buildDayHours(
     let earliestReason: string | null = null;
     let latestReason: string | null = null;
 
-    // 0025. Whether a journey is still in the air at the end of this day, which
+    // Whether a journey is still in the air at the end of this day, which
     // is a different fact from either of the two bounds below and the reason
     // this loop cannot answer it with them alone.
     let inTransitAllDay = false;
@@ -195,7 +195,7 @@ export function buildDayHours(
     // Measured on exactly that case: latest came back null and the whole day
     // was mis-described.
     //
-    // 0025. **Only when something also left today.** That is what makes the
+    // **Only when something also left today.** That is what makes the
     // transfer a transfer: you had the morning in the city you were leaving, so
     // dropping the floor gives the day back correctly. An arrival with no
     // departure is the other case entirely — an overnight flight landing at
@@ -219,7 +219,7 @@ export function buildDayHours(
       latestReason = null;
     }
 
-    // 0025. A day spent entirely in transit is its own fact rather than a
+    // A day spent entirely in transit is its own fact rather than a
     // tight pair of bounds, and it is carried as one.
     //
     // The tempting shortcut is a floor at 23:59 — "nothing before the end of

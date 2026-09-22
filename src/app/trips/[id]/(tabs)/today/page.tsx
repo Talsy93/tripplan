@@ -19,6 +19,7 @@ import {
   getTrip,
   itineraryStops,
   listBookings,
+  listDayNotes,
   listDayReminders,
   listExpenses,
   listGear,
@@ -77,6 +78,7 @@ export default async function TodayPage({
     shareToken,
     members,
     gear,
+    dayNotes,
   ] = await Promise.all([
     getTrip(id),
     getItinerary(id),
@@ -88,6 +90,7 @@ export default async function TodayPage({
     getShareToken(id),
     listMembers(id),
     listGear(id),
+    listDayNotes(id),
   ]);
   if (!trip) notFound();
 
@@ -265,6 +268,7 @@ export default async function TodayPage({
           bookingsByDay={byDay}
           lodgingByDay={lodging}
           reminders={reminders}
+          dayNotes={dayNotes}
           nowIso={phase.kind === "during" ? nowIso : undefined}
         />
       ) : null}

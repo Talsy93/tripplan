@@ -14,6 +14,9 @@ import {
   dayCityPlanPromptLines,
   dayHoursHaveFacts,
   dayHoursPromptLines,
+  dayNotesHaveFacts,
+  dayNotesPromptLines,
+  listDayNotes,
   getItinerary,
   getSelectedDestinations,
   getTrip,
@@ -33,7 +36,13 @@ import {
 } from "@/lib/ai";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
-import type { Booking, DayCityPlan, DayHours, SelectedItem } from "@/features/trips";
+import type {
+  Booking,
+  DayCityPlan,
+  DayHours,
+  DayNote,
+  SelectedItem,
+} from "@/features/trips";
 import type { Trip } from "@/features/trips";
 
 const RATE_LIMIT = 5;
@@ -68,6 +77,10 @@ function buildPrompt(
   // above answers "which city"; this answers "from when", which the prompt used
   // to say nothing about at all.
   dayHours: DayHours[] | null,
+  // What the traveller marked days with (migration 0025) — a holiday, a rest
+  // day. Unlike everything above it this comes from nothing derivable: it is
+  // the one input here the app could never work out on its own.
+  dayNotes: DayNote[],
   cities: string[],
 ) {
   const lodging = lodgingLines(bookings);
@@ -88,6 +101,7 @@ function buildPrompt(
   // Independent of hasDayPlan: a trip can have a flight and no hotel, which
   // gives an arrival hour and no city plan at all.
   const hasDayHours = dayHours !== null && dayHoursHaveFacts(dayHours);
+  const hasDayNotes = dayNotesHaveFacts(dayNotes);
 
   return [
     "אתה מתכנן טיולים מקצועי.",
@@ -136,6 +150,17 @@ function buildPrompt(
     hasDayHours && dayHoursPromptLines(dayHours!),
     hasDayHours &&
       "ביום עם שעת התחלה — הפריט הראשון מתחיל בשעה הזאת או אחריה, לא לפניה.",
+
+    // After the hours and before the items, which is where it belongs: the
+    // hours say when the day is available, this says what the day *is*, and
+    // both have to be settled before anything is placed into it.
+    //
+    // Stated as the traveller's own knowledge rather than as a preference. A
+    // holiday is not a mood — it is the city being shut, and the model has no
+    // way to know which date that falls on.
+    hasDayNotes &&
+      "דברים שהמטייל ציין על ימים מסוימים. אלה עובדות שהוא יודע ואתה לא — קח אותן בחשבון בבחירת הפריטים ובקצב של אותו יום:",
+    hasDayNotes && dayNotesPromptLines(dayNotes),
 
     "הפריטים שנבחרו לטיול:",
     list,
@@ -189,11 +214,12 @@ export async function POST(request: Request) {
     );
   }
 
-  const [trip, items, bookings, overrides] = await Promise.all([
+  const [trip, items, bookings, overrides, dayNotes] = await Promise.all([
     getTrip(tripId),
     getSelectedDestinations(tripId),
     listBookings(tripId),
     listCityDays(tripId),
+    listDayNotes(tripId),
   ]);
 
   if (!trip) {
@@ -251,6 +277,7 @@ export async function POST(request: Request) {
         cityDaysLine,
         dayPlan,
         dayHours,
+        dayNotes,
         cities,
       ),
       schema: aiItinerarySchema,

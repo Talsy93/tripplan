@@ -203,7 +203,7 @@ export function dayOfTripLabel(
 // passed in for the same reason `today` is elsewhere: the day a 23:40 flight
 // belongs to depends on whose calendar you ask.
 //
-// 0025. **A journey belongs to every day it touches, not only the day it left
+// **A journey belongs to every day it touches, not only the day it left
 // on.** Reported: "on flights, add the landing to the schedule too — the day
 // and hour you land have to be taken into account". A flight out at 23:40 on
 // day 3 landing 08:30 on day 4 was bucketed on day 3 alone, so day 4 opened as

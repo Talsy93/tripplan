@@ -574,3 +574,18 @@ export { InviteForm } from "./components/invite-form";
 export { MemberList } from "./components/member-list";
 export { ShareButton } from "./components/share-button";
 export { AcceptInvite } from "./components/accept-invite";
+
+// Migration 0025 — a mark on a day, independent of its schedule.
+export {
+  DAY_NOTE_KINDS,
+  DAY_NOTE_KINDS_INFO,
+  dayNoteFormSchema,
+  dayNoteSchema,
+  dayNotesHaveFacts,
+  dayNotesPromptLines,
+  notesForDay,
+} from "./domain/day-notes";
+export type { DayNote, DayNoteKind } from "./domain/day-notes";
+export { listDayNotes } from "./infrastructure/day-note-service";
+export { addDayNote, removeDayNote } from "./application/day-note-actions";
+export { AddDayNoteButton, DayNotes } from "./components/day-note";

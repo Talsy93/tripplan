@@ -99,7 +99,7 @@ export function DayTimeline({
   addHref?: string;
   addLabel?: string;
 }) {
-  // 0025. The hotel is not on the schedule.
+  // The hotel is not on the schedule.
   //
   // Reported: "do not put the hotel as part of the itinerary, just state it the
   // way it already is above, fixed." And it is right — a flight or a train is

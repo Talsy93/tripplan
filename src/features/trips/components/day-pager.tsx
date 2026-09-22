@@ -14,7 +14,10 @@ import { AddReminderButton } from "./reminder-dialog";
 import { AnchorsButton } from "./anchors-dialog";
 import { RescheduleButton } from "./reschedule-button";
 import { remindersForDay } from "../domain/day-reminders";
+import { notesForDay } from "../domain/day-notes";
+import { AddDayNoteButton, DayNotes } from "./day-note";
 import type { DayReminder } from "../domain/day-reminders";
+import type { DayNote } from "../domain/day-notes";
 import type { Booking } from "../domain/booking";
 import type { NightLodging } from "../domain/trip-days";
 import type { ItineraryDay } from "../domain/ai-suggestion";
@@ -34,11 +37,15 @@ export function DayPager({
   bookingsByDay,
   lodgingByDay,
   reminders = [],
+  dayNotes = [],
   nowIso,
 }: {
   tripId: string;
   // Reminders for the whole trip (migration 0024); filtered per day here.
   reminders?: DayReminder[];
+  // What each day is marked with (migration 0025) — a holiday, a rest day.
+  // Same shape and the same reason: one query for the trip, filtered per day.
+  dayNotes?: DayNote[];
   // When given, the day can be re-timed around "we are here now" — the
   // reschedule button appears. Only the running trip passes it.
   nowIso?: string;
@@ -74,7 +81,7 @@ export function DayPager({
   const date = dateOfDay(startDate, active.day);
   const bookings = bookingsByDay[active.day] ?? [];
 
-  // 0025. Always shown. This used to be suppressed on the check-in day, because
+  // Always shown. This used to be suppressed on the check-in day, because
   // the timeline below was also listing the hotel as a row at its check-in hour
   // and two of them read as the same thing twice. The timeline no longer lists
   // lodging at all (see day-timeline), so the strip is the single statement of
@@ -145,11 +152,20 @@ export function DayPager({
           The time was also read with getHours(), i.e. the *viewer's* clock,
           while the timeline resolves it in the trip's zone. Two different
           answers for one departure was the real reason to pick one. */}
+      {/* Above the schedule and above where you sleep, because it is true of
+          the whole day rather than of a moment in it. */}
+      <DayNotes tripId={tripId} notes={notesForDay(dayNotes, active.day)} />
+
       <NightStay stay={stay} />
 
       {/* The two things you do to a day while living it: pin a reminder to an
           hour, and tell the plan where you actually are. */}
       <div className="flex flex-wrap items-center justify-end gap-2">
+        <AddDayNoteButton
+          tripId={tripId}
+          dayNumber={active.day}
+          dayCount={dayCount}
+        />
         <AddReminderButton
           tripId={tripId}
           dayNumber={active.day}

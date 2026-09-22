@@ -10,6 +10,7 @@ import {
   Itinerary,
   listBookings,
   listCityDays,
+  listDayNotes,
   listDayReminders,
   lodgingByDay,
   todayIn,
@@ -25,7 +26,7 @@ export default async function DaysPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [trip, itinerary, bookings, selected, overrides, reminders] =
+  const [trip, itinerary, bookings, selected, overrides, reminders, dayNotes] =
     await Promise.all([
       getTrip(id),
       getItinerary(id),
@@ -33,6 +34,7 @@ export default async function DaysPage({
       getSelectedDestinations(id),
       listCityDays(id),
       listDayReminders(id),
+      listDayNotes(id),
     ]);
   if (!trip) notFound();
 
@@ -72,6 +74,7 @@ export default async function DaysPage({
       bookingsByDay={bookingsPerDay}
       cityDays={cityDayPlan(cities, bookings, overrides, APP_TIME_ZONE)}
       reminders={reminders}
+      dayNotes={dayNotes}
       tripDayCount={tripDayCount(trip.start_date, trip.end_date)}
       // Which day the screen opens on. Resolved on the server, in the trip's
       // own zone, for the same reason every other date on this page is: the

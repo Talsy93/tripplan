@@ -27,6 +27,9 @@ import {
   bookingsByDay,
   buildDayHours,
   BuildingItinerary,
+  DayNotes,
+  dayNotesPromptLines,
+  notesForDay,
   dayHoursPromptLines,
   CityDaysEditor,
   CreateTripForm,
@@ -87,7 +90,7 @@ import {
   TripWorkspace,
   WorkspaceMap,
 } from "@/features/trips";
-import type { MappedTrip, PrepItem, TripPhase } from "@/features/trips";
+import type { DayNote, MappedTrip, PrepItem, TripPhase } from "@/features/trips";
 import {
   AuraField,
   Badge,
@@ -1603,6 +1606,60 @@ export const SCENES: Scene[] = [
         <BuildingItinerary dayCount={4} />
       </div>
     ),
+  },
+  {
+    slug: "day-notes",
+    title: "ציון ליום · חג, מנוחה, אירוע",
+    note: "משהו שנכון לכל היום ולא לשעה בו, אז הוא יושב מעל הלו״ז ולא בתוכו. מתחת: השורות שנכנסות לפרומפט של בניית הלו״ז — התווית במילים של המטייל, ואחריה מה זה אומר לתכנון",
+    render: () => {
+      const notes: DayNote[] = [
+        {
+          id: "00000000-0000-0000-0000-0000000000f1",
+          trip_id: f.TRIP_ID,
+          day_number: 3,
+          kind: "holiday",
+          label: "יום כיפור — הכול סגור",
+          created_at: "2026-09-01T00:00:00Z",
+        },
+        {
+          id: "00000000-0000-0000-0000-0000000000f2",
+          trip_id: f.TRIP_ID,
+          day_number: 3,
+          kind: "event",
+          label: "יום ההולדת של דנה",
+          created_at: "2026-09-01T00:00:00Z",
+        },
+        {
+          id: "00000000-0000-0000-0000-0000000000f3",
+          trip_id: f.TRIP_ID,
+          day_number: 5,
+          kind: "rest",
+          label: "אחרי ארבעה ימים על הרגליים",
+          created_at: "2026-09-01T00:00:00Z",
+        },
+        {
+          id: "00000000-0000-0000-0000-0000000000f4",
+          trip_id: f.TRIP_ID,
+          day_number: 6,
+          kind: "note",
+          label: "המוזיאונים סגורים בימי שני",
+          created_at: "2026-09-01T00:00:00Z",
+        },
+      ];
+      return (
+        <div className="flex flex-col gap-4">
+          {[3, 5, 6].map((day) => (
+            <div key={day} className="flex flex-col gap-2">
+              <p className="text-sm font-bold">יום {day}</p>
+              <DayNotes notes={notesForDay(notes, day)} editable={false} />
+            </div>
+          ))}
+          <pre className="overflow-x-auto rounded-card bg-surface-2 p-3 text-caption" dir="rtl">
+            {dayNotesPromptLines(notes)}
+          </pre>
+        </div>
+      );
+    },
   },
   {
     slug: "arrival-day",

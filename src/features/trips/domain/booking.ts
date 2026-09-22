@@ -1030,7 +1030,7 @@ export function doubleBookedLodgingIds(
 // `for` over dates is not something to leave in reach of one.
 const MAX_STAY_NIGHTS = 400;
 
-// 0025. The nights a lodging booking covers, as YYYY-MM-DD dates in `zone`:
+// The nights a lodging booking covers, as YYYY-MM-DD dates in `zone`:
 // from the check-in date up to but not including the check-out date.
 //
 // Half-open for the reason doubleBookedLodgingIds gives — the morning you leave

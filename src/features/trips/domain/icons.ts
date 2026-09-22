@@ -32,6 +32,11 @@ export type DomainIconName =
   | "shopping"
   | "temple"
   | "attraction"
+  // day notes (migration 0025)
+  | "holiday"
+  | "rest"
+  | "event"
+  | "note"
   // weather conditions
   | "clear"
   | "partly-cloudy"

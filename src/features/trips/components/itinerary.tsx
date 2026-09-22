@@ -22,7 +22,10 @@ import { DayTimeline } from "./day-timeline";
 import { AddReminderButton } from "./reminder-dialog";
 import { AnchorsButton } from "./anchors-dialog";
 import { remindersForDay } from "../domain/day-reminders";
+import { notesForDay } from "../domain/day-notes";
+import { AddDayNoteButton, DayNotes } from "./day-note";
 import type { DayReminder } from "../domain/day-reminders";
+import type { DayNote } from "../domain/day-notes";
 import { EditEntryDialog } from "./edit-entry-dialog";
 import { EmptyDays, RouteCities } from "./route-cities";
 import { TripCalendar } from "./trip-calendar";
@@ -67,6 +70,9 @@ type ItineraryProps = {
   currentDay?: number | null;
   // Reminders pinned to days (migration 0024), shown inside each day.
   reminders?: DayReminder[];
+  // What each day is marked with (migration 0025) — a holiday, a rest day.
+  // Above the schedule rather than in it: a note has no hour.
+  dayNotes?: DayNote[];
 };
 
 export function Itinerary({
@@ -80,6 +86,7 @@ export function Itinerary({
   bookingsByDay = {},
   currentDay = null,
   reminders = [],
+  dayNotes = [],
 }: ItineraryProps) {
   const [scheduled, setScheduled] = useState<ItineraryDay[]>(initialItinerary);
   const [building, setBuilding] = useState(false);
@@ -419,11 +426,21 @@ export function Itinerary({
         </span>
       </div>
 
+      {/* What is true of the whole day, above everything that happens in it.
+          A holiday changes what the rest of the day should hold, so it is read
+          first. */}
+      <DayNotes tripId={tripId} notes={notesForDay(dayNotes, active.day)} />
+
       <NightStay stay={stay} />
 
       {/* Pin an hour, lock the booked ones — the same two controls the היום
           tab has, so a day is shaped the same wherever it is looked at. */}
       <div className="flex flex-wrap items-center justify-end gap-2">
+        <AddDayNoteButton
+          tripId={tripId}
+          dayNumber={active.day}
+          dayCount={dayCount}
+        />
         <AddReminderButton
           tripId={tripId}
           dayNumber={active.day}
