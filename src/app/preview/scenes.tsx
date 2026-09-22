@@ -22,8 +22,12 @@ import {
   AuraPanel,
   tripHueStyle,
   BookingForm,
+  APP_TIME_ZONE,
   BookingList,
+  bookingsByDay,
+  buildDayHours,
   BuildingItinerary,
+  dayHoursPromptLines,
   CityDaysEditor,
   CreateTripForm,
   daysUntil,
@@ -1599,6 +1603,37 @@ export const SCENES: Scene[] = [
         <BuildingItinerary dayCount={4} />
       </div>
     ),
+  },
+  {
+    slug: "arrival-day",
+    title: "יום הנחיתה · הטיסה שהתחילה אתמול",
+    note: "EK313 יוצאת ב-24.09 ונוחתת ב-25.09. השורה בנויה מ-bookingsByDay האמיתי — לפני 0025 הטיסה נרשמה רק על יום היציאה, ויום הנחיתה נפתח כיום פנוי רגיל. מתחת: מה שהפרומפט אומר למודל על אותו יום",
+    render: () => {
+      // The real functions, not a hand-made list: the point of the scene is
+      // that the day-splitting works, so faking the split would test nothing.
+      const byDay = bookingsByDay(f.BOOKINGS, "2026-09-24", 3, APP_TIME_ZONE);
+      const hours = buildDayHours("2026-09-24", 3, f.BOOKINGS, APP_TIME_ZONE);
+      return (
+        <div className="flex flex-col gap-4">
+          {[1, 2].map((day) => (
+            <div key={day} className="flex flex-col gap-2">
+              <p className="text-sm font-bold">
+                יום {day} · {day === 1 ? "היציאה" : "הנחיתה"} —{" "}
+                {(byDay.get(day) ?? []).length} הזמנות
+              </p>
+              <DayTimeline
+                day={{ day, items: [] }}
+                bookings={byDay.get(day) ?? []}
+                date={day === 1 ? "2026-09-24" : "2026-09-25"}
+              />
+            </div>
+          ))}
+          <pre className="overflow-x-auto rounded-card bg-surface-2 p-3 text-caption" dir="rtl">
+            {dayHoursPromptLines(hours) || "(אין אילוצים)"}
+          </pre>
+        </div>
+      );
+    },
   },
   {
     slug: "day-timeline-gaps",

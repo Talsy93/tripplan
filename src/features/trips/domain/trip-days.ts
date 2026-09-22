@@ -202,6 +202,19 @@ export function dayOfTripLabel(
 // the one place a day's contents are known rather than inferred. `zone` is
 // passed in for the same reason `today` is elsewhere: the day a 23:40 flight
 // belongs to depends on whose calendar you ask.
+//
+// 0025. **A journey belongs to every day it touches, not only the day it left
+// on.** Reported: "on flights, add the landing to the schedule too — the day
+// and hour you land have to be taken into account". A flight out at 23:40 on
+// day 3 landing 08:30 on day 4 was bucketed on day 3 alone, so day 4 opened as
+// an ordinary free day with no sign that its first eight hours were spent in
+// the air.
+//
+// toTimelineBooking has always known how to draw this — it clamps a booking
+// that began earlier to midnight and ends it at the landing time — it was just
+// never handed the booking on that day. The same is true of a journey that
+// spans a whole day in the middle; it is listed on every day from departure to
+// arrival, and the timeline draws whichever part of it belongs to each.
 export function bookingsByDay(
   bookings: Booking[],
   startDate: string | null,
@@ -212,17 +225,37 @@ export function bookingsByDay(
   if (!startDate) return byDay;
 
   const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: zone });
+  const dayOf = (iso: string): number | null => {
+    const at = new Date(iso);
+    if (Number.isNaN(at.getTime())) return null;
+    return dayNumberOfDate(startDate, formatter.format(at), dayCount);
+  };
 
-  for (const booking of bookings) {
-    const at = new Date(booking.starts_at);
-    if (Number.isNaN(at.getTime())) continue;
-
-    const day = dayNumberOfDate(startDate, formatter.format(at), dayCount);
-    if (day === null) continue;
-
+  const add = (day: number, booking: Booking) => {
     const list = byDay.get(day) ?? [];
     list.push(booking);
     byDay.set(day, list);
+  };
+
+  for (const booking of bookings) {
+    const from = dayOf(booking.starts_at);
+
+    // Only transport spans days in a way a day's axis should show. A hotel also
+    // covers several days, and lodgingByDay is what answers that — listing it
+    // here would put a check-in row on every night of the stay.
+    const spans = BOOKING_KINDS[booking.kind].isTransport && booking.ends_at;
+    const to = spans ? dayOf(booking.ends_at as string) : from;
+
+    // A departure before the trip starts, or an arrival after it ends, still
+    // has one end inside the trip. Clamping keeps that end rather than dropping
+    // the whole booking, which is what `null` from either side used to do.
+    const first = from ?? to;
+    const last = to ?? from;
+    if (first === null || last === null) continue;
+
+    for (let day = Math.min(first, last); day <= Math.max(first, last); day += 1) {
+      add(day, booking);
+    }
   }
 
   for (const list of byDay.values()) {

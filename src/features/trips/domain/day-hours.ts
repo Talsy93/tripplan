@@ -53,6 +53,11 @@ export type DayHours = {
   // support, and the reconcile below enforces whatever is here.
   earliest: number | null;
   latest: number | null;
+  // 0025. The whole day is between a departure and an arrival — a middle day of
+  // a long journey. Neither bound above can express it: both ends of the
+  // journey are on other dates, so before this such a day arrived at the model
+  // with nothing said about it at all.
+  inTransit: boolean;
   // Human phrases naming the booking behind each bound, for the prompt. Kept
   // beside the numbers because a constraint the model is given without a reason
   // is one it feels free to round off.
@@ -106,10 +111,33 @@ export function buildDayHours(
     let earliestReason: string | null = null;
     let latestReason: string | null = null;
 
+    // 0025. Whether a journey is still in the air at the end of this day, which
+    // is a different fact from either of the two bounds below and the reason
+    // this loop cannot answer it with them alone.
+    let inTransitAllDay = false;
+    // Whether anything leaves today. The late-arrival rule at the bottom turns
+    // on this — see the note there.
+    let departsToday = false;
+
     for (const booking of bookings) {
       const kind = BOOKING_KINDS[booking.kind];
 
       if (kind.isTransport) {
+        // A day spent entirely between a departure and an arrival: day 2 of a
+        // three-day rail journey, or the middle day of a long-haul with a
+        // stopover. Neither bound below fires, because neither end of the
+        // journey is on this date — so before this the model was handed a day
+        // with no constraints at all and planned a full one, on a date the
+        // traveller spends moving. Exactly the reported "do not put attractions
+        // in the schedule during the flight".
+        if (booking.ends_at) {
+          const from = dateInZone(booking.starts_at, zone);
+          const to = dateInZone(booking.ends_at, zone);
+          if (from && to && from < date && date < to) inTransitAllDay = true;
+        }
+
+        if (dateInZone(booking.starts_at, zone) === date) departsToday = true;
+
         // Arriving today: nothing before you are off the plane and out.
         if (booking.ends_at && dateInZone(booking.ends_at, zone) === date) {
           const at = minutesInZone(booking.ends_at, zone);
@@ -166,7 +194,19 @@ export function buildDayHours(
     //
     // Measured on exactly that case: latest came back null and the whole day
     // was mis-described.
-    if (earliest !== null && earliest > LATEST_USEFUL_START) {
+    //
+    // 0025. **Only when something also left today.** That is what makes the
+    // transfer a transfer: you had the morning in the city you were leaving, so
+    // dropping the floor gives the day back correctly. An arrival with no
+    // departure is the other case entirely — an overnight flight landing at
+    // 21:30, whose day began on the previous date and was spent in the air — and
+    // dropping the floor there declared the whole day free. Reported as
+    // attractions scheduled while the traveller was still flying.
+    if (
+      earliest !== null &&
+      earliest > LATEST_USEFUL_START &&
+      departsToday
+    ) {
       earliest = null;
       earliestReason = null;
     }
@@ -179,11 +219,23 @@ export function buildDayHours(
       latestReason = null;
     }
 
+    // 0025. A day spent entirely in transit is its own fact rather than a
+    // tight pair of bounds, and it is carried as one.
+    //
+    // The tempting shortcut is a floor at 23:59 — "nothing before the end of
+    // the day" is "nothing" — but the clamp below enforces floors by *moving*
+    // items to them, so a model that ignored the instruction would leave the
+    // day with four things stacked at a minute to midnight. That is not a
+    // correction, it is a mess with a different shape. The prompt says the day
+    // is gone, and the timeline now draws the journey across the whole of it
+    // (see bookingsByDay), so an item left there is visibly sitting on top of a
+    // flight rather than quietly misplaced.
     out.push({
       day,
       date,
       earliest,
       latest,
+      inTransit: inTransitAllDay,
       reasons: [earliestReason, latestReason].filter(
         (reason): reason is string => reason !== null,
       ),
@@ -195,14 +247,22 @@ export function buildDayHours(
 
 // True when anything here is worth putting in a prompt.
 export function dayHoursHaveFacts(hours: DayHours[]): boolean {
-  return hours.some((day) => day.earliest !== null || day.latest !== null);
+  return hours.some(
+    (day) => day.earliest !== null || day.latest !== null || day.inTransit,
+  );
 }
 
 // The constrained days, as instructions.
 export function dayHoursPromptLines(hours: DayHours[]): string {
   return hours
-    .filter((day) => day.earliest !== null || day.latest !== null)
+    .filter(
+      (day) => day.earliest !== null || day.latest !== null || day.inTransit,
+    )
     .map((day) => {
+      if (day.inTransit) {
+        return `- יום ${day.day} (${day.date}): היום כולו בדרך — השאירו אותו ריק לגמרי`;
+      }
+
       const bounds: string[] = [];
       if (day.earliest !== null) {
         bounds.push(`אל תתכננו כלום לפני ${formatMinutes(day.earliest)}`);
