@@ -24,7 +24,10 @@ import { AnchorsButton } from "./anchors-dialog";
 import { remindersForDay } from "../domain/day-reminders";
 import { notesForDay } from "../domain/day-notes";
 import { arrivalOnDay } from "../domain/airport-transfer";
-import { AirportTransferButton } from "./airport-transfer";
+import {
+  AirportTransferButton,
+  transferDestinations,
+} from "./airport-transfer";
 import { APP_TIME_ZONE } from "../domain/weather";
 import { AddDayNoteButton, DayNotes } from "./day-note";
 import type { DayReminder } from "../domain/day-reminders";
@@ -482,16 +485,17 @@ export function Itinerary({
             dayCount={dayCount}
             airport={arrival.place}
             landingMinutes={arrival.minutes}
-            // **The hotel by name, not just its address.** Reported: the
-            // default should name the hotel so it can be accepted on sight.
-            // It was the address alone whenever one existed, which is the
-            // string the model wants and the one the traveller cannot
-            // recognise — "Kabukicho, Shinjuku City 1-2-3" is not an answer to
-            // "is this the right hotel". Both now: the name to recognise, the
-            // address to be precise about.
-            defaultDestination={[stay?.booking.title, stay?.booking.address]
-              .filter(Boolean)
-              .join(", ")}
+            // Offered as choices, not as one pre-filled string — the default
+            // has to be something you can *press*.
+            //
+            // Both nights, because a late landing moves the transfer to the
+            // next day and the hotel you reach may be that day's, not this
+            // one's. Usually the same booking, in which case the dedupe below
+            // leaves one chip.
+            suggestions={transferDestinations([
+              stay?.booking,
+              lodgingByDay[active.day + 1]?.booking,
+            ])}
             city={activeCity}
           />
         )}

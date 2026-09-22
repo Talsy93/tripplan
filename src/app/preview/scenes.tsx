@@ -1707,7 +1707,14 @@ export const SCENES: Scene[] = [
         dayCount={14}
         airport="הנדה, טוקיו"
         landingMinutes={8 * 60 + 30}
-        defaultDestination="מלון שינג׳וקו גרנד, Kabukicho, Shinjuku City, Tokyo 1-2-3"
+        suggestions={[
+          {
+            label: "מלון שינג׳וקו גרנד",
+            value:
+              "מלון שינג׳וקו גרנד, Kabukicho, Shinjuku City, Tokyo 1-2-3",
+          },
+          { label: "ריוקאן בקיוטו", value: "ריוקאן בקיוטו, Higashiyama" },
+        ]}
         city="טוקיו"
       />
     ),
@@ -1723,7 +1730,14 @@ export const SCENES: Scene[] = [
         dayCount={14}
         airport="נריטה, טוקיו"
         landingMinutes={23 * 60 + 30}
-        defaultDestination="מלון שינג׳וקו גרנד, Kabukicho, Shinjuku City, Tokyo 1-2-3"
+        suggestions={[
+          {
+            label: "מלון שינג׳וקו גרנד",
+            value:
+              "מלון שינג׳וקו גרנד, Kabukicho, Shinjuku City, Tokyo 1-2-3",
+          },
+          { label: "ריוקאן בקיוטו", value: "ריוקאן בקיוטו, Higashiyama" },
+        ]}
         city="טוקיו"
       />
     ),

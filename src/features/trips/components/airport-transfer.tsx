@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Bus, Car, PlaneLanding, Sparkles } from "lucide-react";
+import { Bus, Car, Hotel, PlaneLanding, Sparkles } from "lucide-react";
 import {
   Banner,
   Button,
+  Chip,
   Dialog,
   Field,
   Input,
@@ -21,6 +22,35 @@ import {
 import { formatMinutes } from "../domain/timeline";
 import { addAirportTransfer } from "../application/itinerary-actions";
 import type { TransferOption } from "../domain/airport-transfer";
+
+// One offered destination: what the chip says, and what actually goes to the
+// model. They differ on purpose — the label is the hotel's name, which is what
+// makes it recognisable at a glance, and the value carries the address too,
+// which is what makes the answer accurate.
+export type TransferDestination = { label: string; value: string };
+
+// Lodgings turned into offered destinations, in the order given, without
+// repeats or blanks.
+//
+// Deduped on the value rather than the booking id: the same hotel across two
+// nights is two rows of `lodgingByDay` and one place to be driven to, and a
+// chip offered twice is a choice that is not a choice.
+export function transferDestinations(
+  bookings: ({ title: string; address: string | null } | undefined)[],
+): TransferDestination[] {
+  const out: TransferDestination[] = [];
+
+  for (const booking of bookings) {
+    if (!booking?.title?.trim()) continue;
+    const value = [booking.title, booking.address]
+      .filter((part) => part && part.trim())
+      .join(", ");
+    if (out.some((existing) => existing.value === value)) continue;
+    out.push({ label: booking.title, value });
+  }
+
+  return out;
+}
 
 // Planning the way out of the airport, on the day you land.
 //
@@ -48,10 +78,10 @@ export function AirportTransferButton({
   // day, already resolved by the screen that knows which booking it is.
   airport,
   landingMinutes,
-  // Pre-filled destination — the hotel that covers this night, when there is
-  // one, by name and address. The traveller can type over it, which is why it
-  // is asked at all.
-  defaultDestination,
+  // Where you might be going, as choices rather than as one pre-filled string.
+  // The first is the default and starts selected: the lodging that covers this
+  // night.
+  suggestions,
   city,
 }: {
   tripId: string;
@@ -59,7 +89,7 @@ export function AirportTransferButton({
   dayCount: number;
   airport: string;
   landingMinutes: number;
-  defaultDestination: string;
+  suggestions: TransferDestination[];
   city: string | null;
 }) {
   const [open, setOpen] = useState(false);
@@ -88,7 +118,7 @@ export function AirportTransferButton({
           dayCount={dayCount}
           airport={airport}
           landingMinutes={landingMinutes}
-          defaultDestination={defaultDestination}
+          suggestions={suggestions}
           city={city}
           onClose={() => setOpen(false)}
         />
@@ -103,7 +133,7 @@ function TransferDialog({
   dayCount,
   airport,
   landingMinutes,
-  defaultDestination,
+  suggestions,
   city,
   onClose,
 }: {
@@ -112,11 +142,15 @@ function TransferDialog({
   dayCount: number;
   airport: string;
   landingMinutes: number;
-  defaultDestination: string;
+  suggestions: TransferDestination[];
   city: string | null;
   onClose: () => void;
 }) {
-  const [destination, setDestination] = useState(defaultDestination);
+  // The first suggestion is the default, already chosen. The chip below shows
+  // it as chosen rather than the field merely containing it.
+  const [destination, setDestination] = useState(
+    suggestions[0]?.value ?? "",
+  );
   const [options, setOptions] = useState<TransferOption[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -224,13 +258,46 @@ function TransferDialog({
           </Banner>
         )}
 
-        <Field label="לאן נוסעים" hint="ברירת המחדל היא הלינה של אותו לילה">
-          <Input
-            value={destination}
-            onChange={(event) => setDestination(event.target.value)}
-            maxLength={200}
-            placeholder="שם המלון או הכתובת"
-          />
+        {/* The lodging as something to *press*, not only as text already in the
+            box.
+
+            Reported as "the default exists but there is no button to press it
+            with", and that is exactly what was wrong: the hotel was pre-filled
+            into a free-text field, so the app had made a choice without ever
+            offering one. A filled input asks you to read a string and decide
+            whether to trust it; a chip that is visibly selected says "this one,
+            unless you say otherwise" — which is what a default is. */}
+        <Field
+          label="לאן נוסעים"
+          hint={
+            suggestions.length > 0
+              ? "הלינה של אותו לילה כבר נבחרה — אפשר גם להקליד יעד אחר"
+              : undefined
+          }
+        >
+          <div className="flex min-w-0 flex-col gap-2">
+            {suggestions.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {suggestions.map((option) => (
+                  <Chip
+                    key={option.value}
+                    active={destination.trim() === option.value}
+                    onClick={() => setDestination(option.value)}
+                  >
+                    <Hotel className="h-3.5 w-3.5" aria-hidden="true" />
+                    {option.label}
+                  </Chip>
+                ))}
+              </div>
+            )}
+            <Input
+              value={destination}
+              onChange={(event) => setDestination(event.target.value)}
+              maxLength={200}
+              placeholder="שם המלון או הכתובת"
+              aria-label="יעד ההגעה"
+            />
+          </div>
         </Field>
 
         {options === null && !loading && (
