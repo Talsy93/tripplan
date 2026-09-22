@@ -303,6 +303,58 @@ export const getItineraryDayCount = cache(
 // it at whatever position it had, and getItinerary orders by (day_number,
 // position), so it lands among that day's items rather than always at the end.
 // Reordering within a day is a separate feature and is not pretended at here.
+// One entry added to a day that already has a schedule.
+//
+// The only write in this file that inserts without deleting first. saveItinerary
+// replaces the whole trip because a rebuild is a new answer to the same
+// question; this is the opposite — the schedule stands and one thing joins it,
+// so nothing else may be touched.
+//
+// `position` goes to the end of the day. The timeline sorts by clock time
+// anyway (see daySequence), so position only decides where an entry with no
+// time lands; an airport transfer always has one.
+export async function addItineraryEntry(
+  tripId: string,
+  entry: {
+    dayNumber: number;
+    title: string;
+    startLabel: string;
+    endLabel: string;
+    note: string | null;
+    city: string | null;
+    travelNote: string | null;
+    travelMinutes: number | null;
+  },
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+
+  const { data: last, error: countError } = await supabase
+    .from("itinerary_items")
+    .select("position")
+    .eq("trip_id", tripId)
+    .eq("day_number", entry.dayNumber)
+    .order("position", { ascending: false })
+    .limit(1);
+
+  if (countError) return { error: countError.message };
+
+  const { error } = await supabase.from("itinerary_items").insert({
+    trip_id: tripId,
+    day_number: entry.dayNumber,
+    position: ((last?.[0]?.position as number | undefined) ?? -1) + 1,
+    title: entry.title,
+    start_label: entry.startLabel || null,
+    end_label: entry.endLabel || null,
+    note: entry.note,
+    city: entry.city,
+    travel_note: entry.travelNote,
+    travel_minutes: entry.travelMinutes,
+  });
+
+  if (error) return { error: error.message };
+  return { error: null };
+}
+
 export async function updateItineraryEntry(
   id: string,
   patch: {

@@ -6,6 +6,7 @@ import { dayNoteFormSchema } from "../domain/day-notes";
 import {
   createDayNote,
   deleteDayNote,
+  updateDayNote,
 } from "../infrastructure/day-note-service";
 
 const tripIdSchema = z.uuid();
@@ -44,6 +45,36 @@ export async function addDayNote(
 
   const ok = await createDayNote({ tripId, ...parsed.data });
   if (!ok) return { ok: false, message: "ההוספה נכשלה. נסו שוב." };
+
+  revalidateDays(tripId);
+  return { ok: true };
+}
+
+// The same validation the add path uses, because it is the same form. A note
+// is typed as quickly as a reminder is, and "יום חג" on the wrong day is the
+// ordinary mistake.
+export async function editDayNote(
+  tripId: string,
+  id: string,
+  input: unknown,
+): Promise<DayNoteResult> {
+  if (!tripIdSchema.safeParse(tripId).success) return { ok: false };
+  if (!z.uuid().safeParse(id).success) return { ok: false };
+
+  const parsed = dayNoteFormSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      errors: Object.fromEntries(
+        Object.entries(z.flattenError(parsed.error).fieldErrors).flatMap(
+          ([key, messages]) => (messages?.[0] ? [[key, messages[0]]] : []),
+        ),
+      ),
+    };
+  }
+
+  const ok = await updateDayNote(id, parsed.data);
+  if (!ok) return { ok: false, message: "השמירה נכשלה. נסו שוב." };
 
   revalidateDays(tripId);
   return { ok: true };

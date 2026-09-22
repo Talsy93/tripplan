@@ -154,7 +154,11 @@ export function DayPager({
           answers for one departure was the real reason to pick one. */}
       {/* Above the schedule and above where you sleep, because it is true of
           the whole day rather than of a moment in it. */}
-      <DayNotes tripId={tripId} notes={notesForDay(dayNotes, active.day)} />
+      <DayNotes
+        tripId={tripId}
+        notes={notesForDay(dayNotes, active.day)}
+        dayCount={dayCount}
+      />
 
       <NightStay stay={stay} />
 

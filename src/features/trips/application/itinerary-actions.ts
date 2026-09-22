@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
 import {
+  addItineraryEntry as addEntry,
   applyTimeChanges,
   deleteItineraryEntry as deleteEntry,
   setEntriesFixed,
@@ -14,6 +15,7 @@ import {
   updateItineraryEntrySchema,
   type UpdateEntryResult,
 } from "../domain/itinerary-edit";
+import { addTransferSchema, transferEntry } from "../domain/airport-transfer";
 
 export async function deleteItineraryEntry(id: string) {
   if (!z.uuid().safeParse(id).success) return;
@@ -119,6 +121,43 @@ export async function setCityDays(
     parsed.data.days,
   );
   if (error) return { ok: false, error: "השמירה נכשלה. נסו שוב." };
+
+  revalidatePath("/trips/[id]", "layout");
+  return { ok: true };
+}
+
+// The airport transfer, once a traveller has picked one of the offered ways in.
+//
+// The option itself is re-validated here rather than trusted: it arrived from
+// the model, went out to the browser and came back, so by the time it reaches a
+// write it is ordinary user input.
+export async function addAirportTransfer(
+  tripId: string,
+  input: unknown,
+): Promise<{ ok: boolean; message?: string }> {
+  if (!z.uuid().safeParse(tripId).success) return { ok: false };
+
+  const parsed = addTransferSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: "הפרטים לא תקינים." };
+
+  const { dayNumber, airport, destination, landingMinutes, city, option } =
+    parsed.data;
+  const entry = transferEntry(option, { airport, destination, landingMinutes });
+
+  const { error } = await addEntry(tripId, {
+    dayNumber,
+    title: entry.title,
+    startLabel: entry.startLabel,
+    endLabel: entry.endLabel,
+    note: entry.note,
+    // The city the transfer lands in, so the entry colours and maps like every
+    // other item on that day rather than falling out of the route.
+    city: city ?? null,
+    travelNote: entry.travelNote,
+    travelMinutes: entry.travelMinutes,
+  });
+
+  if (error) return { ok: false, message: "ההוספה נכשלה. נסו שוב." };
 
   revalidatePath("/trips/[id]", "layout");
   return { ok: true };

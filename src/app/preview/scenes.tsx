@@ -22,6 +22,7 @@ import {
   AuraPanel,
   tripHueStyle,
   BookingForm,
+  AirportTransferButton,
   APP_TIME_ZONE,
   BookingList,
   bookingsByDay,
@@ -1685,7 +1686,7 @@ export const SCENES: Scene[] = [
           {[3, 5, 6].map((day) => (
             <div key={day} className="flex flex-col gap-2">
               <p className="text-sm font-bold">יום {day}</p>
-              <DayNotes notes={notesForDay(notes, day)} editable={false} />
+              <DayNotes tripId={f.TRIP_ID} notes={notesForDay(notes, day)} dayCount={7} />
             </div>
           ))}
           <pre className="overflow-x-auto rounded-card bg-surface-2 p-3 text-caption" dir="rtl">
@@ -1694,6 +1695,21 @@ export const SCENES: Scene[] = [
         </div>
       );
     },
+  },
+  {
+    slug: "airport-transfer",
+    title: "ההגעה מהשדה · יום הנחיתה",
+    note: "מופיע רק ביום שנוחתים בו. היעד מגיע מהלינה של אותו לילה וניתן לשינוי; האפשרויות נטענות רק בלחיצה (קריאת מודל), והשעות מחושבות מהנחיתה האמיתית ועוד 90 דק׳ של ביקורת דרכונים וכבודה",
+    render: () => (
+      <AirportTransferButton
+        tripId={f.TRIP_ID}
+        dayNumber={1}
+        airport="הנדה, טוקיו"
+        landingMinutes={8 * 60 + 30}
+        defaultDestination="Kabukicho, Shinjuku City, Tokyo 1-2-3"
+        city="טוקיו"
+      />
+    ),
   },
   {
     slug: "arrival-day",

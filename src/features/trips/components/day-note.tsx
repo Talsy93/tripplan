@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CalendarHeart, X } from "lucide-react";
+import { CalendarHeart, Pencil, X } from "lucide-react";
 import { Banner, Button, Dialog, Field, Input, Select } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import {
@@ -10,7 +10,11 @@ import {
   type DayNote,
   type DayNoteKind,
 } from "../domain/day-notes";
-import { addDayNote, removeDayNote } from "../application/day-note-actions";
+import {
+  addDayNote,
+  editDayNote,
+  removeDayNote,
+} from "../application/day-note-actions";
 import { DomainIcon } from "./domain-icon";
 
 // Migration 0025. "A point to mark on that day regardless of the schedule."
@@ -19,46 +23,49 @@ import { DomainIcon } from "./domain-icon";
 // They are in one file because the band is the only thing the button produces,
 // and splitting them would mean two files that only make sense read together.
 
-export function AddDayNoteButton({
-  tripId,
-  dayNumber,
+// The form, once, for adding and for correcting — the same three questions
+// either way. Extracted when editing arrived rather than copied, for the reason
+// the reminder dialog gives: two forms that must agree drift.
+function DayNoteFormDialog({
+  onClose,
+  heading,
+  submitLabel,
   dayCount,
-  size = "sm",
-  className,
+  initial,
+  onSubmit,
 }: {
-  tripId: string;
-  dayNumber: number;
+  onClose: () => void;
+  heading: string;
+  submitLabel: string;
   dayCount: number;
-  size?: "sm" | "md";
-  className?: string;
+  initial: { dayNumber: number; kind: DayNoteKind; label: string };
+  onSubmit: (values: {
+    dayNumber: number;
+    kind: DayNoteKind;
+    label: string;
+  }) => Promise<{
+    ok: boolean;
+    errors?: Record<string, string>;
+    message?: string;
+  }>;
 }) {
-  const [open, setOpen] = useState(false);
-  const [day, setDay] = useState(String(dayNumber));
-  const [kind, setKind] = useState<DayNoteKind>("holiday");
-  const [label, setLabel] = useState("");
+  const [day, setDay] = useState(String(initial.dayNumber));
+  const [kind, setKind] = useState<DayNoteKind>(initial.kind);
+  const [label, setLabel] = useState(initial.label);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  function reset() {
-    setDay(String(dayNumber));
-    setKind("holiday");
-    setLabel("");
-    setErrors({});
-    setMessage(null);
-  }
-
   function submit(event: React.FormEvent) {
     event.preventDefault();
     startTransition(async () => {
-      const result = await addDayNote(tripId, {
+      const result = await onSubmit({
         dayNumber: Number(day),
         kind,
         label,
       });
       if (result.ok) {
-        setOpen(false);
-        reset();
+        onClose();
         return;
       }
       setErrors(result.errors ?? {});
@@ -66,28 +73,16 @@ export function AddDayNoteButton({
     });
   }
 
+  const dayNumber = initial.dayNumber;
+
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        size={size}
-        className={className}
-        onClick={() => {
-          reset();
-          setOpen(true);
-        }}
-      >
-        <CalendarHeart className="h-4 w-4" aria-hidden="true" />
-        ציון ליום
-      </Button>
-
       <Dialog
-        open={open}
+        open
         onClose={() => {
-          if (!pending) setOpen(false);
+          if (!pending) onClose();
         }}
-        title="מה מיוחד ביום הזה?"
+        title={heading}
       >
         <form onSubmit={submit} className="flex flex-col gap-4">
           <p className="text-caption text-muted">
@@ -148,17 +143,65 @@ export function AddDayNoteButton({
             <Button
               type="button"
               variant="ghost"
-              onClick={() => setOpen(false)}
+              onClick={onClose}
               disabled={pending}
             >
               ביטול
             </Button>
             <Button type="submit" loading={pending}>
-              הוספה
+              {submitLabel}
             </Button>
           </div>
         </form>
       </Dialog>
+    </>
+  );
+}
+
+export function AddDayNoteButton({
+  tripId,
+  dayNumber,
+  dayCount,
+  size = "sm",
+  className,
+}: {
+  tripId: string;
+  dayNumber: number;
+  dayCount: number;
+  size?: "sm" | "md";
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  // Remounts the form on each open, which is what clears a cancelled draft.
+  const [generation, setGeneration] = useState(0);
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size={size}
+        className={className}
+        onClick={() => {
+          setGeneration((current) => current + 1);
+          setOpen(true);
+        }}
+      >
+        <CalendarHeart className="h-4 w-4" aria-hidden="true" />
+        ציון ליום
+      </Button>
+
+      {open && (
+        <DayNoteFormDialog
+          key={generation}
+          onClose={() => setOpen(false)}
+          heading="מה מיוחד ביום הזה?"
+          submitLabel="הוספה"
+          dayCount={dayCount}
+          initial={{ dayNumber, kind: "holiday", label: "" }}
+          onSubmit={(values) => addDayNote(tripId, values)}
+        />
+      )}
     </>
   );
 }
@@ -173,10 +216,13 @@ export function DayNotes({
   notes,
   // Absent on the share page, where the band shows and does nothing.
   editable = true,
+  // For the day picker in the edit form; falls back to the note's own day.
+  dayCount,
 }: {
   tripId?: string;
   notes: DayNote[];
   editable?: boolean;
+  dayCount?: number;
 }) {
   if (notes.length === 0) return null;
 
@@ -187,6 +233,7 @@ export function DayNotes({
           <DayNoteBand
             tripId={tripId}
             note={note}
+            dayCount={dayCount}
             editable={editable && Boolean(tripId)}
           />
         </li>
@@ -199,13 +246,16 @@ function DayNoteBand({
   tripId,
   note,
   editable,
+  dayCount,
 }: {
   tripId?: string;
   note: DayNote;
   editable: boolean;
+  dayCount?: number;
 }) {
   const info = DAY_NOTE_KINDS_INFO[note.kind];
   const [pending, startTransition] = useTransition();
+  const [editing, setEditing] = useState(false);
 
   return (
     <div
@@ -228,19 +278,45 @@ function DayNoteBand({
         // control's context, so there is no row of content for a red icon to
         // compete with. Also the reason it is an X and not a bin — it removes
         // a label, it does not delete a thing.
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() =>
-            startTransition(async () => {
-              await removeDayNote(tripId, note.id);
-            })
-          }
-          aria-label={`הסרת הציון ״${note.label}״`}
-          className="shrink-0 rounded-control p-1 opacity-60 transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <X className="h-3.5 w-3.5" aria-hidden="true" />
-        </button>
+        <>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => setEditing(true)}
+            aria-label={`עריכת הציון ״${note.label}״`}
+            className="shrink-0 rounded-control p-1 opacity-60 transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                await removeDayNote(tripId, note.id);
+              })
+            }
+            aria-label={`הסרת הציון ״${note.label}״`}
+            className="shrink-0 rounded-control p-1 opacity-60 transition-opacity hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+
+          {editing && (
+            <DayNoteFormDialog
+              onClose={() => setEditing(false)}
+              heading="עריכת הציון"
+              submitLabel="שמירה"
+              dayCount={dayCount ?? note.day_number}
+              initial={{
+                dayNumber: note.day_number,
+                kind: note.kind,
+                label: note.label,
+              }}
+              onSubmit={(values) => editDayNote(tripId, note.id, values)}
+            />
+          )}
+        </>
       )}
     </div>
   );

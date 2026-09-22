@@ -23,6 +23,9 @@ import { AddReminderButton } from "./reminder-dialog";
 import { AnchorsButton } from "./anchors-dialog";
 import { remindersForDay } from "../domain/day-reminders";
 import { notesForDay } from "../domain/day-notes";
+import { arrivalOnDay } from "../domain/airport-transfer";
+import { AirportTransferButton } from "./airport-transfer";
+import { APP_TIME_ZONE } from "../domain/weather";
 import { AddDayNoteButton, DayNotes } from "./day-note";
 import type { DayReminder } from "../domain/day-reminders";
 import type { DayNote } from "../domain/day-notes";
@@ -313,6 +316,18 @@ export function Itinerary({
   const stay = lodgingByDay[active.day] ?? null;
   const isEmpty = active.items.length === 0;
 
+  // The arrival this day begins with, if it begins with one.
+  //
+  // A transport booking whose *end* falls on this day — which is what
+  // bookingsByDay now buckets it under, and the reason the landing day knows
+  // anything at all. `arrival` is null on every other day, and the offer below
+  // simply does not appear.
+  const arrival = arrivalOnDay(
+    bookingsByDay[active.day] ?? [],
+    activeDate,
+    APP_TIME_ZONE,
+  );
+
   return (
     <TwoPane
       aside={
@@ -447,13 +462,31 @@ export function Itinerary({
       {/* What is true of the whole day, above everything that happens in it.
           A holiday changes what the rest of the day should hold, so it is read
           first. */}
-      <DayNotes tripId={tripId} notes={notesForDay(dayNotes, active.day)} />
+      <DayNotes
+        tripId={tripId}
+        notes={notesForDay(dayNotes, active.day)}
+        dayCount={dayCount}
+      />
 
       <NightStay stay={stay} />
 
       {/* Pin an hour, lock the booked ones — the same two controls the היום
           tab has, so a day is shaped the same wherever it is looked at. */}
       <div className="flex flex-wrap items-center justify-end gap-2">
+        {/* Only on a day that lands. It is the one day whose first hours are a
+            problem to be solved rather than a choice to be made. */}
+        {arrival && (
+          <AirportTransferButton
+            tripId={tripId}
+            dayNumber={active.day}
+            airport={arrival.place}
+            landingMinutes={arrival.minutes}
+            defaultDestination={
+              stay?.booking.address ?? stay?.booking.title ?? ""
+            }
+            city={activeCity}
+          />
+        )}
         <AddDayNoteButton
           tripId={tripId}
           dayNumber={active.day}

@@ -39,6 +39,29 @@ export async function createDayNote(input: {
   return !error;
 }
 
+// Correcting one that already exists. A note is typed in a hurry like a
+// reminder is — "יום חג" before you have looked up which day it actually falls
+// on — and re-adding it to fix a date is not an edit, it is a retype.
+export async function updateDayNote(
+  id: string,
+  input: { dayNumber: number; kind: DayNoteKind; label: string },
+): Promise<boolean> {
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("trip_day_notes")
+    .update(
+      {
+        day_number: input.dayNumber,
+        kind: input.kind,
+        label: input.label,
+      },
+      { count: "exact" },
+    )
+    .eq("id", id);
+  if (error) console.error("updateDayNote failed:", error.message);
+  return !error && count !== 0;
+}
+
 export async function deleteDayNote(id: string): Promise<boolean> {
   const supabase = await createClient();
   const { error, count } = await supabase

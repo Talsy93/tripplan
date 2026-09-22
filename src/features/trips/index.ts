@@ -587,5 +587,31 @@ export {
 } from "./domain/day-notes";
 export type { DayNote, DayNoteKind } from "./domain/day-notes";
 export { listDayNotes } from "./infrastructure/day-note-service";
-export { addDayNote, removeDayNote } from "./application/day-note-actions";
+export {
+  addDayNote,
+  editDayNote,
+  removeDayNote,
+} from "./application/day-note-actions";
 export { AddDayNoteButton, DayNotes } from "./components/day-note";
+
+// The airport transfer on a landing day.
+export {
+  arrivalOnDay,
+  TRANSFER_MODES,
+  TRANSFER_MODE_LABELS,
+  addTransferSchema,
+  transferEntry,
+  transferModeSchema,
+  transferOptionSchema,
+  transferOptionsSchema,
+  transferRequestSchema,
+  transferTimes,
+} from "./domain/airport-transfer";
+export type {
+  AddTransferInput,
+  TransferMode,
+  TransferOption,
+  TransferRequest,
+} from "./domain/airport-transfer";
+export { addAirportTransfer } from "./application/itinerary-actions";
+export { AirportTransferButton } from "./components/airport-transfer";

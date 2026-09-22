@@ -28,7 +28,10 @@ const MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR;
 // generous for a domestic hop, and erring short is the safer direction here:
 // this only ever moves a planned item later, and moving it too far would delete
 // a usable afternoon.
-const ARRIVAL_BUFFER_MIN = 90;
+// Exported since the airport-transfer planner reuses it: the offer the landing
+// day makes must leave at the same moment the day says it is free from, or the
+// two disagree in the same screen.
+export const ARRIVAL_BUFFER_MIN = 90;
 
 // How long before departure you have to have stopped. Per kind, because "be
 // there three hours early" is a flight rule and applying it to a train would
