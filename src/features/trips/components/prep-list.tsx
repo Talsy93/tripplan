@@ -14,6 +14,7 @@ import {
   Banner,
   Button,
   Card,
+  Dialog,
   Field,
   Input,
   SectionHeading,
@@ -159,7 +160,11 @@ export function PrepList({
         </div>
       )}
 
-      <PrepForm tripId={tripId} />
+      {/* Behind a button, per the standing rule that adding anything is a
+          modal. The extra fields inside no longer need the <details> either —
+          a dialog has room to ask all three at once, which is what the
+          disclosure existed to avoid on the page. */}
+      <AddPrepButton tripId={tripId} />
 
       {offered.length > 0 && (
         <div className="flex flex-col gap-2 rounded-card border border-dashed border-border-strong p-3">
@@ -370,7 +375,40 @@ function PrepRow({
   );
 }
 
-function PrepForm({ tripId }: { tripId: string }) {
+function AddPrepButton({ tripId }: { tripId: string }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => setOpen(true)}
+        className="self-start"
+      >
+        <Plus className="h-4 w-4" aria-hidden="true" />
+        הוספה לרשימה
+      </Button>
+
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="מה עוד צריך לזכור?"
+      >
+        <PrepForm tripId={tripId} onDone={() => setOpen(false)} />
+      </Dialog>
+    </>
+  );
+}
+
+function PrepForm({
+  tripId,
+  onDone,
+}: {
+  tripId: string;
+  onDone: () => void;
+}) {
   const [state, action, pending] = useActionState<PrepFormState, FormData>(
     addPrepItem,
     undefined,
@@ -384,38 +422,46 @@ function PrepForm({ tripId }: { tripId: string }) {
   }, [state]);
 
   return (
-    <form ref={formRef} action={action} className="flex flex-col gap-2">
+    <form ref={formRef} action={action} className="flex flex-col gap-4">
       <input type="hidden" name="tripId" value={tripId} />
-      <div className="flex gap-2">
-        <Field label={<span className="sr-only">מה לזכור</span>} error={state?.errors?.title?.[0]} className="flex-1">
-          <Input
-            name="title"
-            placeholder="מה עוד צריך לזכור?"
-            maxLength={160}
-            aria-invalid={Boolean(state?.errors?.title)}
-          />
+
+      <Field label="מה לזכור" error={state?.errors?.title?.[0]}>
+        <Input
+          autoFocus
+          name="title"
+          placeholder="למשל: להזמין שולחן ל-Sushi Dai"
+          maxLength={160}
+          aria-invalid={Boolean(state?.errors?.title)}
+        />
+      </Field>
+
+      {/* Both asked outright. On the page these were behind a <details>,
+          because two more fields across the top of a list is two too many;
+          a dialog has the room, and a deadline is the whole point of half
+          these items. */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Field label="עד תאריך (לא חובה)" error={state?.errors?.dueDate?.[0]}>
+          <Input type="date" name="dueDate" dir="ltr" />
         </Field>
-        <Button type="submit" loading={pending} className="self-start">
+        <Field label="קישור (לא חובה)" error={state?.errors?.url?.[0]}>
+          <Input name="url" dir="ltr" inputMode="url" placeholder="https://" />
+        </Field>
+      </div>
+
+      {state?.message && <Banner tone="danger">{state.message}</Banner>}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="submit" loading={pending}>
           <Plus className="h-4 w-4" aria-hidden="true" />
           הוספה
         </Button>
+        <Button type="button" variant="ghost" onClick={onDone}>
+          סיום
+        </Button>
+        <p className="text-caption text-muted">
+          אפשר להוסיף כמה פריטים ברצף.
+        </p>
       </div>
-      {/* A <details>, not state: the disclosure belongs to the browser, so a
-          reset after a successful add does not have to touch React. */}
-      <details>
-        <summary className="cursor-pointer list-none self-start text-caption font-semibold text-muted hover:text-foreground">
-          תאריך יעד או קישור
-        </summary>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2">
-          <Field label="עד תאריך" error={state?.errors?.dueDate?.[0]}>
-            <Input type="date" name="dueDate" dir="ltr" />
-          </Field>
-          <Field label="קישור" error={state?.errors?.url?.[0]}>
-            <Input name="url" dir="ltr" inputMode="url" placeholder="https://" />
-          </Field>
-        </div>
-      </details>
-      {state?.message && <Banner tone="danger">{state.message}</Banner>}
     </form>
   );
 }

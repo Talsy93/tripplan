@@ -1,16 +1,14 @@
 "use client";
 
 import { useId, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import {
   Banner,
   Button,
-  Card,
   ChipRadio,
+  Dialog,
   Field,
-  IconButton,
   Input,
-  SectionHeading,
 } from "@/components/ui";
 import { createManualPlace } from "../application/place-actions";
 import { PLACE_CATEGORIES } from "../domain/place";
@@ -77,8 +75,20 @@ export function ManualPlaceForm({
     setAddress("");
   }
 
-  if (!open) {
-    return (
+  // The button stays; the form moved into a dialog.
+  //
+  // Reported as a rule rather than a bug: adding anything belongs in a modal,
+  // not unfolded on the page. It is right here for a reason this form shows
+  // particularly well — it used to *replace* itself with a card four fields
+  // tall, in the middle of the destinations screen, pushing the list of what
+  // you had already chosen down past the fold. The thing you were adding to
+  // scrolled away the moment you started adding.
+  //
+  // The confirmation stays on the page rather than following the form into the
+  // dialog, because it outlives it: the dialog closes and "X was added to
+  // Tokyo" is still the answer to what just happened.
+  return (
+    <>
       <div className="flex flex-col gap-2">
         <Button
           type="button"
@@ -94,24 +104,19 @@ export function ManualPlaceForm({
           <Banner tone="success">{feedback.text}</Banner>
         )}
       </div>
-    );
-  }
 
-  return (
-    <Card className="flex flex-col gap-4">
-      <SectionHeading
-        level="sub"
-        description="למקום שהחיפוש לא מכיר — המלצה מחבר, משהו שראיתם ברשת."
-        actions={
-          <IconButton label="סגירה" onClick={() => setOpen(false)}>
-            <X className="h-5 w-5" aria-hidden="true" />
-          </IconButton>
-        }
+      <Dialog
+        open={open}
+        onClose={() => {
+          if (!saving) setOpen(false);
+        }}
+        title="הוספת מקום"
       >
-        הוספת מקום
-      </SectionHeading>
+        <p className="text-caption text-muted">
+          למקום שהחיפוש לא מכיר — המלצה מחבר, משהו שראיתם ברשת.
+        </p>
 
-      <form onSubmit={submit} className="flex flex-col gap-4">
+        <form onSubmit={submit} className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="שם המקום" error={result?.errors?.name}>
             <Input
@@ -199,11 +204,23 @@ export function ManualPlaceForm({
           <Button type="submit" loading={saving} disabled={!name.trim()}>
             הוספה לטיול
           </Button>
+          {/* The dialog stays open after a save — the city is kept, so adding
+              several places in one city is a short loop, and closing after each
+              one would make it four presses instead of one. */}
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setOpen(false)}
+            disabled={saving}
+          >
+            סיום
+          </Button>
           <p className="text-caption text-muted">
             המקום ייכנס ל״מה שבחרתם״ ולבניית הלו״ז.
           </p>
         </div>
       </form>
-    </Card>
+      </Dialog>
+    </>
   );
 }

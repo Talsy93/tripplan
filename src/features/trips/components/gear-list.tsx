@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useActionState } from "react";
 import { Plus, RotateCcw, X } from "lucide-react";
-import { Badge, Button, Card, Field, Glyph, IconButton, Input, REVEALED_ACTION, SectionHeading, Select, SwipeAction, useToast } from "@/components/ui";
+import { Badge, Button, Card, Dialog, Field, Glyph, IconButton, Input, REVEALED_ACTION, SectionHeading, Select, SwipeAction, useToast } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import {
   GEAR_CATEGORIES,
@@ -93,7 +93,12 @@ export function GearList({
 
   return (
     <div className="flex flex-col gap-6">
-      <GearForm tripId={tripId} />
+      {/* Behind a button, per the standing rule that adding anything is a
+          modal. The form was two fields and a button laid across the top of the
+          screen, so the packing list — the thing you came to read — started
+          below them on every visit, and on a phone that is most of the first
+          screenful spent on a control used a handful of times. */}
+      <AddGearButton tripId={tripId} />
 
       {visible.length > 0 && (
         <>
@@ -347,7 +352,45 @@ function StarterRow({
   );
 }
 
-function GearForm({ tripId }: { tripId: string }) {
+// The button on the page, and the form in the dialog behind it.
+//
+// The dialog stays open after a save and the label field re-focuses — see the
+// effect in GearForm. Packing is entered in bursts of five, not one at a time,
+// and closing after each would turn one press into five.
+function AddGearButton({ tripId }: { tripId: string }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => setOpen(true)}
+        className="self-start"
+      >
+        <Plus className="h-4 w-4" aria-hidden="true" />
+        הוספה לרשימה
+      </Button>
+
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="הוספה לרשימת האריזה"
+      >
+        <GearForm tripId={tripId} onDone={() => setOpen(false)} />
+      </Dialog>
+    </>
+  );
+}
+
+function GearForm({
+  tripId,
+  onDone,
+}: {
+  tripId: string;
+  onDone: () => void;
+}) {
   const [state, action, isPending] = useActionState<GearFormState, FormData>(
     addGearItem,
     undefined,
@@ -379,7 +422,7 @@ function GearForm({ tripId }: { tripId: string }) {
       onSubmit={() => {
         submitted.current = true;
       }}
-      className="flex flex-col gap-3 sm:flex-row sm:items-end"
+      className="flex flex-col gap-3"
     >
       <input type="hidden" name="tripId" value={tripId} />
 
@@ -413,14 +456,22 @@ function GearForm({ tripId }: { tripId: string }) {
         </Select>
       </Field>
 
-      <Button type="submit" loading={isPending} className="shrink-0">
-        <Plus className="h-4 w-4" aria-hidden="true" />
-        הוספה
-      </Button>
-
       {state?.message && (
-        <p className="text-caption text-danger-ink sm:hidden">{state.message}</p>
+        <p className="text-caption text-danger-ink">{state.message}</p>
       )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="submit" loading={isPending}>
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          הוספה
+        </Button>
+        <Button type="button" variant="ghost" onClick={onDone}>
+          סיום
+        </Button>
+        <p className="text-caption text-muted">
+          אפשר להוסיף כמה פריטים ברצף — השדה מתרוקן ומחכה לבא.
+        </p>
+      </div>
     </form>
   );
 }
