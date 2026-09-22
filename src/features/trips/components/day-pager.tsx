@@ -74,13 +74,13 @@ export function DayPager({
   const date = dateOfDay(startDate, active.day);
   const bookings = bookingsByDay[active.day] ?? [];
 
-  // On the check-in day the booking card above already names the hotel, with
-  // its check-in time — repeating it as a "where you sleep" strip would read as
-  // the same thing rendered twice.
+  // 0025. Always shown. This used to be suppressed on the check-in day, because
+  // the timeline below was also listing the hotel as a row at its check-in hour
+  // and two of them read as the same thing twice. The timeline no longer lists
+  // lodging at all (see day-timeline), so the strip is the single statement of
+  // where you sleep — and the day it was most worth having was exactly the day
+  // it used to disappear on.
   const stay = lodgingByDay[active.day] ?? null;
-  const stayAlreadyListed = bookings.some(
-    (booking) => booking.id === stay?.booking.id,
-  );
 
   const go = (delta: number) =>
     setDayNumber((d) => clampDay(d + delta, dayCount));
@@ -145,7 +145,7 @@ export function DayPager({
           The time was also read with getHours(), i.e. the *viewer's* clock,
           while the timeline resolves it in the trip's zone. Two different
           answers for one departure was the real reason to pick one. */}
-      <NightStay stay={stayAlreadyListed ? null : stay} />
+      <NightStay stay={stay} />
 
       {/* The two things you do to a day while living it: pin a reminder to an
           hour, and tell the plan where you actually are. */}

@@ -261,7 +261,8 @@ export {
   isPushRegistered,
 } from "./application/push-actions";
 export { PushToggle } from "./components/push-toggle";
-export { BookingForm } from "./components/booking-form";
+export { BookingForm, AddBookingButton } from "./components/booking-form";
+export { BuildingItinerary } from "./components/building-itinerary";
 export { BookingList } from "./components/booking-list";
 export {
   forecastWindow,

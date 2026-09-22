@@ -70,7 +70,7 @@ export default async function DaysPage({
       endDate={trip.end_date}
       lodgingByDay={lodging}
       bookingsByDay={bookingsPerDay}
-      cityDays={cityDayPlan(cities, bookings, overrides)}
+      cityDays={cityDayPlan(cities, bookings, overrides, APP_TIME_ZONE)}
       reminders={reminders}
       tripDayCount={tripDayCount(trip.start_date, trip.end_date)}
       // Which day the screen opens on. Resolved on the server, in the trip's

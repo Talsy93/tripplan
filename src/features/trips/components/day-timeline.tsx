@@ -99,8 +99,25 @@ export function DayTimeline({
   addHref?: string;
   addLabel?: string;
 }) {
+  // 0025. The hotel is not on the schedule.
+  //
+  // Reported: "do not put the hotel as part of the itinerary, just state it the
+  // way it already is above, fixed." And it is right — a flight or a train is
+  // something that *happens* at a time and belongs on an axis of times, but a
+  // hotel is where the day begins and ends. It was landing in the middle of the
+  // day at its check-in hour, between two activities, as though checking in
+  // were the plan for 15:00.
+  //
+  // NightStay above the timeline is the one statement of it now, on every day
+  // of the stay rather than only on the day of arrival — which is also more
+  // than the timeline ever said, because a booking sits on its `starts_at` day
+  // and nowhere else.
+  //
+  // Filtered here rather than in bookingsByDay, because this is a display rule
+  // and not a fact about the day: the lodging is still one of the day's
+  // bookings, and every other reader of that list still wants it.
   const timeline = buildDayTimeline(day, {
-    bookings,
+    bookings: bookings.filter((booking) => booking.kind !== "lodging"),
     date,
     zone: APP_TIME_ZONE,
   });

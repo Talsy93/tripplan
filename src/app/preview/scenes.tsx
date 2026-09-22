@@ -23,6 +23,7 @@ import {
   tripHueStyle,
   BookingForm,
   BookingList,
+  BuildingItinerary,
   CityDaysEditor,
   CreateTripForm,
   daysUntil,
@@ -1499,7 +1500,9 @@ export const SCENES: Scene[] = [
     title: "טופס הזמנה",
     note: "השדות הצפופים ביותר באפליקציה — datetime-local, מספר, בורר",
     render: () => (
-      <BookingForm tripId={f.TRIP_ID} cities={["טוקיו", f.UNBREAKABLE]} />
+      <Card>
+        <BookingForm tripId={f.TRIP_ID} cities={["טוקיו", f.UNBREAKABLE]} />
+      </Card>
     ),
   },
   {
@@ -1578,6 +1581,23 @@ export const SCENES: Scene[] = [
         bookings={f.BOOKINGS}
         date="2026-09-11"
       />
+    ),
+  },
+  {
+    slug: "itinerary-building",
+    title: 'בניית הלו"ז · הכיסוי',
+    note: "מה שמכסה את הימים בזמן שהמודל בונה לו״ז חדש. הימים מתחת inert — לא בפוקוס, לא בלחיצה — כדי שלא יערכו לו״ז שעומד להיזרק. הפסים לא מתקדמים לאחוזים כי אין מה לדווח: בקשה אחת שחוזרת כשהיא חוזרת",
+    render: () => (
+      <div className="relative">
+        <div inert className="pointer-events-none opacity-45">
+          <DayTimeline
+            day={f.ITINERARY[0]}
+            bookings={f.BOOKINGS}
+            date="2026-09-11"
+          />
+        </div>
+        <BuildingItinerary dayCount={4} />
+      </div>
     ),
   },
   {

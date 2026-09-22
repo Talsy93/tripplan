@@ -11,6 +11,7 @@ export { Glass, glassClasses } from "./glass";
 export { Glyph } from "./glyph";
 export type { GlassTone } from "./glass";
 export { IconButton, iconButtonClasses } from "./icon-button";
+export { InfoTip } from "./info-tip";
 export { ListRow } from "./list-row";
 export { SectionHeading } from "./section-heading";
 export { SegmentedControl } from "./segmented-control";

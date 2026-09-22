@@ -223,7 +223,7 @@ export async function POST(request: Request) {
   ];
 
   const cityDaysLine = cityDaysPromptLine(
-    cityDayPlan(cities, bookings, overrides),
+    cityDayPlan(cities, bookings, overrides, APP_TIME_ZONE),
   );
 
   // Only possible with a fixed start and end date — an open-ended trip has no

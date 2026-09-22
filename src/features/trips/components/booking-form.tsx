@@ -4,16 +4,17 @@ import { Fragment, useActionState, useEffect, useId, useRef, useState } from "re
 import {
   Banner,
   Button,
-  Card,
   Chip,
   ChipRadio,
+  Dialog,
+  InfoTip,
   Input,
   Select,
   Textarea,
   useToast,
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { ArrowLeft, Plus, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, Plus, X } from "lucide-react";
 import { addBooking, editBooking } from "../application/booking-actions";
 import {
   BOOKING_KINDS,
@@ -223,6 +224,20 @@ export function BookingForm({
   const mirror = (patch: Partial<RouteSeed>) =>
     setRoute((current) => ({ ...current, ...patch }));
 
+  // 0024. Whether the folded block below starts open: only when there is
+  // already something in it worth seeing, which on a new booking there never
+  // is. `useState` with no setter rather than a plain const, so this is worked
+  // out once on mount — a value that changed between renders would re-apply the
+  // `open` attribute and undo a press on the summary.
+  const [extrasOpen] = useState(
+    () =>
+      booking !== undefined &&
+      (booking.booked === false ||
+        booking.standby ||
+        booking.book_by !== null ||
+        booking.free_cancellation_until !== null),
+  );
+
   const [leadChoice, setLeadChoice] = useState<string>(() => {
     const initial = defaults.reminderDaysBefore;
     if (initial === undefined) return String(DEFAULT_REMINDER_DAYS);
@@ -310,13 +325,12 @@ export function BookingForm({
   // add form on the bookings screen and the edit dialog over it.
   const cityListId = useId();
 
-  // Adding sits directly on the page and needs Card's own surface; editing
-  // already lives inside a Dialog, which is a surface of its own — nesting
-  // Card there would be a card inside a card.
-  const Wrapper = isEdit ? Fragment : Card;
-
+  // 0024. Both ways in are a dialog now — adding through AddBookingButton
+  // below, editing through the pencil on a card — so there is no surface to
+  // supply. This used to be `isEdit ? Fragment : Card`, for an add form that
+  // sat open on the page.
   return (
-    <Wrapper>
+    <>
       {/* noValidate on purpose. With native validation on, an empty required
           field blocks the submit before the action runs, so the server's Hebrew
           field errors never get to render — and the browser's own bubble is
@@ -665,7 +679,35 @@ export function BookingForm({
             Separated by a rule because everything above describes the booking
             itself, and everything below is about what you have to *do* before
             the trip. */}
-        <div className="flex flex-col gap-3 border-t border-dashed border-border pt-3">
+        {/* 0024. Folded away, because none of it is asked on a typical
+            booking: a ticket you already hold is `booked`, has no deadline to
+            book by, usually has no free-cancellation date worth recording, and
+            takes the default reminder. Five controls and three paragraphs of
+            explanation, open on every booking, for the minority that needs
+            them.
+
+            A <details> and not a state toggle, deliberately: the controls stay
+            in the DOM while it is closed, so they still submit. Unmounting them
+            would send a form with no `booked` field at all — which the action
+            reads as an unchecked box, quietly turning every booking into one
+            that has not been made yet.
+
+            Open from the start when the booking being edited has something in
+            here to see. Computed once and never changed, so a press on the
+            summary is not undone by the next render. */}
+        <details
+          open={extrasOpen}
+          className="group/extras flex flex-col rounded-control border border-border bg-surface-sunken p-3"
+        >
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
+            <span>סטטוס ההזמנה, ביטול ותזכורת</span>
+            <ChevronDown
+              className="h-4 w-4 shrink-0 text-muted transition-transform group-open/extras:rotate-180"
+              aria-hidden="true"
+            />
+          </summary>
+
+          <div className="flex flex-col gap-3 pt-3">
           <label className="flex items-start gap-2 text-sm">
             <input
               // Remounted on each action result so the reset-restored default
@@ -806,7 +848,8 @@ export function BookingForm({
               כשהאפליקציה סגורה, הפעילו ״תזכורות למכשיר״ למטה.
             </p>
           </fieldset>
-        </div>
+          </div>
+        </details>
 
         <div>
           <Button type="submit" loading={pending}>
@@ -816,7 +859,52 @@ export function BookingForm({
 
         {state.error && <Banner tone="danger">{state.error}</Banner>}
       </form>
-    </Wrapper>
+    </>
+  );
+}
+
+// 0024. Adding a booking, behind a button.
+//
+// The form used to sit open at the bottom of the trip's details page, under the
+// list of bookings it adds to — the same "unfinished interface" tell that
+// CreateTripForm was moved out of, and worse here, because this form is long:
+// a kind picker, ten fields, a route editor and a reminder block, permanently
+// unfolded under a list you came to read.
+//
+// Editing has been a dialog for a while. This makes the two symmetrical, and
+// the form no longer has to supply its own surface either way.
+export function AddBookingButton({
+  tripId,
+  cities,
+}: {
+  tripId: string;
+  cities: string[];
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        onClick={() => setOpen(true)}
+        className="self-start"
+      >
+        <Plus className="h-4 w-4" aria-hidden="true" />
+        הוספת טיסה, רכבת או לינה
+      </Button>
+
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="הוספת טיסה, רכבת או לינה"
+      >
+        <BookingForm
+          tripId={tripId}
+          cities={cities}
+          onSuccess={() => setOpen(false)}
+        />
+      </Dialog>
+    </>
   );
 }
 
@@ -877,22 +965,22 @@ function RouteEditor({
 
   return (
     <fieldset className="flex min-w-0 flex-col gap-2 border-0 p-0 text-sm">
-      <legend className="text-muted">עצירות בדרך (קונקשן)</legend>
+      {/* 0024. The explanation is behind the button rather than printed under
+          the legend. It was three lines of prose above one control, on every
+          booking — and most bookings are direct, so most of the time it was
+          furniture. Read once, ignored after that, and in the way for good. */}
+      <legend className="flex items-center gap-1 text-muted">
+        עצירות בדרך (קונקשן)
+        <InfoTip label="איך בונים כרטיס עם קונקשן">
+          <ConnectionHelp />
+        </InfoTip>
+      </legend>
 
       {stops.length === 0 ? (
-        <div className="flex flex-col gap-1">
-          <p className="text-caption text-muted">
-            טיסה ישירה. אם יש קונקשן — הוסיפו את התחנה, והכרטיס יוצג כמסלול אחד.
-          </p>
-          {/* 0024. The question this form was reported for, answered where it
-              is asked. Two tickets bought separately are still one journey, and
-              nothing on the screen used to say that the second one goes *into*
-              a stop rather than into a second booking. */}
-          <p className="text-caption text-muted">
-            גם אם קניתם שני כרטיסים נפרדים שיחד מרכיבים את הנסיעה — זו עצירה
-            אחת, והפרטים של הכרטיס השני נכנסים לתוכה.
-          </p>
-        </div>
+        <p className="text-caption text-muted">
+          טיסה ישירה. יש קונקשן, או שני כרטיסים שמרכיבים את הנסיעה? הוסיפו
+          עצירה.
+        </p>
       ) : (
         <RoutePreview legs={legs} />
       )}
@@ -1066,12 +1154,42 @@ function RoutePreview({ legs }: { legs: RouteLeg[] }) {
           </li>
         ))}
       </ol>
-
-      <p className="text-caption text-primary-ink">
-        קטע 1 לוקח את מספר הטיסה ואת חברת התעופה מלמעלה. כל עצירה מוסיפה קטע,
-        והפרטים שבתוכה הם של הטיסה שיוצאת ממנה.
-      </p>
     </div>
+  );
+}
+
+// 0024. What a connecting ticket actually is, in the order someone filling this
+// form needs it: what the whole booking is first, then which box holds what.
+//
+// Written for the case it was reported for — two tickets bought separately —
+// because that is the one the shape does not make obvious. A single ticket with
+// a stop printed on it lands in exactly the same boxes, and someone holding one
+// of those was not confused in the first place.
+function ConnectionHelp() {
+  return (
+    <span className="flex flex-col gap-2">
+      <span className="block font-semibold">
+        כרטיס עם קונקשן הוא הזמנה אחת — גם אם קניתם את שתי הטיסות בנפרד.
+      </span>
+      <span className="block">
+        לדוגמה, תל אביב ← דובאי ← טוקיו:
+      </span>
+      <span className="flex flex-col gap-1">
+        <span className="block">
+          <b>מ־ ואל־</b> הם הקצוות של כל הנסיעה — תל אביב וטוקיו. לא דובאי.
+        </span>
+        <span className="block">
+          <b>מספר הטיסה</b> למעלה הוא של הטיסה הראשונה בלבד.
+        </span>
+        <span className="block">
+          <b>עצירה</b> היא דובאי, והשדות שבתוכה הם של הטיסה שיוצאת ממנה —
+          כלומר הכרטיס השני.
+        </span>
+      </span>
+      <span className="block text-muted">
+        המסלול שייבנה מוצג כאן למטה תוך כדי, כדי שתראו שיצא נכון.
+      </span>
+    </span>
   );
 }
 

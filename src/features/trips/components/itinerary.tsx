@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/cn";
 import { deleteItineraryEntry } from "../application/itinerary-actions";
 import { aiErrorFromResponse } from "../domain/ai-errors";
+import { BuildingItinerary } from "./building-itinerary";
 import { CityDaysEditor } from "./city-days-editor";
 import { DayStrip } from "./day-strip";
 import { DaySuggestionsDialog } from "./day-suggestions-dialog";
@@ -245,26 +246,39 @@ export function Itinerary({
       // The same centred measure TwoPane falls back to with no pane. Left full
       // width, the city-days rows stretched across 1180px at 1920 — a form as
       // wide as the whole app to hold four numbers.
-      <div className="mx-auto flex w-full max-w-main flex-col gap-4">
-        {error && <Banner tone="danger">{error}</Banner>}
+      <div className="relative mx-auto flex w-full max-w-main flex-col gap-4">
+        <div
+          inert={building}
+          className={cn(
+            "flex min-w-0 flex-col gap-4",
+            building && "opacity-45 transition-opacity duration-settle",
+          )}
+        >
+          {error && <Banner tone="danger">{error}</Banner>}
 
-        {/* Above the build, because it is the input the build uses. */}
-        <CityDaysEditor
-          tripId={tripId}
-          plan={cityDays}
-          tripDayCount={tripDayCount}
-        />
+          {/* Above the build, because it is the input the build uses. */}
+          <CityDaysEditor
+            tripId={tripId}
+            plan={cityDays}
+            tripDayCount={tripDayCount}
+          />
 
-        <EmptyState
-          icon={<CalendarDays />}
-          title='עוד אין לו"ז'
-          description="אחרי שהוספתם פריטים לטיול, בנו לוח זמנים יומי בלחיצה אחת."
-          action={
-            <Button type="button" onClick={build} loading={building}>
-              בניית לוח זמנים
-            </Button>
-          }
-        />
+          <EmptyState
+            icon={<CalendarDays />}
+            title='עוד אין לו"ז'
+            description="אחרי שהוספתם פריטים לטיול, בנו לוח זמנים יומי בלחיצה אחת."
+            action={
+              <Button type="button" onClick={build} loading={building}>
+                בניית לוח זמנים
+              </Button>
+            }
+          />
+        </div>
+
+        {/* The same cover on the first build as on a rebuild. There is no old
+            schedule to protect here, but the wait is the same wait and it
+            should look like it. */}
+        {building && <BuildingItinerary dayCount={tripDayCount ?? 4} />}
       </div>
     );
   }
@@ -338,6 +352,26 @@ export function Itinerary({
         </>
       }
     >
+      {/* The cover goes here, over the days, and takes them out of reach while
+          a new schedule is on its way — see BuildingItinerary for why that is
+          not just a nicety.
+
+          `enter-skip` on the wrapper and `enter-children` on the column inside
+          it, so the load sequence is exactly what it was before the wrapper
+          existed: the wrapper is a positioning box and nothing else, and the
+          real children keep their own staggered entrance. One level of motion
+          at a time, which is the rule enter-skip is there to enforce. */}
+      <div className="enter-skip relative min-w-0">
+        <div
+          // The platform's own switch rather than `pointer-events-none`: that
+          // stops a mouse and lets a Tab walk straight into the schedule
+          // underneath.
+          inert={building}
+          className={cn(
+            "enter-children flex min-w-0 flex-col gap-6",
+            building && "opacity-45 transition-opacity duration-settle",
+          )}
+        >
       {error && <Banner tone="danger">{error}</Banner>}
 
       {/* An itinerary longer than the booked dates is a real planning error, so
@@ -459,6 +493,10 @@ export function Itinerary({
           activeCity ? `הוסיפו משהו ב${activeCity}` : "הוסיפו משהו ליום הזה"
         }
       />
+        </div>
+
+        {building && <BuildingItinerary dayCount={dayCount} />}
+      </div>
 
       {/* One dialog for the whole list rather than one per row: only a single
           entry can be open at a time, and mounting a <dialog> per item would put

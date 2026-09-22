@@ -1025,6 +1025,45 @@ export function doubleBookedLodgingIds(
   return clashing;
 }
 
+// A stay is this many nights at most before we stop walking it. A hotel booked
+// for longer than a year is a bad row rather than a holiday, and an unbounded
+// `for` over dates is not something to leave in reach of one.
+const MAX_STAY_NIGHTS = 400;
+
+// 0025. The nights a lodging booking covers, as YYYY-MM-DD dates in `zone`:
+// from the check-in date up to but not including the check-out date.
+//
+// Half-open for the reason doubleBookedLodgingIds gives — the morning you leave
+// is not a night you slept there — and dated rather than counted, because the
+// caller's question is not "how many" but "which", so that two rooms over the
+// same weekend can be recognised as the same weekend.
+//
+// A stay with no check-out returns nothing rather than guessing at one night.
+// That matches bookingNights, whose `null` this replaces: the count of days a
+// city needs is exactly the thing an open-ended booking does not know.
+export function lodgingNights(booking: Booking, zone: string): string[] {
+  if (booking.kind !== "lodging" || !booking.ends_at) return [];
+
+  const formatter = new Intl.DateTimeFormat("en-CA", { timeZone: zone });
+  const checkIn = new Date(booking.starts_at);
+  const checkOut = new Date(booking.ends_at);
+  if (Number.isNaN(checkIn.getTime()) || Number.isNaN(checkOut.getTime())) {
+    return [];
+  }
+
+  const from = formatter.format(checkIn);
+  const to = formatter.format(checkOut);
+  // In and out on the same date is a day use, not a night.
+  if (to <= from) return [];
+
+  const nights: string[] = [];
+  for (let date = from; date < to; date = nextDate(date)) {
+    nights.push(date);
+    if (nights.length >= MAX_STAY_NIGHTS) break;
+  }
+  return nights;
+}
+
 // One day after a YYYY-MM-DD date, as YYYY-MM-DD. Uses UTC arithmetic so it
 // cannot be shifted by the machine's own offset.
 function nextDate(date: string): string {

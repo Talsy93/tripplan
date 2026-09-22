@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { bookingNights, isStandby } from "./booking";
+import { isStandby, lodgingNights } from "./booking";
 import type { Booking } from "./booking";
 
 // How many days the trip spends in each city — the number the itinerary builder
@@ -50,28 +50,36 @@ export type CityDayPlan = {
 
 // Nights per city from the lodging bookings alone.
 //
-// Summed rather than taken from the longest stay: a city can hold two
-// consecutive hotels, and in that case the trip is there for both.
+// **Distinct nights, not summed stays**, and that is the whole point of this
+// function. Reported: a double lodging was counting its days twice. Two rooms
+// over the same weekend in Rome is still one weekend in Rome — you cannot sleep
+// in both — so the city needs the days it needs, whatever was booked to cover
+// them.
 //
-// Overlapping stays used to be summed too, on the grounds that "you have not
-// decided yet" was the honest answer and the double-booking warning said so.
-// 0022 gave the traveller a way to actually say it, and a booking marked
-// standby is now skipped — so a city held twice over one weekend asks for the
-// days it needs rather than double. That inflation is what produced "the cities
-// want 52 days but your dates give 43" on a trip whose real answer was 43.
+// So each stay contributes the set of dates it covers and the city keeps the
+// union. Two consecutive hotels still add up, because their dates do not
+// overlap; two overlapping ones no longer do, because theirs do. There is no
+// rule here about overlaps at all, which is why it cannot get one of them
+// wrong: it counts nights, and a night is a night.
 //
-// Overlaps that are *not* marked are still summed and still warned about. The
-// change is that the traveller has a way to distinguish the two, not that the
-// app now guesses.
+// This replaces summing `bookingNights`, which produced "the cities want 52 days
+// but your dates give 43" on a trip whose real answer was 43. 0022 had already
+// taken one bite out of that by letting the traveller mark a held room as
+// standby; the skip below stays, because standby says "this one is going to be
+// cancelled" and that is a statement about the booking rather than about the
+// nights. But it is no longer load-bearing — an unmarked double no longer
+// inflates anything, so nobody has to know about the flag for the number to
+// come out right.
 //
-// One caveat, found while testing this: bookingNights counts calendar days in
-// the *runtime's* local zone, so a stay that crosses local midnight is a night
-// (correctly — 18:00 to 01:00 is one night) but the boundary moves with the
-// zone. Vercel runs UTC and the browser does not, so the plan is computed once
-// on the server and passed down as a value rather than recomputed in the client.
-// That is the same discipline domain/trip-days.ts already applies to `today`.
-function bookedNightsByCity(bookings: Booking[]): Map<string, number> {
-  const nights = new Map<string, number>();
+// Dates in `zone` rather than the runtime's, which is the caveat the old
+// version carried: Vercel runs UTC and the browser does not, so counting
+// calendar days locally moved the boundary with the machine. Passing the zone
+// in is the same discipline domain/trip-days.ts already applies to `today`.
+function bookedNightsByCity(
+  bookings: Booking[],
+  zone: string,
+): Map<string, number> {
+  const nightsByCity = new Map<string, Set<string>>();
 
   for (const booking of bookings) {
     if (booking.kind !== "lodging") continue;
@@ -79,13 +87,20 @@ function bookedNightsByCity(bookings: Booking[]): Map<string, number> {
     const city = booking.city?.trim();
     if (!city) continue;
 
-    const n = bookingNights(booking);
-    if (n === null) continue;
+    const nights = lodgingNights(booking, zone);
+    if (nights.length === 0) continue;
 
-    nights.set(city, (nights.get(city) ?? 0) + n);
+    let held = nightsByCity.get(city);
+    if (!held) {
+      held = new Set<string>();
+      nightsByCity.set(city, held);
+    }
+    for (const night of nights) held.add(night);
   }
 
-  return nights;
+  return new Map(
+    [...nightsByCity].map(([city, nights]) => [city, nights.size]),
+  );
 }
 
 // The plan for every city the trip knows about, in the order given.
@@ -97,8 +112,12 @@ export function cityDayPlan(
   cities: string[],
   bookings: Booking[],
   overrides: CityDays[],
+  // The calendar the nights are counted on. Required rather than defaulted:
+  // a default would be the runtime's zone, which is the bug this parameter
+  // exists to close.
+  zone: string,
 ): CityDayPlan[] {
-  const booked = bookedNightsByCity(bookings);
+  const booked = bookedNightsByCity(bookings, zone);
   const override = new Map(overrides.map((row) => [row.city, row.days]));
 
   return cities.map((city) => {

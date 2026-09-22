@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { SectionHeading, Skeleton } from "@/components/ui";
 import {
-  BookingForm,
+  AddBookingButton,
   BookingList,
   ExpenseSummary,
   getSelectedDestinations,
@@ -84,7 +84,7 @@ export default async function TripDetailsPage({
           cities={cities}
           now={new Date().toISOString()}
         />
-        <BookingForm tripId={trip.id} cities={cities} />
+        <AddBookingButton tripId={trip.id} cities={cities} />
       </section>
 
       <section className="flex flex-col gap-3">

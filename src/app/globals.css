@@ -624,6 +624,37 @@
   transform-origin: 100% 50%;
 }
 
+/* A schedule being written, for the cover over the itinerary while one is
+   being built.
+   ---------------------------------------------------------------------------
+   Same shape as `fill` above and the same inline-start origin, but it loops and
+   it fades back at the end, so a stack of these reads as lines being laid down
+   over and over rather than as one bar that finished.
+
+   Deliberately not a spinner. A spinner says "waiting"; this has to say "your
+   days are being written", and it is drawn in the place the days will appear —
+   which is also what stops the old schedule underneath from being touched
+   while the new one is on its way.
+
+   No reduced-motion guard: the block at the bottom of this file neutralises
+   every animation in the app, and what is left is a static set of bars, which
+   still reads as a placeholder. */
+@keyframes build-line {
+  0% { transform: scaleX(0.08); opacity: 0.4; }
+  35% { transform: none; opacity: 1; }
+  80% { transform: none; opacity: 1; }
+  100% { transform: none; opacity: 0.4; }
+}
+
+.animate-build-line {
+  animation: build-line 2.2s cubic-bezier(0.32, 0.72, 0, 1) infinite;
+  transform-origin: 100% 50%;
+}
+
+[dir="ltr"] .animate-build-line {
+  transform-origin: 0 50%;
+}
+
 /* The two named durations, as real utilities.
    ---------------------------------------------------------------------------
    @utility rather than @theme, because a duration is not one of v4's theme
@@ -921,15 +952,40 @@ html {
 
    `appearance: none` is what lets our width and height reach the control at
    all; it does not remove `::-webkit-calendar-picker-indicator`, which is a
-   separate pseudo-element and still draws. */
+   separate pseudo-element and still draws.
+
+   **What it looks like**, from the screenshots: in a two-up row — the trip's
+   two dates, a flight's departure and arrival — the box on the inline end is
+   drawn some 20px past the card's border, outside it, and the pair no longer
+   lines up with the plain text inputs in the rows above. The row is wider than
+   its container and the overflow comes out of one side.
+
+   This is unlayered CSS, so it beats the `w-full` / `min-w-0` utilities from
+   `@layer utilities` regardless of specificity — which is the point. The three
+   width declarations together say: fill the box you are in, never be wider
+   than it, and have no opinion of your own about either. */
 input[type="date"],
 input[type="datetime-local"],
 input[type="time"] {
   -webkit-appearance: none;
   appearance: none;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   /* The backstop: whatever the inner element decides it needs, it is cut at
      the border rather than drawn past it. */
   overflow: hidden;
+}
+
+input[type="date"]::-webkit-datetime-edit,
+input[type="datetime-local"]::-webkit-datetime-edit,
+input[type="time"]::-webkit-datetime-edit {
+  /* The element that actually holds the sub-fields, and the one that sizes the
+     control from the format string. Left out of the first pass at this, which
+     is why the fix was incomplete. */
+  width: 100%;
+  min-width: 0;
+  padding: 0;
 }
 
 input[type="date"]::-webkit-date-and-time-value,
@@ -942,12 +998,6 @@ input[type="time"]::-webkit-date-and-time-value {
      ever overflow in one direction, which `overflow: hidden` then takes. */
   text-align: start;
   margin: 0;
-}
-
-input[type="date"]::-webkit-datetime-edit,
-input[type="datetime-local"]::-webkit-datetime-edit,
-input[type="time"]::-webkit-datetime-edit {
-  padding: 0;
 }
 
 /* The map's own controls, moved clear of the chips that float above them.
