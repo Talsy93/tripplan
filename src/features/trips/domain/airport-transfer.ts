@@ -31,6 +31,38 @@ export const TRANSFER_MODE_LABELS: Record<TransferMode, string> = {
   taxi: "מונית",
 };
 
+// One move within a way in: board here, ride this, get off there.
+//
+// Asked for as "reduce it to a point per stage — from the airport take a train
+// at X for about this much, then a second point from the train to the bus, the
+// same, and the boarding and alighting stop for each stage."
+//
+// It was a `steps: string[]` of free prose, which reads fine and cannot be used:
+// nothing could put a time on a stage, price it, link it, or put its two ends on
+// a map, because none of those were fields. They are now.
+//
+// **No ticket URL, deliberately.** The obvious field here is a link straight to
+// the operator's booking page, and asking a model for one is asking it to
+// invent plausible URLs — a dead or wrong link under "buy a ticket" is worse
+// than no link, and it is not checkable from here. The operator's *name* is
+// something a model does know reliably, so that is what is asked for, and the
+// link is built as a search from it. One more click, and it cannot be wrong.
+export const transferLegSchema = z.object({
+  // "רכבת", "אוטובוס", "הליכה", "מונית" — the vehicle, in a word or two.
+  mode: z.string().trim().min(1).max(40),
+  // Where you get on and where you get off. The pair that was missing.
+  from: z.string().trim().min(1).max(120),
+  to: z.string().trim().min(1).max(120),
+  // This stage alone, including the wait before boarding it — so the stages
+  // add up to the door-to-door total rather than under-counting it.
+  durationMinutes: z.number().int().min(1).max(600),
+  // "~¥3,250". Empty when the stage is a walk or is covered by the fare above.
+  costText: z.string().max(60),
+  // Who runs it — "JR East", "Airport Limousine". Used to search for tickets.
+  operator: z.string().max(80),
+});
+export type TransferLeg = z.infer<typeof transferLegSchema>;
+
 // One way in, as the model returns it.
 //
 // Free text for cost and frequency rather than numbers: a fare is "¥3,250" in
@@ -46,14 +78,20 @@ export const transferOptionSchema = z.object({
   summary: z.string().min(1).max(200),
   // Door to door, typical. Capped at ten hours — anything longer is the model
   // having answered a different question.
-  durationMinutes: z.number().int().min(1).max(600),
+  //
+  // Zero is allowed, which it was not at first. Once the stages carry their own
+  // durations this field is the weaker of two answers, and a model that filled
+  // in the stages and left the total at 0 had its *entire* reply rejected —
+  // three good options thrown away over a redundant number. transferDuration
+  // adds the stages up anyway.
+  durationMinutes: z.number().int().min(0).max(600),
   // "כ-₪120", "~¥3,250 לאדם".
   costText: z.string().max(60),
   // "כל 30 דק׳", "לפי דרישה". Empty for a taxi is fine.
   frequencyText: z.string().max(60),
-  // The actual moves, when there is more than one — "רכבת עד שינג׳וקו, ואז
-  // 8 דק׳ הליכה". Empty for a taxi.
-  steps: z.array(z.string().max(160)).max(6),
+  // The moves this option is made of, one row each. Empty for a taxi, which is
+  // one move and has nothing to break down.
+  legs: z.array(transferLegSchema).max(6),
 });
 export type TransferOption = z.infer<typeof transferOptionSchema>;
 
@@ -188,12 +226,29 @@ export type TransferTiming = {
 // So the day is part of the answer now. Land at 23:30, clear the airport at
 // 01:00, and this returns 01:00 with `dayOffset: 1` — the schedule continues
 // on the next day, at the next day's times, which is what was asked for.
+// Door to door.
+//
+// The legs win when there are any, because the header and the breakdown under
+// it have to agree: a total of 55 above three stages adding to 61 is the screen
+// arguing with itself, and the stages are the more specific claim. Falls back
+// to the model's own figure for a taxi, which has no stages.
+export function transferDuration(option: TransferOption): number {
+  const fromLegs = option.legs.reduce(
+    (sum, leg) => sum + leg.durationMinutes,
+    0,
+  );
+  // Never zero. Both figures are the model's and either can come back empty;
+  // a zero here would put the arrival at the same minute as the departure and
+  // make the option look free of time.
+  return Math.max(1, fromLegs > 0 ? fromLegs : option.durationMinutes);
+}
+
 export function transferTimes(
   landingMinutes: number,
   option: TransferOption,
 ): TransferTiming {
   const leavesRaw = landingMinutes + ARRIVAL_BUFFER_MIN;
-  const arrivesRaw = leavesRaw + option.durationMinutes;
+  const arrivesRaw = leavesRaw + transferDuration(option);
 
   const dayOffset = Math.floor(leavesRaw / MINUTES_PER_DAY);
   const leavesAt = leavesRaw % MINUTES_PER_DAY;
@@ -210,6 +265,64 @@ export function transferTimes(
     dayOffset,
     arrivesNextDay,
   };
+}
+
+// Each stage with the clock time it starts at.
+//
+// The app's arithmetic again, and the half the model cannot do: it knows a ride
+// takes 25 minutes, and only the app knows this particular flight lands at
+// 08:30, so only the app can say the ride starts at 10:13. Minutes are returned
+// raw — past 1440 when a late landing pushes a stage into the next day — and
+// formatting wraps them, the same way transferTimes does.
+export function transferLegTimes(
+  landingMinutes: number,
+  option: TransferOption,
+): { leg: TransferLeg; startsAt: number; endsAt: number }[] {
+  let at = landingMinutes + ARRIVAL_BUFFER_MIN;
+
+  return option.legs.map((leg) => {
+    const startsAt = at;
+    at += leg.durationMinutes;
+    return { leg, startsAt, endsAt: at };
+  });
+}
+
+// Where to buy, as a search rather than a guessed deep link.
+//
+// See the note on transferLegSchema: a model asked for a booking URL will
+// produce a convincing one whether or not it exists, and "buy a ticket" is the
+// worst possible label for a dead link. A search for the operator and the
+// route lands on the official site among the first results and cannot 404.
+export function ticketSearchUrl(leg: TransferLeg): string | null {
+  const operator = leg.operator.trim();
+  // A walk has no ticket, and a stage with no named operator has nothing to
+  // search for that would not just be the city's name.
+  if (!operator) return null;
+
+  const query = `${operator} ${leg.from} ${leg.to} tickets`;
+  return `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+}
+
+// The stops a Maps route should thread through: the airport, every place a
+// stage gets off at, and the destination.
+//
+// Consecutive repeats are dropped — a stage's `to` is usually the next one's
+// `from`, and Google treats a waypoint equal to the one before it as a detour
+// to where you already are.
+export function transferRouteStops(
+  airport: string,
+  destination: string,
+  option: TransferOption,
+): string[] {
+  const stops = [airport, ...option.legs.map((leg) => leg.to), destination];
+
+  return stops.reduce<string[]>((kept, stop) => {
+    const value = stop.trim();
+    if (!value) return kept;
+    if (kept[kept.length - 1] === value) return kept;
+    kept.push(value);
+    return kept;
+  }, []);
 }
 
 // The itinerary entry a chosen option becomes.
@@ -250,7 +363,13 @@ export function transferEntry(
     title: `${input.airport} ← ${input.destination}`,
     startLabel: formatMinutes(leavesAt),
     endLabel: formatMinutes(arrivesAt),
-    // The steps are the thing you actually read while standing in arrivals.
+    // The stages are what you actually read while standing in arrivals, so
+    // each one is a line of its own: when, what, from where to where.
+    //
+    // One string because that is what the column is, but built as lines rather
+    // than as one run of text joined by dots — three moves flattened into a
+    // paragraph is the crowding this was reported for, and a newline costs
+    // nothing.
     //
     // A ride that crosses midnight says so in words. The two labels are
     // "23:40" and "00:25", which is correct and also the one case where an end
@@ -258,12 +377,21 @@ export function transferEntry(
     // to be worked out.
     note: [
       option.name,
-      option.summary,
-      ...option.steps,
+      ...transferLegTimes(input.landingMinutes, option).map(
+        ({ leg, startsAt }) =>
+          [
+            formatMinutes(startsAt),
+            leg.mode,
+            `${leg.from} ← ${leg.to}`,
+            leg.costText,
+          ]
+            .filter((part) => part && part.trim())
+            .join(" · "),
+      ),
       arrivesNextDay ? "ההגעה כבר למחרת" : "",
     ]
       .filter(Boolean)
-      .join(" · "),
+      .join("\n"),
     travelNote: details.join(" · "),
     travelMinutes: option.durationMinutes,
   };

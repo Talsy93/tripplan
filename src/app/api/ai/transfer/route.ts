@@ -35,7 +35,18 @@ function buildPrompt({ airport, destination, city, landsAt }: TransferRequest) {
       ? "התייחס לשעה: אם בשעה הזו קו מסוים לא פועל או שהתדירות נמוכה — אמור זאת, ואל תציע אותו כאילו הוא זמין."
       : "",
     "הצע 2-4 אפשרויות הגעה. לפחות אחת בתחבורה ציבורית (mode: transit) ולפחות אחת במונית או הסעה (mode: taxi), אם שתיהן קיימות במקום הזה.",
-    "לכל אפשרות: שם האמצעי, משפט אחד על מה זה ואיפה זה מוריד, משך הנסיעה הטיפוסי בדקות מדלת לדלת, עלות משוערת, תדירות, וצעדים קצרים אם יש יותר ממעבר אחד.",
+    "לכל אפשרות: שם האמצעי, משפט אחד על מה זה, משך טיפוסי מדלת לדלת, עלות משוערת ותדירות.",
+    // The part that changed shape: prose became rows, because a row can carry a
+    // time, a price and two ends of a map link and a sentence cannot.
+    "פרקו כל אפשרות ל-legs — שלב לכל כלי תחבורה, כולל הליכות של יותר מחמש דקות.",
+    "לכל שלב: mode (רכבת / אוטובוס / מונית / הליכה), from — תחנת העלייה המדויקת, to — תחנת הירידה המדויקת, durationMinutes, costText, ו-operator (מי מפעיל — למשל ״JR East״).",
+    // Said explicitly because the app adds the legs up and shows the total.
+    "durationMinutes של כל שלב כולל את ההמתנה לפניו, כך שסכום השלבים הוא הזמן מדלת לדלת.",
+    // The one field most likely to be invented, named as forbidden rather than
+    // simply left out of the schema — a model told to return rows will helpfully
+    // add a URL to the operator field otherwise.
+    "אל תכתוב כתובות אתרים בשום שדה. שם המפעיל בלבד.",
+    "למונית או הסעה ישירה — legs ריק.",
     // Said plainly because the whole feature rests on it. The screen tells the
     // traveller these are typical figures; the model must not hand back a
     // specific departure that would make that label a lie.

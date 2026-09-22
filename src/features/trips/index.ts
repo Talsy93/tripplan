@@ -617,3 +617,11 @@ export { addAirportTransfer } from "./application/itinerary-actions";
 export { AirportTransferButton } from "./components/airport-transfer";
 export { DayReminders } from "./components/day-reminders";
 export { isOverdue, minutesOfDay, reminderProgress } from "./domain/day-reminders";
+export {
+  ticketSearchUrl,
+  transferDuration,
+  transferLegSchema,
+  transferLegTimes,
+  transferRouteStops,
+} from "./domain/airport-transfer";
+export type { TransferLeg } from "./domain/airport-transfer";

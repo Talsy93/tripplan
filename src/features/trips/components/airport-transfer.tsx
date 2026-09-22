@@ -2,16 +2,21 @@
 
 import { useState, useTransition } from "react";
 import {
+  ArrowLeft,
   Bus,
   Car,
   ChevronDown,
+  ExternalLink,
   Hotel,
+  Map,
   PlaneLanding,
   Sparkles,
+  Ticket,
 } from "lucide-react";
 import {
   Banner,
   Button,
+  buttonClasses,
   Chip,
   Dialog,
   Field,
@@ -23,10 +28,14 @@ import { cn } from "@/lib/cn";
 import { aiErrorFromResponse } from "../domain/ai-errors";
 import {
   TRANSFER_MODE_LABELS,
+  ticketSearchUrl,
+  transferLegTimes,
   transferOptionsSchema,
+  transferRouteStops,
   transferTimes,
 } from "../domain/airport-transfer";
 import { formatMinutes } from "../domain/timeline";
+import { googleMapsRouteUrl } from "@/lib/maps";
 import { addAirportTransfer } from "../application/itinerary-actions";
 import type { TransferOption } from "../domain/airport-transfer";
 
@@ -175,7 +184,7 @@ function TransferDialog({
     durationMinutes: 1,
     costText: "",
     frequencyText: "",
-    steps: [],
+    legs: [],
   });
   const clearsAt = clearing.leavesAt;
   const clearsNextDay = clearing.dayOffset > 0;
@@ -339,6 +348,8 @@ function TransferDialog({
                   <OptionCard
                     option={option}
                     landingMinutes={landingMinutes}
+                    airport={airport}
+                    destination={destination}
                     busy={adding === option.name}
                     disabled={pending}
                     onChoose={() => choose(option)}
@@ -364,12 +375,18 @@ function TransferDialog({
 function OptionCard({
   option,
   landingMinutes,
+  // The two ends of the whole journey, for the Maps route. The stages supply
+  // everything in between.
+  airport,
+  destination,
   busy,
   disabled,
   onChoose,
 }: {
   option: TransferOption;
   landingMinutes: number;
+  airport: string;
+  destination: string;
   busy: boolean;
   disabled: boolean;
   onChoose: () => void;
@@ -377,6 +394,11 @@ function OptionCard({
   const { leavesAt, arrivesAt, dayOffset, arrivesNextDay } = transferTimes(
     landingMinutes,
     option,
+  );
+  const legs = transferLegTimes(landingMinutes, option);
+  const mapsUrl = googleMapsRouteUrl(
+    transferRouteStops(airport, destination, option),
+    "transit",
   );
   const Icon = option.mode === "taxi" ? Car : Bus;
 
@@ -441,37 +463,104 @@ function OptionCard({
         />
       </summary>
 
-      <div className="flex min-w-0 flex-col gap-2 border-t border-border p-3">
+      <div className="flex min-w-0 flex-col gap-3 border-t border-border p-3">
         <p className="text-caption text-muted wrap-anywhere">
           {option.summary}
         </p>
 
-        {option.steps.length > 0 && (
-          <ol className="flex flex-col gap-0.5 text-caption text-muted">
-            {option.steps.map((step, index) => (
-              <li key={index} className="flex min-w-0 gap-1.5">
-                <span className="shrink-0 tabular-nums">{index + 1}.</span>
-                <span className="min-w-0 wrap-anywhere">{step}</span>
-              </li>
-            ))}
+        {/* One row per stage: when it starts, what you board, where you get on
+            and off, what it costs, and where to buy it. Prose could carry the
+            first two of those and none of the rest. */}
+        {legs.length > 0 && (
+          <ol className="flex min-w-0 flex-col gap-2">
+            {legs.map(({ leg, startsAt }, index) => {
+              const tickets = ticketSearchUrl(leg);
+              return (
+                <li
+                  key={index}
+                  className="flex min-w-0 gap-2.5 border-s-2 border-border ps-2.5"
+                >
+                  <span className="w-11 shrink-0 text-caption font-bold tabular-nums text-muted">
+                    {formatMinutes(startsAt)}
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="min-w-0 text-caption font-semibold wrap-anywhere">
+                      {leg.mode}
+                      {leg.costText && (
+                        <span className="font-normal text-muted">
+                          {" · "}
+                          {leg.costText}
+                        </span>
+                      )}
+                    </span>
+                    {/* The pair that was missing: where you get on and where
+                        you get off. An arrow between them rather than "from X
+                        to Y", because two station names are what you are
+                        scanning for. */}
+                    <span className="flex min-w-0 items-center gap-1 text-caption text-muted">
+                      <span className="min-w-0 wrap-anywhere">{leg.from}</span>
+                      <ArrowLeft
+                        className="h-3 w-3 shrink-0"
+                        aria-hidden="true"
+                      />
+                      <span className="min-w-0 wrap-anywhere">{leg.to}</span>
+                    </span>
+                    {tickets && (
+                      <a
+                        href={tickets}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex w-fit items-center gap-1 rounded text-caption font-semibold text-primary-ink underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <Ticket className="h-3 w-3" aria-hidden="true" />
+                        כרטיסים ל{leg.operator}
+                        <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                      </a>
+                    )}
+                  </span>
+                </li>
+              );
+            })}
           </ol>
         )}
 
-        {/* Inside the disclosure on purpose. Choosing one of these commits it
-            to the schedule, and the press that does it belongs next to the
-            detail you opened in order to be sure — not on a row you are still
-            skimming. */}
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          loading={busy}
-          disabled={disabled && !busy}
-          onClick={onChoose}
-          className="self-start"
-        >
-          הוספה ללו&quot;ז
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Inside the disclosure on purpose. Choosing one of these commits it
+              to the schedule, and the press that does it belongs next to the
+              detail you opened in order to be sure — not on a row you are still
+              skimming. */}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            loading={busy}
+            disabled={disabled && !busy}
+            onClick={onChoose}
+          >
+            הוספה ללו&quot;ז
+          </Button>
+
+          {/* The route handed to Google, threading the stages' stops. This is
+              the one thing the app genuinely cannot do itself — real transit
+              routing is not available for free — so rather than pretend, it
+              opens the tool that has it. A plain URL, no Maps API and no
+              billing (see lib/maps.ts). */}
+          {mapsUrl && (
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                buttonClasses("ghost", "sm"),
+                "text-primary-ink",
+              )}
+            >
+              <Map className="h-4 w-4" aria-hidden="true" />
+              המסלול בגוגל מפות
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
+          )}
+        </div>
       </div>
     </details>
   );
