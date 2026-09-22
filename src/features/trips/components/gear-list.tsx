@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useActionState } from "react";
 import { Plus, RotateCcw, X } from "lucide-react";
-import { Badge, Button, Card, Dialog, Field, Glyph, IconButton, Input, REVEALED_ACTION, SectionHeading, Select, SwipeAction, useToast } from "@/components/ui";
+import { Badge, Button, Card, Dialog, Disclosure, Field, Glyph, IconButton, Input, REVEALED_ACTION, SectionHeading, Select, SwipeAction, useToast } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import {
   GEAR_CATEGORIES,
@@ -226,22 +226,42 @@ export function GearList({
           >
             {visible.length === 0 ? "התחלה מהירה" : "הצעות לאריזה"}
           </SectionHeading>
-          <div className="grid gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
+          {/* One closed row per category instead of six open cards.
+
+              This was the clearest case of the reported "we overload most pages
+              with information": six cards of chips, all open, below the list
+              they add to — on a phone the packing list itself started somewhere
+              past the third screenful. A category is a heading you scan; only
+              the one you are packing right now needs to be open.
+
+              `suggest` throughout, because that is what every one of these is —
+              offered, not entered. The spine is what separates them from the
+              list above without repainting anything. */}
+          <div className="flex flex-col gap-2">
             {GEAR_CATEGORY_ORDER.filter(
               (category) => starterSuggestions(category, visible).length > 0,
-            ).map((category) => (
-              <Card key={category} className="flex min-w-0 flex-col gap-2">
-                <span className="flex items-center gap-2 text-sm font-bold">
-                  <DomainIcon name={GEAR_CATEGORIES[category].icon} />
-                  {GEAR_CATEGORIES[category].label}
-                </span>
-                <StarterRow
-                  tripId={tripId}
-                  category={category}
-                  items={visible}
-                />
-              </Card>
-            ))}
+            ).map((category) => {
+              const offered = starterSuggestions(category, visible);
+              return (
+                <Disclosure
+                  key={category}
+                  tone="suggest"
+                  title={GEAR_CATEGORIES[category].label}
+                  leading={
+                    <DomainIcon name={GEAR_CATEGORIES[category].icon} />
+                  }
+                  meta={
+                    <Badge tone="neutral">{offered.length}</Badge>
+                  }
+                >
+                  <StarterRow
+                    tripId={tripId}
+                    category={category}
+                    items={visible}
+                  />
+                </Disclosure>
+              );
+            })}
           </div>
         </div>
       )}

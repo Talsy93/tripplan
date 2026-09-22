@@ -7,6 +7,7 @@ import {
   Chip,
   ChipRadio,
   Dialog,
+  Disclosure,
   InfoTip,
   Input,
   Select,
@@ -14,7 +15,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { ChevronDown, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { addBooking, editBooking } from "../application/booking-actions";
 import {
   BOOKING_KINDS,
@@ -645,19 +646,11 @@ export function BookingForm({
             Open from the start when the booking being edited has something in
             here to see. Computed once and never changed, so a press on the
             summary is not undone by the next render. */}
-        <details
-          open={extrasOpen}
-          className="group/extras flex flex-col rounded-control border border-border bg-surface-sunken p-3"
+        <Disclosure
+          defaultOpen={extrasOpen}
+          title="סטטוס ההזמנה, ביטול ותזכורת"
+          detail="נשאל רק אם צריך — ברוב ההזמנות אפשר לדלג"
         >
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-semibold [&::-webkit-details-marker]:hidden">
-            <span>סטטוס ההזמנה, ביטול ותזכורת</span>
-            <ChevronDown
-              className="h-4 w-4 shrink-0 text-muted transition-transform group-open/extras:rotate-180"
-              aria-hidden="true"
-            />
-          </summary>
-
-          <div className="flex flex-col gap-3 pt-3">
           <label className="flex items-start gap-2 text-sm">
             <input
               // Remounted on each action result so the reset-restored default
@@ -798,8 +791,7 @@ export function BookingForm({
               כשהאפליקציה סגורה, הפעילו ״תזכורות למכשיר״ למטה.
             </p>
           </fieldset>
-          </div>
-        </details>
+        </Disclosure>
 
         <div>
           <Button type="submit" loading={pending}>

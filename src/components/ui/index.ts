@@ -20,3 +20,5 @@ export { Skeleton } from "./skeleton";
 export { Surface } from "./surface";
 export { SwipeAction, REVEALED_ACTION } from "./swipe-action";
 export { ToastProvider, useToast } from "./toast";
+export { Disclosure } from "./disclosure";
+export type { DisclosureTone } from "./disclosure";
