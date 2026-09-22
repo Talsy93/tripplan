@@ -191,6 +191,7 @@ export function DayPager({
           day={active}
           tripId={tripId}
           reminders={remindersForDay(reminders, active.day)}
+          dayCount={dayCount}
           variant="compact"
           bookings={bookings}
           date={date}

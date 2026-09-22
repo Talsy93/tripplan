@@ -36,6 +36,30 @@ export async function createDayReminder(input: {
   return !error;
 }
 
+// Changing a reminder that already exists. `done` is deliberately not here:
+// ticking one off is its own action with its own optimistic path, and folding
+// it in would mean the edit dialog could silently un-tick a reminder that was
+// ticked while it was open.
+export async function updateDayReminder(
+  id: string,
+  input: { dayNumber: number; timeLabel: string; title: string },
+): Promise<boolean> {
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("trip_reminders")
+    .update(
+      {
+        day_number: input.dayNumber,
+        time_label: input.timeLabel,
+        title: input.title,
+      },
+      { count: "exact" },
+    )
+    .eq("id", id);
+  if (error) console.error("updateDayReminder failed:", error.message);
+  return !error && count !== 0;
+}
+
 export async function setDayReminderDone(
   id: string,
   done: boolean,

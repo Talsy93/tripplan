@@ -82,12 +82,17 @@ export function DayTimeline({
   addLabel = "הוסיפו משהו ליום הזה",
   // Reminders pinned to this day (migration 0024), slotted in at their hour.
   reminders = [],
+  // How long the trip is, for the day picker in a reminder's edit form. Absent
+  // on a caller that does not know it, and the picker then offers the day the
+  // reminder is already on.
+  dayCount,
   // Needed to tick a reminder off or remove it. Absent on a read-only
   // rendering (the share page), where the row shows and does nothing.
   tripId,
 }: {
   day: ItineraryDay;
   reminders?: DayReminder[];
+  dayCount?: number;
   tripId?: string;
   // Opens the edit dialog. Optional so the read-only uses of this component
   // (the day pager on the "today" tab) stay read-only — and a row with nothing
@@ -154,6 +159,7 @@ export function DayTimeline({
           tripId={tripId ?? ""}
           reminder={item.reminder}
           compact={compact}
+          dayCount={dayCount}
           readOnly={!tripId}
         />
       );

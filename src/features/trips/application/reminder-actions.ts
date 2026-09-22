@@ -7,6 +7,7 @@ import {
   createDayReminder,
   deleteDayReminder,
   setDayReminderDone,
+  updateDayReminder,
 } from "../infrastructure/reminder-service";
 
 const tripIdSchema = z.uuid();
@@ -35,6 +36,36 @@ export async function addDayReminder(
   }
   const ok = await createDayReminder({ tripId, ...parsed.data });
   if (!ok) return { ok: false, message: "ההוספה נכשלה. נסו שוב." };
+
+  revalidatePath(`/trips/${tripId}/today`);
+  revalidatePath(`/trips/${tripId}/days`);
+  return { ok: true };
+}
+
+// The same validation the add path uses, because it is the same form — a
+// reminder that could be created is a reminder that can be corrected into.
+export async function editDayReminder(
+  tripId: string,
+  id: string,
+  input: unknown,
+): Promise<ReminderResult> {
+  if (!tripIdSchema.safeParse(tripId).success) return { ok: false };
+  if (!z.uuid().safeParse(id).success) return { ok: false };
+
+  const parsed = dayReminderFormSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      errors: Object.fromEntries(
+        Object.entries(z.flattenError(parsed.error).fieldErrors).flatMap(
+          ([key, messages]) => (messages?.[0] ? [[key, messages[0]]] : []),
+        ),
+      ),
+    };
+  }
+
+  const ok = await updateDayReminder(id, parsed.data);
+  if (!ok) return { ok: false, message: "השמירה נכשלה. נסו שוב." };
 
   revalidatePath(`/trips/${tripId}/today`);
   revalidatePath(`/trips/${tripId}/days`);

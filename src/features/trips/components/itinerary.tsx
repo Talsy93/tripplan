@@ -517,6 +517,7 @@ export function Itinerary({
         day={active}
         tripId={tripId}
         reminders={remindersForDay(reminders, active.day)}
+        dayCount={dayCount}
         onEdit={setEditingId}
         bookings={bookingsByDay[active.day] ?? []}
         date={activeDate}
