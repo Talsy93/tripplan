@@ -89,6 +89,24 @@ export function Itinerary({
   dayNotes = [],
 }: ItineraryProps) {
   const [scheduled, setScheduled] = useState<ItineraryDay[]>(initialItinerary);
+
+  // Re-seeded when the server sends a different itinerary, for the reason
+  // selected-list explains at length: `useState(prop)` reads the prop once, so
+  // every server revalidation after mount was thrown away.
+  //
+  // Here that showed up as an edit not sticking. EditEntryDialog saves through
+  // updateItineraryEntry, which revalidates the route, and then closes — and
+  // the day underneath went on showing the old time until the page was
+  // reloaded, which reads as a save that failed.
+  //
+  // Safe for the build, which sets this state from the API's own response: that
+  // path does not change the prop, so there is nothing for this to overwrite.
+  const [seenItinerary, setSeenItinerary] = useState(initialItinerary);
+  if (initialItinerary !== seenItinerary) {
+    setSeenItinerary(initialItinerary);
+    setScheduled(initialItinerary);
+  }
+
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // The entry whose edit dialog is open, by id.

@@ -41,6 +41,36 @@ export function SelectedList({
   items: SelectedItem[];
 }) {
   const [items, setItems] = useState<SelectedItem[]>(initialItems);
+
+  // **Re-seeded when the server sends a different list.**
+  //
+  // Reported as "the attractions chosen for the trip are not rendered live,
+  // only after a refresh", and this was the whole of it: `useState(initialItems)`
+  // reads the prop once, on mount. Adding a place elsewhere on the screen does
+  // revalidate — setSelected calls revalidatePath on the trip layout — so the
+  // server re-rendered and handed this component a new array, which it then
+  // ignored for the rest of its life. Only a full page load remounted it.
+  //
+  // Synced during render, React's documented way to adjust state when incoming
+  // input changes, rather than in an effect — the same shape booking-form uses
+  // for its own echo, and for the same reason: an effect would paint the stale
+  // list for a frame first.
+  //
+  // This also makes the optimistic removal below self-healing. It drops the row
+  // locally, the action revalidates, the server's answer comes back, and this
+  // replaces the guess with the truth — including when the delete failed.
+  //
+  // Not booking-list's answer to the same bug, which holds a list of removed
+  // *ids* and filters the prop. That works there because a booking id is unique
+  // and never comes back; a row here is keyed by city|category|name, so
+  // removing a place and adding it again would hand it a key already on the
+  // removed list and the row would stay invisible.
+  const [seenItems, setSeenItems] = useState(initialItems);
+  if (initialItems !== seenItems) {
+    setSeenItems(initialItems);
+    setItems(initialItems);
+  }
+
   // Which rows are expanded, by key. A Set rather than a single key: two
   // places you are comparing is exactly when you want both open.
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -99,15 +129,24 @@ export function SelectedList({
               className={cn(
                 "group/pick flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors",
                 "bg-success-tint text-success-ink hover:bg-danger-tint hover:text-danger-ink",
+                // Touch has no hover, so the swap below never happens there and
+                // the control was a green check for its entire life — reported
+                // as "removing them is not clear". On a coarse pointer it shows
+                // what it does instead of what it is.
+                //
+                // Quiet rather than red: this is still a toggle of one boolean,
+                // not a deletion, and law 05 keeps destructive colour out of a
+                // row at rest. The tint arrives on press.
+                "pointer-coarse:bg-surface-2 pointer-coarse:text-muted",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               )}
             >
               <Check
-                className="h-4 w-4 animate-stamp group-hover/pick:hidden"
+                className="h-4 w-4 animate-stamp group-hover/pick:hidden pointer-coarse:hidden"
                 aria-hidden="true"
               />
               <X
-                className="hidden h-4 w-4 group-hover/pick:block"
+                className="hidden h-4 w-4 group-hover/pick:block pointer-coarse:block"
                 aria-hidden="true"
               />
             </button>
