@@ -852,8 +852,66 @@ export type RouteStop = {
   layoverMinutes: number | null;
 };
 
-// The whole ticket, unfolded: legs.length is always stops.length + 1, so a card
-// can render leg, stop, leg, stop, leg without checking the ends.
+// The ends of a journey and the stops in between, in whatever shape the caller
+// already has them. The DB row and the form hold the same facts under different
+// names, so this is the neutral one both can reach.
+export type JourneyShape = {
+  origin: string | null;
+  destination: string | null;
+  departsAt: string | null;
+  arrivesAt: string | null;
+  // Leg 1's number and carrier. On a booking this is the title and the airline
+  // column; in the form it is the box at the top of the page.
+  flight: string | null;
+  airline: string | null;
+  stops: {
+    place: string;
+    arrivesAt: string | null;
+    departsAt: string | null;
+    flight: string | null;
+    airline: string | null;
+  }[];
+};
+
+// **The one rule that makes a connection make sense**, and the reason this is a
+// function rather than a loop written twice.
+//
+//   leg 1      is the booking itself — its flight number, its carrier, its
+//              departure, and the journey's origin
+//   every
+//   later leg  is the flight *leaving* a stop, and takes its number, carrier
+//              and time from that stop
+//   the last
+//   leg's end  is the journey's destination and its arrival
+//
+// So "Tel Aviv → Dubai → Tokyo", however it was bought, is one origin, one
+// destination and one stop in the middle. Nothing is typed twice, and that is
+// also what makes it confusing to fill in blind — which is why the form now
+// renders the result of this function back while it is being typed.
+//
+// legs.length is always stops.length + 1, so a card can render leg, stop, leg,
+// stop, leg without checking the ends.
+export function journeyLegs(journey: JourneyShape): RouteLeg[] {
+  const { stops } = journey;
+  const legs: RouteLeg[] = [];
+
+  for (let i = 0; i <= stops.length; i += 1) {
+    const before = i === 0 ? null : stops[i - 1];
+    const after = i === stops.length ? null : stops[i];
+    legs.push({
+      from: before ? before.place : journey.origin,
+      to: after ? after.place : journey.destination,
+      departsAt: before ? before.departsAt : journey.departsAt,
+      arrivesAt: after ? after.arrivesAt : journey.arrivesAt,
+      flight: before ? before.flight : journey.flight,
+      airline: before ? before.airline : journey.airline,
+    });
+  }
+
+  return legs;
+}
+
+// The whole ticket, unfolded.
 //
 // Derived rather than stored. The endpoints and the first and last times are
 // already on the booking, and duplicating them into the jsonb is how the two
@@ -871,21 +929,23 @@ export function flightRoute(booking: Booking): {
     layoverMinutes: layoverBetween(stop.arrives_at, stop.departs_at),
   }));
 
-  const legs: RouteLeg[] = [];
-  for (let i = 0; i <= stops.length; i += 1) {
-    const before = i === 0 ? null : stops[i - 1];
-    const after = i === stops.length ? null : stops[i];
-    legs.push({
-      from: before ? before.place : booking.origin,
-      to: after ? after.place : booking.destination,
-      departsAt: before ? (before.departs_at ?? null) : booking.starts_at,
-      arrivesAt: after ? (after.arrives_at ?? null) : booking.ends_at,
-      // The leg out of a stop carries that stop's number; the first leg is the
-      // booking itself, whose title *is* the flight number field.
-      flight: before ? (before.flight ?? null) : booking.title,
-      airline: before ? (before.airline ?? null) : (booking.airline ?? null),
-    });
-  }
+  const legs = journeyLegs({
+    origin: booking.origin,
+    destination: booking.destination,
+    departsAt: booking.starts_at,
+    arrivesAt: booking.ends_at,
+    // The first leg is the booking itself, whose title *is* the flight number
+    // field.
+    flight: booking.title,
+    airline: booking.airline ?? null,
+    stops: stops.map((stop) => ({
+      place: stop.place,
+      arrivesAt: stop.arrives_at ?? null,
+      departsAt: stop.departs_at ?? null,
+      flight: stop.flight ?? null,
+      airline: stop.airline ?? null,
+    })),
+  });
 
   return { legs, stops: routeStops };
 }

@@ -889,6 +889,67 @@ html {
   }
 }
 
+/* A date input that will stay inside its own box.
+   ---------------------------------------------------------------------------
+   Reported from an iPhone and an iPad: "the date fields come out of the frame".
+   Every date and datetime-local control in the app — the trip's dates, a
+   flight's departure and arrival, a hotel's check-in, a stop's landing time —
+   and only on those two devices.
+
+   WebKit does not render these as one box. Inside the <input> it puts a
+   `::-webkit-datetime-edit` holding a `::-webkit-date-and-time-value`, and on
+   iOS that inner element:
+
+     * takes a min-width from the *format string* ("dd/mm/yyyy", and for
+       datetime-local "dd/mm/yyyy, --:--"), which it will not go under;
+     * is not clipped by the input, so when it does not fit it simply draws
+       outside the border;
+     * sizes the control itself, which is why `width: 100%` and the `min-w-0`
+       on the control class were not enough — they constrain the box, and what
+       was escaping was its content.
+
+   The rule above makes this worse before it makes it better: at 16px the
+   format string needs more room than it did at 14px, which is why this surfaced
+   on touch devices and nowhere else. The font-size is not negotiable (under
+   16px iOS zooms the viewport on focus and never zooms back), so the value has
+   to be made to fit instead.
+
+   Not behind `pointer: coarse`, although the bug is: the result is measurably
+   identical in Chrome — same box, same picker indicator, same glyph position —
+   and one rendering that is right everywhere beats two that have to be kept in
+   step. Measured at 375px before and after: 309×40 both times.
+
+   `appearance: none` is what lets our width and height reach the control at
+   all; it does not remove `::-webkit-calendar-picker-indicator`, which is a
+   separate pseudo-element and still draws. */
+input[type="date"],
+input[type="datetime-local"],
+input[type="time"] {
+  -webkit-appearance: none;
+  appearance: none;
+  /* The backstop: whatever the inner element decides it needs, it is cut at
+     the border rather than drawn past it. */
+  overflow: hidden;
+}
+
+input[type="date"]::-webkit-date-and-time-value,
+input[type="datetime-local"]::-webkit-date-and-time-value,
+input[type="time"]::-webkit-date-and-time-value {
+  /* The floor that the format string sets, removed. */
+  min-width: 0;
+  /* iOS centres this, so a value narrower than the box sits in the middle and
+     a value wider than it hangs off *both* sides. Start-aligned it can only
+     ever overflow in one direction, which `overflow: hidden` then takes. */
+  text-align: start;
+  margin: 0;
+}
+
+input[type="date"]::-webkit-datetime-edit,
+input[type="datetime-local"]::-webkit-datetime-edit,
+input[type="time"]::-webkit-datetime-edit {
+  padding: 0;
+}
+
 /* The map's own controls, moved clear of the chips that float above them.
    ---------------------------------------------------------------------------
    Leaflet renders zoom into .leaflet-top.leaflet-left, which is where the city

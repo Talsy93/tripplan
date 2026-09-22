@@ -221,5 +221,18 @@ export function SwipeAction({
 // wrong in one place is how a red X ends up sitting in a row again. `opacity`
 // rather than `hidden`: the button keeps its space in the row, so revealing it
 // does not reflow the line the pointer is aiming at.
+//
+// **Except on a touch screen, where it rests after all.** Reported from an
+// iPhone and an iPad as "I cannot see the bin". A finger has no hover, so on
+// those two devices `group-hover` never fired and the button was
+// `opacity-0` for its entire life — the gesture above was the only way to
+// delete anything, and nothing on the screen said so. An affordance you have to
+// already know about is not an affordance.
+//
+// This does bend the design's "destructive actions do not sit at rest", and it
+// is the right way to bend it: the rule exists so a red bin is not sitting
+// under a thumb that is scrolling past, and the cost of honouring it to the
+// letter here was a delete button nobody could find. The gesture stays — it is
+// still the faster way — and the button is the discoverable one.
 export const REVEALED_ACTION =
-  "opacity-0 transition-opacity duration-settle group-hover/swipe:opacity-100 focus-visible:opacity-100";
+  "opacity-0 transition-opacity duration-settle group-hover/swipe:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100";

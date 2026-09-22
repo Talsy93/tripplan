@@ -57,9 +57,14 @@ export function CreateTripForm({ onSuccess }: { onSuccess?: () => void }) {
         <legend className="pb-1 text-sm font-semibold">מתי?</legend>
         <div className="flex min-w-0 gap-2">
           <Field label="יציאה" className="min-w-0 flex-1">
+            {/* dir="ltr" like every other date input in the app. Without it
+                WebKit lays "dd/mm/yyyy" out in the document's RTL, which puts
+                the segments in the wrong order and, on iOS, starts the value
+                outside the box. These two were the only ones missing it. */}
             <Input
               type="date"
               name="start_date"
+              dir="ltr"
               aria-invalid={state?.errors?.start_date ? true : undefined}
             />
           </Field>
@@ -71,6 +76,7 @@ export function CreateTripForm({ onSuccess }: { onSuccess?: () => void }) {
             <Input
               type="date"
               name="end_date"
+              dir="ltr"
               aria-invalid={state?.errors?.end_date ? true : undefined}
             />
           </Field>

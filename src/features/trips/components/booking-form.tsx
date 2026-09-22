@@ -13,13 +13,14 @@ import {
   useToast,
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { Plus, X } from "lucide-react";
+import { ArrowLeft, Plus, X } from "lucide-react";
 import { addBooking, editBooking } from "../application/booking-actions";
 import {
   BOOKING_KINDS,
   DEFAULT_REMINDER_DAYS,
   REMINDER_PRESETS,
   bookingStops,
+  journeyLegs,
   splitDuration,
   toDateTimeLocal,
 } from "../domain/booking";
@@ -30,6 +31,7 @@ import type {
   BookingFormState,
   BookingKind,
   CreateBookingInput,
+  RouteLeg,
 } from "../domain/booking";
 import { DomainIcon } from "./domain-icon";
 
@@ -133,6 +135,35 @@ function bookingDefaults(booking: Booking | undefined): Partial<Record<Field, st
   };
 }
 
+// 0024. What the route preview reads while the form is being typed.
+//
+// The four boxes that make up leg 1 — the flight number, the carrier, and the
+// two ends of the journey — stay uncontrolled like everything else here:
+// `defaultValue` plus the remount dance in the body is what survives React's
+// post-action reset, and driving them from state would undo that. So their
+// values are *mirrored* into state on change instead, and seeded from exactly
+// the source `was()` uses, so a rejected submission redraws the route it was
+// rejected with.
+type RouteSeed = {
+  title: string;
+  airline: string;
+  origin: string;
+  destination: string;
+};
+
+function routeSeed(
+  values: BookingFormState["values"],
+  defaults: Partial<Record<Field, string>>,
+): RouteSeed {
+  const pick = (field: Field) => values?.[field] ?? defaults[field] ?? "";
+  return {
+    title: pick("title"),
+    airline: pick("airline"),
+    origin: pick("origin"),
+    destination: pick("destination"),
+  };
+}
+
 // The form changes shape with the kind: transport asks where from and where to,
 // lodging asks for one address. Keeping it one form rather than three means one
 // action and one validation path.
@@ -185,6 +216,13 @@ export function BookingForm({
     stopRowsFrom(state.values?.stops, booking),
   );
 
+  // 0024. The mirror of leg 1, for the route preview. See routeSeed above.
+  const [route, setRoute] = useState<RouteSeed>(() =>
+    routeSeed(state.values, defaults),
+  );
+  const mirror = (patch: Partial<RouteSeed>) =>
+    setRoute((current) => ({ ...current, ...patch }));
+
   const [leadChoice, setLeadChoice] = useState<string>(() => {
     const initial = defaults.reminderDaysBefore;
     if (initial === undefined) return String(DEFAULT_REMINDER_DAYS);
@@ -220,6 +258,9 @@ export function BookingForm({
     // successful add the action returns no values, so the route clears exactly
     // as every other field does.
     setStops(stopRowsFrom(state.values?.stops, booking));
+    // Same reason again: the four boxes behind the route preview are reset with
+    // the rest of the form, and the mirror has to be reset with them.
+    setRoute(routeSeed(state.values, defaults));
     setFormGeneration((generation) => generation + 1);
   }
 
@@ -327,10 +368,18 @@ export function BookingForm({
             required
             maxLength={120}
             defaultValue={was("title")}
+            onChange={(event) => mirror({ title: event.target.value })}
             aria-invalid={Boolean(errorFor("title"))}
             className={fieldClass("title")}
           />
           <FieldError message={errorFor("title")} />
+          {/* 0024. Only once there is a connection, because until then there is
+              only one leg and saying "the first" about it is noise. */}
+          {isTransport && stops.length > 0 && (
+            <span className="text-caption text-muted">
+              של הקטע הראשון. המספר של כל קטע נוסף נכנס בעצירה שהוא יוצא ממנה.
+            </span>
+          )}
         </label>
 
         {/* Flights only. A train has an operator too, but the list in
@@ -342,6 +391,7 @@ export function BookingForm({
             <Select
               name="airline"
               defaultValue={was("airline")}
+              onChange={(event) => mirror({ airline: event.target.value })}
               aria-invalid={Boolean(errorFor("airline"))}
               className={fieldClass("airline")}
             >
@@ -368,6 +418,7 @@ export function BookingForm({
                 name="origin"
                 maxLength={120}
                 defaultValue={was("origin")}
+                onChange={(event) => mirror({ origin: event.target.value })}
               />
             </label>
             <label className="flex min-w-0 flex-col gap-1 text-sm">
@@ -376,7 +427,20 @@ export function BookingForm({
                 name="destination"
                 maxLength={120}
                 defaultValue={was("destination")}
+                onChange={(event) =>
+                  mirror({ destination: event.target.value })
+                }
               />
+              {/* 0024. The field that the connection makes ambiguous, said
+                  plainly rather than left to be worked out. With a stop in the
+                  middle "אל־" is still Tokyo, not Dubai — and reading it as
+                  Dubai is the mistake that makes the whole route come out
+                  wrong. */}
+              {stops.length > 0 && (
+                <span className="text-caption text-muted">
+                  היעד הסופי, לא סוף הקטע הראשון.
+                </span>
+              )}
             </label>
           </div>
         ) : (
@@ -431,6 +495,9 @@ export function BookingForm({
             onChange={setStops}
             withAirline={kind === "flight"}
             error={errorFor("stops")}
+            leg1={route}
+            startsAt={was("startsAt")}
+            endsAt={was("endsAt")}
           />
         )}
 
@@ -769,6 +836,9 @@ function RouteEditor({
   onChange,
   withAirline,
   error,
+  leg1,
+  startsAt,
+  endsAt,
 }: {
   stops: StopRow[];
   onChange: (stops: StopRow[]) => void;
@@ -776,19 +846,55 @@ function RouteEditor({
   // in domain/airlines.ts cannot contain a train operator.
   withAirline: boolean;
   error?: string;
+  // 0024. The four boxes above that make up the first leg, mirrored here so the
+  // preview can show the whole journey rather than only its middle.
+  leg1: RouteSeed;
+  startsAt: string;
+  endsAt: string;
 }) {
   const update = (index: number, patch: Partial<StopRow>) => {
     onChange(stops.map((stop, i) => (i === index ? { ...stop, ...patch } : stop)));
   };
 
+  // Built by the same function the saved card is built by, so what is drawn
+  // here while typing is what will be there afterwards — not a second opinion
+  // about it.
+  const legs = journeyLegs({
+    origin: leg1.origin || null,
+    destination: leg1.destination || null,
+    departsAt: startsAt || null,
+    arrivesAt: endsAt || null,
+    flight: leg1.title || null,
+    airline: leg1.airline || null,
+    stops: stops.map((stop) => ({
+      place: stop.place,
+      arrivesAt: stop.arrivesAt || null,
+      departsAt: stop.departsAt || null,
+      flight: stop.flight || null,
+      airline: stop.airline || null,
+    })),
+  });
+
   return (
     <fieldset className="flex min-w-0 flex-col gap-2 border-0 p-0 text-sm">
       <legend className="text-muted">עצירות בדרך (קונקשן)</legend>
 
-      {stops.length === 0 && (
-        <p className="text-caption text-muted">
-          טיסה ישירה. אם יש קונקשן — הוסיפו את התחנה, והכרטיס יוצג כמסלול אחד.
-        </p>
+      {stops.length === 0 ? (
+        <div className="flex flex-col gap-1">
+          <p className="text-caption text-muted">
+            טיסה ישירה. אם יש קונקשן — הוסיפו את התחנה, והכרטיס יוצג כמסלול אחד.
+          </p>
+          {/* 0024. The question this form was reported for, answered where it
+              is asked. Two tickets bought separately are still one journey, and
+              nothing on the screen used to say that the second one goes *into*
+              a stop rather than into a second booking. */}
+          <p className="text-caption text-muted">
+            גם אם קניתם שני כרטיסים נפרדים שיחד מרכיבים את הנסיעה — זו עצירה
+            אחת, והפרטים של הכרטיס השני נכנסים לתוכה.
+          </p>
+        </div>
+      ) : (
+        <RoutePreview legs={legs} />
       )}
 
       {stops.map((stop, index) => (
@@ -797,8 +903,12 @@ function RouteEditor({
           className="flex min-w-0 flex-col gap-2 rounded-control border border-border bg-surface-sunken p-3"
         >
           <div className="flex items-center justify-between gap-2">
+            {/* 0024. Named by what it *does* as well as what it is. "עצירה 1"
+                alone left the boxes below it looking like they described the
+                stop; they describe the flight out of it, which is the whole
+                confusion this row was reported for. */}
             <span className="text-caption font-semibold text-muted">
-              עצירה {index + 1}
+              עצירה {index + 1} · כאן מתחיל קטע {index + 2}
             </span>
             {/* A plain button, not an IconButton: this sits inside a form and a
                 button with no explicit type submits it — which would post the
@@ -901,4 +1011,83 @@ function RouteEditor({
       <FieldError message={error} />
     </fieldset>
   );
+}
+
+// 0024. The journey as it is being typed, drawn back.
+//
+// Reported as "choosing a connecting ticket is not clear — if I actually have
+// two tickets that make up the destination, it is not clear how I build the
+// whole one". Every field needed to express that was already here and the model
+// was already right; what was missing was any sign of what the boxes were
+// adding up to. Three things in particular have to be worked out from nothing:
+// that the number at the top belongs to the first leg, that "אל־" stays the
+// final destination, and that a stop's boxes describe the flight *leaving* it.
+//
+// So rather than relabel three fields and hope, the form shows the answer. Legs
+// appear and change as the boxes are filled, and a leg that is still missing its
+// ends says so — which turns "did I put Dubai in the right place" from a guess
+// into a glance.
+//
+// Built by journeyLegs, the same function the saved card is built by. A preview
+// with a rule of its own would be a second opinion, and the first time the two
+// disagreed the preview would be worse than nothing.
+function RoutePreview({ legs }: { legs: RouteLeg[] }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-2 rounded-control border border-primary bg-primary-tint p-3">
+      <span className="text-caption font-bold text-primary-ink">
+        המסלול שנבנה
+      </span>
+
+      <ol className="flex min-w-0 flex-col gap-1">
+        {legs.map((leg, index) => (
+          <li
+            key={index}
+            className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-caption"
+          >
+            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary font-display text-xs font-bold tabular-nums text-primary-foreground">
+              {index + 1}
+            </span>
+
+            {/* A flex row rather than "from ← to" as one string. The places are
+                user-typed and may be Hebrew or Latin, and a bare arrow
+                character between two runs of opposite direction lands wherever
+                the bidi algorithm decides. Separate elements in an RTL row are
+                laid out by the row, which is a question with one answer. */}
+            <span className="flex min-w-0 flex-1 items-center gap-1.5 font-semibold">
+              <Place name={leg.from} />
+              <ArrowLeft
+                className="h-3 w-3 shrink-0 text-primary-ink"
+                aria-hidden="true"
+              />
+              <Place name={leg.to} />
+            </span>
+
+            <span className="shrink-0 text-muted">{flightLabel(leg)}</span>
+          </li>
+        ))}
+      </ol>
+
+      <p className="text-caption text-primary-ink">
+        קטע 1 לוקח את מספר הטיסה ואת חברת התעופה מלמעלה. כל עצירה מוסיפה קטע,
+        והפרטים שבתוכה הם של הטיסה שיוצאת ממנה.
+      </p>
+    </div>
+  );
+}
+
+// An end of a leg that has not been typed yet. Shown as a gap rather than left
+// out, because the gap is the useful part: it is the box still to fill.
+function Place({ name }: { name: string | null }) {
+  if (!name) {
+    return <span className="shrink-0 text-muted">(חסר)</span>;
+  }
+  return <span className="min-w-0 truncate">{name}</span>;
+}
+
+// "LY971 · LY", or as much of it as there is.
+function flightLabel(leg: RouteLeg): string {
+  const parts = [leg.flight, leg.airline].filter(
+    (part): part is string => Boolean(part && part.trim()),
+  );
+  return parts.length > 0 ? parts.join(" · ") : "בלי מספר";
 }
