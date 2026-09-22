@@ -615,3 +615,5 @@ export type {
 } from "./domain/airport-transfer";
 export { addAirportTransfer } from "./application/itinerary-actions";
 export { AirportTransferButton } from "./components/airport-transfer";
+export { DayReminders } from "./components/day-reminders";
+export { isOverdue, minutesOfDay, reminderProgress } from "./domain/day-reminders";

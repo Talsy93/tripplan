@@ -337,7 +337,7 @@ export const SCENES: Scene[] = [
               currentDay={1}
               bookingsByDay={{ 1: [f.BOOKINGS[0]] }}
               lodgingByDay={{ 1: f.LODGING }}
-              nowIso={`${f.TODAY}T07:10:00Z`}
+              nowIso={`${f.TODAY}T14:00:00Z`}
               reminders={[
                 { id: "00000000-0000-0000-0000-00000000a001", trip_id: f.TRIP_ID, day_number: 1, time_label: "11:00", title: "להתקשר למלון על צ׳ק-אין מאוחר", done: false, created_at: f.NOW },
                 { id: "00000000-0000-0000-0000-00000000a002", trip_id: f.TRIP_ID, day_number: 1, time_label: "18:30", title: "לקנות כרטיס Suica לרכבת של מחר", done: true, created_at: f.NOW },

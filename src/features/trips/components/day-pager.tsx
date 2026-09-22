@@ -13,7 +13,8 @@ import { NightStay } from "./night-stay";
 import { AddReminderButton } from "./reminder-dialog";
 import { AnchorsButton } from "./anchors-dialog";
 import { RescheduleButton } from "./reschedule-button";
-import { remindersForDay } from "../domain/day-reminders";
+import { minutesOfDay, remindersForDay } from "../domain/day-reminders";
+import { DayReminders } from "./day-reminders";
 import { notesForDay } from "../domain/day-notes";
 import { AddDayNoteButton, DayNotes } from "./day-note";
 import type { DayReminder } from "../domain/day-reminders";
@@ -88,6 +89,12 @@ export function DayPager({
   // where you sleep — and the day it was most worth having was exactly the day
   // it used to disappear on.
   const stay = lodgingByDay[active.day] ?? null;
+
+  // The clock, but only on the day being lived. `nowIso` is passed by the
+  // running trip alone, and "late" is meaningless on a day you are not in — a
+  // reminder for Thursday is not overdue on Tuesday.
+  const nowMinutes =
+    nowIso && active.day === currentDay ? minutesOfDay(nowIso) : null;
 
   const go = (delta: number) =>
     setDayNumber((d) => clampDay(d + delta, dayCount));
@@ -190,11 +197,24 @@ export function DayPager({
           reference you glance at after the card above has said what to do.
           scroll-mt clears the sticky app bar when NowCard's "הבא בתור" jumps
           here, so the first row does not land underneath it. */}
+      {/* The day's reminders as a checklist, above the schedule and no longer
+          inside it. On this tab the question is what you still have to do, not
+          when in the day it sits — see DayReminders. */}
+      <DayReminders
+        tripId={tripId}
+        reminders={remindersForDay(reminders, active.day)}
+        dayCount={dayCount}
+        nowMinutes={nowMinutes}
+      />
+
       <div id="day-schedule" className="scroll-mt-20">
         <DayTimeline
           day={active}
           tripId={tripId}
-          reminders={remindersForDay(reminders, active.day)}
+          // Deliberately not passed here. They are the card above now, and the
+          // same three reminders in both places is the duplication the hotel
+          // had before it came off the timeline. The ימים tab still slots them
+          // into the axis, where the subject is the shape of the day.
           dayCount={dayCount}
           variant="compact"
           bookings={bookings}

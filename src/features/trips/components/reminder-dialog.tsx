@@ -202,12 +202,17 @@ export function ReminderRow({
   // to the reminder's own day, which makes the picker a single option — right
   // for a caller that does not know the trip's length, and never wrong.
   dayCount,
+  // Its hour has gone by and it is not ticked off. Decided by the caller, which
+  // is the only place that knows whether the day on screen is the day being
+  // lived — see isOverdue.
+  overdue = false,
 }: {
   tripId: string;
   reminder: DayReminder;
   compact?: boolean;
   readOnly?: boolean;
   dayCount?: number;
+  overdue?: boolean;
 }) {
   const [done, setDone] = useState(reminder.done);
   const [gone, setGone] = useState(false);
@@ -247,7 +252,15 @@ export function ReminderRow({
       )}
     >
       {compact && (
-        <span className="w-11 shrink-0 text-caption font-bold tabular-nums text-muted">
+        <span
+          className={cn(
+            "w-11 shrink-0 text-caption font-bold tabular-nums",
+            // The hour is where "late" belongs: it is the hour that is late,
+            // and colouring the title instead would say the task is wrong
+            // rather than the clock.
+            overdue ? "text-danger-ink" : "text-muted",
+          )}
+        >
           {reminder.time_label}
         </span>
       )}
@@ -274,6 +287,11 @@ export function ReminderRow({
         >
           {reminder.title}
         </span>
+        {overdue && (
+          <span className="text-caption font-semibold text-danger-ink">
+            עבר הזמן
+          </span>
+        )}
       </span>
       {!readOnly && (
         <>
