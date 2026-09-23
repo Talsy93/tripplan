@@ -35,7 +35,7 @@ const control = cn(
   // 768px iPad needs it and a 375px desktop window does not. Desktop keeps the
   // 14px it was designed with.
   "pointer-coarse:text-base",
-  "placeholder:text-muted",
+  "placeholder:font-normal placeholder:text-placeholder",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
   "disabled:opacity-50 disabled:pointer-events-none",
   "focus-visible:bg-surface aria-[invalid=true]:border-danger",

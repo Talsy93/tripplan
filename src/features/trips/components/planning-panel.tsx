@@ -198,7 +198,7 @@ export function PlanningPanel({
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="למשל: סמטאות ציוריות עם גלידה טובה…"
               aria-label="מה בא לכם לעשות בטיול?"
-              className="w-full rounded-card bg-surface/90 px-4 py-2.5 text-sm text-foreground shadow-card outline-none backdrop-blur placeholder:text-outline"
+              className="w-full rounded-card bg-surface/90 px-4 py-2.5 text-sm text-foreground shadow-card outline-none backdrop-blur placeholder:font-normal placeholder:text-placeholder"
             />
             <Button
               type="submit"

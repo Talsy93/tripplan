@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   ChevronLeft,
-  CirclePlus,
   Compass,
   Copy,
   Globe,
@@ -23,17 +22,16 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { GEAR_CATEGORIES, gearProgress } from "../domain/gear";
+import type { PrepItem, PrepSuggestion } from "../domain/prep";
 import { memberLabel } from "../domain/membership";
 import type { Booking } from "../domain/booking";
 import type { EmergencyContact } from "../domain/emergency";
 import type { GearItem } from "../domain/gear";
 import type { TripMember } from "../domain/membership";
-import { toggleGearItem } from "../application/gear-actions";
 import { enableSharing } from "../application/share-actions";
 import { AddBookingButton } from "./booking-form";
+import { ChecklistCard } from "./checklist-card";
 import { DeleteTripButton } from "./delete-trip-button";
-import { DomainIcon } from "./domain-icon";
 import { EmergencyCard } from "./emergency-card";
 import { HubBookings } from "./hub-bookings";
 
@@ -77,9 +75,6 @@ const ELSEWHERE = [
   Icon: LucideIcon;
 }[];
 
-// How many packing rows the card shows. The export draws five; the full list,
-// with its categories and the prep checklist, is one press away.
-const PACKING_ROWS = 5;
 
 // The avatars' colours, by position. The app has no profile photos, so a
 // person is an initial on a tinted disc — the tone tokens, not new colours.
@@ -96,6 +91,9 @@ export function TripHub({
   tripName,
   bookings,
   gear,
+  prepItems,
+  prepSuggestions,
+  today,
   members,
   cities,
   // Whether a public view link has been issued. Null when it has not.
@@ -111,6 +109,11 @@ export function TripHub({
   tripName: string;
   bookings: Booking[];
   gear: GearItem[];
+  // The reminders (trip_prep_items), shown with the gear as one checklist.
+  prepItems: PrepItem[];
+  prepSuggestions: PrepSuggestion[];
+  // YYYY-MM-DD in the trip's zone.
+  today: string;
   members: TripMember[];
   cities: string[];
   shareToken: string | null;
@@ -193,7 +196,15 @@ export function TripHub({
           </section>
         )}
 
-        {shows("checklist") && <PackingSection tripId={tripId} gear={gear} />}
+        {shows("checklist") && (
+          <ChecklistCard
+            tripId={tripId}
+            gear={gear}
+            prepItems={prepItems}
+            suggestions={prepSuggestions}
+            today={today}
+          />
+        )}
 
         {shows("sharing") && (
           <SharingSection
@@ -292,133 +303,6 @@ function SectionHead({
       </div>
       {meta}
     </div>
-  );
-}
-
-// ---- ציוד ורשימת הכנות ------------------------------------------------------
-
-function PackingSection({ tripId, gear }: { tripId: string; gear: GearItem[] }) {
-  // Toggles land here first and are sent after, so a tick is instant. The
-  // server's next render replaces the prop and this map is only ever the
-  // difference between the two.
-  const [local, setLocal] = useState<Record<string, boolean>>({});
-  const items = gear.map((item) =>
-    item.id in local ? { ...item, packed: local[item.id] } : item,
-  );
-  const progress = gearProgress(items);
-
-  // Five rows, and the ones still to pack come first in the choosing — a card
-  // of five ticked boxes is a card that says nothing — but they are drawn in
-  // the list's own order, packed above pending, as the export draws them.
-  const pending = items.filter((item) => !item.packed);
-  const packed = items.filter((item) => item.packed);
-  const chosen = new Set(
-    [...pending.slice(0, PACKING_ROWS), ...packed].slice(0, PACKING_ROWS).map((item) => item.id),
-  );
-  const rows = [...packed, ...pending].filter((item) => chosen.has(item.id));
-  const hidden = items.length - rows.length;
-
-  async function toggle(item: GearItem, next: boolean) {
-    setLocal((current) => ({ ...current, [item.id]: next }));
-    if (!(await toggleGearItem(tripId, item.id, next))) {
-      setLocal((current) => ({ ...current, [item.id]: !next }));
-    }
-  }
-
-  return (
-    <section className="flex flex-col gap-4">
-      <SectionHead
-        Icon={Luggage}
-        tone="cta"
-        title="ציוד ורשימת הכנות"
-        meta={
-          progress.total > 0 && (
-            <span className="shrink-0 rounded-full bg-primary-tint px-2 py-0.5 text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-primary">
-              {progress.packed} מתוך {progress.total} נארזו
-            </span>
-          )
-        }
-      />
-
-      <div className="rounded-xl bg-surface p-4 shadow-card">
-        <div className="mb-1 flex items-center justify-between">
-          <span className="text-xs leading-4 font-semibold text-foreground">
-            מוכנות לטיסה
-          </span>
-          <span className="text-base leading-[22px] font-bold text-cta-strong tabular-nums">
-            {progress.percent}%
-          </span>
-        </div>
-        <div
-          role="progressbar"
-          aria-label="מוכנות לטיסה"
-          aria-valuenow={progress.percent}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          className="mb-4 h-3 w-full overflow-hidden rounded-full bg-surface-high"
-        >
-          <div
-            className="h-full rounded-full bg-cta-strong transition-all duration-500"
-            style={{ width: `${progress.percent}%` }}
-          />
-        </div>
-
-        {rows.length === 0 ? (
-          <p className="p-2 text-sm leading-5 text-muted-strong">
-            הרשימה עוד ריקה — דרכון, מתאם, תרופות. כל מה שתוסיפו נשמר לכל חברי
-            הטיול.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-1">
-            {rows.map((item) => (
-              <label
-                key={item.id}
-                className="flex cursor-pointer items-center justify-between gap-2 rounded-lg p-2 transition-colors select-none hover:bg-surface-2"
-              >
-                <div className="flex min-w-0 items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={item.packed}
-                    onChange={(event) => void toggle(item, event.target.checked)}
-                    className="h-5 w-5 shrink-0 cursor-pointer rounded accent-[var(--success-strong)]"
-                  />
-                  <span
-                    className={cn(
-                      "min-w-0 text-sm leading-5 transition-all wrap-anywhere",
-                      item.packed
-                        ? "text-muted-strong line-through"
-                        : "font-medium text-foreground",
-                    )}
-                  >
-                    {item.label}
-                  </span>
-                </div>
-                <DomainIcon
-                  name={GEAR_CATEGORIES[item.category].icon}
-                  className={cn(
-                    "h-[18px] w-[18px] shrink-0",
-                    item.packed ? "text-success-strong" : "text-muted-strong",
-                  )}
-                />
-              </label>
-            ))}
-          </div>
-        )}
-
-        <div className="mt-2 flex items-center justify-between gap-2 pt-2">
-          <Link
-            href={`/trips/${tripId}/more/gear`}
-            className="flex items-center gap-1 rounded-control text-xs leading-4 font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <CirclePlus className="h-[18px] w-[18px]" aria-hidden="true" />
-            {hidden > 0 ? `הוספה, ועוד ${hidden} ברשימה` : "הוספת פריט לרשימה"}
-          </Link>
-          <span className="text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-muted-strong">
-            משותף לכל חברי הטיול
-          </span>
-        </div>
-      </div>
-    </section>
   );
 }
 

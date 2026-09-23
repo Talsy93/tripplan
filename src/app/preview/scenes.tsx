@@ -94,7 +94,6 @@ import {
   ArrivalWatcher,
   CurrencyTile,
   DailyExpensesTile,
-  suggestPrepItems,
   TodayPrep,
   HomeScreen,
   TripRail,
@@ -395,14 +394,6 @@ export const SCENES: Scene[] = [
               { id: "flights", text: "עוד אין טיסת חזרה", detail: "הלו״ז לא יודע מתי היום האחרון נגמר", urgency: "now", path: "more/trip" },
             ]}
             prepItems={prepItems}
-            suggestions={suggestPrepItems({
-              bookings: f.BOOKINGS,
-              startDate: f.NEAR_START,
-              existing: prepItems,
-              isShared: false,
-              hasGear: true,
-              pushEnabled: false,
-            })}
           />
         ),
       });
@@ -925,6 +916,9 @@ export const SCENES: Scene[] = [
             tripName="יפן בסתיו"
             bookings={f.BOOKINGS}
             gear={f.GEAR}
+            prepItems={[]}
+            prepSuggestions={[]}
+            today="2026-09-11"
             members={f.MEMBERS}
             cities={FRAME_CITIES}
             shareToken="abcdef0123456789"
@@ -956,6 +950,9 @@ export const SCENES: Scene[] = [
             tripName="הטיול לרומא ופירנצה"
             bookings={f.DOC_BOOKINGS}
             gear={f.DOC_GEAR}
+            prepItems={f.DOC_PREP}
+            prepSuggestions={[]}
+            today="2026-09-11"
             members={f.DOC_MEMBERS}
             cities={["רומא", "פירנצה"]}
             shareToken="abcdef0123456789"

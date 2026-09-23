@@ -567,7 +567,7 @@ export function TripChat({
             placeholder="שאל את העוזר כל דבר על הטיול..."
             maxLength={2000}
             aria-label="הודעה לעוזר"
-            className="min-w-0 flex-1 bg-transparent px-1 py-0.5 text-sm text-foreground placeholder:text-outline focus:outline-none pointer-coarse:text-base"
+            className="min-w-0 flex-1 bg-transparent px-1 py-0.5 text-sm text-foreground placeholder:font-normal placeholder:text-placeholder focus:outline-none pointer-coarse:text-base"
           />
           <button
             type="submit"

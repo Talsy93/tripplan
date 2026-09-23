@@ -182,7 +182,8 @@ export function suggestPrepItems({
     kind: "packing",
     title: hasGear ? "לסיים את האריזה" : "לבנות רשימת אריזה",
     dueDate: startDate ? shiftDate(startDate, -1) : null,
-    path: "more/gear",
+    // The packing list lives on the documents tab now, with the reminders.
+    path: "more",
   });
 
   return out;

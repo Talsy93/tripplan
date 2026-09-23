@@ -48,6 +48,11 @@
   --outline: #707881;
   /* Stitch on-surface-variant: secondary text on the documents screen. */
   --muted-strong: #3f4850;
+  /* A placeholder is a hint, not a value. It was --muted, the same grey as
+     real secondary text, and a field showing "למשל 14A" read as already
+     filled in. Lighter than --outline and never bold, so an empty field looks
+     empty — still 3:1 on white, the contrast a hint needs. */
+  --placeholder: #8e97a2;
 
   /* --- brand: deep maritime blue ----------------------------------------
      Structure, links, the active tab, focus. Not the call to action — that is
@@ -309,6 +314,7 @@
   --color-muted: var(--muted);
   --color-outline: var(--outline);
   --color-muted-strong: var(--muted-strong);
+  --color-placeholder: var(--placeholder);
   --color-primary-bright: var(--primary-bright);
   --color-primary-deep: var(--primary-deep);
   --color-success-strong: var(--success-strong);
@@ -1147,5 +1153,16 @@ input[type="time"]::-webkit-date-and-time-value {
     animation-delay: 0s !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Every placeholder, including the inputs that style themselves: a hint is
+   lighter than a value and never carries the field's weight. In the base
+   layer, so an input on a dark surface can still set its own with a utility. */
+@layer base {
+  ::placeholder {
+    color: var(--placeholder);
+    opacity: 1;
+    font-weight: 400;
   }
 }

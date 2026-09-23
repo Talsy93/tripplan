@@ -5,27 +5,25 @@ import {
   APP_TIME_ZONE,
   daysUntil,
   forecastWindow,
-  GearList,
-  getShareToken,
   getSelectedDestinations,
   getItinerary,
   getTrip,
   itineraryStops,
   listBookings,
-  listGear,
-  listMembers,
   listPrepItems,
   MoreBackLink,
-  suggestPrepItems,
   todayIn,
   TodayPrep,
   tripOpenItems,
   WeatherPanel,
 } from "@/features/trips";
 
-export const metadata = { title: "רשימות והכנות" };
+export const metadata = { title: "לפני היציאה" };
 
-// The preparations and the packing list, on one page.
+// Before the trip: the countdown, what is still open, what is coming up.
+//
+// The packing list and the reminders were on this page too, and moved to the
+// documents tab as the one checklist the Stitch export draws (2026-09-23).
 //
 // They were two: this page held the packing list, and the "היום" tab — before
 // the trip started — held a countdown, the prep checklist and what was still
@@ -42,24 +40,12 @@ export default async function ListsPage({
 }) {
   const { id } = await params;
 
-  const [
-    trip,
-    gear,
-    itinerary,
-    selected,
-    bookings,
-    prepItems,
-    shareToken,
-    members,
-  ] = await Promise.all([
+  const [trip, itinerary, selected, bookings, prepItems] = await Promise.all([
     getTrip(id),
-    listGear(id),
     getItinerary(id),
     getSelectedDestinations(id),
     listBookings(id),
     listPrepItems(id),
-    getShareToken(id),
-    listMembers(id),
   ]);
   if (!trip) notFound();
 
@@ -84,19 +70,6 @@ export default async function ListsPage({
     selectedNames: selected.map((item) => item.name),
   });
 
-  const suggestions = suggestPrepItems({
-    bookings,
-    startDate: trip.start_date,
-    existing: prepItems,
-    isShared:
-      shareToken !== null ||
-      members.filter((member) => !member.is_owner).length > 0,
-    hasGear: gear.length > 0,
-    // Whether this device has push turned on is not known on the server; the
-    // suggestion stays and is one tap to dismiss.
-    pushEnabled: false,
-  });
-
   const hasForecast =
     forecastWindow(trip.start_date, trip.end_date, today).kind === "available";
 
@@ -105,9 +78,9 @@ export default async function ListsPage({
       <MoreBackLink tripId={trip.id} />
       <SectionHeading
         level="page"
-        description="מה שצריך לעשות לפני היציאה, ומה שצריך לארוז. שום דבר כאן לא נוצר או נמחק אוטומטית."
+        description="כמה זמן נשאר, מה עוד פתוח בתכנון, ומה מתקרב. רשימת הציוד והתזכורות נמצאת בטאב ״מסמכים״."
       >
-        רשימות והכנות
+        לפני היציאה
       </SectionHeading>
 
       <TodayPrep
@@ -120,7 +93,6 @@ export default async function ListsPage({
         cities={cities}
         open={open}
         prepItems={prepItems}
-        suggestions={suggestions}
         forecast={
           hasForecast ? (
             <Suspense fallback={<Skeleton className="h-28 rounded-card" />}>
@@ -128,17 +100,7 @@ export default async function ListsPage({
             </Suspense>
           ) : undefined
         }
-      >
-        {/* In the same column as the checklist above it, not on a page of its
-            own. Packing is one more thing left to do before leaving, and that
-            is the whole subject of this page. */}
-        <section className="flex flex-col gap-3">
-          <SectionHeading level="section" tone="action">
-            ציוד ואריזה
-          </SectionHeading>
-          <GearList tripId={trip.id} items={gear} />
-        </section>
-      </TodayPrep>
+      />
     </>
   );
 }

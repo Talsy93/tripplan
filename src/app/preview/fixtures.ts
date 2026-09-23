@@ -22,6 +22,7 @@ import type {
 import type { RouteStop, TripRoute } from "@/features/trips/domain/route";
 import type { GearItem } from "@/features/trips/domain/gear";
 import type { EmergencyContact } from "@/features/trips/domain/emergency";
+import type { PrepItem } from "@/features/trips/domain/prep";
 import type { Trip } from "@/features/trips/domain/trip";
 import type {
   TripInvite,
@@ -828,4 +829,12 @@ export const DOC_CONTACTS: EmergencyContact[] = [
     detail: "Via Michele Mercati 14",
     created_at: "2026-01-02T00:00:00Z",
   },
+];
+
+// The reminders beside the gear — one of them the export's own ("eSIM"), two
+// more so the card has more than five rows and "הצג עוד" has something to show.
+export const DOC_PREP: PrepItem[] = [
+  { id: id("7a"), trip_id: TRIP_ID, title: "להתקין eSIM לאיטליה", done: false, due_date: "2026-09-11", url: null, kind: null, created_at: "2026-01-01T00:00:00Z" },
+  { id: id("7b"), trip_id: TRIP_ID, title: "צ׳ק-אין לטיסה", done: false, due_date: "2026-09-11", url: "https://www.elal.com", kind: "checkin", created_at: "2026-01-01T00:00:00Z" },
+  { id: id("7c"), trip_id: TRIP_ID, title: "להזמין כרטיסים לגלריה אופיצי", done: true, due_date: null, url: null, kind: null, created_at: "2026-01-01T00:00:00Z" },
 ];

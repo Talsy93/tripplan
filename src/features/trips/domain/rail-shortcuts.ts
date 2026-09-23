@@ -33,7 +33,9 @@ export const RAIL_CATALOG: readonly RailShortcut[] = [
   { key: "explore", label: "תכנון", path: "explore" },
   { key: "guides", label: "מדריכי הערים", path: "more/guides" },
   { key: "chat", label: "הצ׳אט של הטיול", path: "ai" },
-  { key: "gear", label: "רשימות והכנות", path: "more/gear" },
+  // The page keeps the countdown, what is still open and the forecast; the
+  // packing list and the reminders moved to the documents tab.
+  { key: "gear", label: "לפני היציאה", path: "more/gear" },
   { key: "phrases", label: "מילים שימושיות", path: "more/phrases" },
   { key: "members", label: "מי בא איתנו", path: "more/members" },
   { key: "share", label: "שיתוף הטיול", path: "more/share" },

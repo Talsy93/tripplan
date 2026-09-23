@@ -7,9 +7,8 @@ import { daysUntil, formatShortDate } from "../domain/trip";
 import { duePrep } from "../domain/prep";
 import type { Booking } from "../domain/booking";
 import type { OpenItem } from "../domain/open-items";
-import type { PrepItem, PrepSuggestion } from "../domain/prep";
+import type { PrepItem } from "../domain/prep";
 import { OpenItems } from "./open-items";
-import { PrepList } from "./prep-list";
 import { TripSpend } from "./trip-spend";
 import { UpNext } from "./up-next";
 
@@ -22,9 +21,10 @@ import { UpNext } from "./up-next";
 // page, and the app already had one at /more/gear. So the two are one page now,
 // and the "היום" tab is not drawn until there is a today to show.
 //
-// What it holds: a countdown, the to-do list with the app's suggestions,
-// whatever the app itself still finds open (dates, itinerary, lodging), what is
-// coming up — and, through `children`, the packing list.
+// What it holds: a countdown, whatever the app itself still finds open (dates,
+// itinerary, lodging) and what is coming up. The reminders and the packing
+// list were here and moved to the documents tab as one checklist, as the Stitch
+// export draws them — the prep items are still read, for the countdown line.
 export function TodayPrep({
   tripId,
   tripName,
@@ -35,7 +35,6 @@ export function TodayPrep({
   cities,
   open,
   prepItems,
-  suggestions,
   forecast,
   children,
 }: {
@@ -48,7 +47,6 @@ export function TodayPrep({
   cities: string[];
   open: OpenItem[];
   prepItems: PrepItem[];
-  suggestions: PrepSuggestion[];
   forecast?: ReactNode;
   // Rendered at the foot of the main column. This is how the packing list joins
   // the preparations instead of living on a page of its own — see the note at
@@ -123,13 +121,6 @@ export function TodayPrep({
           </span>
         </div>
       </section>
-
-      <PrepList
-        tripId={tripId}
-        items={prepItems}
-        suggestions={suggestions}
-        today={today}
-      />
 
       <OpenItems tripId={tripId} items={open} />
 

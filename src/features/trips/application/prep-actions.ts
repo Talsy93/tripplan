@@ -45,6 +45,8 @@ export async function addPrepItem(
   if (!ok) return { message: "ההוספה נכשלה. נסו שוב." };
 
   revalidatePath(`/trips/${tripId.data}/today`);
+  // The checklist on the documents tab reads these too.
+  revalidatePath(`/trips/${tripId.data}/more`);
   return {};
 }
 
@@ -75,7 +77,10 @@ export async function addPrepSuggestions(
     tripId,
     parsed.data.map((item) => ({ ...item, url: null })),
   );
-  if (ok) revalidatePath(`/trips/${tripId}/today`);
+  if (ok) {
+    revalidatePath(`/trips/${tripId}/today`);
+    revalidatePath(`/trips/${tripId}/more`);
+  }
   return ok;
 }
 
@@ -87,7 +92,10 @@ export async function togglePrepItem(
   if (!tripIdSchema.safeParse(tripId).success) return false;
   if (!z.uuid().safeParse(id).success) return false;
   const ok = await setPrepDone(id, done);
-  if (ok) revalidatePath(`/trips/${tripId}/today`);
+  if (ok) {
+    revalidatePath(`/trips/${tripId}/today`);
+    revalidatePath(`/trips/${tripId}/more`);
+  }
   return ok;
 }
 
@@ -105,7 +113,10 @@ export async function setPrepItemUrl(
   if (trimmed.length > 2000) return { ok: false, message: "הקישור ארוך מדי" };
 
   const ok = await setPrepUrl(id, trimmed || null);
-  if (ok) revalidatePath(`/trips/${tripId}/today`);
+  if (ok) {
+    revalidatePath(`/trips/${tripId}/today`);
+    revalidatePath(`/trips/${tripId}/more`);
+  }
   return ok ? { ok: true } : { ok: false, message: "השמירה נכשלה. נסו שוב." };
 }
 
@@ -116,6 +127,9 @@ export async function removePrepItem(
   if (!tripIdSchema.safeParse(tripId).success) return false;
   if (!z.uuid().safeParse(id).success) return false;
   const ok = await deletePrepItem(id);
-  if (ok) revalidatePath(`/trips/${tripId}/today`);
+  if (ok) {
+    revalidatePath(`/trips/${tripId}/today`);
+    revalidatePath(`/trips/${tripId}/more`);
+  }
   return ok;
 }

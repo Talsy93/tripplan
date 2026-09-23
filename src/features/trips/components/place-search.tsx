@@ -436,7 +436,7 @@ export function PlaceSearch({
             onChange={(event) => setQuery(event.target.value)}
             placeholder="חיפוש מקום, מסעדה, מוזיאון או אטרקציה…"
             aria-label={`חיפוש ב${city}`}
-            className="min-w-0 flex-1 bg-transparent px-1 text-sm text-foreground outline-none placeholder:text-outline"
+            className="min-w-0 flex-1 bg-transparent px-1 text-sm text-foreground outline-none placeholder:font-normal placeholder:text-placeholder"
           />
           {/* A round icon button at the end, which is what the export draws —
               not a filled pill. Ours submits (the export's is a filter that
