@@ -3,159 +3,108 @@
 // Run with: npm run icons
 //
 // The files in public/ are OUTPUTS of this script, not sources. Editing one by
-// hand is what caused the bug this version exists to fix — see below.
+// hand is what caused the bug an earlier version of this script was written to
+// fix: only apple-touch-icon.png was replaced, and Android and the browser tab
+// went on showing the previous logo.
 //
 // ## The source
 //
-// `assets/logo-source.png`, the artwork as supplied: a blue rounded square with
-// white travel marks, on a transparent canvas with a wide transparent margin.
-// Both of those properties are wrong for an app icon and are corrected here
-// rather than in the artwork, so the original stays editable.
+// `assets/logo-source.svg` — the owner's Stitch logo (design/stitch/…/applogo,
+// 2026-09-23): a 512×512 squircle with the maritime gradient, a compass star,
+// the route arc and the "MyTrip" wordmark. It replaced a raster PNG, and being
+// vector is what lets each size below be rendered from the artwork itself
+// rather than downscaled from one bitmap.
 //
-// ## What went wrong before, and why each platform gets a different shape
+// The wordmark names Rubik, which librsvg (inside sharp) does not have; it
+// falls back to the system sans in heavy weight, which is close enough at icon
+// sizes and needs no font file in the repo.
 //
-// A previous change replaced `public/apple-touch-icon.png` directly with the
-// artwork above. Two consequences, and the first is the one that was reported:
-//
-//   1. **iOS composites a transparent icon onto black.** 65% of that file was
-//      not fully opaque, so the home screen showed a blue square floating on a
-//      black tile. An apple-touch-icon must be fully opaque, edge to edge.
-//   2. **It was pre-rounded.** iOS applies its own squircle mask, so rounded
-//      artwork is masked twice and loses its corners into dark wedges.
-//
-// And because only that one file was replaced, the other icons still carried
-// the previous design — Android and the browser tab showed a different logo
-// from the iOS home screen. Deriving all of them from one source is what stops
-// that recurring.
+// ## Why each platform gets a different shape
 //
 //   square    — apple-touch-icon.png. Full-bleed, fully opaque, no rounding of
-//               its own. iOS rounds it.
+//               its own. iOS composites transparency onto black (a blue square
+//               on a black tile) and applies its own squircle mask, so rounded
+//               artwork would be rounded twice. The base rect loses its `rx`.
 //   rounded   — icon-192.png, icon-512.png. Shown as-is by browsers and by the
-//               install prompt, so it keeps the artwork's own rounded corners
-//               and the transparency outside them.
-//   maskable  — icon-maskable-512.png. Android crops to whatever shape the
-//               launcher uses, so the artwork sits inside the middle 80% and
-//               only the background reaches the edge. Fully opaque.
+//               install prompt, so they keep the artwork's own corners.
+//   maskable  — icon-maskable-512.png. Android crops to its launcher's shape,
+//               so the marks sit inside the middle 80% and only the gradient
+//               reaches the edge.
+//   favicon   — favicon-32.png. Square and without the wordmark: at 32px the
+//               letters are a grey smear, and the star is the mark.
 
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import sharp from "sharp";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PUBLIC = path.join(ROOT, "public");
-const SOURCE = path.join(ROOT, "assets", "logo-source.png");
+const SOURCE = path.join(ROOT, "assets", "logo-source.svg");
 
-// The source is a detailed raster, not flat vector art, so the default PNG
-// encoder produced a 358KB 512px icon. A palette cuts that by roughly 4x with
-// no visible loss on artwork that uses a handful of flat colours — and these
-// files are fetched by an operating system on a phone.
-const PNG = { compressionLevel: 9, palette: true, quality: 90 };
+// Full colour, not a palette. A 256-colour palette was used for the raster
+// logo this replaced, and on this artwork it broke the diagonal gradient into
+// a visible slab of the wrong blue in the dark corner. Full colour costs a few
+// tens of KB at 512px, which is fine for a file an OS fetches once.
+const PNG = { compressionLevel: 9, adaptiveFiltering: true };
 
-// The artwork's own background, sampled rather than hard-coded so a new source
-// image does not silently keep the old colour. Used to fill the transparency:
-// blue on blue makes the rounded corners disappear, which is exactly what
-// "full-bleed" means here.
-async function backgroundColour(image) {
-  const { data, info } = await image
-    .clone()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
+// The artwork's base, the one element every variant edits.
+const BASE = /<rect width="512" height="512" rx="112" fill="url\(#bg-grad\)"\/>/;
 
-  const counts = new Map();
-  for (let i = 0; i < data.length; i += info.channels) {
-    // Fully opaque pixels only: a semi-transparent edge pixel is a blend of the
-    // background with nothing, and would drag the average toward white.
-    if (info.channels > 3 && data[i + 3] < 255) continue;
-    const key = `${data[i]},${data[i + 1]},${data[i + 2]}`;
-    counts.set(key, (counts.get(key) ?? 0) + 1);
+function variant(svg, { square = false, wordmark = true, inset = 1 } = {}) {
+  if (!BASE.test(svg)) {
+    throw new Error("logo-source.svg: the 512×512 base rect was not found");
   }
-
-  const [best] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
-  const [r, g, b] = best.split(",").map(Number);
-  return { r, g, b };
+  let out = svg;
+  if (!wordmark) out = out.replace(/<text[\s\S]*?<\/text>/, "");
+  if (inset !== 1) {
+    // Everything after the base rect moves into the safe zone; the gradient
+    // itself stays full-bleed.
+    const pad = (512 * (1 - inset)) / 2;
+    out = out
+      .replace(BASE, (base) => `${base}<g transform="translate(${pad} ${pad}) scale(${inset})">`)
+      .replace(/<\/svg>\s*$/, "</g></svg>");
+  }
+  if (square) out = out.replace(BASE, (base) => base.replace(' rx="112"', ""));
+  return Buffer.from(out);
 }
 
-// The artwork with its transparent margin removed — the rounded square itself,
-// filling the frame.
-function artwork() {
-  return sharp(SOURCE).trim();
+// Rendered at a density that puts the 512 viewBox well above the target size,
+// then resized down — librsvg's own rasterising at small sizes is softer.
+function render(svg, size) {
+  return sharp(svg, { density: Math.max(72, (72 * size * 2) / 512) }).resize(
+    size,
+    size,
+  );
 }
 
 async function main() {
-  const trimmed = await artwork().toBuffer({ resolveWithObject: true });
-  const background = await backgroundColour(sharp(trimmed.data));
+  const svg = await readFile(SOURCE, "utf8");
 
-  const hex = `#${[background.r, background.g, background.b]
-    .map((n) => n.toString(16).padStart(2, "0"))
-    .join("")}`;
-  console.log(`source ${trimmed.info.width}x${trimmed.info.height}, background ${hex}`);
-
-  // --- iOS: opaque, full-bleed, unrounded ---------------------------------
-  // `flatten` is what fixes the black tile: it replaces the alpha channel with
-  // the background colour, so the rounded corners fill in and nothing is left
-  // for iOS to composite onto black.
-  //
-  // 180x180 to match the size declared in app/layout.tsx. It was previously
-  // 1024x1024 and 525KB, which every iOS device downloaded and downscaled.
-  await sharp(trimmed.data)
-    .resize(180, 180)
-    .flatten({ background })
+  await render(variant(svg, { square: true }), 180)
+    .flatten({ background: "#0369a1" })
     .png(PNG)
     .toFile(path.join(PUBLIC, "apple-touch-icon.png"));
-  console.log("  apple-touch-icon.png (180x180, opaque)");
+  console.log("  apple-touch-icon.png (180x180, square, opaque)");
 
-  // --- Browsers and the install prompt: keep the artwork's own shape -------
   for (const size of [192, 512]) {
-    await sharp(trimmed.data)
-      .resize(size, size)
+    await render(variant(svg), size)
       .png(PNG)
       .toFile(path.join(PUBLIC, `icon-${size}.png`));
     console.log(`  icon-${size}.png (${size}x${size}, rounded)`);
   }
 
-  // --- Android maskable: artwork in the middle 80%, background to the edge --
-  const SAFE = 0.8;
-  const inner = Math.round(512 * SAFE);
-  const pad = Math.round((512 - inner) / 2);
-
-  await sharp({
-    create: {
-      width: 512,
-      height: 512,
-      channels: 4,
-      background: { ...background, alpha: 1 },
-    },
-  })
-    .composite([
-      {
-        input: await sharp(trimmed.data).resize(inner, inner).png().toBuffer(),
-        top: pad,
-        left: pad,
-      },
-    ])
+  await render(variant(svg, { square: true, inset: 0.8 }), 512)
+    .flatten({ background: "#0369a1" })
     .png(PNG)
     .toFile(path.join(PUBLIC, "icon-maskable-512.png"));
-  console.log(`  icon-maskable-512.png (512x512, artwork at ${SAFE * 100}%)`);
+  console.log("  icon-maskable-512.png (512x512, marks at 80%)");
 
-  // --- Browser tab --------------------------------------------------------
-  // The tab icon used to be create-next-app's default favicon.ico, untouched
-  // since the project was scaffolded, while the home screen showed the real
-  // logo — three different marks in one app.
-  //
-  // PNG rather than .ico: every browser in use supports it, and a
-  // multi-resolution .ico cannot be written by sharp, which is part of why the
-  // stale one survived so long. Opaque, because a tab strip can be dark.
-  //
-  // 32 only: a 180px favicon came out byte-identical to apple-touch-icon.png,
-  // which is the same image at the same size for a different purpose.
-  for (const size of [32]) {
-    await sharp(trimmed.data)
-      .resize(size, size)
-      .flatten({ background })
-      .png(PNG)
-      .toFile(path.join(PUBLIC, `favicon-${size}.png`));
-    console.log(`  favicon-${size}.png (${size}x${size}, opaque)`);
-  }
+  await render(variant(svg, { square: true, wordmark: false }), 32)
+    .flatten({ background: "#0369a1" })
+    .png(PNG)
+    .toFile(path.join(PUBLIC, "favicon-32.png"));
+  console.log("  favicon-32.png (32x32, square, no wordmark)");
 
   console.log("done");
 }
