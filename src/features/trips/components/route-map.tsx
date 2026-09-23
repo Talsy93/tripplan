@@ -151,7 +151,7 @@ export function RouteMap({
           <div
             dir="ltr"
             className={cn(
-              "overflow-hidden border-border lg:rounded-card lg:border lg:shadow-soft",
+              "overflow-hidden border-border lg:rounded-card lg:border lg:shadow-card",
               // Marks this as the map that reaches the window edges, which is
               // the only one whose attribution lands underneath the floating
               // phone bar. globals.css lifts it clear; the small maps inside cards

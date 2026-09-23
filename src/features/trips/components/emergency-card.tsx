@@ -25,7 +25,7 @@ export function EmergencyCard({
   const [editing, setEditing] = useState<EmergencyContact | "new" | null>(null);
 
   return (
-    <section className="flex flex-col gap-2 rounded-xl bg-surface p-4 shadow-md">
+    <section className="flex flex-col gap-2 rounded-xl bg-surface p-4 shadow-card">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1">
           <Asterisk

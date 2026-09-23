@@ -191,12 +191,12 @@ function Tile({
       onClick={onClick}
       aria-expanded={active}
       className={cn(
-        "flex min-w-0 flex-col items-start gap-1.5 rounded-card border bg-surface p-3 text-start",
-        "transition-[border-color,box-shadow] duration-press ease-snap",
+        "flex min-w-0 flex-col items-start gap-1.5 rounded-card bg-surface p-3 text-start",
+        "transition-[box-shadow,transform] duration-press ease-snap",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         active
-          ? "border-border-strong shadow-lift"
-          : "border-border hover:border-border-strong",
+          ? "shadow-lift"
+          : "shadow-card hover:shadow-lift",
       )}
     >
       <span

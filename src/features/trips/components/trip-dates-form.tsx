@@ -58,7 +58,7 @@ export function TripDatesForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex w-full items-center gap-3 rounded-card border border-border bg-surface px-4 py-3 text-start transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex w-full items-center gap-3 rounded-card bg-surface shadow-card px-4 py-3 text-start transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <CalendarDays
           className="h-5 w-5 shrink-0 text-muted"

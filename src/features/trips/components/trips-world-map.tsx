@@ -107,7 +107,7 @@ export function TripsWorldMap({
 
         <ul
           className={cn(
-            "stagger flex min-w-0 flex-col gap-1 rounded-card border border-border bg-surface p-2",
+            "stagger flex min-w-0 flex-col gap-1 rounded-card bg-surface shadow-card p-2",
             mapped.length === 0 && "@2xl:col-span-2",
           )}
           style={

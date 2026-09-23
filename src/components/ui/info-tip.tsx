@@ -90,7 +90,7 @@ export function InfoTip({
         // on a phone.
         className={cn(
           "absolute top-full z-30 mt-1.5 start-0",
-          "w-[min(20rem,calc(100vw-2rem))] rounded-card border border-border bg-surface p-3",
+          "w-[min(20rem,calc(100vw-2rem))] rounded-card bg-surface p-3",
           "text-start text-caption font-normal leading-relaxed text-foreground shadow-modal",
         )}
       >

@@ -33,7 +33,7 @@ export function CurrencyTile({
 
   if (!rate) {
     return (
-      <div className="flex h-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-card border border-border bg-surface px-2 py-2.5 text-center">
+      <div className="flex h-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-card bg-surface shadow-card px-2 py-2.5 text-center">
         <span className="flex min-w-0 items-center justify-center gap-1 text-caption font-semibold text-muted">
           <Coins className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="min-w-0 truncate">מטבע</span>
@@ -52,7 +52,7 @@ export function CurrencyTile({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex h-full w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-card border border-border bg-surface px-2 py-2.5 text-center transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex h-full w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-card bg-surface shadow-card px-2 py-2.5 text-center transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span className="flex min-w-0 items-center justify-center gap-1 text-caption font-semibold text-muted">
           <Coins className="h-4 w-4 shrink-0" aria-hidden="true" />

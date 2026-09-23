@@ -91,7 +91,7 @@ export function TodayPrep({
 
       <section
         aria-label="ספירה לאחור"
-        className="flex items-center gap-4 rounded-card border border-border bg-surface p-4"
+        className="flex items-center gap-4 rounded-card bg-surface shadow-card p-4"
       >
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-control bg-primary-tint text-primary-ink">
           <CalendarClock className="h-6 w-6" aria-hidden="true" />

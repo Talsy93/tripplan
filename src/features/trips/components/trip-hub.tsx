@@ -210,7 +210,7 @@ export function TripHub({
           <>
             <nav
               aria-label="עוד בטיול"
-              className="overflow-hidden rounded-xl bg-surface shadow-md"
+              className="overflow-hidden rounded-xl bg-surface shadow-card"
             >
               <ul className="flex flex-col">
                 {ELSEWHERE.map(({ segment, label, hint, Icon }) => (
@@ -249,7 +249,7 @@ export function TripHub({
             {/* Apart from everything above it, which is law 05: a destructive
                 action does not sit at rest among the things you press every
                 day. */}
-            <div className="overflow-hidden rounded-xl bg-surface shadow-md">
+            <div className="overflow-hidden rounded-xl bg-surface shadow-card">
               <DeleteTripButton tripId={tripId} tripName={tripName} variant="row" />
             </div>
           </>
@@ -340,7 +340,7 @@ function PackingSection({ tripId, gear }: { tripId: string; gear: GearItem[] }) 
         }
       />
 
-      <div className="rounded-xl bg-surface p-4 shadow-md">
+      <div className="rounded-xl bg-surface p-4 shadow-card">
         <div className="mb-1 flex items-center justify-between">
           <span className="text-xs leading-4 font-semibold text-foreground">
             מוכנות לטיסה
@@ -494,7 +494,7 @@ function SharingSection({
         }
       />
 
-      <div className="flex flex-col gap-4 rounded-xl bg-surface p-4 shadow-md">
+      <div className="flex flex-col gap-4 rounded-xl bg-surface p-4 shadow-card">
         <div>
           <span className="mb-1 block text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-muted-strong">
             חברי הנסיעה

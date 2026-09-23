@@ -59,7 +59,7 @@ export function DeleteTripButton({
           "flex w-full min-w-0 items-center gap-3 text-start transition-colors",
           variant === "row"
             ? "px-4 py-3.5 hover:bg-danger-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-danger"
-            : "rounded-card border border-danger/25 bg-surface p-4 shadow-soft hover:border-danger/60 hover:bg-danger-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger",
+            : "rounded-card border border-danger/25 bg-surface p-4 shadow-card hover:border-danger/60 hover:bg-danger-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger",
         )}
       >
         <span

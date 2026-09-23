@@ -55,7 +55,7 @@ export default async function SharePage({
           redacted link is not what they want. */}
       <Link
         href={`/trips/${trip.id}/more/members`}
-        className="flex min-w-0 items-center gap-3 rounded-card border border-border bg-surface p-4 shadow-soft transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex min-w-0 items-center gap-3 rounded-card bg-surface shadow-card p-4 transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <span
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-primary-tint text-primary-ink"

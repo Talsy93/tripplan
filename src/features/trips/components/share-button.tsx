@@ -110,7 +110,7 @@ function Row({
     <Link
       href={href}
       onClick={onNavigate}
-      className="flex min-w-0 items-center gap-3 rounded-card border border-border bg-surface p-3 transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex min-w-0 items-center gap-3 rounded-card bg-surface shadow-card p-3 transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary-ink"

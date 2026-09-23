@@ -78,7 +78,7 @@ export function HubBookings({
 
   if (bookings.length === 0) {
     return (
-      <div className="rounded-xl bg-surface p-4 text-sm leading-5 text-muted-strong shadow-md">
+      <div className="rounded-xl bg-surface p-4 text-sm leading-5 text-muted-strong shadow-card">
         עדיין אין כרטיסים. טיסות, רכבות ומלונות שתוסיפו בכפתור ״הוספת כרטיס״
         יופיעו כאן — ובמסך ״היום״ ביום שלהם.
       </div>
@@ -208,7 +208,7 @@ function BoardingPass({
   const bars = booking.confirmation ? code128(booking.confirmation) : null;
 
   return (
-    <div className="relative overflow-hidden rounded-xl bg-surface shadow-md">
+    <div className="relative overflow-hidden rounded-xl bg-surface shadow-card">
       {/* The header band. `bg-gradient-to-l`, physical, as the export has it:
           the light end sits on the left in both directions. */}
       <div className="bg-gradient-to-l from-primary to-primary-bright p-4 text-white">
@@ -428,15 +428,16 @@ function HotelCard({
   const nights = bookingNights(booking);
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-surface p-4 shadow-md">
+    <div className="flex flex-col gap-2 rounded-xl bg-surface p-4 shadow-card">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-cta-tint text-cta-strong">
             <DomainIcon name={BOOKING_KINDS.lodging.icon} className="h-6 w-6" />
           </div>
-          {/* No `dir="auto"` on the name and address: a Latin hotel name in an
-              RTL card still sits on the start edge, as the export draws it —
-              `auto` would left-align it inside its box. */}
+          {/* No `dir="auto"` on the name: a Latin hotel name in an RTL card
+              still sits on the start edge, as the export draws it. The address
+              is not on the card at all — it is a detail, and it lives in the
+              full ticket ("צפייה בכל הפרטים"), not on the list. */}
           <div className="min-w-0">
             <div className="flex items-center gap-0.5">
               <h4 className="min-w-0 text-base leading-[22px] font-semibold wrap-anywhere">
@@ -451,11 +452,6 @@ function HotelCard({
                 </span>
               )}
             </div>
-            {(booking.address || booking.city) && (
-              <p className="text-xs leading-[18px] text-muted-strong wrap-anywhere">
-                {booking.address ?? booking.city}
-              </p>
-            )}
           </div>
         </div>
         {booking.confirmation && (
@@ -537,7 +533,7 @@ function TrainCard({
   const line = [route, place].filter(Boolean).join(" · ");
 
   return (
-    <div className="flex items-center justify-between gap-2 rounded-xl bg-surface p-4 shadow-md">
+    <div className="flex items-center justify-between gap-2 rounded-xl bg-surface p-4 shadow-card">
       <div className="flex min-w-0 items-center gap-2">
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-success-bright text-success-strong">
           <DomainIcon name={BOOKING_KINDS.train.icon} className="h-6 w-6" />

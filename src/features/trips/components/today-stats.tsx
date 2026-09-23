@@ -156,7 +156,7 @@ function StatTile({ tile }: { tile: Tile }) {
   );
 
   const className =
-    "flex h-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-card border border-border bg-surface px-2 py-2.5 text-center";
+    "flex h-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-card bg-surface shadow-card px-2 py-2.5 text-center";
 
   if (!tile.href) return <div className={className}>{body}</div>;
 

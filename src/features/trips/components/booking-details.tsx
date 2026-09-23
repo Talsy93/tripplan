@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Clock,
   Hash,
+  MapPin,
   Pencil,
   Plane,
   Trash2,
@@ -134,6 +135,13 @@ export function BookingDetails({
               <span dir="ltr" className="font-semibold tabular-nums">
                 {booking.title}
               </span>
+            </Row>
+          )}
+          {/* The hotel's address lives here and not on the documents card,
+              which keeps to the name, the dates and the status. */}
+          {booking.address && (
+            <Row icon={<MapPin className="h-4 w-4" />} label="כתובת">
+              <span className="wrap-anywhere">{booking.address}</span>
             </Row>
           )}
           {booking.confirmation && (
