@@ -11,7 +11,6 @@ import {
   Button,
   Disclosure,
   EmptyState,
-  SectionHeading,
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { deleteItineraryEntry } from "../application/itinerary-actions";
@@ -359,20 +358,36 @@ export function Itinerary({
             />
           </div>
 
-          {/* Closed. Reported as "the route's city list should only show on
-              press, showing every city by default is very heavy on the page" —
-              and it is the pane's tallest block by a distance: one row per city,
-              on a trip with six of them, above everything else in the column.
-              The heading carries the count and the cities' names, which is what
-              the list was being read for at a glance anyway. */}
-          {stops.length > 0 && (
-            <Disclosure
-              leading={<Route className="h-4 w-4" />}
-              title="הערים במסלול"
-              detail={stops.map((stop) => stop.city).join(" · ")}
-              meta={<Badge tone="neutral">{stops.length}</Badge>}
-              flush
-            >
+          {/* One section, not two. "In the route tab, merge the display of
+              the cities in the route and the whole schedule so they open
+              together after one press."
+
+              They were two blocks with two headings, and they are one subject:
+              the route. Which cities, for how many days each, and the build
+              that turns that into a schedule — you open them to answer one
+              question, and answering it used to mean opening one and scrolling
+              past the other. The list reads the plan and the editor writes it,
+              so they belong in the same body in that order.
+
+              Still closed. The reason the city list was folded in the first
+              place has not changed — it is the tallest block in the pane, one
+              row per city — and now the summary is the route itself: the city
+              names and how many. */}
+          <Disclosure
+            leading={<Route className="h-4 w-4" />}
+            title="המסלול כולו"
+            detail={
+              stops.length > 0
+                ? stops.map((stop) => stop.city).join(" · ")
+                : "כמה ימים בכל עיר, ובנייה מחדש של הלו״ז"
+            }
+            meta={
+              stops.length > 0 ? (
+                <Badge tone="neutral">{stops.length}</Badge>
+              ) : undefined
+            }
+          >
+            {stops.length > 0 && (
               <RouteCities
                 stops={stops}
                 startDate={startDate}
@@ -381,21 +396,11 @@ export function Itinerary({
                 currentDay={currentDay}
                 onSelect={setChosenDay}
               />
-            </Disclosure>
-          )}
+            )}
 
-          <EmptyDays
-            dayNumbers={emptyDayNumbers}
-            startDate={startDate}
-            onSelect={setChosenDay}
-          />
-
-          {/* The controls about the whole itinerary rather than about the day on
-              screen: how many days each city gets, and the build that consumes
-              it. They used to sit above the days, where they were the first two
-              things on a screen whose subject is the schedule. */}
-          <section className="flex flex-col gap-3">
-            <SectionHeading level="section">הלו&quot;ז כולו</SectionHeading>
+            {/* How many days each city gets, and the build that consumes it.
+                Under the list rather than above it, because the list is what
+                you check before deciding to change anything. */}
             <CityDaysEditor
               tripId={tripId}
               plan={cityDays}
@@ -411,7 +416,13 @@ export function Itinerary({
             >
               בנייה מחדש
             </Button>
-          </section>
+          </Disclosure>
+
+          <EmptyDays
+            dayNumbers={emptyDayNumbers}
+            startDate={startDate}
+            onSelect={setChosenDay}
+          />
         </>
       }
     >
