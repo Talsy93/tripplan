@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { Plus } from "lucide-react";
+import { MapPinPlus, PencilLine } from "lucide-react";
 import {
   Banner,
   Button,
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui";
 import { createManualPlace } from "../application/place-actions";
 import { PLACE_CATEGORIES } from "../domain/place";
+import { cn } from "@/lib/cn";
 import type { ManualPlaceResult } from "../application/place-actions";
 import type { PlaceCategory } from "../domain/place";
 import { DomainIcon } from "./domain-icon";
@@ -89,17 +90,38 @@ export function ManualPlaceForm({
   // Tokyo" is still the answer to what just happened.
   return (
     <>
-      <div className="flex flex-col gap-2">
-        <Button
+      {/* The _4 export's manual-add block — its heading, its sentence, its
+          full-width call — with the form itself still in a dialog.
+          The export draws the three fields open on the page. That is the one
+          thing here not copied, and deliberately: "do not leave the add option
+          unfolded, only when the user wants to add" is a rule this app was
+          given directly, and this form is the case that proved it — it used to
+          replace itself with a card four fields tall in the middle of the
+          screen, pushing the list you were adding to below the fold. So the
+          card is the export's and the press still opens a dialog. */}
+      <div className="flex flex-col gap-3 rounded-card bg-surface p-4 shadow-card">
+        <div className="flex min-w-0 items-center gap-2">
+          <PencilLine className="h-5 w-5 shrink-0 text-cta" aria-hidden="true" />
+          <h2 className="min-w-0 text-lg font-semibold leading-6 wrap-anywhere">
+            לא מצאתם בחיפוש? הוסיפו מקום ידנית ✍️
+          </h2>
+        </div>
+        <p className="min-w-0 max-w-measure text-caption text-muted">
+          הכניסו כתובת, שם של חנות קטנה, המלצה של חבר או נקודת מפגש אישית.
+        </p>
+        <button
           type="button"
-          variant="outline"
-          size="sm"
           onClick={() => setOpen(true)}
-          className="self-start"
+          className={cn(
+            "flex w-full items-center justify-center gap-2 rounded-card bg-surface-sunken py-2.5",
+            "text-sm font-medium text-primary transition-all active:scale-[0.98]",
+            "hover:bg-primary hover:text-white",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
         >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          הוסיפו מקום בעצמכם
-        </Button>
+          <MapPinPlus className="h-4 w-4" aria-hidden="true" />
+          שמור והוסף מקום לרשימה
+        </button>
         {feedback && feedback.kind !== "error" && (
           <Banner tone="success">{feedback.text}</Banner>
         )}

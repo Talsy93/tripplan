@@ -6,6 +6,7 @@ import { Card, EmptyState } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { setSelected } from "../application/guide-actions";
 import { categoryLabel } from "../domain/place";
+import { PlacePhoto } from "./place-photo";
 import type { SelectedItem } from "../domain/ai-suggestion";
 import { MapPin } from "lucide-react";
 
@@ -124,10 +125,18 @@ export function SelectedList({
                 two lists until something ties them together. */}
             <span
               aria-hidden="true"
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-2 text-caption font-bold tabular-nums text-muted"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-tint text-caption font-bold tabular-nums text-primary-ink"
             >
               {index + 1}
             </span>
+            {/* The export's 56px thumbnail. Nothing at all when Wikipedia has
+                no page for the place, which most hand-added places do not —
+                see PlacePhoto. */}
+            <PlacePhoto
+              query={item.name}
+              near={item.city}
+              className="h-14 w-14 shrink-0 rounded-control"
+            />
             {/* group/pick, not group: the row also sits inside whatever the
                 caller wrapped it in, and an unnamed group would be captured by
                 the nearest one. */}

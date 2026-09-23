@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { TwoPane } from "@/components/layout";
-import { Map as MapIcon } from "lucide-react";
+import Link from "next/link";
+import { CalendarDays, Map as MapIcon } from "lucide-react";
 import { SectionHeading } from "@/components/ui";
 import { savedCountsByCategory } from "../domain/place";
 import type {
@@ -56,50 +57,7 @@ export function ExploreScreen({
   cityGuide?: CityGuideData | null;
 }) {
   return (
-    <TwoPane
-      aside={
-        <>
-          {/* xl only, which is the width the pane itself appears at. Below it
-              the pane's contents fall into the flow, and a map here would sit
-              between the AI's offer and what you picked — while the מפה tab is
-              one tap away and does the same job full-screen. The pane exists
-              because a desktop can show results beside the map they are results
-              on; a phone cannot, and stacking them is not the same thing. */}
-          {/* v5: the workspace keeps the route map beside the panel at all
-              times, so the small map that used to sit here is gone — a second
-              copy of the same map, one column over, said nothing new. The
-              `map` slot stays on the props for the callers still passing it. */}
-          {map ? null : null}
-
-          {/* Under the map, which is where the design puts it: these rows are
-              the pins above them. On a phone the pane falls into the flow and
-              this lands after the discovery panel — grid, then suggestions, then
-              what you picked, which is the mockup's order exactly. */}
-          {/* _4's header for this section, one to one: the title, a filled
-              count pill beside it, and — at the far end — the quiet green note
-              that these are the pins on the map. */}
-          <section className="flex flex-col gap-3">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <h2 className="min-w-0 text-lg font-semibold leading-6">
-                נבחרו לטיול
-              </h2>
-              {selected.length > 0 && (
-                <span className="shrink-0 rounded-full bg-primary-tint px-2 py-0.5 text-caption font-bold text-primary-ink">
-                  {selected.length} מקומות
-                </span>
-              )}
-              {selected.length > 0 && (
-                <span className="ms-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-success-tint px-2 py-0.5 text-caption font-medium text-success-ink">
-                  <MapIcon className="h-3.5 w-3.5" aria-hidden="true" />
-                  מופיעים על המפה
-                </span>
-              )}
-            </div>
-            <SelectedList tripId={tripId} items={selected} />
-          </section>
-        </>
-      }
-    >
+    <TwoPane>
       {/* The band above names the trip and the app bar names the tab, so the
           screen needs no visible title of its own — and the design's first
           element under the search is the category grid. */}
@@ -146,7 +104,11 @@ export function ExploreScreen({
         >
           גילוי יעדים
         </SectionHeading>
-        <PlanningPanel tripId={tripId} initialCities={savedCities} />
+        <PlanningPanel
+          tripId={tripId}
+          initialCities={savedCities}
+          city={searchCities[0] ?? null}
+        />
       </section>
 
       {/* Last, not under the search. It used to sit directly below it so that a
@@ -154,7 +116,77 @@ export function ExploreScreen({
           way forward is discovery above, not hand-typing a place into a city
           that does not exist yet. This is the escape hatch, and an escape hatch
           belongs at the bottom. */}
+      {/* _4 puts the map and the picks in the one column, right after the
+          discovery panel — and that is the correction. They were in the side
+          pane, which on a phone meant they fell to the bottom of the page under
+          everything else, and on a desktop meant the map was a second copy of
+          the one already beside the panel. Here the list sits under the map it
+          is the pins of, on every width.
+
+          The header is the export's, one to one: the title, a filled count
+          pill, and the quiet green note at the far end. */}
+      <section className="flex min-w-0 flex-col gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h2 className="min-w-0 text-lg font-semibold leading-6">
+            נבחרו לטיול
+          </h2>
+          {selected.length > 0 && (
+            <span className="shrink-0 rounded-full bg-primary-tint px-2 py-0.5 text-caption font-bold text-primary-ink">
+              {selected.length} מקומות
+            </span>
+          )}
+          {selected.length > 0 && (
+            <span className="ms-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-success-tint px-2 py-0.5 text-caption font-medium text-success-ink">
+              <MapIcon className="h-3.5 w-3.5" aria-hidden="true" />
+              מופיעים על המפה
+            </span>
+          )}
+        </div>
+        {/* The map above the list, which is the order the export draws and the
+            reason the note above says "on the map": a list of six names beside
+            nothing is not pins. */}
+        {selected.length > 0 && map}
+        <SelectedList tripId={tripId} items={selected} />
+      </section>
+
       <ManualPlaceForm tripId={tripId} cities={knownCities} />
+
+      {/* _4's last block: "automatic division into the trip's days", with a
+          "schedule it now" button. The build itself lives on מסלול — it is the
+          screen that owns the schedule and the only one that can show the
+          result — so this is the row and the way there rather than a second
+          button that does the same thing from a different tab.
+
+          Only once something is chosen. Before that it would offer to
+          distribute nothing across the days. */}
+      {selected.length > 0 && (
+        <Link
+          href={`/trips/${tripId}/days`}
+          className="rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <div className="flex min-w-0 items-center justify-between gap-3 rounded-card bg-surface-2 p-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <span
+                aria-hidden="true"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary"
+              >
+                <CalendarDays className="h-5 w-5" />
+              </span>
+              <div className="flex min-w-0 flex-col">
+                <span className="min-w-0 text-base font-medium wrap-anywhere">
+                  חלוקה אוטומטית לימי הטיול
+                </span>
+                <span className="min-w-0 text-caption text-muted wrap-anywhere">
+                  {selected.length} מקומות ממתינים לשיבוץ
+                </span>
+              </div>
+            </div>
+            <span className="shrink-0 rounded-full bg-primary px-4 py-1.5 text-caption font-medium text-white">
+              שבצו עכשיו
+            </span>
+          </div>
+        </Link>
+      )}
     </TwoPane>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, Check, Star } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { setSelected } from "../application/guide-actions";
+import { PlacePhoto } from "./place-photo";
 import type { AiCategoryKey, CityGuideData } from "../domain/ai-suggestion";
 
 // "מומלצים ב<עיר>" — the section the _4 export opens its results with, and the
@@ -18,10 +19,13 @@ import type { AiCategoryKey, CityGuideData } from "../domain/ai-suggestion";
 //     what the item is, which is the same slot filled by the data that exists.
 //   * **The line is the tip.** The city guide already writes one per item ("go
 //     early, before the groups"), which is exactly the export's second line.
-//   * **No photo and no rating.** OpenStreetMap has neither and the guide is
-//     text; a 4.8 drawn under a name nobody scored is an invented fact, and a
-//     grey rectangle where the photo goes is worse than a card without one. The
-//     card is laid out to take an image later without moving anything.
+//   * **A photo, once there was a way to get one.** PlacePhoto already
+//     existed for the schedule's stops — Wikipedia's lead image, free and
+//     keyless, behind /api/places/photo — so the export's 80px thumbnail is
+//     real. It draws nothing at all when Wikipedia has no page for the place,
+//     which is why the card has to read without it too.
+//   * **Still no rating.** A 4.8 under a name nobody scored is an invented
+//     fact, and there is no free source for one.
 //
 // The source is the saved city guide — the same rows the city page reads, so
 // what is recommended here is what was already generated for that city, and
@@ -144,6 +148,14 @@ export function RecommendedPlaces({
             key={item.key}
             className="flex min-w-0 items-center gap-3 rounded-card bg-surface p-3 shadow-card"
           >
+            {/* 80px square, exactly as the export draws it, and absent when
+                Wikipedia has nothing — see PlacePhoto. */}
+            <PlacePhoto
+              query={item.name}
+              near={city}
+              className="h-20 w-20 shrink-0 rounded-control"
+            />
+
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               <div className="flex min-w-0 items-center gap-2">
                 <span

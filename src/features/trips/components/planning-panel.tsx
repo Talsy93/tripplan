@@ -9,10 +9,8 @@ import {
   Button,
   Card,
   Disclosure,
-  Field,
-  Textarea,
 } from "@/components/ui";
-import { AuraPanel } from "./aura-panel";
+import { cn } from "@/lib/cn";
 import { addMoreCities, saveCities } from "../application/guide-actions";
 import { aiErrorFromResponse } from "../domain/ai-errors";
 import {
@@ -24,6 +22,9 @@ import type { AiCitySuggestion } from "../domain/ai-suggestion";
 type PlanningPanelProps = {
   tripId: string;
   initialCities: AiCitySuggestion[];
+  // The destination the call names — "הציעו לי מקומות מנצחים ברומא". Omitted
+  // before there is one, and then the button says it without a place.
+  city?: string | null;
 };
 
 // How many extra cities one "more destinations" round asks for. The request
@@ -31,7 +32,21 @@ type PlanningPanelProps = {
 // and the list readable.
 const MORE_COUNT = 5;
 
-export function PlanningPanel({ tripId, initialCities }: PlanningPanelProps) {
+// The export's four openers, word for word. They are written as whole briefs
+// rather than as one-word tags because that is what the field wants: pressing
+// one has to leave something you could send as it stands.
+const VIBES = [
+  "קולינרי ואיטי 🍷",
+  "אתרי חובה בקצב מהיר ⚡",
+  "פינות נסתרות 🌿",
+  "טיול צילום 📸",
+] as const;
+
+export function PlanningPanel({
+  tripId,
+  initialCities,
+  city = null,
+}: PlanningPanelProps) {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -127,41 +142,79 @@ export function PlanningPanel({ tripId, initialCities }: PlanningPanelProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* The one lit element on this screen.
-          The design draws the discovery tab with exactly one thing carrying the
-          trip's full light — the AI's offer — because a screen where everything
-          glows has nothing that stands out (law 03). This is that offer: the
-          category grid above it is white cards on grey, and the city cards it
-          produces are white cards on grey. Only the asking glows.
-          The prompt itself sits on the light, which the token file otherwise
-          forbids. It holds here for the reason AuraPanel documents: the veil is
-          what the rule is about, and the field below is an opaque input. */}
-      <AuraPanel>
-        <span className="flex min-w-0 items-center gap-1.5 text-caption font-extrabold text-primary-ink">
-          <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          מותאם לטיול שלכם
-        </span>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <Field label="מה בא לכם לעשות בטיול?">
-            <Textarea
+      {/* "עוזר הגילוי החכם" — the _4 export's smart-discovery panel.
+          A gradient card with a blurred glimmer behind it, an eyebrow in small
+          caps, the question, the sentence, four vibe chips that fill the field,
+          the field, and a full-width call at the foot. The chips are the part
+          that matters: the hardest thing about a free-text prompt is the empty
+          box, and four openers turn it into a choice. Pressing one writes it
+          into the field rather than sending it, so it is a starting point that
+          can still be edited — which is what the export's own script does. */}
+      <div className="relative overflow-hidden rounded-card bg-gradient-to-br from-surface-high via-surface-sunken to-primary-tint/40 p-4 shadow-card">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -end-10 -top-10 h-32 w-32 rounded-full bg-primary-tint opacity-60 blur-2xl"
+        />
+        <div className="relative z-10 flex min-w-0 flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface shadow-card">
+              <Sparkles className="h-5 w-5 text-primary" aria-hidden="true" />
+            </span>
+            <span className="text-caption font-bold uppercase tracking-wider text-primary">
+              עוזר הגילוי החכם
+            </span>
+          </div>
+
+          <h3 className="text-lg font-semibold leading-6">
+            לא בטוחים מאיפה להתחיל?
+          </h3>
+          <p className="min-w-0 max-w-measure text-sm text-muted">
+            תארו בקצרה מה אתם אוהבים ואיזה קצב מתאים לכם, וקבלו הצעות מותאמות
+            אישית לנקודות פתיחה.
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            {VIBES.map((vibe) => (
+              <button
+                key={vibe}
+                type="button"
+                onClick={() => setPrompt(vibe)}
+                className={cn(
+                  "rounded-full px-3 py-1 text-caption font-medium shadow-card transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  prompt === vibe
+                    ? "bg-primary text-white"
+                    : "bg-surface text-foreground hover:bg-primary-tint",
+                )}
+              >
+                {vibe}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <input
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="לדוגמה: שבוע באיטליה, דגש על אוכל, אמנות ואתרים היסטוריים"
-              rows={3}
+              placeholder="למשל: סמטאות ציוריות עם גלידה טובה…"
+              aria-label="מה בא לכם לעשות בטיול?"
+              className="w-full rounded-card bg-surface/90 px-4 py-2.5 text-sm text-foreground shadow-card outline-none backdrop-blur placeholder:text-outline"
             />
-          </Field>
-          <Button
-            type="submit"
-            variant="primary"
-            loading={loading}
-            disabled={prompt.trim().length < 3}
-            className="self-start"
-          >
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
-            {cities.length > 0 ? "הצעות חדשות" : "קבלת הצעות מ-AI"}
-          </Button>
-        </form>
-      </AuraPanel>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={loading}
+              disabled={prompt.trim().length < 3}
+              className="w-full"
+            >
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              {cities.length > 0
+                ? "הצעות חדשות"
+                : `הציעו לי מקומות מנצחים${city ? ` ב${city}` : ""} ✨`}
+            </Button>
+          </form>
+        </div>
+      </div>
 
       {error && <Banner tone="danger">{error}</Banner>}
       {notice && <Banner tone="info">{notice}</Banner>}

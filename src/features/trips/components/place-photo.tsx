@@ -24,10 +24,24 @@ export function PlacePhoto({
   children?: React.ReactNode;
 }) {
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   if (failed || !query.trim()) return null;
 
   return (
-    <div className={cn("relative overflow-hidden bg-surface-2", className)}>
+    // No background until the photo is actually there.
+    //
+    // It was `bg-surface-2` from the first paint, which on a list of three or
+    // four cards drew three or four grey rectangles while the requests were in
+    // flight — and most of them then 404 and vanish. A pale box that appears for
+    // half a second and disappears is the placeholder this component was written
+    // to avoid; it just took a list to make it visible.
+    <div
+      className={cn(
+        "relative overflow-hidden transition-colors",
+        loaded && "bg-surface-2",
+        className,
+      )}
+    >
       {/* A plain <img>: the src is our own redirect to upload.wikimedia.org,
           and next/image would need that host allow-listed and would proxy the
           bytes through the server for no gain at these sizes. */}
@@ -38,7 +52,11 @@ export function PlacePhoto({
         loading="lazy"
         decoding="async"
         onError={() => setFailed(true)}
-        className="h-full w-full object-cover"
+        onLoad={() => setLoaded(true)}
+        className={cn(
+          "h-full w-full object-cover transition-opacity duration-settle",
+          loaded ? "opacity-100" : "opacity-0",
+        )}
       />
       {children}
     </div>
