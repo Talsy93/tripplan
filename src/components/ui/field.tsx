@@ -15,7 +15,7 @@ const control = cn(
   // still, because the box has to fit "dd/mm/yyyy --:--" plus a picker glyph.
   // So a single date field could hold a whole grid track open wider than the
   // phone it was being read on.
-  "w-full min-w-0 rounded-control border border-border-strong bg-surface text-foreground",
+  "w-full min-w-0 rounded-control border border-transparent bg-surface-2 text-foreground",
   // 16px on touch devices, inherited size everywhere else.
   //
   // iOS Safari zooms the whole viewport when it focuses a control whose
@@ -38,14 +38,14 @@ const control = cn(
   "placeholder:text-muted",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
   "disabled:opacity-50 disabled:pointer-events-none",
-  "aria-[invalid=true]:border-danger",
+  "focus-visible:bg-surface aria-[invalid=true]:border-danger",
 );
 
 export function Input({
   className,
   ...props
 }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={cn(control, "h-10 px-3", className)} {...props} />;
+  return <input className={cn(control, "h-11 px-3", className)} {...props} />;
 }
 
 export function Textarea({
@@ -71,7 +71,7 @@ export function Select({
     // be squeezed.
     <div className="relative min-w-0">
       <select
-        className={cn(control, "h-10 appearance-none ps-3 pe-9", className)}
+        className={cn(control, "h-11 appearance-none ps-3 pe-9", className)}
         {...props}
       >
         {children}

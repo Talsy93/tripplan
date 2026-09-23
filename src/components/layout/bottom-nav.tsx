@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { glassClasses } from "@/components/ui";
 import { cn } from "@/lib/cn";
 
 export type NavItem = {
@@ -8,69 +7,44 @@ export type NavItem = {
   label: string;
   icon: ReactNode;
   active?: boolean;
+  // Drawn, but not a link yet — "היום" before the trip starts. The reason goes
+  // in `title` and in a visually hidden sentence.
+  waiting?: string;
 };
 
-// The phone navigation bar. Domain-free and presentational: it is handed items
-// and told which one is current, so the same bar can serve any section.
+// The phone's tab bar, in the Stitch design (v6): a full-width frosted bar
+// pinned to the bottom edge, each tab an icon in a capsule over a small label.
+// The capsule fills in the light maritime tint when the tab is the one you are
+// on — a filled shape, not only a colour change, because colour alone washes
+// out in direct sun, which is the light a travel app is used in.
 //
-// It floats, and that is the point rather than a flourish. It used to be an
-// edge-to-edge strip with a top border and an opaque fill — chrome that framed
-// the content and cut the screen off at a hard line. Now it is a rounded pane of
-// glass inset from all three edges, and the list scrolls under it: the content
-// is the surface, and the controls sit above it. That is the one structural idea
-// the two 2026 mobile design languages actually agree on.
-//
-// Two consequences worth knowing before changing it:
-//
-//   * AppShell's bottom padding has to clear it, and that padding is now 6rem
-//     rather than 5rem — the bar's own inset counts.
-//   * the nav element itself is pointer-events-none and only the bar re-enables
-//     them, so the 12px of page either side of a floating bar is not a dead
-//     strip that swallows taps meant for the content behind it.
-export function BottomNav({ items }: { items: NavItem[] }) {
+// It used to be a floating glass pill with an ink capsule. Stitch pins it to
+// the edge and draws the lift as an upward blue-tinted shadow instead.
+export function BottomNav({
+  items,
+  className,
+}: {
+  items: NavItem[];
+  className?: string;
+}) {
   return (
     <nav
       aria-label="ניווט ראשי"
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:hidden"
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-40 bg-surface/90 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(2,132,199,0.08)] backdrop-blur-xl md:hidden",
+        className,
+      )}
     >
-      <ul
-        className={cn(
-          glassClasses("light"),
-          "pointer-events-auto mx-auto flex max-w-md items-stretch justify-around rounded-tile p-1.5",
-        )}
-      >
-        {items.map((item) => (
-          <li key={item.href} className="min-w-0 flex-1">
-            <Link
-              href={item.href}
-              aria-current={item.active ? "page" : undefined}
-              className={cn(
-                "mx-auto flex max-w-20 flex-col items-center gap-1 rounded-control py-1.5 text-caption",
-                "transition-[color,transform] duration-press ease-snap active:scale-[0.94]",
-                // Phase D: this was the one interactive surface in the layout
-                // layer with no focus ring at all.
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                item.active
-                  ? "font-bold text-foreground"
-                  : "text-muted hover:text-foreground",
-              )}
-            >
-              {/* A filled pill behind the icon, not just a colour change on
-                  text+icon: five glyphs of near-equal weight sit side by side,
-                  and colour alone is the kind of signal that washes out in
-                  direct sun — exactly the lighting a travel app gets used in.
-
-                  Ink rather than the blue tint it used to be. On glass, a pale
-                  tint has almost nothing to sit against and the selected tab
-                  stopped being obvious; ink is the highest contrast available
-                  and it also says "state" rather than "press me", which the
-                  blue — the app's action colour everywhere else — did not. */}
+      <ul className="mx-auto flex h-16 max-w-xl items-center justify-around px-2">
+        {items.map((item) => {
+          const body = (
+            <>
               <span
                 aria-hidden="true"
                 className={cn(
-                  "flex h-8 w-11 items-center justify-center rounded-full",
+                  "flex h-8 w-14 items-center justify-center rounded-full",
                   "transition-[background-color,color] duration-settle ease-snap",
-                  item.active && "bg-foreground text-surface",
+                  item.active && "bg-primary-tint text-brand-2 shadow-soft",
                 )}
               >
                 {item.icon}
@@ -78,9 +52,42 @@ export function BottomNav({ items }: { items: NavItem[] }) {
               <span className="min-w-0 max-w-full truncate px-0.5">
                 {item.label}
               </span>
-            </Link>
-          </li>
-        ))}
+            </>
+          );
+
+          const shape =
+            "mx-auto flex min-h-11 max-w-20 flex-col items-center justify-center gap-0.5 text-[0.6875rem] leading-4";
+
+          return (
+            <li key={item.href} className="min-w-0 flex-1">
+              {item.waiting ? (
+                <span
+                  title={item.waiting}
+                  className={cn(shape, "font-medium text-border-strong")}
+                >
+                  {body}
+                  <span className="sr-only">— {item.waiting}</span>
+                </span>
+              ) : (
+                <Link
+                  href={item.href}
+                  prefetch
+                  aria-current={item.active ? "page" : undefined}
+                  className={cn(
+                    shape,
+                    "rounded-control transition-[color,transform] duration-press ease-snap active:scale-[0.94]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    item.active
+                      ? "font-semibold text-brand-2"
+                      : "font-medium text-muted hover:text-foreground",
+                  )}
+                >
+                  {body}
+                </Link>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );

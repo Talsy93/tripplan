@@ -62,36 +62,37 @@ export function RouteMapCard({
     );
   }
 
+  // Stitch's map card: the map fills it, and the facts ride over its foot on
+  // a dark gradient — the stop count on the start side, "פתח מפה" as a small
+  // maritime pill on the end.
   return (
-    <Card padding="none" className="overflow-hidden">
-      {/* Leaflet's zoom and attribution controls are laid out LTR; a map is a
-          viewport rather than text, so it opts out of the app's direction. The
-          row below does not — it is text. */}
-      <div dir="ltr" className="h-[15rem] w-full">
+    <Card padding="none" className="relative overflow-hidden">
+      {/* Leaflet's controls are laid out LTR; a map is a viewport rather than
+          text, so it opts out of the app's direction. */}
+      <div dir="ltr" className="h-[13.5rem] w-full">
         <RouteMapCanvas stops={stops} places={places} />
       </div>
 
-      <div className="flex min-w-0 items-center justify-between gap-2 border-t border-border px-3 py-2">
-        <span className="min-w-0 truncate text-caption text-muted">
-          {stops.length === 1 ? "תחנה אחת" : `${stops.length} תחנות`}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[500] flex min-w-0 items-end justify-between gap-2 bg-gradient-to-t from-scrim-strong via-scrim to-transparent px-3 pb-3 pt-10 text-white">
+        <span className="flex min-w-0 items-center gap-1.5 truncate text-sm font-semibold">
+          <MapIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {stops.length === 1 ? "תחנה אחת במסלול" : `${stops.length} תחנות במסלול`}
           {unlocatedCount > 0 && (
-            <>
+            <span className="inline-flex items-center gap-1 text-caption font-medium text-white/80">
               {" · "}
-              <span className="inline-flex items-center gap-1 text-warning-ink">
-                <MapPinOff className="h-3 w-3 shrink-0" aria-hidden="true" />
-                {unlocatedCount === 1
-                  ? "עיר אחת בלי מיקום"
-                  : `${unlocatedCount} ערים בלי מיקום`}
-              </span>
-            </>
+              <MapPinOff className="h-3 w-3 shrink-0" aria-hidden="true" />
+              {unlocatedCount === 1
+                ? "עיר אחת בלי מיקום"
+                : `${unlocatedCount} ערים בלי מיקום`}
+            </span>
           )}
         </span>
         <Link
           href={`/trips/${tripId}/map`}
-          className="flex shrink-0 items-center gap-1 rounded-control text-caption font-semibold text-primary-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="pointer-events-auto flex shrink-0 items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-caption font-semibold text-primary-foreground shadow-lift transition-colors hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
         >
           <Maximize2 className="h-3.5 w-3.5" aria-hidden="true" />
-          מסך מלא
+          פתח מפה
         </Link>
       </div>
     </Card>

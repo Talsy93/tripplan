@@ -108,89 +108,103 @@ export function NowCard({
       ? BOOKING_KINDS[focus.booking.booking.kind].icon
       : null;
 
+  const leftLabel =
+    minutesLeft === null
+      ? null
+      : isNow
+        ? `נשארו ${durationLabel(Math.max(minutesLeft, 0))}`
+        : `בעוד ${durationLabel(Math.max(minutesLeft, 0))}`;
+
+  // v6 (Stitch): the featured card. A lit band on top carries the live badge,
+  // the time left and the title in white; the body under it holds the time and
+  // the two actions. Stitch draws a photo in the band — this app keeps no place
+  // photos, so the band is the concierge gradient with the item's own glyph
+  // set large and faint into it.
   return (
     <section
       aria-label={isNow ? "מה עכשיו" : "הבא בתור"}
-      className="flex min-w-0 flex-col gap-3 rounded-card border border-callout bg-surface p-4 shadow-[0_0_0_3px_var(--callout-tint)] sm:p-5"
+      className="flex min-w-0 flex-col overflow-hidden rounded-card bg-surface shadow-lift"
     >
-      <div className="flex min-w-0 items-center justify-between gap-2">
-        <span className="flex min-w-0 items-center gap-1.5 text-caption font-extrabold text-callout-ink">
-          <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          {isNow ? "עכשיו" : "הבא בתור"}
+      <div className="relative isolate flex min-h-40 flex-col justify-between gap-6 overflow-hidden bg-[image:var(--hero-gradient)] p-4 text-white">
+        <span aria-hidden="true" className="pointer-events-none absolute -bottom-6 -end-4 -z-10 text-white/10">
+          {icon ? (
+            <DomainIcon name={icon} className="h-40 w-40" />
+          ) : (
+            <Clock className="h-40 w-40" />
+          )}
         </span>
 
-        {/* State as a filled pill, not as coloured text. On a dark surface a
-            recoloured word is the first thing to disappear in direct sun, which
-            is the lighting this screen is actually used in. */}
-        {minutesLeft !== null && (
-          <span
-            suppressHydrationWarning
-            className={
-              soon
-                ? "shrink-0 rounded-full bg-callout px-2.5 py-0.5 text-caption font-bold text-callout-ink"
-                : "shrink-0 rounded-full bg-surface-2 px-2.5 py-0.5 text-caption font-bold text-muted"
-            }
-          >
-            {isNow
-              ? `נגמר בעוד ${durationLabel(Math.max(minutesLeft, 0))}`
-              : `בעוד ${durationLabel(Math.max(minutesLeft, 0))}`}
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <span className="flex min-w-0 items-center gap-1.5 rounded-full bg-cta px-2.5 py-1 text-caption font-semibold text-cta-foreground shadow-sm">
+            {isNow && (
+              <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-white" aria-hidden="true" />
+            )}
+            {isNow ? "עכשיו בלו״ז" : "הבא בתור"}
           </span>
-        )}
-      </div>
 
-      <div className="flex min-w-0 items-start gap-3">
-        {icon && (
-          <span className="shrink-0 pt-1 text-callout-ink">
-            <DomainIcon name={icon} className="h-5 w-5 shrink-0" />
-          </span>
-        )}
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          {leftLabel && (
+            <span
+              suppressHydrationWarning
+              className={
+                soon
+                  ? "flex shrink-0 items-center gap-1 rounded-full bg-callout-tint px-2.5 py-1 text-caption font-semibold text-callout-ink"
+                  : "flex shrink-0 items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-caption font-semibold text-primary backdrop-blur-md"
+              }
+            >
+              <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              {leftLabel}
+            </span>
+          )}
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-0.5">
+          {where && (
+            <span className="min-w-0 truncate text-caption font-medium text-white/80">
+              {where}
+            </span>
+          )}
           {/* wrap-anywhere, not truncate: this is the one string on the screen
               the whole card exists to deliver, and half of a restaurant name is
               not an answer. */}
-          <h2 className="min-w-0 text-title font-black wrap-anywhere">
+          <h2 className="min-w-0 text-2xl font-semibold leading-tight wrap-anywhere drop-shadow-sm">
             {itemTitle(focus)}
           </h2>
-          <p className="min-w-0 text-caption text-muted wrap-anywhere">
-            {start !== null && (
-              <span dir="ltr" className="tabular-nums">
-                {formatMinutes(start)}
-              </span>
-            )}
-            {start !== null && where && " · "}
-            {where}
-          </p>
         </div>
       </div>
 
-      <div className="flex min-w-0 items-stretch gap-2 pt-0.5">
-        {query && (
-          <a
-            href={googleMapsSearchUrl(query)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-control bg-primary px-4 py-3 text-sm font-bold text-primary-foreground transition-[background-color,transform] duration-press ease-snap hover:bg-primary-hover active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-          >
-            <Navigation className="h-4 w-4 shrink-0" aria-hidden="true" />
-            ניווט
-          </a>
+      <div className="flex min-w-0 flex-col gap-3 p-4">
+        {start !== null && (
+          <div className="flex min-w-0 items-center gap-1.5 rounded-control bg-surface-2 px-3 py-2 text-caption">
+            <Clock className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+            <span dir="ltr" className="font-semibold tabular-nums text-foreground">
+              {formatMinutes(start)}
+            </span>
+          </div>
         )}
-        {/* Equal width beside "ניווט", and an anchor rather than a panel: the
-            design's second control is a button, and the thing it should do is
-            take you to the rest of the day — which is the list directly below
-            this card. A panel naming the next item said more and did nothing,
-            and on the screen someone opens while walking, doing is the point.
 
-            Only when there is a next and it is not already what this card is
-            showing. */}
-        {isNow && next && (
-          <a
-            href="#day-schedule"
-            className="flex min-w-0 flex-1 items-center justify-center rounded-control border border-border-strong bg-surface px-4 py-3 text-sm font-semibold transition-colors duration-press hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-          >
-            הבא בתור
-          </a>
-        )}
+        <div className="flex min-w-0 items-stretch gap-2">
+          {query && (
+            <a
+              href={googleMapsSearchUrl(query)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-12 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-control bg-cta px-4 text-sm font-bold text-cta-foreground shadow-md shadow-cta/20 transition-[background-color,transform] duration-press ease-snap hover:bg-cta-hover active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+            >
+              <Navigation className="h-4 w-4 shrink-0" aria-hidden="true" />
+              ניווט
+            </a>
+          )}
+          {/* An anchor to the rest of the day — the list directly below. Only
+              when there is a next and it is not already what this card shows. */}
+          {isNow && next && (
+            <a
+              href="#day-schedule"
+              className="flex min-h-12 min-w-0 flex-1 items-center justify-center rounded-control bg-primary-tint px-4 text-sm font-semibold text-primary-ink transition-colors duration-press hover:bg-primary-tint/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+            >
+              הבא בתור
+            </a>
+          )}
+        </div>
       </div>
     </section>
   );

@@ -9,7 +9,7 @@ import {
   RouteMapPanel,
 } from "@/features/trips";
 
-export const metadata = { title: "תכנון" };
+export const metadata = { title: "עוזר AI" };
 
 export default async function ExplorePage({
   params,

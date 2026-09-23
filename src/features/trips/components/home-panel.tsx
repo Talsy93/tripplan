@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Clock, MapPinned, X } from "lucide-react";
+import { ChevronLeft, Clock, MapPinned, Plane, X } from "lucide-react";
 import { Badge, buttonClasses, EmptyState } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { NewTripButton } from "./create-trip-form";
@@ -74,8 +74,8 @@ export function HomePanel({
 
   return (
     <div className="flex min-h-full flex-col">
-      <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-1 lg:pt-4">
-        <h1 className="font-display text-title font-semibold">הטיולים שלי</h1>
+      <div className="flex items-center justify-between gap-3 pb-4">
+        <h1 className="text-[1.75rem] font-bold leading-9">הטיולים שלי</h1>
         <div className="flex items-center gap-1.5">
           {/* The way back to the whole world. The map clears on a press of its
               own empty space and on Escape, but neither is reachable with a
@@ -109,7 +109,7 @@ export function HomePanel({
           onSelect={onSelect}
         />
       ) : (
-        <div className="px-4">
+        <div>
           <EmptyState
             icon={<MapPinned />}
             title="עוד אין טיולים"
@@ -119,8 +119,8 @@ export function HomePanel({
       )}
 
       {others.length > 0 && (
-        <section className="flex flex-col gap-1 px-3 pt-4">
-          <h2 className="px-2 pb-1 text-caption font-bold text-muted">
+        <section className="mt-5 flex flex-col gap-2 rounded-card bg-surface p-2 shadow-card">
+          <h2 className="px-2 pb-1 pt-2 text-lg font-semibold text-foreground">
             עוד על המפה
           </h2>
           <ul className="flex flex-col gap-0.5">
@@ -140,7 +140,7 @@ export function HomePanel({
       )}
 
       {(entries.length > 0 || footerAction) && (
-        <footer className="mt-auto flex items-center justify-between gap-3 border-t border-border px-4 py-2.5 text-caption text-muted">
+        <footer className="mt-5 flex items-center justify-between gap-3 px-1 py-2.5 text-caption text-muted">
           <span>
             {entries.length > 0 &&
               (entries.length === 1 ? "טיול אחד" : `${entries.length} טיולים`)}
@@ -228,10 +228,10 @@ function FeaturedCard({
     <section
       aria-label="הטיול הקרוב"
       className={cn(
-        "mx-3 flex flex-col gap-3 rounded-card border bg-surface p-4",
-        selected && during
-          ? "border-callout shadow-[0_0_0_3px_var(--callout-tint)]"
-          : "border-primary shadow-[0_0_0_3px_var(--primary-tint)]",
+        // v6 (Stitch): the featured card — a lit gradient band carrying the
+        // trip, over a white body with the next step.
+        "flex flex-col gap-3 overflow-hidden rounded-card bg-surface pb-4 shadow-lift",
+        selected && (during ? "ring-2 ring-callout" : "ring-2 ring-primary"),
       )}
     >
       {/* The whole head of the card is the press target, and the buttons below
@@ -240,14 +240,21 @@ function FeaturedCard({
       <Link
         href={href}
         onClick={press}
-        className="flex flex-col gap-3 rounded-control text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="relative isolate flex flex-col gap-4 overflow-hidden bg-[image:var(--hero-gradient)] p-4 text-start text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
       >
+        <Plane
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-6 -end-4 -z-10 h-32 w-32 -rotate-12 text-white/10"
+        />
         <div className="flex items-center justify-between gap-2">
-          <Badge tone={during ? "callout" : "action"}>
+          <Badge
+            tone={during ? "callout" : "action"}
+            className={during ? "bg-cta text-cta-foreground" : "bg-white/15 text-white backdrop-blur-md"}
+          >
             <Clock className="h-3 w-3" aria-hidden="true" />
             {standingLabel(phase)}
           </Badge>
-          <span className="text-caption tabular-nums text-muted">
+          <span className="text-caption tabular-nums text-white/80">
             {dateLine(trip)}
           </span>
         </div>
@@ -266,20 +273,20 @@ function FeaturedCard({
           </h2>
           {counting && (
             <span className="flex shrink-0 flex-col items-center leading-none">
-              <span className="font-display text-display font-bold text-primary">
+              <span className="font-display text-display font-bold text-white">
                 {days}
               </span>
-              <span className="text-caption font-semibold text-muted">
+              <span className="text-caption font-semibold text-white/75">
                 {days === 1 ? "יום" : "ימים"}
               </span>
             </span>
           )}
           {during && (
             <span className="flex shrink-0 flex-col items-center leading-none">
-              <span className="font-display text-display font-bold text-callout-ink">
+              <span className="font-display text-display font-bold text-white">
                 {phase.dayNumber}
               </span>
-              <span className="text-caption font-semibold text-muted">
+              <span className="text-caption font-semibold text-white/75">
                 מתוך {dayCount}
               </span>
             </span>
@@ -288,9 +295,9 @@ function FeaturedCard({
         </div>
 
         {(cities.length > 0 || dayCount > 0) && (
-          <div className="flex flex-wrap items-center gap-1.5 text-caption text-muted">
+          <div className="flex flex-wrap items-center gap-1.5 text-caption text-white/80">
             {cities.slice(0, 3).map((city) => (
-              <Badge key={city} tone="neutral">
+              <Badge key={city} tone="neutral" className="bg-white/15 text-white">
                 {city}
               </Badge>
             ))}
@@ -301,16 +308,18 @@ function FeaturedCard({
       </Link>
 
       {open.length > 0 && (
-        <p className="text-caption text-muted">
+        <p className="px-4 text-caption text-muted">
           {open.length === 1
             ? "נשאר דבר אחד לסגור"
             : `נשארו ${open.length} דברים לסגור`}
         </p>
       )}
 
-      <UnlocatedNote show={selected && !located} />
+      <div className="px-4 empty:hidden">
+        <UnlocatedNote show={selected && !located} />
+      </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 px-4">
         {next ? (
           <Link
             href={`/trips/${trip.id}/${next.path}`}
@@ -386,7 +395,7 @@ function TripRow({
       >
         <PositionDisc position={position} selected={selected} during={during} />
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="min-w-0 truncate text-sm font-semibold">
+          <span className="relative min-w-0 truncate text-base font-semibold">
             {trip.name}
             <span className="sr-only">
               {pressHint(selected, Boolean(onSelect))}

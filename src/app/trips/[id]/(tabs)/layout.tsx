@@ -1,9 +1,7 @@
-import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight } from "lucide-react";
-import { AppHeader } from "@/components/layout";
-import { Badge } from "@/components/ui";
+import { ChevronRight, MapPin } from "lucide-react";
+import { AppHeader, HeaderPill } from "@/components/layout";
 import { getCurrentUser } from "@/features/auth";
 import {
   APP_TIME_ZONE,
@@ -14,7 +12,6 @@ import {
   getSelectedCitiesByTrip,
   getShareToken,
   getTrip,
-  getTripRoute,
   listMembers,
   listTrips,
   phaseLabel,
@@ -26,38 +23,8 @@ import {
   TripRail,
   TripTabs,
   TripWorkspace,
-  WorkspaceMap,
+  tripDayCount,
 } from "@/features/trips";
-
-// The map's own data, resolved after the workspace is already on screen.
-//
-// getTripRoute is the expensive read in this route by a wide margin: half a
-// dozen queries that have to run in order, and — for a city nobody has looked
-// up yet — Nominatim lookups paced at about one a second. Awaiting it in the
-// layout meant the header, the tabs and the whole panel waited on the pane
-// beside them. Behind a boundary the map is the only thing that waits, and it
-// waits where a map already looks like it is loading.
-async function RouteMap({
-  tripId,
-  tripName,
-  itinerary,
-  liveCity,
-}: {
-  tripId: string;
-  tripName: string;
-  itinerary: Awaited<ReturnType<typeof getItinerary>>;
-  liveCity: string | null;
-}) {
-  const route = await getTripRoute(tripId, tripName, itinerary);
-
-  return (
-    <WorkspaceMap
-      stops={route.stops}
-      places={route.places}
-      liveCity={liveCity}
-    />
-  );
-}
 
 export async function generateMetadata({
   params,
@@ -76,9 +43,10 @@ export async function generateMetadata({
   };
 }
 
-// The trip's frame (v5, "מפה חיה"): one workspace, the map as the canvas,
-// the tabs in a panel beside it. Every tab under (tabs) renders into that
-// panel; the map is loaded here, once, and stays put across tab switches.
+// The trip's frame (v6, the Stitch design): a header with the trip and a
+// location pill, a column of cards, and the four tabs — pinned to the bottom
+// on a phone, a rail on a desktop. The map is no longer the canvas; it is a
+// card on "מסלול" and a full screen of its own at /map.
 export default async function TripTabsLayout({
   params,
   children,
@@ -149,9 +117,22 @@ export default async function TripTabsLayout({
         ? `מ-${formatShortDate(trip.start_date)}`
         : null;
 
+  const totalDays = tripDayCount(trip.start_date, trip.end_date) ?? dayCount;
+
+  // Stitch's pill: "רומא, יום 3 מ-7" while the trip is on; before and after,
+  // the phase and the dates.
+  const pill =
+    phase.kind === "during"
+      ? [liveCity, `יום ${phase.dayNumber} מ-${totalDays}`]
+          .filter(Boolean)
+          .join(", ")
+      : [phaseLabel(phase), dates].filter(Boolean).join(" · ");
+
+  const live = phase.kind === "during";
+
   return (
     <TripWorkspace
-      rail={<TripRail tripId={trip.id} initial={user?.email?.[0]} />}
+      rail={<TripRail tripId={trip.id} live={live} initial={user?.email?.[0]} />}
       header={
         <AppHeader
           wide
@@ -160,23 +141,16 @@ export default async function TripTabsLayout({
             <Link
               href="/profile"
               aria-label="הטיולים שלי"
-              className="flex shrink-0 items-center gap-1 text-sm text-muted transition-colors hover:text-foreground lg:hidden"
+              className="-ms-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-sunken hover:text-foreground lg:hidden"
             >
               {/* In RTL "back" points right, towards where the list came from. */}
               <ChevronRight className="h-5 w-5" aria-hidden="true" />
             </Link>
           }
-          badge={
-            <span className="flex min-w-0 shrink-0 items-center gap-1.5">
-              {dates && (
-                <Badge tone="neutral" className="hidden tabular-nums sm:inline-flex">
-                  {dates}
-                </Badge>
-              )}
-              <Badge tone={phase.kind === "during" ? "callout" : "action"}>
-                {phaseLabel(phase)}
-              </Badge>
-            </span>
+          pill={
+            <HeaderPill icon={<MapPin />} className={live ? "text-foreground" : undefined}>
+              {pill}
+            </HeaderPill>
           }
           trailing={
             <ShareButton
@@ -191,20 +165,8 @@ export default async function TripTabsLayout({
         <TripTabs
           tripId={trip.id}
           // "היום" only exists while the trip is on. See TRIP_TABS.
-          live={phase.kind === "during"}
+          live={live}
         />
-      }
-      map={
-        <Suspense
-          fallback={<div className="h-full w-full animate-pulse bg-surface-2" />}
-        >
-          <RouteMap
-            tripId={trip.id}
-            tripName={trip.name}
-            itinerary={itinerary}
-            liveCity={liveCity}
-          />
-        </Suspense>
       }
       hueStyle={tripHueStyle(hues)}
     >

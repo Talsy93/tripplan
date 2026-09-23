@@ -1,22 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans_Hebrew, Rubik } from "next/font/google";
+import { Rubik } from "next/font/google";
 import { ToastProvider } from "@/components/ui";
 import "./globals.css";
 
-// Two families, each with one job (v5, "מפה חיה"). Noto Sans Hebrew is the
-// reading face — body, rows, labels. Rubik is the display face — headings and
-// the numbers that carry the screen (day count, countdown, pin numbers).
-// globals.css maps them to --font-sans / --font-display.
-const notoSansHebrew = Noto_Sans_Hebrew({
-  variable: "--font-noto-sans-hebrew",
-  subsets: ["hebrew", "latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
+// One family (v6, the Stitch design): Rubik for headings, body and numbers
+// alike. globals.css maps it to both --font-sans and --font-display.
 const rubik = Rubik({
   variable: "--font-rubik",
   subsets: ["hebrew", "latin"],
-  weight: ["500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 // Required for env(safe-area-inset-*) to resolve to anything but 0 on iOS.
@@ -26,7 +18,7 @@ export const viewport: Viewport = {
   // Painted behind the status bar once the app is installed, so it has to be
   // the header's colour and not the canvas's. Kept in step with
   // manifest.json's theme_color — the two disagreed until phase D.
-  themeColor: "#ffffff",
+  themeColor: "#faf8ff",
 };
 
 export const metadata: Metadata = {
@@ -68,7 +60,7 @@ export default function RootLayout({
     <html
       lang="he"
       dir="rtl"
-      className={`${notoSansHebrew.variable} ${rubik.variable} h-full antialiased`}
+      className={`${rubik.variable} h-full antialiased`}
     >
       {/* dvh, not vh: mobile browser chrome makes 100vh taller than the
           visible area, which a fixed bottom bar makes obvious. */}

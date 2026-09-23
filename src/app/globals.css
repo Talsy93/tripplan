@@ -23,97 +23,85 @@
    =========================================================================== */
 
 :root {
-  /* --- surfaces and text ------------------------------------------------
-     Measured, not guessed: #eceef2 against white is 1.16:1, so a white card
-     on the canvas has a visible edge even before its border is drawn. The
-     old pair was 1.03:1. --border-strong is for dividers that need to carry
-     structure (pane edges, table rules) rather than just hint at it.
+  /* --- v6 — "Mediterranean Horizon" (Google Stitch, 2026-09-23) ----------
+     The whole look moved to the owner's Stitch design. The source of every
+     value below is design/stitch/.../mediterranean_horizon/DESIGN.md and the
+     four exported screens next to it; names stay the app's own so no call
+     site had to learn Material's vocabulary.
+
+     Surfaces: a lavender-white canvas (#faf8ff) with white cards lifted by a
+     blue-tinted shadow rather than drawn by a border. The border token is
+     kept, and kept faint, for the hand-rolled rows that still use it.
      -------------------------------------------------------------------- */
-  /* v5 — "מפה חיה" (2026-09-11). The canvas is a cool grey the map tiles sit
-     on; every panel over it is white with a 1px border and (mostly) no shadow.
-     Shadows are reserved for things that float over the map. */
-  --background: #edf0f5;
+  --background: #faf8ff;
   --surface: #ffffff;
-  --surface-2: #f3f5f9;
-  --surface-sunken: #e3e8ef;
-  --border: #e2e7ef;
-  --border-strong: #cbd3df;
-  --foreground: #0c1424;
-  --muted: #5a6473;
+  --surface-2: #f2f3ff;
+  --surface-sunken: #eaedff;
+  --border: #e6e9f7;
+  --border-strong: #bfc7d2;
+  --foreground: #131b2e;
+  --muted: #58616d;
 
-  /* --- brand -------------------------------------------------------------
-     One action colour — "navigation blue" — and nothing else is blue. The
-     frame (rail, header) is white; the brand token is kept for the wordmark.
-     -------------------------------------------------------------------- */
-  --brand: #2457f5;
+  /* --- brand: deep maritime blue ----------------------------------------
+     Structure, links, the active tab, focus. Not the call to action — that is
+     the terracotta below, which is Stitch's own rule ("reserved exclusively
+     for primary action triggers"). */
+  --brand: #006194;
   --brand-foreground: #ffffff;
+  --brand-2: #007bb9;
 
-  --primary: #2457f5;
-  --primary-hover: #1b44c7;
+  --primary: #006194;
+  --primary-hover: #004b73;
   --primary-foreground: #ffffff;
-  --primary-tint: #e8eeff;
-  --primary-ink: #1b44c7;
-  --ring: #2457f5;
+  --primary-tint: #cce5ff;
+  --primary-ink: #004b73;
+  --ring: #007bb9;
 
-  /* --- role trios --------------------------------------------------------
-     tint = pale background, ink = readable text on that tint, solid = the
-     saturated fill. Every ink clears WCAG AA (4.5:1) on its own tint and on
-     white; the numbers are in the phase D log in PROJECT_PLAN.md.
+  /* The call to action: "הוסף יעד", "הצג ברקוד", "הוספה". One per screen. */
+  --cta: #ea580c;
+  --cta-hover: #c2410c;
+  --cta-foreground: #ffffff;
 
-     `action` is the trio form of --primary, so a soft button and a primary
-     button read as the same colour idea.
-     -------------------------------------------------------------------- */
-  --action-tint: #e8eeff;
-  --action-ink: #1b44c7;
-  --action: #2457f5;
+  /* --- role trios -------------------------------------------------------
+     tint = pale background, ink = readable text on it, solid = the fill. */
+  --action-tint: #e2efff;
+  --action-ink: #004b73;
+  --action: #006194;
 
-  /* Amber. Reserved for "now" — the live pin, the running item, a reminder.
-     It is never an action; pressing amber is not a thing in this app. */
-  --callout-tint: #fff1d6;
-  --callout-ink: #8a5300;
-  --callout: #f59e0b;
+  /* Terracotta: "now" — the live badge, the running item, a reminder. */
+  --callout-tint: #ffe6da;
+  --callout-ink: #8a2f00;
+  --callout: #ea580c;
 
-  --success-tint: #dcfce7;
-  --success-ink: #166534;
-  --success: #16a34a;
+  /* Palm emerald: confirmed, packed, done. */
+  --success-tint: #d5f5e6;
+  --success-ink: #005137;
+  --success: #00855d;
 
-  --danger-tint: #fdeaea;
-  --danger-ink: #b02525;
-  --danger: #d13438;
+  --danger-tint: #ffdad6;
+  --danger-ink: #93000a;
+  --danger: #ba1a1a;
 
-  /* `warning` is kept as an alias of callout rather than deleted: the three
-     warning surfaces in the app already speak in warning-tint/warning-ink,
-     and renaming them at the call site buys nothing. */
   --warning-tint: var(--callout-tint);
   --warning-ink: var(--callout-ink);
   --warning: var(--callout);
 
-  /* --- scrims -----------------------------------------------------------
-     Photo overlays used to be written as from-black/80 via-black/45, which
-     is the one thing guaranteed to break a dark theme. As tokens they are a
-     single override away from being correct in both.
-     -------------------------------------------------------------------- */
-  --scrim-strong: rgba(12, 17, 28, 0.74);
-  --scrim: rgba(12, 17, 28, 0.42);
-  --scrim-soft: rgba(12, 17, 28, 0.18);
+  /* --- scrims ----------------------------------------------------------- */
+  --scrim-strong: rgba(19, 27, 46, 0.78);
+  --scrim: rgba(19, 27, 46, 0.45);
+  --scrim-soft: rgba(19, 27, 46, 0.18);
 
   /* --- elevation --------------------------------------------------------
-     Four tiers by role, not by taste: soft = resting, card = raised,
-     lift = hover, modal = floating. The old system had no modal tier, so a
-     dialog and a static hero shared one shadow.
+     Stitch's own shadows, blue-tinted. Cards rest on `card`; the featured
+     card and anything floating use `lift`. Kept on :root because Leaflet
+     pins are built as raw CSS strings and can only reach a token via var(). */
+  --elevation-soft: 0 2px 8px rgba(2, 132, 199, 0.06);
+  --elevation-card: 0 4px 16px -2px rgba(0, 97, 148, 0.08);
+  --elevation-lift: 0 10px 25px -4px rgba(0, 97, 148, 0.12), 0 4px 10px -2px rgba(19, 27, 46, 0.04);
+  --elevation-modal: 0 20px 48px -8px rgba(19, 27, 46, 0.28);
 
-     These sit on :root rather than only inside @theme inline because
-     `inline` means Tailwind substitutes the value into the utility and does
-     *not* emit the custom property — and route-map-canvas.tsx builds its
-     Leaflet pin as a raw CSS string outside React's tree, so var() is the
-     only way it can reach a token at all.
-     -------------------------------------------------------------------- */
-  /* v5: resting surfaces carry no shadow at all — a border does the work.
-     `lift` is what floats over the map (pills, hover cards, the sheet). */
-  --elevation-soft: 0 0 0 0 transparent;
-  --elevation-card: 0 1px 2px rgba(12, 20, 36, 0.05);
-  --elevation-lift: 0 1px 2px rgba(12, 20, 36, 0.06), 0 6px 20px rgba(12, 20, 36, 0.10);
-  --elevation-modal: 0 16px 40px rgba(12, 20, 36, 0.22);
+  /* The concierge gradient — the one lit surface in the design. */
+  --hero-gradient: linear-gradient(135deg, #004b73 0%, #006194 45%, #007bb9 100%);
 
   /* --- tone palette -----------------------------------------------------
      Six pastels assigned to cities and categories, by position in the route
@@ -188,7 +176,7 @@
      --aura-base is the navy the brand already owns, taken down far enough
      that white text clears AA on it without help from a scrim.
      -------------------------------------------------------------------- */
-  --aura-base: #141c3a;
+  --aura-base: #00476d;
 
   /* The veil the readability floor is made of, and it is deliberately NOT
      --aura-base. Those two used to be the same value, which is why the base
@@ -198,7 +186,7 @@
 
      Splitting them lets each do its own job — the base is how deep the field
      sits, the veil is how hard the bottom band is held down. */
-  --aura-veil: #090d1a;
+  --aura-veil: #002a42;
 
   /* ember — the featured card of the approved design (יפן בסתיו) */
   --aura-ember-1: #ff8a3d;
@@ -289,6 +277,10 @@
   /* brand and action */
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
+  --color-brand-2: var(--brand-2);
+  --color-cta: var(--cta);
+  --color-cta-hover: var(--cta-hover);
+  --color-cta-foreground: var(--cta-foreground);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
@@ -347,10 +339,10 @@
      globally, which is the single highest-impact readability change in the
      whole phase. No letter-spacing anywhere — it damages Hebrew.
      -------------------------------------------------------------------- */
-  /* v5: two faces again, and this time on purpose. Rubik carries headings and
-     numbers (the day count, the countdown, pin numbers); Noto Sans Hebrew
-     carries everything read as text. Both ship Hebrew and Latin in one file. */
-  --font-sans: var(--font-noto-sans-hebrew);
+  /* v6: one face again — Rubik for everything, which is what the Stitch
+     design specifies. --font-display is kept as an alias so its call sites
+     keep compiling. */
+  --font-sans: var(--font-rubik);
   --font-display: var(--font-rubik);
 
   --text-sm--line-height: 1.55;
@@ -400,10 +392,11 @@
      -------------------------------------------------------------------- */
   /* v5 tightened these back down: a workspace with a map, a panel and pins is
      a tool, and 12px is where a card reads as organised rather than soft. */
-  --radius-control: 0.625rem;
-  --radius-card: 0.75rem;
-  --radius-tile: 0.875rem;
-  --radius-modal: 1.25rem;
+  /* v6 (Stitch): 12px controls, 16px cards, 24px sheets. */
+  --radius-control: 0.75rem;
+  --radius-card: 1rem;
+  --radius-tile: 0.75rem;
+  --radius-modal: 1.5rem;
 
   /* --- the spacing scale ------------------------------------------------
      No tokens here, because Tailwind's own `gap-N` already is the scale.
@@ -472,7 +465,7 @@
 
   /* v5 — the workspace. `rail` is the icon rail (64px), `panel` the column
      beside the map that holds whatever a tab renders. */
-  --container-rail: 4rem;
+  --container-rail: 5.5rem;
   --container-panel: 27.5rem;
 
   /* A measure for running text, in characters rather than pixels, so it
@@ -913,7 +906,7 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-noto-sans-hebrew), Arial, Helvetica, sans-serif;
+  font-family: var(--font-rubik), Heebo, system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 }
 

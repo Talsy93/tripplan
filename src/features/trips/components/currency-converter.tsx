@@ -133,7 +133,7 @@ function ConverterDialog({
                   className={cn(
                     "inline-flex items-center gap-1.5 rounded-control border px-3 py-1.5 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     active
-                      ? "border-foreground bg-foreground text-surface"
+                      ? "border-primary bg-primary text-primary-foreground"
                       : "border-border-strong bg-surface text-foreground hover:bg-surface-2",
                   )}
                 >

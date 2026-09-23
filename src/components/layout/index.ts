@@ -1,4 +1,4 @@
-export { AppHeader } from "./app-header";
+export { AppHeader, HeaderPill } from "./app-header";
 export { BottomSheet } from "./bottom-sheet";
 export { IconRail } from "./icon-rail";
 export { SidePane } from "./side-pane";

@@ -311,7 +311,7 @@ function ProgressBar({
           any aria wiring, and it is the correct semantics for "packed out of
           total". Styled through the pseudo-elements each engine exposes. */}
       <div
-        className="h-2 w-full overflow-hidden rounded-full bg-surface-sunken"
+        className="h-2.5 w-full overflow-hidden rounded-full bg-surface-sunken"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
@@ -321,7 +321,7 @@ function ProgressBar({
         <div
           className={cn(
             "h-full rounded-full transition-[width] duration-300",
-            done ? "bg-success" : "bg-primary",
+            done ? "bg-success" : "bg-cta",
           )}
           style={{ width: `${percent}%` }}
         />

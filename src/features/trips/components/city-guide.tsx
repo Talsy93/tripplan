@@ -338,7 +338,7 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
                 "flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 active
-                  ? "bg-foreground text-surface"
+                  ? "bg-primary text-primary-foreground"
                   : "border border-border bg-surface text-muted hover:text-foreground",
               )}
             >

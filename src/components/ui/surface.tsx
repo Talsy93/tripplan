@@ -8,8 +8,8 @@ const tones: Record<Tone, string> = {
   // An inset well: information that belongs to its container rather than
   // standing apart from it. Map frames, info panels, nested lists.
   sunken: "bg-surface-2",
-  quiet: "bg-surface-2 border border-border",
-  outline: "border border-border bg-surface",
+  quiet: "bg-surface-2",
+  outline: "bg-surface shadow-card",
 };
 
 const paddings: Record<Padding, string> = {

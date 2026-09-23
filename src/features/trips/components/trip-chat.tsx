@@ -224,10 +224,12 @@ export function TripChat({
               <Card
                 padding="sm"
                 className={cn(
-                  "max-w-[85%] whitespace-pre-wrap text-sm lg:max-w-[70%]",
+                  // v6 (Stitch): the traveller in a maritime bubble with its
+                  // corner tucked toward them, the assistant on lavender.
+                  "max-w-[85%] whitespace-pre-wrap text-[0.9375rem] leading-relaxed lg:max-w-[70%]",
                   turn.role === "user"
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "bg-surface",
+                    ? "rounded-[1.25rem] rounded-ss-md bg-primary px-4 py-3 text-primary-foreground shadow-lift"
+                    : "rounded-[1.25rem] rounded-se-md bg-surface-2 px-4 py-3 shadow-none",
                 )}
               >
                 {turn.content}
@@ -250,7 +252,7 @@ export function TripChat({
           event.preventDefault();
           void send(draft);
         }}
-        className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] flex items-end gap-2 rounded-card border border-border bg-surface/95 p-2 shadow-card backdrop-blur md:bottom-4"
+        className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] flex items-end gap-2 rounded-[1.75rem] bg-surface/95 p-2 shadow-lift backdrop-blur lg:bottom-4"
       >
         <Textarea
           value={draft}
@@ -264,11 +266,17 @@ export function TripChat({
             }
           }}
           placeholder="מה תרצו לשאול?"
-          rows={2}
+          rows={1}
           maxLength={2000}
-          className="flex-1"
+          className="min-h-11 flex-1 resize-none rounded-[1.25rem] border-transparent bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
         />
-        <Button type="submit" loading={sending} disabled={!draft.trim()}>
+        <Button
+          type="submit"
+          variant="brand"
+          loading={sending}
+          disabled={!draft.trim()}
+          className="h-11 rounded-full px-5"
+        >
           שליחה
         </Button>
       </form>

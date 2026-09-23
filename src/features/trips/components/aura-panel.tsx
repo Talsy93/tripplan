@@ -21,7 +21,7 @@ export function AuraPanel({
   return (
     <div
       className={cn(
-        "rounded-card border border-primary/30 bg-primary-tint p-4 sm:p-5",
+        "rounded-card bg-surface p-4 shadow-card ring-1 ring-primary-tint sm:p-5",
         className,
       )}
     >

@@ -12,7 +12,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { Card, SectionHeading } from "@/components/ui";
+import { Card } from "@/components/ui";
 import { bookingTodoAlert, cancellationAlert } from "../domain/booking";
 import { gearProgress } from "../domain/gear";
 import { toneClass } from "../domain/tone";
@@ -195,92 +195,64 @@ export function MoreMenu({
     trip: tripState,
   };
 
+  // v6 (Stitch): the trip hub. An eyebrow and the trip's name, then one card
+  // per destination — a tinted tile, the name, the live state line — two
+  // across from sm. The delete stays apart, in its own card at the foot.
   return (
     <>
-      <SectionHeading level="page">עוד</SectionHeading>
+      <header className="flex min-w-0 flex-col gap-0.5">
+        <span className="text-caption font-medium text-muted">
+          מרכז מסמכים ובקרה
+        </span>
+        <h1 className="min-w-0 text-[1.75rem] font-bold leading-9 wrap-anywhere">
+          {tripName}
+        </h1>
+      </header>
 
-      {/* One card, one row per destination, dividers between — not a grid of
-          cards. The grid was a phone screen stretched: at 1024px six cards sat
-          three across and each was mostly empty, and on a phone they were a
-          single column of cards with a card's worth of padding around a row's
-          worth of content.
-
-          A menu is a list. What a wide screen buys it is a comfortable measure,
-          not more columns, so the card caps at max-w-2xl and stays on the start
-          edge under the heading — measured at 1920 it is 672px wide against a
-          1244px content area. A menu row does not get better at 1200px, it just
-          gets a longer line between its label and its chevron. */}
-      <Card padding="none" className="w-full max-w-2xl overflow-hidden">
-        <ul className="flex flex-col">
-          {ENTRIES.map(({ segment, label, hint, Icon, tone }) => (
-            <li
-              key={segment}
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {ENTRIES.map(({ segment, label, hint, Icon, tone }) => (
+          <li key={segment} className={toneClass(tone)}>
+            <Link
+              href={`/trips/${tripId}/more/${segment}`}
               className={cn(
-                toneClass(tone),
-                "border-b border-border last:border-b-0",
+                "group/row flex h-full min-w-0 items-center gap-3 rounded-card bg-surface p-4 shadow-card",
+                "transition-[box-shadow,transform] duration-settle ease-snap hover:-translate-y-0.5 hover:shadow-lift",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               )}
             >
-              <Link
-                href={`/trips/${tripId}/more/${segment}`}
-                className={cn(
-                  "group/row flex min-w-0 items-center gap-3 px-4 py-3.5 transition-colors hover:bg-surface-2",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-                )}
+              {/* The city palette, used for the one job it does well outside a
+                  route: telling eight near-identical rows apart at a glance. */}
+              <span
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-card bg-tone text-tone-ink"
+                aria-hidden="true"
               >
-                {/* The city palette, used here for the one job it does well
-                    outside a route: telling seven near-identical rows apart at
-                    a glance. Every row was the same blue circle before. */}
+                <Icon className="h-6 w-6" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-base font-semibold">{label}</span>
                 <span
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-tone text-tone-ink"
-                  aria-hidden="true"
+                  className={cn(
+                    "block min-w-0 truncate text-sm",
+                    state[segment]?.urgent
+                      ? "font-medium text-warning-ink"
+                      : "text-muted",
+                  )}
                 >
-                  <Icon className="h-5 w-5" />
+                  {state[segment]?.text ?? hint}
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-base font-semibold">{label}</span>
-                  {/* The live line replaces the fixed one rather than joining
-                      it: two lines of subtitle push the row past the height its
-                      neighbours settled on, and the state is the more useful of
-                      the two. */}
-                  <span
-                    className={cn(
-                      "block min-w-0 truncate text-sm",
-                      state[segment]?.urgent
-                        ? "text-warning-ink"
-                        : "text-muted",
-                    )}
-                  >
-                    {state[segment]?.text ?? hint}
-                  </span>
-                </span>
-                {/* RTL: "forward" points left, so the nudge on hover is toward
-                    it. Half a step — enough to say the row answers, not enough
-                    to read as the glyph moving. */}
-                <ChevronLeft
-                  className="h-5 w-5 shrink-0 text-border-strong +NUDGE+"
-                  aria-hidden="true"
-                />
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </Card>
+              </span>
+              <ChevronLeft
+                className="h-5 w-5 shrink-0 text-border-strong transition-transform group-hover/row:-translate-x-0.5"
+                aria-hidden="true"
+              />
+            </Link>
+          </li>
+        ))}
+      </ul>
 
-      {/* The second card the design draws: the one action that destroys the
-          trip, separated from the rows you press every day. Law 05 asks for
-          exactly this — a destructive action does not sit at rest among them.
-
-          "פרטי הטיול" used to be the row above this one, and it is now the
-          first row of the menu instead: it holds the name, the dates and the
-          bookings, and bottom-of-the-last-card is the wrong place for the
-          screen every other screen depends on. */}
-      <Card padding="none" className="w-full max-w-2xl overflow-hidden">
-
-        {/* It used to be at the bottom of /more/trip, under the expense summary
-            — correct in spirit and two screens deep in practice. Here it is the
-            last row of the last card, in the colour that says what it is, and it
-            still opens a dialog that names everything the delete takes with
-            it. */}
+      {/* The one action that destroys the trip, apart from the rows you press
+          every day. It still opens a dialog that names everything it takes. */}
+      <Card padding="none" className="w-full overflow-hidden">
         <DeleteTripButton tripId={tripId} tripName={tripName} variant="row" />
       </Card>
     </>

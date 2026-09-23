@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowUpDown,
+  Bell,
   ChevronLeft,
   Clock,
   Footprints,
@@ -192,6 +193,62 @@ export function DayTimeline({
     );
   });
 
+  // v6 (Stitch): the full list hangs off a spine on the start edge. Every
+  // item gets a round marker on it — the item's glyph, with its time under it —
+  // and a gap is a small dot on the line with its pill beside it. The compact
+  // list keeps its one card of divided rows.
+  const railed = merged.map((item, index) => {
+    const row = rows[index];
+    if (item.kind === "gap") {
+      return (
+        <div key={item.key} className="flex min-w-0 items-center gap-3">
+          <span className="flex w-11 shrink-0 justify-center" aria-hidden="true">
+            <span className="h-2 w-2 rounded-full bg-border-strong ring-4 ring-background" />
+          </span>
+          <div className="min-w-0 flex-1">{row}</div>
+        </div>
+      );
+    }
+    const marker =
+      item.kind === "booking"
+        ? {
+            icon: BOOKING_KINDS[item.booking.booking.kind].icon,
+            time: item.booking.startMinutes,
+            strong: BOOKING_KINDS[item.booking.booking.kind].isTransport,
+          }
+        : item.kind === "entry"
+          ? { icon: "attraction" as const, time: item.entry.startMinutes, strong: false }
+          : null;
+    return (
+      <div key={item.key} className="flex min-w-0 items-start gap-3">
+        <span className="flex w-11 shrink-0 flex-col items-center gap-1 pt-2" aria-hidden="true">
+          {marker ? (
+            <>
+              <span
+                className={cn(
+                  "flex h-10 w-10 items-center justify-center rounded-full ring-4 ring-background",
+                  marker.strong
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-primary-tint text-primary",
+                )}
+              >
+                <DomainIcon name={marker.icon} className="h-5 w-5" />
+              </span>
+              <span className="text-[0.6875rem] font-bold tabular-nums text-foreground">
+                {formatMinutes(marker.time)}
+              </span>
+            </>
+          ) : (
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-callout-tint text-callout-ink ring-4 ring-background">
+              <Bell className="h-4.5 w-4.5" />
+            </span>
+          )}
+        </span>
+        <div className="min-w-0 flex-1">{row}</div>
+      </div>
+    );
+  });
+
   return (
     <div className="flex min-w-0 flex-col gap-2">
       {/* One card with dividers, or a stack of cards. The compact list is the
@@ -202,7 +259,9 @@ export function DayTimeline({
           {rows}
         </Card>
       ) : (
-        rows
+        <div className="relative flex min-w-0 flex-col gap-3 before:absolute before:inset-y-3 before:start-[1.3125rem] before:w-0.5 before:rounded-full before:bg-primary-tint">
+          {railed}
+        </div>
       )}
 
       {timeline.unscheduled.length > 0 && (
@@ -277,11 +336,16 @@ function GapRow({
     <div
       className={cn(
         "flex min-w-0 items-center gap-2",
-        compact ? "bg-surface-2 px-4 py-1.5" : "px-1.5 py-0.5",
+        compact ? "bg-surface-2 px-4 py-1.5" : "py-0.5",
       )}
     >
-      <span className="h-px flex-1 bg-border-strong" />
-      <span className="flex min-w-0 shrink items-center gap-1.5 text-caption text-muted">
+      {compact && <span className="h-px flex-1 bg-border-strong" />}
+      <span
+        className={cn(
+          "flex min-w-0 shrink items-center gap-1.5 text-caption text-muted",
+          !compact && "rounded-full bg-surface-sunken px-3 py-1",
+        )}
+      >
         {night ? (
           <MoonStar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         ) : walk !== null ? (
@@ -296,7 +360,7 @@ function GapRow({
           {!night && walk !== null && <> · ~{walk} דק׳ הליכה</>}
         </span>
       </span>
-      <span className="h-px flex-1 bg-border-strong" />
+      {compact && <span className="h-px flex-1 bg-border-strong" />}
     </div>
   );
 }
@@ -427,7 +491,7 @@ function BookingRow({
       padding="none"
       className={cn(
         "p-3.5 transition-colors",
-        transport && "border-primary bg-primary-tint hover:bg-primary-tint/70",
+        transport && "bg-primary-tint hover:bg-primary-tint/70",
       )}
       // The whole card opens the details. A row of a schedule is a thing you
       // point at rather than a control you aim for, so the target is the row —
@@ -569,12 +633,13 @@ function EntryRow({
       {/* An itinerary entry carries no category — it is a title, a time and a
           note — so there is one glyph for all of them rather than a guess per
           title. The city's colour on the tile is what distinguishes them. */}
-      <Tile name="attraction" />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="min-w-0 text-caption font-bold tabular-nums text-muted">
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        {/* The rail beside the card carries the glyph and the start; the card
+            carries the range, as Stitch's category chip. */}
+        <span className="self-start rounded-full bg-primary-tint px-2 py-0.5 text-[0.6875rem] font-semibold tabular-nums text-primary-ink">
           {timeRange(startMinutes, endMinutes)}
         </span>
-        <span className="flex min-w-0 items-center gap-1.5 text-sm font-bold wrap-anywhere">
+        <span className="flex min-w-0 items-center gap-1.5 text-base font-semibold wrap-anywhere">
           {entry.title}
           {anchored && (
             <Lock
@@ -597,7 +662,7 @@ function EntryRow({
             keyboard. The "show everything" is the row itself — pressing it
             opens the entry, where the note is in full. */}
         {entry.note && (
-          <span className="line-clamp-1 min-w-0 text-caption text-muted wrap-anywhere">
+          <span className="line-clamp-2 min-w-0 text-sm text-muted wrap-anywhere">
             {entry.note}
           </span>
         )}
@@ -631,7 +696,7 @@ function EntryRow({
 
   if (!onEdit) {
     return (
-      <Card padding="none" className="flex min-w-0 items-start gap-3 p-3.5">
+      <Card padding="none" className="flex min-w-0 items-start gap-3 p-4">
         {body}
       </Card>
     );
@@ -647,7 +712,7 @@ function EntryRow({
       <Card
         variant="interactive"
         padding="none"
-        className="flex min-w-0 items-start gap-3 p-3.5"
+        className="flex min-w-0 items-start gap-3 p-4"
       >
         {body}
       </Card>

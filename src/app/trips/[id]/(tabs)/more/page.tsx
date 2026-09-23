@@ -9,7 +9,7 @@ import {
   MoreMenu,
 } from "@/features/trips";
 
-export const metadata = { title: "עוד" };
+export const metadata = { title: "מסמכים" };
 
 export default async function MorePage({
   params,

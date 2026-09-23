@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import { Skeleton } from "@/components/ui";
 import {
   APP_TIME_ZONE,
   bookingsByDay,
@@ -13,12 +15,13 @@ import {
   listDayNotes,
   listDayReminders,
   lodgingByDay,
+  RouteMapPanel,
   todayIn,
   tripDayCount,
 } from "@/features/trips";
 import type { Booking, NightLodging } from "@/features/trips";
 
-export const metadata = { title: 'לו"ז' };
+export const metadata = { title: "מסלול" };
 
 export default async function DaysPage({
   params,
@@ -65,6 +68,15 @@ export default async function DaysPage({
   const cities = [...new Set(selected.map((item) => item.city))].filter(Boolean);
 
   return (
+    <>
+      {/* Stitch's itinerary opens on the route map, with the day strip and the
+          timeline under it. Its own boundary: resolving the route can mean
+          geocoding a city, which is paced at a request a second, and the
+          schedule must not wait for that. */}
+      <Suspense fallback={<Skeleton className="h-[17.75rem] rounded-card" />}>
+        <RouteMapPanel tripId={id} tripName={trip.name} variant="compact" />
+      </Suspense>
+
     <Itinerary
       tripId={id}
       initialItinerary={itinerary}
@@ -85,5 +97,6 @@ export default async function DaysPage({
         dayCount,
       )}
     />
+    </>
   );
 }

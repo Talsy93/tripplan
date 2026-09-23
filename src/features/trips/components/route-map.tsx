@@ -224,7 +224,7 @@ export function RouteMap({
                 className={cn(
                   glassClasses("light"),
                   "pointer-events-auto shrink-0 rounded-full px-3.5 py-1.5 text-caption font-bold",
-                  focusCity === null && "bg-foreground text-surface",
+                  focusCity === null && "bg-primary text-primary-foreground",
                 )}
               >
                 כל המסלול
@@ -237,7 +237,7 @@ export function RouteMap({
                   className={cn(
                     glassClasses("light"),
                     "pointer-events-auto min-w-0 shrink-0 rounded-full px-3.5 py-1.5 text-caption font-bold",
-                    focusCity === stop.city && "bg-foreground text-surface",
+                    focusCity === stop.city && "bg-primary text-primary-foreground",
                   )}
                 >
                   <span className="block max-w-32 truncate">{stop.city}</span>

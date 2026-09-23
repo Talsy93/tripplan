@@ -243,7 +243,7 @@ export function BookingList({
                 <Card
                   padding="none"
                   className={cn(
-                    "h-full overflow-hidden border-s-4 border-s-tone-dot",
+                    "h-full overflow-hidden",
                     toneClass(kind.tone),
                   )}
                 >
@@ -546,22 +546,24 @@ function TransportLeg({ booking }: { booking: Booking }) {
   // `dir="auto"` on each name is for.
   return (
     <div className="flex min-w-0 flex-col">
-      <div className="flex items-start gap-2 px-4 pb-4 sm:gap-3">
+      {/* v6 (Stitch): the route is drawn as a boarding pass — the maritime
+          gradient, white place names, a dashed flight path between them. */}
+      <div className="mx-3 mb-3 flex items-start gap-2 rounded-tile bg-[image:var(--hero-gradient)] px-4 py-4 text-white shadow-soft sm:gap-3">
         <Endpoint place={booking.origin} when={booking.starts_at} />
 
         {/* Never the part that gives way: the connector is decorative, so it
           shrinks to its icon before either place name loses a character. */}
         <div className="flex min-w-8 shrink flex-col items-center gap-1 pt-1.5">
           <div className="flex w-full items-center gap-1">
-            <span className="h-px flex-1 border-t border-dashed border-border" />
+            <span className="h-px flex-1 border-t border-dashed border-white/40" />
             {/* Mirrored, because the glyph points somewhere. Lucide draws the
               plane nose-up-right, which in an RTL row points back at the origin
               — the same reversal the container had. */}
             <Plane
-              className="h-4 w-4 shrink-0 -scale-x-100 text-primary"
+              className="h-5 w-5 shrink-0 -scale-x-100 text-white"
               aria-hidden="true"
             />
-            <span className="h-px flex-1 border-t border-dashed border-border" />
+            <span className="h-px flex-1 border-t border-dashed border-white/40" />
           </div>
           {/* The ticket's own figure, never a computed one. `starts_at` and
             `ends_at` are both stored by reading the typed wall clock in one
@@ -576,7 +578,7 @@ function TransportLeg({ booking }: { booking: Booking }) {
             The type says `number | null` and the runtime disagrees; the check
             has to answer to the runtime. */}
           {typeof booking.duration_minutes === "number" && (
-            <span className="whitespace-nowrap text-caption tabular-nums text-muted">
+            <span className="whitespace-nowrap text-caption tabular-nums text-white/80">
               {durationMinutesLabel(booking.duration_minutes)}
             </span>
           )}
@@ -805,7 +807,7 @@ function Endpoint({
           // A date and a time around a comma is an LTR run; left to the RTL
           // document the punctuation moves.
           dir="ltr"
-          className="text-caption tabular-nums text-muted"
+          className="text-caption tabular-nums text-white/80"
           suppressHydrationWarning
         >
           {formatWhen(when)}

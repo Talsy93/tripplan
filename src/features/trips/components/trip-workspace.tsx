@@ -1,34 +1,31 @@
 import type { CSSProperties, ReactNode } from "react";
-import { BottomSheet, PageEnter, SidePane } from "@/components/layout";
+import { PageEnter } from "@/components/layout";
 
-// The frame of a trip in the "מפה חיה" direction: one workspace with the
-// panel as its main column and the map as a reference pane beside it.
+// The frame of a trip in the Stitch design (v6, "Mediterranean Horizon").
 //
-//   desktop (lg+):  [ rail 64 ][ panel ····· flex ····· ][ map 352–480 ⇤ fold ]
-//   phone:          map full-screen, the panel is a bottom sheet over it
+//   phone / tablet:  [ header ] content column [ tab bar pinned to the bottom ]
+//   desktop (lg+):   [ rail 88 ][ header / content column, centred ]
 //
-// The first cut gave the map everything the panel did not take. That was the
-// wrong ratio — the panel is where a traveller reads, picks and edits, and the
-// map is what they glance at — so the panel is now the main column, capped at
-// a comfortable reading width, and the map is a fixed-width pane that folds.
+// The v5 frame made the map the canvas and the tabs a sheet over it. Stitch
+// has no canvas: a screen is a column of cards, and the map is one of them —
+// on "מסלול", above the timeline, with a button to open it full-screen. So the
+// map left the frame, and with it the one expensive read every tab paid for.
 //
-// The panel is one DOM node in both presentations — see BottomSheet — so a
-// tab's page mounts once. `@container` on the scrolling column lets TwoPane
-// and the card grids inside answer to the panel's width, not the window's.
+// `@container` on the column lets TwoPane and the card grids inside answer to
+// the column's width, not the window's.
 export function TripWorkspace({
   rail,
   header,
   tabs,
-  map,
   hueStyle,
   children,
 }: {
   rail: ReactNode;
   header: ReactNode;
   tabs: ReactNode;
-  map: ReactNode;
-  // The trip's light, published as CSS variables for the one panel that still
-  // reads it (the AI offer in "יעדים"). Goes on the panel, not the map.
+  // No longer drawn — see above. Accepted so older callers keep compiling.
+  map?: ReactNode;
+  // The trip's light, published as CSS variables for the panels that read it.
   hueStyle?: CSSProperties;
   children: ReactNode;
 }) {
@@ -41,22 +38,15 @@ export function TripWorkspace({
       <div className="flex min-w-0 flex-1 flex-col">
         {header}
 
-        <div className="relative flex min-h-0 flex-1">
-          <BottomSheet header={tabs} desktop="main" initial="full">
-            <div className="@container mx-auto w-full max-w-[66rem] p-4" style={hueStyle}>
-              <PageEnter className="pb-[env(safe-area-inset-bottom)]">
-                {children}
-              </PageEnter>
-            </div>
-          </BottomSheet>
-
-          {/* Desktop: a folding pane beside the panel. Phone: the whole screen
-              under the sheet. One node, so the map mounts once. */}
-          <SidePane label="המפה" storageKey="trip-map-pane">
-            {map}
-          </SidePane>
-        </div>
+        <main
+          className="@container mx-auto w-full max-w-[66rem] flex-1 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 md:px-6 lg:px-8 lg:pb-12"
+          style={hueStyle}
+        >
+          <PageEnter>{children}</PageEnter>
+        </main>
       </div>
+
+      {tabs}
     </div>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { BottomSheet } from "@/components/layout";
 import { HomeMap } from "./home-map";
 import { HomePanel } from "./home-panel";
 import type { MappedTrip } from "./trips-map-canvas";
@@ -77,13 +76,13 @@ export function HomeScreen({
 
   const select = useCallback((id: string | null) => setSelectedId(id), []);
 
+  // v6 (Stitch): a column of cards, not a map with a sheet over it. The trips
+  // come first — the featured one as the lit card — and the world map is a
+  // card of its own: under the list on a phone, beside it and sticky from lg.
+  // Pressing a trip still marks it on the map, and a flag still selects a row.
   return (
-    <div className="relative h-[calc(100dvh-3.5rem)] min-w-0 flex-1 lg:h-dvh">
-      <div className="absolute inset-0">
-        <HomeMap trips={mapped} selectedId={selected} onSelect={select} />
-      </div>
-
-      <BottomSheet desktop="floating" initial="half">
+    <main className="@container mx-auto grid w-full max-w-[66rem] flex-1 grid-cols-1 items-start gap-5 px-4 pb-12 pt-4 md:px-6 lg:grid-cols-[minmax(0,1fr)_24rem] lg:px-8 lg:pt-8">
+      <div className="min-w-0">
         <HomePanel
           entries={entries}
           featured={featured}
@@ -96,7 +95,16 @@ export function HomeScreen({
           locatedIds={locatedIds}
           footerAction={footerAction}
         />
-      </BottomSheet>
-    </div>
+      </div>
+
+      {mapped.length > 0 && (
+        <section
+          aria-label="מפת הטיולים"
+          className="relative h-72 min-w-0 overflow-hidden rounded-card bg-surface-2 shadow-card lg:sticky lg:top-24 lg:h-[calc(100dvh-8rem)]"
+        >
+          <HomeMap trips={mapped} selectedId={selected} onSelect={select} />
+        </section>
+      )}
+    </main>
   );
 }

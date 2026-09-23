@@ -2,7 +2,14 @@ import type { ButtonHTMLAttributes } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-type Variant = "primary" | "soft" | "outline" | "ghost" | "danger" | "onLight";
+type Variant =
+  | "primary"
+  | "brand"
+  | "soft"
+  | "outline"
+  | "ghost"
+  | "danger"
+  | "onLight";
 type Size = "sm" | "md" | "lg";
 
 // One focus treatment for the whole app. Before phase D this ring existed here
@@ -32,10 +39,17 @@ const base = cn(
 );
 
 const variants: Record<Variant, string> = {
-  primary: "bg-primary text-primary-foreground hover:bg-primary-hover",
+  // v6 (Stitch): the call to action is terracotta, not blue. Blue is the
+  // structure of the app — the tab you are on, a link — and a blue button beside
+  // a blue tab reads as one more tab.
+  primary: "bg-cta text-cta-foreground shadow-md shadow-cta/20 hover:bg-cta-hover",
+  // The maritime fill, for a primary action that is navigation rather than a
+  // commitment ("ניווט", "פתח מפה").
+  brand: "bg-primary text-primary-foreground hover:bg-primary-hover",
   soft: "bg-primary-tint text-primary-ink hover:bg-primary-tint/70",
+  // Stitch's secondary button: a lavender well with blue text, no outline.
   outline:
-    "border border-border-strong bg-surface text-foreground hover:bg-surface-2",
+    "bg-surface-sunken text-primary hover:bg-surface-2 hover:text-primary-hover",
   ghost: "text-primary-ink hover:bg-primary-tint",
   // Was `hover:text-white`, the one raw palette value left in the primitive
   // layer. The token says the same thing and survives a theme change.
@@ -54,9 +68,9 @@ const variants: Record<Variant, string> = {
 };
 
 const sizes: Record<Size, string> = {
-  sm: "h-8 px-3 text-sm",
-  md: "h-10 px-4 text-sm",
-  lg: "h-11 px-5 text-base",
+  sm: "h-9 px-3 text-sm",
+  md: "h-11 px-4 text-sm",
+  lg: "h-12 px-5 text-base",
 };
 
 // Exposed so links can look like buttons without nesting <button> in <a>.

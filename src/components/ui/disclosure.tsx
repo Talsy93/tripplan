@@ -79,17 +79,17 @@ export function Disclosure({
     <details
       open={defaultOpen}
       className={cn(
-        "group/disclosure min-w-0 overflow-hidden rounded-card border border-border bg-surface",
+        "group/disclosure min-w-0 overflow-hidden rounded-card bg-surface shadow-card",
         // The frame. `border-s-4` on the element itself rather than a child, so
         // it runs the full height of the section however far it opens.
-        "border-s-4",
-        tones.spine,
+        // v6: the spine is gone — Stitch separates with the tinted icon tile
+        // and the shadow, and a 4px bar beside a shadowed card read as a stripe.
         className,
       )}
     >
       <summary
         className={cn(
-          "flex min-w-0 cursor-pointer list-none items-center gap-2.5 px-3 py-2.5",
+          "flex min-w-0 cursor-pointer list-none items-center gap-3 px-4 py-3",
           "hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
           // Safari draws its own triangle and ignores `list-none` without this.
           "[&::-webkit-details-marker]:hidden",
@@ -99,7 +99,7 @@ export function Disclosure({
           <span
             aria-hidden="true"
             className={cn(
-              "flex h-8 w-8 shrink-0 items-center justify-center rounded-control",
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
               tones.tile,
             )}
           >
@@ -108,7 +108,7 @@ export function Disclosure({
         )}
 
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="min-w-0 text-sm font-bold wrap-anywhere">
+          <span className="min-w-0 text-base font-semibold wrap-anywhere">
             {title}
           </span>
           {detail && (
@@ -129,7 +129,7 @@ export function Disclosure({
       <div
         className={cn(
           "flex min-w-0 flex-col border-t border-border",
-          !flush && "gap-3 p-3",
+          !flush && "gap-3 p-4",
         )}
       >
         {children}

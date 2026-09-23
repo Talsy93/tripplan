@@ -21,9 +21,10 @@ type Level = "page" | "section" | "sub";
 // No letter-spacing: these are Hebrew, and globals.css is right that tracking
 // damages it. Weight and colour do the work.
 const levels: Record<Level, string> = {
-  page: "text-heading font-bold",
-  section: "text-title font-bold",
-  sub: "text-caption font-extrabold text-muted",
+  // v6 (Stitch): display-lg-mobile / headline-sm / label-md.
+  page: "text-[1.75rem] leading-9 font-bold",
+  section: "text-lg leading-6 font-semibold",
+  sub: "text-caption font-semibold text-muted",
 };
 
 const tags: Record<Level, "h1" | "h2" | "h3"> = {
@@ -110,7 +111,7 @@ export function SectionHeading({
           // On the text block rather than on the row, so the bar runs the
           // height of the heading and its description and stops there — not
           // down past the actions sitting at the far end.
-          tone && "border-s-[3px] ps-2.5",
+          tone && "border-s-4 ps-2.5 rounded-s-[2px]",
           tone && TONES[tone],
         )}
       >

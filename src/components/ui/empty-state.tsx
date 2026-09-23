@@ -37,7 +37,7 @@ export function EmptyState({
           state, and the `action` below it is the thing meant to be pressed. */}
       {icon && (
         <span
-          className="flex h-16 w-16 items-center justify-center rounded-tile bg-surface leading-none text-muted shadow-soft [&>svg]:h-7 [&>svg]:w-7"
+          className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-tint leading-none text-primary shadow-soft [&>svg]:h-7 [&>svg]:w-7"
           aria-hidden="true"
         >
           {icon}

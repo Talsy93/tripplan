@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Compass, Lock, Menu, Sun } from "lucide-react";
+import { CalendarDays, Compass, FolderOpen, Sparkles, Sun } from "lucide-react";
 import {
   BottomNav,
   IconRail,
@@ -16,161 +16,69 @@ import {
   tripTabHref,
   type TripTabSegment,
 } from "../domain/trip-tabs";
-import { railShortcuts } from "../domain/rail-shortcuts";
-import { RAIL_ICONS, RailEditorButton, useRailShortcuts } from "./rail-editor";
 
 const ICONS: Record<TripTabSegment, typeof Sun> = {
-  today: Sun,
+  today: Compass,
   days: CalendarDays,
-  explore: Compass,
-  more: Menu,
+  explore: Sparkles,
+  more: FolderOpen,
 };
 
+const WAITING = "ייפתח כשהטיול יתחיל";
+
+// Every presentation of the trip's tabs is built from here, so a tab appears
+// in all of them or in none. The waiting tab ("היום" before the trip) is kept,
+// drawn muted and not pressable — an app that tells you what is coming rather
+// than one that changes shape.
 function useTripNavItems(tripId: string, live: boolean): NavItem[] {
   const pathname = usePathname();
 
-  // The waiting tab is dropped from the presentations that have no way to draw
-  // one — the phone bar and the side rail are icon lists, and a dead icon among
-  // live ones says nothing. The panel's row draws it; see TripTabs.
-  return tripTabsFor(live)
-    .filter((tab) => !tab.waiting)
-    .map((tab) => {
-      const Icon = ICONS[tab.segment];
-      const href = tripTabHref(tripId, tab.segment);
-      return {
-        href,
-        label: tab.label,
-        icon: <Icon className="h-5 w-5" />,
-        active: pathname === href || pathname.startsWith(`${href}/`),
-      };
-    });
+  return tripTabsFor(live).map((tab) => {
+    const Icon = ICONS[tab.segment];
+    const href = tripTabHref(tripId, tab.segment);
+    return {
+      href,
+      label: tab.label,
+      icon: <Icon className="h-[1.375rem] w-[1.375rem]" />,
+      active: pathname === href || pathname.startsWith(`${href}/`),
+      waiting: tab.waiting ? WAITING : undefined,
+    };
+  });
 }
 
-// The panel's tab row (v5). Segmented, links rather than buttons: each tab is
-// a route, so the browser's back button and a shared URL both keep working.
-// Built from TRIP_TABS like every other presentation, so a tab appears in all
-// of them or in none.
+// v6 (Stitch): the phone's tab bar — pinned to the bottom edge, four tabs. The
+// desktop gets the same four as a rail (TripRail below), so the bar goes at lg.
 //
-// `prefetch` is on deliberately. Next's default for a dynamic route fetches
-// only as far as its loading.tsx, so clicking a tab bought a skeleton
-// immediately and then waited on a round trip to the database for the content —
-// the wait that made switching tabs feel slow. These four links are the app's
-// most-used navigation and they are on screen the whole time a trip is open, so
-// the three you are not on are worth rendering ahead of the click; they are then
-// held by staleTimes.static (see next.config.ts) for three minutes.
-//
-// The cost is three background renders when a trip opens. If that ever becomes
-// the wrong trade — many more tabs, or a tab that is expensive to render —
-// this prop is the one line to remove.
+// Links rather than buttons: each tab is a route, so the back button and a
+// shared URL keep working. `prefetch` is on in BottomNav — these are the most
+// used links in the app and they are on screen the whole time.
 export function TripTabs({
   tripId,
-  // Whether the trip is being lived right now. False before it starts and after
-  // it ends, and then "היום" is drawn but cannot be pressed — see tripTabsFor.
   live = false,
 }: {
   tripId: string;
   live?: boolean;
 }) {
-  const pathname = usePathname();
-  const tabs = tripTabsFor(live);
-
-  return (
-    <nav
-      aria-label="חלקי הטיול"
-      className="flex gap-1 rounded-control border border-border bg-surface-2 p-1"
-    >
-      {tabs.map((tab) => {
-        const Icon = ICONS[tab.segment];
-        const href = tripTabHref(tripId, tab.segment);
-        const active = pathname === href || pathname.startsWith(`${href}/`);
-
-        // Present, smaller, and not a link. A span rather than a disabled
-        // button or a link with pointer-events-none: there is nothing to
-        // activate, so there should be nothing focusable to land on — and
-        // `title` plus the visually-hidden sentence say why to a pointer and to
-        // a screen reader respectively. It does not take an equal share of the
-        // row either; `flex-none` keeps the three live tabs at full width, so
-        // the waiting one reads as a note beside them rather than as a quarter
-        // of the navigation that happens to be broken.
-        if (tab.waiting) {
-          return (
-            <span
-              key={href}
-              title="ייפתח כשהטיול יתחיל"
-              className="flex flex-none items-center gap-1 rounded-[calc(var(--radius-control)-2px)] px-2 py-1.5 text-caption font-semibold text-border-strong"
-            >
-              <Lock className="h-3 w-3 shrink-0" aria-hidden="true" />
-              <span className="truncate">{tab.label}</span>
-              <span className="sr-only">— ייפתח כשהטיול יתחיל</span>
-            </span>
-          );
-        }
-
-        return (
-          <Link
-            key={href}
-            href={href}
-            prefetch
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[calc(var(--radius-control)-2px)] px-2 py-1.5 text-sm font-semibold",
-              "transition-[background-color,color,box-shadow] duration-press ease-snap",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              active
-                ? "bg-surface text-foreground shadow-card"
-                : "text-muted hover:text-foreground",
-            )}
-          >
-            <span aria-hidden="true" className="hidden sm:inline lg:hidden xl:inline">
-              <Icon className="h-5 w-5" />
-            </span>
-            <span className="truncate">{tab.label}</span>
-          </Link>
-        );
-      })}
-    </nav>
-  );
+  return <BottomNav items={useTripNavItems(tripId, live)} className="lg:hidden md:block" />;
 }
 
-// The icon rail while inside a trip: the traveller's own shortcuts.
-//
-// Which parts of the trip appear here, and in what order, comes from the
-// catalogue in domain/rail-shortcuts.ts and the choice stored in this browser
-// (rail-editor.tsx). The button at the foot of the rail edits it. No "home"
-// item: the wordmark at the top is the way home.
+// The desktop rail: the wordmark (the way home), the four tabs, the initial.
 export function TripRail({
   tripId,
+  live = false,
   initial,
   footer,
 }: {
   tripId: string;
+  live?: boolean;
   initial?: string;
   footer?: ReactNode;
 }) {
-  const pathname = usePathname();
-  const keys = useRailShortcuts();
-
-  const items: NavItem[] = railShortcuts(keys).map((shortcut) => {
-    const Icon = RAIL_ICONS[shortcut.key];
-    const href = `/trips/${tripId}/${shortcut.path}`;
-    return {
-      href,
-      label: shortcut.label,
-      icon: <Icon className="h-5 w-5" />,
-      active: pathname === href || pathname.startsWith(`${href}/`),
-    };
-  });
-
   return (
     <IconRail
-      items={items}
+      items={useTripNavItems(tripId, live)}
       initial={initial}
-      footer={
-        <>
-          <RailEditorButton />
-          {footer}
-        </>
-      }
+      footer={footer}
     />
   );
 }

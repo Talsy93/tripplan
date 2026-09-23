@@ -4,6 +4,7 @@ import { SectionHeading } from "@/components/ui";
 import { savedCountsByCategory } from "../domain/place";
 import type { AiCitySuggestion, SelectedItem } from "../domain/ai-suggestion";
 import type { AddedPlace } from "../infrastructure/place-service";
+import { AiConcierge } from "./ai-concierge";
 import { ManualPlaceForm } from "./manual-place-form";
 import { PlaceSearch } from "./place-search";
 import { PlanningPanel } from "./planning-panel";
@@ -86,7 +87,7 @@ export function ExploreScreen({
       {/* The band above names the trip and the app bar names the tab, so the
           screen needs no visible title of its own — and the design's first
           element under the search is the category grid. */}
-      <h1 className="sr-only">תכנון הטיול</h1>
+      <AiConcierge tripId={tripId} />
 
       <PlaceSearch
         tripId={tripId}
@@ -95,7 +96,7 @@ export function ExploreScreen({
         savedCounts={savedCountsByCategory(selected)}
       />
 
-      <section className="flex flex-col gap-4">
+      <section id="discover" className="flex scroll-mt-20 flex-col gap-4">
         <SectionHeading
           level="section"
           tone="action"

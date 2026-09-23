@@ -112,7 +112,7 @@ export function TripCalendar({
                       ? // The same ink fill the selected pill gets, for the same
                         // reason: it has to win against whichever of the six
                         // pastels is behind it.
-                        "bg-foreground font-black text-surface"
+                        "bg-primary font-black text-primary-foreground"
                       : "bg-tone font-bold text-tone-ink hover:brightness-95",
                     isToday && !isActive && "ring-2 ring-primary",
                   )}

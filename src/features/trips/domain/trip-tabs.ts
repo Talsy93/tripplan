@@ -24,9 +24,13 @@ export const TRIP_TABS = [
     // The route is untouched: a bookmark or a shared link still resolves.
     onlyDuringTrip: true,
   },
-  { segment: "days", label: 'לו"ז' },
-  { segment: "explore", label: "תכנון" },
-  { segment: "more", label: "עוד" },
+  // v6 (Stitch): the four tabs of the design — "מסלול", "עוזר AI", "מסמכים".
+  // The routes are unchanged, so every link and bookmark still resolves; only
+  // the names moved to the design's. "עוזר AI" is the planning screen, which is
+  // where the AI suggestions and the trip chat live; "מסמכים" is the trip hub.
+  { segment: "days", label: "מסלול" },
+  { segment: "explore", label: "עוזר AI" },
+  { segment: "more", label: "מסמכים" },
 ] as const;
 
 export type TripTabSegment = (typeof TRIP_TABS)[number]["segment"];

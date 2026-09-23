@@ -56,8 +56,8 @@ export function Dialog({
         if (event.target === ref.current) onClose();
       }}
       className={cn(
-        "m-auto w-[min(32rem,calc(100vw-2rem))] rounded-modal border border-border bg-surface p-0 text-foreground shadow-modal",
-        "backdrop:bg-scrim",
+        "m-auto w-[min(32rem,calc(100vw-2rem))] rounded-modal bg-surface p-0 text-foreground shadow-modal",
+        "backdrop:bg-scrim backdrop:backdrop-blur-sm",
         className,
       )}
     >
