@@ -13,12 +13,18 @@ import { PrepList } from "./prep-list";
 import { TripSpend } from "./trip-spend";
 import { UpNext } from "./up-next";
 
-// The "היום" tab before the trip has started.
+// The preparations: everything left to do before the trip leaves.
 //
-// It used to show what would be today's screen with nothing in it. Before
-// departure the question is not "what now" but "what is left to do", so this
-// is a countdown, the to-do list with the app's suggestions, whatever the app
-// itself still finds open (dates, itinerary, lodging), and what is coming up.
+// This was the "היום" tab before the trip started, and it is not that any more.
+// Reported plainly: before departure that tab "is really a tab that resembles a
+// lists page, so just merge them, there is no reason to duplicate". Which was
+// right — a countdown, a checklist and a list of what is still open *is* a list
+// page, and the app already had one at /more/gear. So the two are one page now,
+// and the "היום" tab is not drawn until there is a today to show.
+//
+// What it holds: a countdown, the to-do list with the app's suggestions,
+// whatever the app itself still finds open (dates, itinerary, lodging), what is
+// coming up — and, through `children`, the packing list.
 export function TodayPrep({
   tripId,
   tripName,
@@ -31,6 +37,7 @@ export function TodayPrep({
   prepItems,
   suggestions,
   forecast,
+  children,
 }: {
   tripId: string;
   tripName: string;
@@ -43,6 +50,10 @@ export function TodayPrep({
   prepItems: PrepItem[];
   suggestions: PrepSuggestion[];
   forecast?: ReactNode;
+  // Rendered at the foot of the main column. This is how the packing list joins
+  // the preparations instead of living on a page of its own — see the note at
+  // the top.
+  children?: ReactNode;
 }) {
   const days = startDate ? daysUntil(startDate) : null;
   const hasSpend = costTotalsByCurrency(bookings).length > 0;
@@ -121,6 +132,8 @@ export function TodayPrep({
       />
 
       <OpenItems tripId={tripId} items={open} />
+
+      {children}
     </TwoPane>
   );
 }

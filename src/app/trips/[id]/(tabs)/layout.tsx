@@ -187,7 +187,13 @@ export default async function TripTabsLayout({
           }
         />
       }
-      tabs={<TripTabs tripId={trip.id} />}
+      tabs={
+        <TripTabs
+          tripId={trip.id}
+          // "היום" only exists while the trip is on. See TRIP_TABS.
+          live={phase.kind === "during"}
+        />
+      }
       map={
         <Suspense
           fallback={<div className="h-full w-full animate-pulse bg-surface-2" />}

@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Compass, Sparkles } from "lucide-react";
+import { Compass, Route, Sparkles } from "lucide-react";
 import { TwoPane } from "@/components/layout";
 import {
+  Badge,
   Banner,
   Button,
+  Disclosure,
   EmptyState,
   SectionHeading,
   ToneDot,
@@ -18,6 +20,7 @@ import { BuildingItinerary } from "./building-itinerary";
 import { CityDaysEditor } from "./city-days-editor";
 import { DayStrip } from "./day-strip";
 import { DaySuggestionsDialog } from "./day-suggestions-dialog";
+import { DayTiles } from "./day-tiles";
 import { DayTimeline } from "./day-timeline";
 import { AddReminderButton } from "./reminder-dialog";
 import { AnchorsButton } from "./anchors-dialog";
@@ -43,7 +46,6 @@ import {
   itineraryOverrun,
   weekdayAfterDayNumber,
 } from "../domain/trip-days";
-import { NightStay } from "./night-stay";
 import type { Booking } from "../domain/booking";
 import type { CityDayPlan } from "../domain/city-days";
 import type { NightLodging } from "../domain/trip-days";
@@ -350,9 +352,20 @@ export function Itinerary({
             />
           </div>
 
+          {/* Closed. Reported as "the route's city list should only show on
+              press, showing every city by default is very heavy on the page" —
+              and it is the pane's tallest block by a distance: one row per city,
+              on a trip with six of them, above everything else in the column.
+              The heading carries the count and the cities' names, which is what
+              the list was being read for at a glance anyway. */}
           {stops.length > 0 && (
-            <section className="flex flex-col gap-3">
-              <SectionHeading level="section">הערים במסלול</SectionHeading>
+            <Disclosure
+              leading={<Route className="h-4 w-4" />}
+              title="הערים במסלול"
+              detail={stops.map((stop) => stop.city).join(" · ")}
+              meta={<Badge tone="neutral">{stops.length}</Badge>}
+              flush
+            >
               <RouteCities
                 stops={stops}
                 startDate={startDate}
@@ -361,7 +374,7 @@ export function Itinerary({
                 currentDay={currentDay}
                 onSelect={setChosenDay}
               />
-            </section>
+            </Disclosure>
           )}
 
           <EmptyDays
@@ -471,7 +484,15 @@ export function Itinerary({
         dayCount={dayCount}
       />
 
-      <NightStay stay={stay} />
+      {/* The bed and the to-do list, as two tiles rather than two full-width
+          blocks. See DayTiles. */}
+      <DayTiles
+        tripId={tripId}
+        stay={stay}
+        reminders={remindersForDay(reminders, active.day)}
+        dayNumber={active.day}
+        dayCount={dayCount}
+      />
 
       {/* Pin an hour, lock the booked ones — the same two controls the היום
           tab has, so a day is shaped the same wherever it is looked at. */}

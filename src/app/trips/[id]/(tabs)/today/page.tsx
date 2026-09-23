@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { TwoPane } from "@/components/layout";
 import { Skeleton } from "@/components/ui";
 import {
@@ -10,32 +10,24 @@ import {
   DayPager,
   DayStopsPanel,
   focusDayNumber,
-  forecastWindow,
   currentDayNumber,
   daysUntil,
   getItinerary,
   getSelectedDestinations,
-  getShareToken,
   getTrip,
   itineraryStops,
   listBookings,
   listDayNotes,
   listDayReminders,
   listExpenses,
-  listGear,
-  listMembers,
-  listPrepItems,
   lodgingByDay,
   NowCard,
   dateOfDay,
-  suggestPrepItems,
   TodayDuringAside,
-  TodayPrep,
   TodayStats,
   todayIn,
   tripOpenItems,
   tripPhase,
-  WeatherPanel,
 } from "@/features/trips";
 import type { Booking, NightLodging } from "@/features/trips";
 
@@ -60,13 +52,14 @@ export default async function TodayPage({
   // This page used to read the trip, then its five day-reads, then — on the
   // preparations screen — four more: three round trips to Frankfurt stacked
   // back to back, which is most of what a tab switch was waiting for. Every
-  // read the page can need now goes out together and costs one.
+  // read this page needs now goes out together and costs one.
   //
-  // The last four (prep items, share token, members, gear) belong to the
-  // preparations screen alone, and which screen this is cannot be known until
-  // the itinerary is back. Asking for them regardless costs four indexed reads
-  // that run beside the others and are dropped during the trip. Waiting to find
-  // out costs a whole round trip, every time, on the screen that is shown most.
+  // Four of them are gone outright. Prep items, the share token, the members
+  // and the gear were read here only to decide what the *preparations* screen
+  // should suggest — and they had to be asked for unconditionally, because
+  // which screen this is cannot be known until the itinerary is back. That
+  // screen has moved to /more/gear, so the tab that is opened most often no
+  // longer pays four indexed reads for a branch it does not take.
   const [
     trip,
     itinerary,
@@ -74,10 +67,6 @@ export default async function TodayPage({
     bookings,
     reminders,
     expenses,
-    prepItems,
-    shareToken,
-    members,
-    gear,
     dayNotes,
   ] = await Promise.all([
     getTrip(id),
@@ -86,10 +75,6 @@ export default async function TodayPage({
     listBookings(id),
     listDayReminders(id),
     listExpenses(id),
-    listPrepItems(id),
-    getShareToken(id),
-    listMembers(id),
-    listGear(id),
     listDayNotes(id),
   ]);
   if (!trip) notFound();
@@ -137,46 +122,18 @@ export default async function TodayPage({
         }
       : null;
 
-  // --- before the trip: preparations ------------------------------------
+  // --- before the trip: there is no "today" -------------------------------
+  //
+  // This branch used to render the preparations screen. It does not any more:
+  // that screen and the packing list were the same page written twice, so they
+  // were merged at /more/gear and the tab is not drawn before the trip starts
+  // (see TRIP_TABS).
+  //
+  // A redirect and not a 404, because the route is still reachable — the rail
+  // shortcut, a bookmark, a link someone was sent — and landing on "not found"
+  // for a tab that existed yesterday is the worse answer.
   if (!live && !showDay) {
-    const suggestions = suggestPrepItems({
-      bookings,
-      startDate: trip.start_date,
-      existing: prepItems,
-      isShared:
-        shareToken !== null ||
-        members.filter((member) => !member.is_owner).length > 0,
-      hasGear: gear.length > 0,
-      // Whether this device has push turned on is not known on the server;
-      // the suggestion stays and is one tap to dismiss.
-      pushEnabled: false,
-    });
-
-    const hasForecast =
-      forecastWindow(trip.start_date, trip.end_date, today).kind ===
-      "available";
-
-    return (
-      <TodayPrep
-        tripId={trip.id}
-        tripName={trip.name}
-        startDate={trip.start_date}
-        today={today}
-        bookings={bookings}
-        now={nowIso}
-        cities={routeCities}
-        open={open}
-        prepItems={prepItems}
-        suggestions={suggestions}
-        forecast={
-          hasForecast ? (
-            <Suspense fallback={<Skeleton className="h-28 rounded-card" />}>
-              <WeatherPanel trip={trip} />
-            </Suspense>
-          ) : undefined
-        }
-      />
-    );
+    redirect(`/trips/${id}/more/gear`);
   }
 
   // --- during (and after) the trip: the day ------------------------------

@@ -29,11 +29,11 @@ export type RailShortcut = {
 
 export const RAIL_CATALOG: readonly RailShortcut[] = [
   { key: "today", label: "היום", path: "today" },
-  { key: "days", label: "ימים", path: "days" },
-  { key: "explore", label: "יעדים", path: "explore" },
+  { key: "days", label: 'לו"ז', path: "days" },
+  { key: "explore", label: "תכנון", path: "explore" },
   { key: "guides", label: "מדריכי הערים", path: "more/guides" },
   { key: "chat", label: "הצ׳אט של הטיול", path: "more/chat" },
-  { key: "gear", label: "ציוד ואריזה", path: "more/gear" },
+  { key: "gear", label: "רשימות והכנות", path: "more/gear" },
   { key: "phrases", label: "מילים שימושיות", path: "more/phrases" },
   { key: "members", label: "מי בא איתנו", path: "more/members" },
   { key: "share", label: "שיתוף הטיול", path: "more/share" },

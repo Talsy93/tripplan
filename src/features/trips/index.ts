@@ -414,6 +414,7 @@ export {
   DayForecastPanel,
   DayStopsPanel,
 } from "./components/day-context-panels";
+export { DayTiles } from "./components/day-tiles";
 export { DayMapCard } from "./components/day-map-card";
 export { DayWeatherCard } from "./components/day-weather-card";
 export { OtherDestinationsWeather } from "./components/other-weather";
@@ -446,7 +447,12 @@ export {
 } from "./domain/rail-shortcuts";
 export type { RailShortcut, RailShortcutKey } from "./domain/rail-shortcuts";
 export { WorkspaceMap } from "./components/workspace-map";
-export { TRIP_TABS, tripTabHref, defaultTripTab } from "./domain/trip-tabs";
+export {
+  TRIP_TABS,
+  visibleTripTabs,
+  tripTabHref,
+  defaultTripTab,
+} from "./domain/trip-tabs";
 export type { TripTabSegment } from "./domain/trip-tabs";
 export {
   TONES,

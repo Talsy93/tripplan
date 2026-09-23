@@ -264,15 +264,23 @@ export function ReminderRow({
           {reminder.time_label}
         </span>
       )}
-      <span
-        className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-control",
-          done ? "bg-surface-2 text-muted" : "bg-callout-tint text-callout-ink",
-        )}
-        aria-hidden="true"
-      >
-        <Bell className="h-4 w-4" />
-      </span>
+      {/* Not in the compact list. In a card whose heading is a bell and whose
+          every row carries an hour, a bell per row identifies nothing — and it
+          is 44px of a 375px row, taken from the only column that has something
+          to say. Measured: the titles in the list were wrapping to four lines
+          with this in place. It stays in the standalone row, which appears on
+          its own inside a timeline and does have to say what it is. */}
+      {!compact && (
+        <span
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center rounded-control",
+            done ? "bg-surface-2 text-muted" : "bg-callout-tint text-callout-ink",
+          )}
+          aria-hidden="true"
+        >
+          <Bell className="h-4 w-4" />
+        </span>
+      )}
       <span className="flex min-w-0 flex-1 flex-col">
         {!compact && (
           <span className="text-caption font-bold tabular-nums text-muted">

@@ -670,6 +670,24 @@
    No reduced-motion guard: the block at the bottom of this file neutralises
    every animation in the app, and what is left is a static set of bars, which
    still reads as a placeholder. */
+/* The reminders tile's bell, and only when one of them is late.
+   A swing rather than a pulse or a shake: a bell that rings is the one motion
+   the object itself makes, so it reads as the tile saying something instead of
+   as an element asking to be looked at. Long pause between rings — 6s, of which
+   the motion is the first 0.8 — because it is a state, not an alert going off.
+   Neutralised with everything else by the prefers-reduced-motion rule at the
+   foot of this file. */
+@keyframes swing {
+  0%, 70%, 100% { transform: rotate(0deg); }
+  75% { transform: rotate(-9deg); }
+  81% { transform: rotate(7deg); }
+  87% { transform: rotate(-4deg); }
+  93% { transform: rotate(2deg); }
+}
+.animate-swing {
+  animation: swing 6s ease-in-out infinite;
+}
+
 @keyframes build-line {
   0% { transform: scaleX(0.08); opacity: 0.4; }
   35% { transform: none; opacity: 1; }

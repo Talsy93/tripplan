@@ -33,6 +33,7 @@ import type {
 import type { AiPhrasebook } from "@/features/trips/domain/phrasebook";
 import type { CityDayPlan } from "@/features/trips/domain/city-days";
 import type { NightLodging } from "@/features/trips/domain/trip-days";
+import type { DayReminder } from "@/features/trips/domain/day-reminders";
 
 export const LONG =
   "מסעדה יפנית מסורתית עם תפריט אומקסה של שנים־עשר מנות ותצפית על הגן ההיסטורי";
@@ -548,6 +549,38 @@ export const INVITES: TripInvite[] = [
     role: "editor",
     created_at: "2026-01-04T00:00:00Z",
     accepted_at: null,
+  },
+];
+
+// A day's reminders, with one whose hour has already gone by — that one is the
+// whole reason the tile swings, so a fixture without it cannot show the state.
+export const DAY_REMINDERS: DayReminder[] = [
+  {
+    id: id("b1"),
+    trip_id: TRIP_ID,
+    day_number: 1,
+    time_label: "09:00",
+    title: "לאסוף את כרטיס ה-Suica מהדלפק",
+    done: true,
+    created_at: NOW,
+  },
+  {
+    id: id("b2"),
+    trip_id: TRIP_ID,
+    day_number: 1,
+    time_label: "11:30",
+    title: "להזמין שולחן ל-Sushi Dai",
+    done: false,
+    created_at: NOW,
+  },
+  {
+    id: id("b3"),
+    trip_id: TRIP_ID,
+    day_number: 1,
+    time_label: "19:00",
+    title: LONG,
+    done: false,
+    created_at: NOW,
   },
 ];
 

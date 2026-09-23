@@ -6,14 +6,38 @@
 //
 // Written in reading order. Under dir="rtl" a flex row puts the first entry on
 // the right, which is where a Hebrew reader starts.
+// "ימים" became "לו״ז" and "יעדים" became "תכנון" on request, and both are
+// better names for the reason the tabs were renamed the first time: they say
+// what you do there rather than what is listed there. The middle tab is not a
+// list of days, it is the schedule; the third is not a list of destinations,
+// it is where the trip gets planned.
 export const TRIP_TABS = [
-  { segment: "today", label: "היום" },
-  { segment: "days", label: "ימים" },
-  { segment: "explore", label: "יעדים" },
+  {
+    segment: "today",
+    label: "היום",
+    // There is no "today" until the trip starts.
+    //
+    // Before then this tab was the preparations screen — a countdown, the prep
+    // checklist, what is still open — which is a list page wearing the name of
+    // a day, and the app already has a list page. So the tab is not drawn
+    // until the trip is on, and /today sends you to the lists in the meantime.
+    // The route is untouched: a bookmark or a shared link still resolves.
+    onlyDuringTrip: true,
+  },
+  { segment: "days", label: 'לו"ז' },
+  { segment: "explore", label: "תכנון" },
   { segment: "more", label: "עוד" },
 ] as const;
 
 export type TripTabSegment = (typeof TRIP_TABS)[number]["segment"];
+
+// The tabs actually drawn. `live` is "the trip has started and has not
+// finished" — the only state in which a "today" exists.
+export function visibleTripTabs(
+  live: boolean,
+): readonly { segment: TripTabSegment; label: string }[] {
+  return TRIP_TABS.filter((tab) => live || !("onlyDuringTrip" in tab));
+}
 
 export function tripTabHref(tripId: string, segment: TripTabSegment) {
   return `/trips/${tripId}/${segment}`;

@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useState } from "react";
 import { ChevronLeft, Sparkles } from "lucide-react";
 import {
+  Badge,
   Banner,
   Button,
+  Card,
   Disclosure,
   Field,
   Textarea,
@@ -166,28 +168,51 @@ export function PlanningPanel({ tripId, initialCities }: PlanningPanelProps) {
 
       {cities.length > 0 && (
         <>
-          {/* A name you can scan and a reason you can ask for.
-              These were cards carrying the city and a paragraph about it, and
-              a round returns five at a time — so a second round put ten
-              paragraphs between the brief and the button that asks for more.
-              The name is what you skim; "why this one" is what you open. */}
-          <ul className="flex flex-col gap-2">
-            {cities.map((city, index) => (
-              <li key={`${city.name}-${index}`}>
-                <Disclosure tone="suggest" title={city.name}>
-                  <p className="text-sm text-muted">{city.description}</p>
+          {/* One press opens the whole list, and inside it the cards are the
+              cards again.
+
+              This went too far the first time. Each city became a row that had
+              to be opened on its own, which is five presses to compare five
+              suggestions — and comparing them is the entire job of this list.
+              Corrected on report: "bring the destination search results back to
+              the display they had, and unify it the way you did for browsing by
+              category, where one press opens the list."
+
+              Which is the right shape: the heaviness was never the card, it was
+              that five of them arrive unasked above everything else on the tab.
+              One row that says how many, and the cards behind it. */}
+          <Disclosure
+            tone="suggest"
+            leading={<Sparkles className="h-4 w-4" />}
+            title="היעדים שהוצעו"
+            detail="לחצו לפתיחה — כל אחד מוביל למדריך שלו"
+            meta={<Badge tone="neutral">{cities.length}</Badge>}
+          >
+            <ul className="grid gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
+              {cities.map((city, index) => (
+                <li key={`${city.name}-${index}`}>
                   <Link
                     href={`/trips/${tripId}/city/${encodeURIComponent(city.name)}`}
-                    className="flex w-fit items-center gap-1 rounded-control text-sm font-semibold text-primary-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="block h-full rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                   >
-                    המדריך של {city.name}
-                    {/* RTL: "forward" points left. */}
-                    <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                    <Card
+                      variant="interactive"
+                      className="flex h-full flex-col gap-1"
+                    >
+                      <span className="flex items-center gap-1 text-base font-semibold text-primary-ink">
+                        {city.name}
+                        {/* RTL: "forward" points left. */}
+                        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <span className="text-sm text-muted">
+                        {city.description}
+                      </span>
+                    </Card>
                   </Link>
-                </Disclosure>
-              </li>
-            ))}
-          </ul>
+                </li>
+              ))}
+            </ul>
+          </Disclosure>
 
           {/* Adds to the list rather than replacing it — the same affordance
               the city guide has had for its categories since stage 8. The

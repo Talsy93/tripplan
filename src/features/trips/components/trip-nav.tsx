@@ -12,7 +12,7 @@ import {
 } from "@/components/layout";
 import { cn } from "@/lib/cn";
 import {
-  TRIP_TABS,
+  visibleTripTabs,
   tripTabHref,
   type TripTabSegment,
 } from "../domain/trip-tabs";
@@ -26,10 +26,10 @@ const ICONS: Record<TripTabSegment, typeof Sun> = {
   more: Menu,
 };
 
-function useTripNavItems(tripId: string): NavItem[] {
+function useTripNavItems(tripId: string, live: boolean): NavItem[] {
   const pathname = usePathname();
 
-  return TRIP_TABS.map((tab) => {
+  return visibleTripTabs(live).map((tab) => {
     const Icon = ICONS[tab.segment];
     const href = tripTabHref(tripId, tab.segment);
     return {
@@ -57,8 +57,16 @@ function useTripNavItems(tripId: string): NavItem[] {
 // The cost is three background renders when a trip opens. If that ever becomes
 // the wrong trade — many more tabs, or a tab that is expensive to render —
 // this prop is the one line to remove.
-export function TripTabs({ tripId }: { tripId: string }) {
-  const items = useTripNavItems(tripId);
+export function TripTabs({
+  tripId,
+  // Whether the trip is being lived right now. False before it starts and after
+  // it ends, and then the "today" tab is not drawn — see TRIP_TABS.
+  live = false,
+}: {
+  tripId: string;
+  live?: boolean;
+}) {
+  const items = useTripNavItems(tripId, live);
 
   return (
     <nav
@@ -135,8 +143,14 @@ export function TripRail({
 
 // --- the pre-v5 presentations, kept for the preview harness -----------------
 
-export function TripNav({ tripId }: { tripId: string }) {
-  const items = useTripNavItems(tripId);
+export function TripNav({
+  tripId,
+  live = false,
+}: {
+  tripId: string;
+  live?: boolean;
+}) {
+  const items = useTripNavItems(tripId, live);
 
   return (
     <>
@@ -167,12 +181,14 @@ export function TripNav({ tripId }: { tripId: string }) {
 
 export function TripSideNav({
   tripId,
+  live = false,
   hues = [],
   initial,
   header,
   footer,
 }: {
   tripId: string;
+  live?: boolean;
   hues?: string[];
   initial?: string;
   header?: ReactNode;
@@ -180,7 +196,7 @@ export function TripSideNav({
 }) {
   return (
     <SideNav
-      items={useTripNavItems(tripId)}
+      items={useTripNavItems(tripId, live)}
       hues={hues}
       initial={initial}
       header={header}

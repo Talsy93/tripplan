@@ -323,6 +323,36 @@ export function BookingList({
                     </span>
                   </div>
 
+                  {/* Everything below the title opens on request.
+                      Asked for across the app: "on the cards that show the
+                      hotel or the flight, on every page they appear, show only
+                      the title and a button for more, and only then add the
+                      description and the extra details."
+
+                      The date stays on the summary line. A booking's title is
+                      "LY086" or a hotel name, and a list of those with no dates
+                      cannot be scanned for the one thing a booking list is
+                      scanned for — which day this is. The route, the times, the
+                      confirmation code, the price and the note are what fold.
+
+                      A <details> below the header rather than the header
+                      itself being the summary: the header already holds the
+                      edit and remove buttons, and a button inside a <summary>
+                      is a press target fighting the one that opens it. */}
+                  <details className="group/booking min-w-0">
+                    <summary className="flex min-w-0 cursor-pointer list-none items-center gap-1.5 px-4 pb-3 pt-1 text-caption font-semibold text-primary-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+                      <span className="min-w-0 truncate font-normal text-muted">
+                        {formatWhen(booking.starts_at)}
+                      </span>
+                      <span className="ms-auto flex shrink-0 items-center gap-1">
+                        פרטים
+                        <ChevronDown
+                          className="h-3.5 w-3.5 transition-transform group-open/booking:rotate-180"
+                          aria-hidden="true"
+                        />
+                      </span>
+                    </summary>
+
                   {kind.isTransport ? (
                     <TransportLeg booking={booking} />
                   ) : (
@@ -368,6 +398,7 @@ export function BookingList({
                       {booking.note && <span>{booking.note}</span>}
                     </div>
                   )}
+                  </details>
                 </Card>
               </SwipeAction>
 

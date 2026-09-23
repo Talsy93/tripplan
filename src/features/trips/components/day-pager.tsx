@@ -9,12 +9,11 @@ import { cityToneClass, cityToneMap } from "../domain/tone";
 import { clampDay, dateOfDay, dayOfTripLabel } from "../domain/trip-days";
 import { DayStrip } from "./day-strip";
 import { DayTimeline } from "./day-timeline";
-import { NightStay } from "./night-stay";
 import { AddReminderButton } from "./reminder-dialog";
 import { AnchorsButton } from "./anchors-dialog";
 import { RescheduleButton } from "./reschedule-button";
 import { minutesOfDay, remindersForDay } from "../domain/day-reminders";
-import { DayReminders } from "./day-reminders";
+import { DayTiles } from "./day-tiles";
 import { notesForDay } from "../domain/day-notes";
 import { AddDayNoteButton, DayNotes } from "./day-note";
 import type { DayReminder } from "../domain/day-reminders";
@@ -167,7 +166,7 @@ export function DayPager({
         dayCount={dayCount}
       />
 
-      <NightStay stay={stay} />
+
 
       {/* The two things you do to a day while living it: pin a reminder to an
           hour, and tell the plan where you actually are. */}
@@ -200,9 +199,14 @@ export function DayPager({
       {/* The day's reminders as a checklist, above the schedule and no longer
           inside it. On this tab the question is what you still have to do, not
           when in the day it sits — see DayReminders. */}
-      <DayReminders
+      {/* The bed and the to-do list, side by side. They were a full-width row
+          and a full-width card stacked above the schedule; both answer a
+          question one number wide. See DayTiles. */}
+      <DayTiles
         tripId={tripId}
+        stay={stay}
         reminders={remindersForDay(reminders, active.day)}
+        dayNumber={active.day}
         dayCount={dayCount}
         nowMinutes={nowMinutes}
       />

@@ -36,6 +36,7 @@ import {
   CreateTripForm,
   daysUntil,
   DayPager,
+  DayTiles,
   DayTimeline,
   DayMapCard,
   DayWeatherCard,
@@ -149,7 +150,7 @@ const FRAME_NAV = [
   { href: "#days", label: "ימים", icon: <CalendarDays className="h-5 w-5" /> },
   {
     href: "#explore",
-    label: "מה עושים?",
+    label: "תכנון",
     icon: <Compass className="h-5 w-5" />,
   },
   { href: "#map", label: "מפה", icon: <MapIcon className="h-5 w-5" /> },
@@ -231,7 +232,7 @@ function appFrame({
           trailing={<ShareButton tripId={f.TRIP_ID} memberCount={2} isShared />}
         />
       }
-      tabs={<TripTabs tripId={f.TRIP_ID} />}
+      tabs={<TripTabs tripId={f.TRIP_ID} live={phase.kind === "during"} />}
       map={
         <WorkspaceMap
           stops={cities.length > 0 ? f.STOPS : []}
@@ -419,7 +420,7 @@ export const SCENES: Scene[] = [
             trailing={<Button variant="outline" size="sm">שיתוף</Button>}
           />
         }
-        tabs={<TripTabs tripId={f.TRIP_ID} />}
+      tabs={<TripTabs tripId={f.TRIP_ID} live />}
         map={<WorkspaceMap stops={f.STOPS} places={f.ROUTE.places} liveCity="טוקיו" />}
       >
         <NowCard day={f.ITINERARY[0]} date={f.TODAY} now={`${f.TODAY}T07:10:00Z`} />
@@ -1314,7 +1315,7 @@ export const SCENES: Scene[] = [
                 },
                 {
                   href: "#3",
-                  label: "מה עושים?",
+                  label: "תכנון",
                   icon: <Compass className="h-5 w-5" />,
                 },
                 {
@@ -1582,6 +1583,21 @@ export const SCENES: Scene[] = [
   },
 
   // ---- itinerary -----------------------------------------------------------
+  {
+    slug: "day-tiles",
+    title: "המיטה והמשימות · שני אריחים",
+    note: "היו שני בלוקים ברוחב מלא מעל הלו״ז. שתי שאלות שהתשובה לכל אחת היא מספר אחד — יש מיטה הלילה, וכמה נשאר לעשות. הפעמון מתנדנד רק כששעה של תזכורת עברה, והלחיצה פותחת פאנל ברוחב מלא מתחת לזוג",
+    render: () => (
+      <DayTiles
+        tripId={f.TRIP_ID}
+        stay={f.LODGING}
+        reminders={f.DAY_REMINDERS}
+        dayNumber={1}
+        dayCount={14}
+        nowMinutes={13 * 60}
+      />
+    ),
+  },
   {
     slug: "day-pager",
     title: "רצועת הימים",

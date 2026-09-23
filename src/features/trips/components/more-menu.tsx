@@ -40,6 +40,26 @@ import { DeleteTripButton } from "./delete-trip-button";
 // heading it shared with the public link. "פרטי הטיול" left the list for the
 // card at the bottom, which is where the design puts it.
 const ENTRIES = [
+  // First, on request: "put the trip details first, so it is the most
+  // reachable." It had been moved *out* of this list in T5 to the card at the
+  // bottom, on the reasoning that the design puts it there — but this is the
+  // row that holds the name, the dates and the bookings, which is the most
+  // edited screen in the app and the one every other screen depends on. Bottom
+  // of a seven-row menu is the wrong place for it.
+  {
+    segment: "trip",
+    label: "פרטי הטיול",
+    hint: "שם, תאריכים, טיסות ולינה, הוצאות",
+    Icon: Luggage,
+    tone: "sky",
+  },
+  {
+    segment: "gear",
+    label: "רשימות והכנות",
+    hint: "מה לעשות לפני היציאה, ומה לארוז",
+    Icon: Backpack,
+    tone: "amber",
+  },
   {
     segment: "guides",
     label: "מדריכי הערים",
@@ -53,13 +73,6 @@ const ENTRIES = [
     hint: "שיחון בשפת היעד, עם תעתיק",
     Icon: Languages,
     tone: "mint",
-  },
-  {
-    segment: "gear",
-    label: "ציוד ואריזה",
-    hint: "רשימת אריזה שאתם ממלאים בעצמכם",
-    Icon: Backpack,
-    tone: "amber",
   },
   {
     segment: "chat",
@@ -137,6 +150,21 @@ export function MoreMenu({
   // The owner is in this list and is not "shared with".
   const sharedWith = members.filter((member) => !member.is_owner).length;
 
+  // The booking state rides on the "פרטי הטיול" row, because the page it opens
+  // is where the bookings are.
+  const tripState =
+    needsAttention > 0
+      ? {
+          text:
+            needsAttention === 1
+              ? "הזמנה אחת דורשת תשומת לב"
+              : `${needsAttention} הזמנות דורשות תשומת לב`,
+          urgent: true,
+        }
+      : bookings.length > 0
+        ? { text: `${bookings.length} הזמנות · תאריכים, מזג אוויר והוצאות` }
+        : { text: "תאריכים, טיסות, רכבות ולינה" };
+
   // Keyed by segment so a new entry without a state line falls back to its
   // fixed hint rather than rendering an empty row.
   const state: Partial<Record<string, { text: string; urgent?: boolean }>> = {
@@ -164,23 +192,8 @@ export function MoreMenu({
           }
         : undefined,
     share: shareToken !== null ? { text: "קישור פעיל" } : undefined,
+    trip: tripState,
   };
-
-  // The booking state rides on the "פרטי הטיול" row, because the page it opens
-  // is where the bookings are — moving it out of the list must not lose that
-  // signal.
-  const tripState =
-    needsAttention > 0
-      ? {
-          text:
-            needsAttention === 1
-              ? "הזמנה אחת דורשת תשומת לב"
-              : `${needsAttention} הזמנות דורשות תשומת לב`,
-          urgent: true,
-        }
-      : bookings.length > 0
-        ? { text: `${bookings.length} הזמנות · תאריכים, מזג אוויר והוצאות` }
-        : { text: "תאריכים, טיסות, רכבות ולינה" };
 
   return (
     <>
@@ -253,43 +266,15 @@ export function MoreMenu({
         </ul>
       </Card>
 
-      {/* The second card the design draws: the trip's own record, and the one
-          action that destroys it, separated from the seven things you press
-          every day. Law 05 asks for exactly this — a destructive action does not
-          sit at rest among them. */}
-      <Card padding="none" className="w-full max-w-2xl overflow-hidden">
-        <Link
-          href={`/trips/${tripId}/more/trip`}
-          className={cn(
-            "group/row flex min-w-0 items-center gap-3 border-b border-border px-4 py-3.5 transition-colors hover:bg-surface-2",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-          )}
-        >
-          {/* Neutral, not a tone. The seven rows above are places to go; this is
-              the trip's own record, and the design keeps it grey to say so. */}
-          <span
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-surface-2 text-muted"
-            aria-hidden="true"
-          >
-            <Luggage className="h-5 w-5" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-base font-semibold">פרטי הטיול</span>
-            <span
-              className={cn(
-                "block min-w-0 truncate text-sm",
-                tripState.urgent ? "text-warning-ink" : "text-muted",
-              )}
-            >
-              {tripState.text}
-            </span>
-          </span>
-          <ChevronLeft
-            className="h-5 w-5 shrink-0 text-border-strong +NUDGE+"
-            aria-hidden="true"
-          />
-        </Link>
+      {/* The second card the design draws: the one action that destroys the
+          trip, separated from the rows you press every day. Law 05 asks for
+          exactly this — a destructive action does not sit at rest among them.
 
+          "פרטי הטיול" used to be the row above this one, and it is now the
+          first row of the menu instead: it holds the name, the dates and the
+          bookings, and bottom-of-the-last-card is the wrong place for the
+          screen every other screen depends on. */}
+      <Card padding="none" className="w-full max-w-2xl overflow-hidden">
 
         {/* It used to be at the bottom of /more/trip, under the expense summary
             — correct in spirit and two screens deep in practice. Here it is the

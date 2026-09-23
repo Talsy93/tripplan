@@ -9,7 +9,7 @@ import {
   RouteMapPanel,
 } from "@/features/trips";
 
-export const metadata = { title: "מה עושים?" };
+export const metadata = { title: "תכנון" };
 
 export default async function ExplorePage({
   params,

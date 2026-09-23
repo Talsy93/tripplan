@@ -9,7 +9,7 @@ import { PlaceSearch } from "./place-search";
 import { PlanningPanel } from "./planning-panel";
 import { SelectedList } from "./selected-list";
 
-// The "מה עושים?" screen, in the design's order.
+// The "תכנון" screen, in the design's order.
 //
 // A component rather than JSX in the page, for the reason TodayBefore gives: the
 // harness cannot render the page — the page reads the database — so a
@@ -86,7 +86,7 @@ export function ExploreScreen({
       {/* The band above names the trip and the app bar names the tab, so the
           screen needs no visible title of its own — and the design's first
           element under the search is the category grid. */}
-      <h1 className="sr-only">מה עושים?</h1>
+      <h1 className="sr-only">תכנון הטיול</h1>
 
       <PlaceSearch
         tripId={tripId}
