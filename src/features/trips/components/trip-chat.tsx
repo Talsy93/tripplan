@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Bot, Mic, Route, Sparkles, Trash2 } from "lucide-react";
-import { Banner } from "@/components/ui";
+import { Banner, Button, SegmentedControl } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { applyPlan, resetChat } from "../application/chat-actions";
 import { aiErrorFromResponse } from "../domain/ai-errors";
 import { PlanPreview } from "./plan-preview";
 import type { TripChatMessage } from "../domain/chat";
+import { planTotals } from "../domain/trip-plan";
 import type { AiTripPlan } from "../domain/trip-plan";
 
 type Turn = {
@@ -95,6 +96,9 @@ export function TripChat({
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState<AiTripPlan | null>(null);
   const [planning, setPlanning] = useState(false);
+  // Which half of the screen is showing. "chat" is the conversation; "plan" is
+  // what the conversation would add to the trip.
+  const [view, setView] = useState<"chat" | "plan">("chat");
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
@@ -216,6 +220,9 @@ export function TripChat({
         return;
       }
       setPlan((await res.json()) as AiTripPlan);
+      // The answer lives on the other tab, so go there rather than leaving a
+      // built plan behind a switch nobody pressed.
+      setView("plan");
     } catch {
       setError("שגיאת רשת. נסו שוב.");
     } finally {
@@ -299,13 +306,89 @@ export function TripChat({
         </div>
       </section>
 
+      {/* Two halves of one assistant.
+          Reported as "why does the AI tab's output not look like the design —
+          is it just a chat for us?", and it was: the design's answer is a day
+          plan card with stops and a call to add it, while ours was a thread
+          with that card reachable only from a small button below the last
+          message. The card existed (PlanPreview draws exactly what the export
+          draws); it was filed where nobody would find it.
+
+          A switcher rather than one long scroll, because these answer different
+          questions: "talk it through" and "what would this add to my trip". The
+          count on the second tab is the point of it — it says there is
+          something to look at without opening it. */}
+      <SegmentedControl
+        aria-label="תצוגת העוזר"
+        value={view}
+        onChange={(next: string) => setView(next === "plan" ? "plan" : "chat")}
+        items={[
+          { id: "chat", label: "שיחה חופשית" },
+          {
+            id: "plan",
+            label: "מסלול מוצע",
+            // The count is the point of the tab: it says there is something to
+            // look at without opening it.
+            count: plan ? planTotals(plan).items : undefined,
+          },
+        ]}
+      />
+
       {applied && (
         <Banner tone="success">
           נוסף לטיול — היעדים והפריטים מופיעים עכשיו במסלול ובמפה.
         </Banner>
       )}
 
-      <div className="flex flex-1 flex-col gap-6" aria-live="polite">
+      {view === "plan" && (
+        <div className="flex flex-1 flex-col gap-4">
+          {plan ? (
+            <PlanPreview
+              plan={plan}
+              applying={applying}
+              onApply={() => void confirmPlan()}
+              onDismiss={() => setPlan(null)}
+            />
+          ) : (
+            <div className="flex flex-col items-start gap-3 rounded-card bg-surface p-4 shadow-card">
+              <div className="flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary"
+                >
+                  <Route className="h-5 w-5" />
+                </span>
+                <h2 className="text-lg font-semibold leading-6">
+                  מסלול מהשיחה
+                </h2>
+              </div>
+              <p className="max-w-measure text-sm text-muted">
+                {turns.length === 0
+                  ? "ספרו לעוזר מה בא לכם, ואז אפשר להפוך את השיחה למסלול מוצע — יעדים ופריטים שאפשר להוסיף לטיול בלחיצה."
+                  : "אפשר להפוך את השיחה למסלול מוצע. שום דבר לא נכנס לטיול עד שתאשרו."}
+              </p>
+              <Button
+                type="button"
+                onClick={() => void buildPlan()}
+                loading={planning}
+                disabled={turns.length === 0 || sending}
+              >
+                <Route className="h-4 w-4" aria-hidden="true" />
+                בנו מסלול מהשיחה
+              </Button>
+              {error && <Banner tone="danger">{error}</Banner>}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div
+        className={cn(
+          "flex-1 flex-col gap-6",
+          view === "chat" ? "flex" : "hidden",
+        )}
+        aria-live="polite"
+      >
         {turns.length > 0 && (
           <div className="flex justify-center">
             <span className="rounded-full bg-surface-high px-2 py-0.5 text-[0.625rem] leading-[0.875rem] font-semibold text-muted">
@@ -372,21 +455,7 @@ export function TripChat({
           </div>
         )}
 
-        {plan && (
-          <div className="flex w-full items-start gap-2">
-            <BotAvatar />
-            <div className="min-w-0 flex-1">
-              <PlanPreview
-                plan={plan}
-                applying={applying}
-                onApply={() => void confirmPlan()}
-                onDismiss={() => setPlan(null)}
-              />
-            </div>
-          </div>
-        )}
-
-        {error && <Banner tone="danger">{error}</Banner>}
+        {error && view === "chat" && <Banner tone="danger">{error}</Banner>}
 
         {/* Turning the conversation into a plan asks the model again, so it is
             its own press — the tuning row Stitch draws under a plan card. */}
