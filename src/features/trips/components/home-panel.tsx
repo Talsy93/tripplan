@@ -4,10 +4,11 @@ import { useEffect, useRef } from "react";
 import type { MouseEvent, ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Clock, MapPinned, Plane, X } from "lucide-react";
-import { Badge, buttonClasses, EmptyState } from "@/components/ui";
+import { ChevronLeft, Clock, Plane, X } from "lucide-react";
+import { Badge, buttonClasses } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { NewTripButton } from "./create-trip-form";
+import { AppIntro } from "./app-intro";
 import { daysUntil, formatShortDate } from "../domain/trip";
 import { standingLabel } from "../domain/trip-order";
 import type { OpenItem } from "../domain/open-items";
@@ -93,7 +94,9 @@ export function HomePanel({
               כל הטיולים
             </button>
           )}
-          <NewTripButton />
+          {/* With no trips the intro below carries the button, beside the
+              explanation of what it starts. */}
+          {entries.length > 0 && <NewTripButton />}
         </div>
       </div>
 
@@ -108,15 +111,11 @@ export function HomePanel({
           located={isLocated(featured.trip.id)}
           onSelect={onSelect}
         />
-      ) : (
-        <div>
-          <EmptyState
-            icon={<MapPinned />}
-            title="עוד אין טיולים"
-            description="פתחו טיול חדש, בחרו יעדים, והמפה כאן תתמלא."
-          />
-        </div>
-      )}
+      ) : entries.length === 0 ? (
+        // No trips: what the app is, in place of an empty list. It was the
+        // site's landing page; with trips it is not shown at all.
+        <AppIntro />
+      ) : null}
 
       {others.length > 0 && (
         <section className="mt-5 flex flex-col gap-2 rounded-card bg-surface p-2 shadow-card">

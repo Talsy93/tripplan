@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="50%" stop-color="#0369A1"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="sunset-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FB923C"/>
+      <stop offset="100%" stop-color="#EA580C"/>
+    </linearGradient>
+    <linearGradient id="path-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#F8FAFC"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Squircle App Icon Base -->
+  <rect width="512" height="512" rx="112" fill="url(#bg-grad)"/>
+
+  <!-- Subtle Map Grid lines in background -->
+  <circle cx="256" cy="256" r="180" stroke="#38BDF8" stroke-width="1.5" stroke-opacity="0.15" stroke-dasharray="8 8"/>
+  <circle cx="256" cy="256" r="120" stroke="#38BDF8" stroke-width="1.5" stroke-opacity="0.2"/>
+  <line x1="256" y1="56" x2="256" y2="456" stroke="#38BDF8" stroke-width="1.5" stroke-opacity="0.15"/>
+  <line x1="56" y1="256" x2="456" y2="256" stroke="#38BDF8" stroke-width="1.5" stroke-opacity="0.15"/>
+
+  <!-- Compass / Pin & Mountain Mark -->
+  <g filter="url(#shadow)">
+    <!-- Stylized Modern 'M' / Mountain Path / Pin Combination -->
+    <path d="M140 330 L220 180 C234 154 278 154 292 180 L372 330 C382 348 368 370 348 370 L164 370 C144 370 130 348 140 330 Z" fill="#0C4A6E" fill-opacity="0.6"/>
+    
+    <!-- Dynamic Travel Route Arc / Paper Plane Flight Trail -->
+    <path d="M120 310 C160 210 230 140 350 170 C380 178 395 205 385 230 C370 265 310 295 230 320" stroke="url(#path-grad)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <!-- Central Location Pin Needle & Compass Star -->
+    <path d="M256 120 L276 220 L356 256 L276 292 L256 392 L236 292 L156 256 L236 220 Z" fill="#FFFFFF"/>
+    
+    <!-- Warm Sun / Direction Core Indicator -->
+    <circle cx="256" cy="256" r="28" fill="url(#sunset-grad)"/>
+    <circle cx="256" cy="256" r="14" fill="#FFFFFF"/>
+
+    <!-- North/Destination highlight pulse -->
+    <circle cx="256" cy="116" r="14" fill="#F97316"/>
+    <circle cx="256" cy="116" r="24" stroke="#F97316" stroke-width="3" stroke-opacity="0.5"/>
+  </g>
+
+  <!-- Wordmark at bottom -->
+  <text x="256" y="446" text-anchor="middle" font-family="Rubik, Heebo, sans-serif" font-size="44" font-weight="900" fill="#FFFFFF" letter-spacing="1">My<tspan fill="#38BDF8">Trip</tspan></text>
+</svg>

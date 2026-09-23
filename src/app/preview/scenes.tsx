@@ -482,6 +482,25 @@ export const SCENES: Scene[] = [
       );
     },
   },
+  // No trips: the explanation that used to be the landing page, in place of
+  // the empty list. With trips it is not drawn at all (home-v5).
+  {
+    slug: "home-empty",
+    title: "הטיולים שלי · בלי טיולים",
+    note: "אין דף נחיתה: / מפנה לכאן. בלי טיולים מופיע ההסבר על האפליקציה עם כפתור טיול חדש",
+    bleed: true,
+    render: () => (
+      <div className="flex min-h-dvh">
+        <div className="sticky top-0 hidden h-dvh w-rail shrink-0 lg:block">
+          <IconRail items={[]} initial="ט" />
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <AppHeader wide brand className="lg:hidden" />
+          <HomeScreen mapped={[]} entries={[]} featured={null} />
+        </div>
+      </div>
+    ),
+  },
   // ---- the frame itself ----------------------------------------------------
   //
   // Every other scene here is a component measured on its own. This one is the
