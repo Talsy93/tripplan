@@ -177,7 +177,7 @@ export function TonightCard({
         </div>
         <div className="flex items-center gap-2 pt-1">
           <Link
-            href={`/trips/${tripId}/more/trip`}
+            href={`/trips/${tripId}/more`}
             className="flex min-h-[2.625rem] flex-1 items-center justify-center gap-1 rounded-lg bg-surface-sunken text-xs font-semibold text-primary transition-colors hover:bg-surface-high"
           >
             <FileText className="h-[1.125rem] w-[1.125rem]" aria-hidden="true" />

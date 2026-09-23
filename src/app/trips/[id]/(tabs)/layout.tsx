@@ -136,7 +136,14 @@ export default async function TripTabsLayout({
       header={
         <AppHeader
           wide
-          title={<TripNameButton tripId={trip.id} name={trip.name} />}
+          title={
+            <TripNameButton
+              tripId={trip.id}
+              name={trip.name}
+              startDate={trip.start_date}
+              endDate={trip.end_date}
+            />
+          }
           back={
             <Link
               href="/profile"

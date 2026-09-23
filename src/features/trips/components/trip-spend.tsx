@@ -28,7 +28,7 @@ export function TripSpend({
   return (
     <Card variant="interactive" padding="none" className="overflow-hidden">
       <Link
-        href={`/trips/${tripId}/more/trip`}
+        href={`/trips/${tripId}/more#expenses`}
         className="flex items-center gap-3 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
       >
         <Glyph>

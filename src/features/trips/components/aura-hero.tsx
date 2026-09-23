@@ -291,7 +291,7 @@ export function AuraHero({
             <Link
               href={
                 unplanned
-                  ? `/trips/${tripId}/more/trip`
+                  ? `/trips/${tripId}/more?edit=trip`
                   : `/trips/${tripId}/map`
               }
               aria-label={unplanned ? `התאריכים של ${name}` : `המפה של ${name}`}

@@ -13,7 +13,7 @@
 // geocoder could not place, a name with no break opportunity in it. Reaching
 // them through the UI means creating that data by hand every time.
 
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import {
 
   AURA_PALETTES,
@@ -61,7 +61,7 @@ import {
   ShareButton,
   StartHere,
   ShareTrip,
-  TripDatesForm,
+  TripNameButton,
   TripAuraBand,
   orderTripsByProximity,
   pickFeaturedTrip,
@@ -1720,32 +1720,36 @@ export const SCENES: Scene[] = [
       />
     ),
   },
+  // "עריכת הטיול" — the header's one dialog for the name and the dates,
+  // which replaced the "פרטי הטיול" page. Press the name to open it.
   {
-    slug: "trip-dates",
-    title: "תאריכי הטיול · עוד לא נקבעו",
-    note: "השורה היא הפקד. בלי תאריכים היא הזמנה לפעולה בכחול ולא שורה ריקה — טיול בלי תאריכים לא יכול לבנות לו״ז",
+    slug: "trip-edit",
+    title: "עריכת הטיול · שם ותאריכים",
+    note: "הכותרת היא הפקד: לחיצה על השם פותחת דיאלוג אחד עם השם ושני התאריכים. נשמר רק מה שהשתנה",
     render: () => (
-      <TripDatesForm tripId={f.TRIP_ID} startDate={null} endDate={null} />
+      <Suspense>
+        <TripNameButton
+          tripId={f.TRIP_ID}
+          name="הטיול לרומא ופירנצה"
+          startDate="2026-09-12"
+          endDate="2026-09-19"
+        />
+      </Suspense>
     ),
   },
   {
-    slug: "trip-dates-set",
-    title: "תאריכי הטיול · נקבעו",
-    note: "הטופס ירד לתוך דיאלוג: שני שדות תאריך פתוחים לתמיד היו כל התצוגה של מסך שמשנים בו תאריכים בערך פעם אחת. הלחיצה על השורה פותחת אותם",
+    slug: "trip-edit-undated",
+    title: "עריכת הטיול · בלי תאריכים",
+    note: "טיול בלי תאריכים — שני השדות ריקים",
     render: () => (
-      <TripDatesForm
-        tripId={f.TRIP_ID}
-        startDate="2026-09-24"
-        endDate="2026-10-07"
-      />
-    ),
-  },
-  {
-    slug: "trip-dates-open-ended",
-    title: "תאריכי הטיול · בלי חזרה",
-    note: "יש יציאה ואין חזרה — השורה אומרת את שניהם, כי ״יוצאים ב-24.09״ לבדו נקרא כאילו התאריך השני פשוט לא נטען",
-    render: () => (
-      <TripDatesForm tripId={f.TRIP_ID} startDate="2026-09-24" endDate={null} />
+      <Suspense>
+        <TripNameButton
+          tripId={f.TRIP_ID}
+          name="יפן בסתיו"
+          startDate={null}
+          endDate={null}
+        />
+      </Suspense>
     ),
   },
 

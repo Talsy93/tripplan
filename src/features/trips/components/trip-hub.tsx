@@ -12,12 +12,12 @@ import {
   Languages,
   LayoutGrid,
   ListChecks,
-  Luggage,
   MessageSquareText,
   PlaneTakeoff,
   Share2,
   Ticket,
   UserPlus,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { useToast } from "@/components/ui";
@@ -33,7 +33,9 @@ import { AddBookingButton } from "./booking-form";
 import { ChecklistCard } from "./checklist-card";
 import { DeleteTripButton } from "./delete-trip-button";
 import { EmergencyCard } from "./emergency-card";
+import { ExpenseSummary } from "./expense-summary";
 import { HubBookings } from "./hub-bookings";
+import { PushToggle } from "./push-toggle";
 
 // The "מסמכים" tab — the Stitch export's third screen (design/stitch/…/_3),
 // copied block for block: the eyebrow and the trip's name with the add pill,
@@ -49,7 +51,7 @@ import { HubBookings } from "./hub-bookings";
 // file upload (it needs a storage bucket; the header adds a booking instead).
 //
 // Below the export's last card, and outside it: the screens that stay screens
-// (the trip's record, the guides, the phrasebook, the how-to) and the delete
+// (the guides, the phrasebook, the how-to) and the delete
 // row. The export has no room for them, and without them they are unreachable.
 
 // Which sections a pill shows. The emergency card shows under every pill, as
@@ -64,7 +66,6 @@ const FILTERS: { key: Filter; label: string; Icon: LucideIcon }[] = [
 ];
 
 const ELSEWHERE = [
-  { segment: "trip", label: "פרטי הטיול", hint: "שם, תאריכים, מזג אוויר והוצאות", Icon: Luggage },
   { segment: "guides", label: "מדריכי הערים", hint: "אזורי לינה, מסעדות, אטרקציות", Icon: Globe },
   { segment: "phrases", label: "מילים שימושיות", hint: "שיחון בשפת היעד, עם תעתיק", Icon: Languages },
   { segment: "guide", label: "איך זה עובד", hint: "שלבי העבודה, עם קישור לכל מסך", Icon: Compass },
@@ -196,6 +197,16 @@ export function TripHub({
           </section>
         )}
 
+        {/* The money, beside the tickets it is summed from. Moved here from
+            "פרטי הטיול" when that page went; `id` so "הוצאות עד כה" on the
+            prep page can land on it. */}
+        {shows("bookings") && bookings.length > 0 && (
+          <section id="expenses" className="flex scroll-mt-20 flex-col gap-4">
+            <SectionHead Icon={Wallet} tone="primary" title="הוצאות הטיול" />
+            <ExpenseSummary bookings={bookings} />
+          </section>
+        )}
+
         {shows("checklist") && (
           <ChecklistCard
             tripId={tripId}
@@ -213,6 +224,17 @@ export function TripHub({
             shareToken={shareToken}
             origin={origin}
           />
+        )}
+
+        {/* Per device, not per trip — a push subscription belongs to the
+            browser that made it — but this is where a traveller looks for
+            "remind me", next to the tickets the reminders are about. */}
+        {filter === "all" && (
+          // No section heading: the card carries its own title, and the
+          // same words twice in a row was the first version of this.
+          <section id="device-reminders" className="scroll-mt-20">
+            <PushToggle />
+          </section>
         )}
 
         <EmergencyCard tripId={tripId} contacts={emergencyContacts} />

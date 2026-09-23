@@ -87,7 +87,8 @@ export async function TodayStats({
           ? `גשם ${weatherToday.rainChance}%`
           : `מינימום ${Math.round(weatherToday.minC)}°`,
       icon: <DomainIcon name={described.icon} className="h-4 w-4" />,
-      href: `/trips/${tripId}/more/trip`,
+      // The forecast lives on "לפני היציאה" since the details page went.
+      href: `/trips/${tripId}/more/gear`,
     };
   }
 
@@ -101,7 +102,7 @@ export async function TodayStats({
         : (lodging.booking.city ?? "")
       : "אין לינה מוזמנת",
     icon: <DomainIcon name="lodging" className="h-4 w-4" />,
-    href: `/trips/${tripId}/more/trip`,
+    href: `/trips/${tripId}/more`,
   };
 
   return (

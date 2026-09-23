@@ -39,7 +39,9 @@ export const RAIL_CATALOG: readonly RailShortcut[] = [
   { key: "phrases", label: "מילים שימושיות", path: "more/phrases" },
   { key: "members", label: "מי בא איתנו", path: "more/members" },
   { key: "share", label: "שיתוף הטיול", path: "more/share" },
-  { key: "trip", label: "פרטי הטיול", path: "more/trip" },
+  // "פרטי הטיול" became the documents tab — the key stays so saved rails keep
+  // their slot.
+  { key: "trip", label: "מסמכים", path: "more" },
   { key: "guide", label: "איך זה עובד", path: "more/guide" },
 ] as const;
 

@@ -105,7 +105,7 @@ export async function GET(request: Request) {
         sendPush(target, {
           title: reminder.title,
           body: reminder.body,
-          url: booking ? `/trips/${booking.trip_id}/more/trip` : "/",
+          url: booking ? `/trips/${booking.trip_id}/more` : "/",
           tag: `${reminder.kind}-${reminder.bookingId}`,
         }).then((result) => ({ target, result })),
       ),

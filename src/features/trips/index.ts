@@ -364,7 +364,6 @@ export { CreateTripForm, NewTripButton } from "./components/create-trip-form";
 export { CityDaysEditor } from "./components/city-days-editor";
 export { EditEntryDialog } from "./components/edit-entry-dialog";
 export { DeleteTripButton } from "./components/delete-trip-button";
-export { TripDatesForm } from "./components/trip-dates-form";
 
 export { AuraPanel } from "./components/aura-panel";
 export { tripHueStyle } from "./domain/aura-vars";

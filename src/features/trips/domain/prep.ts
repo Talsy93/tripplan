@@ -93,7 +93,7 @@ export function suggestPrepItems({
       kind: "checkin",
       title: `צ׳ק-אין אונליין ל${firstFlight.title}`,
       dueDate: shiftDate(firstFlight.starts_at.slice(0, 10), -1),
-      path: "more/trip",
+      path: "more",
     });
     add({
       kind: "tickets",
@@ -106,7 +106,7 @@ export function suggestPrepItems({
       kind: "flights",
       title: "להזין את הטיסות — הלו״ז מסתמך עליהן",
       dueDate: null,
-      path: "more/trip",
+      path: "more",
     });
   }
 
@@ -117,7 +117,7 @@ export function suggestPrepItems({
       ? "אישורי המלונות שמורים אופליין"
       : "להזין את הלינה — היא קובעת איזה יום באיזו עיר",
     dueDate: startDate ? shiftDate(startDate, -2) : null,
-    path: "more/trip",
+    path: "more",
   });
 
   add({
@@ -175,7 +175,7 @@ export function suggestPrepItems({
       kind: "push",
       title: "להפעיל תזכורות בטלפון (באייפון — אחרי התקנה למסך הבית)",
       dueDate: null,
-      path: "more/trip",
+      path: "more#device-reminders",
     });
   }
   add({

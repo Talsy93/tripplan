@@ -81,7 +81,8 @@ export function tripOpenItems({
       text: "עוד לא נקבעו תאריכים לטיול",
       detail: "מספר הימים בלו״ז, הספירה לאחור והתחזית נגזרים מהם",
       urgency: "now",
-      path: "more/trip",
+      // The header opens its edit dialog on this, from any tab.
+      path: "more?edit=trip",
     });
   }
 
@@ -181,7 +182,7 @@ export function tripOpenItems({
           : `${unlodged.length} ערים עדיין בלי לינה`,
       detail: unlodged.length <= MAX_NAMED ? null : describeList(unlodged),
       urgency: soon ? "now" : "later",
-      path: "more/trip",
+      path: "more",
     });
   }
 
@@ -198,7 +199,7 @@ export function tripOpenItems({
       text: "אין טיסה או רכבת בטיול",
       detail: "הלו״ז מסתמך עליהן כדי לדעת מתי בדיוק אתם מגיעים",
       urgency: soon ? "now" : "later",
-      path: "more/trip",
+      path: "more",
     });
   }
 
