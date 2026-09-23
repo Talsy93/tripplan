@@ -928,7 +928,39 @@ export const SCENES: Scene[] = [
             members={f.MEMBERS}
             cities={FRAME_CITIES}
             shareToken="abcdef0123456789"
-
+            emergencyContacts={[]}
+            origin="http://localhost:3000"
+            now={f.NOW}
+          />
+        ),
+      }),
+  },
+  // The documents tab against design/stitch/…/_3/screen.png. The export's own
+  // content, typed in as data (fixtures DOC_*), so the scene and the picture
+  // can be laid side by side and compared block by block.
+  {
+    slug: "documents-stitch",
+    title: "מסמכים · מול הייצוא של Stitch",
+    note: "אותו תוכן כמו ב-screen.png של _3 — טיסה, מלון, רכבת, חמישה פריטי ציוד, שלושה שותפים ושני מספרי חירום — כולו שדות אמיתיים (0026)",
+    bleed: true,
+    render: () =>
+      appFrame({
+        title: "הטיול לרומא ופירנצה",
+        active: "more",
+        phase: { kind: "before", daysUntilStart: 1 },
+        startDate: "2026-09-12",
+        cities: ["רומא", "פירנצה"],
+        children: (
+          <TripHub
+            tripId={f.TRIP_ID}
+            tripName="הטיול לרומא ופירנצה"
+            bookings={f.DOC_BOOKINGS}
+            gear={f.DOC_GEAR}
+            members={f.DOC_MEMBERS}
+            cities={["רומא", "פירנצה"]}
+            shareToken="abcdef0123456789"
+            emergencyContacts={f.DOC_CONTACTS}
+            origin="http://localhost:3000"
             now={f.NOW}
           />
         ),

@@ -4,6 +4,7 @@ import {
   deadlineDate,
   parseCost,
   parseDuration,
+  parseDetailsInput,
   parseStopsInput,
 } from "../domain/booking";
 import { isSchemaOutOfDate } from "@/lib/supabase/schema-errors";
@@ -142,6 +143,20 @@ function stopsUpdate(value: string | undefined) {
   return { stops: rows.length > 0 ? rows : null };
 }
 
+// 0026's column, on the same insert/update split as `stops` and for the same
+// reasons: an insert without details sends no key, so a database where 0026
+// has not been run still saves every booking that does not use it; an update
+// always sends it, so clearing the last field actually clears it.
+function detailsInsert(value: string | undefined) {
+  const details = parseDetailsInput(value) ?? {};
+  return Object.keys(details).length > 0 ? { details } : {};
+}
+
+function detailsUpdate(value: string | undefined) {
+  const details = parseDetailsInput(value) ?? {};
+  return { details: Object.keys(details).length > 0 ? details : null };
+}
+
 export async function createBooking(input: CreateBookingInput) {
   const startsAt = toInstant(input.startsAt);
   // The schema guarantees a well-formed string, so this is unreachable in
@@ -196,6 +211,7 @@ export async function createBooking(input: CreateBookingInput) {
     ...airlineColumn(input.airline),
     ...standbyInsert(input.standby),
     ...stopsInsert(input.stops),
+    ...detailsInsert(input.details),
   });
 
   // A boolean until now. It reports a kind instead, so the one failure a
@@ -245,6 +261,7 @@ export async function updateBooking(input: UpdateBookingInput) {
         ...airlineColumn(input.airline),
         ...standbyUpdate(input.standby),
         ...stopsUpdate(input.stops),
+        ...detailsUpdate(input.details),
       },
       { count: "exact" },
     )

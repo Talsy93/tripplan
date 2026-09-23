@@ -86,6 +86,66 @@ export const bookingStopSchema = z.object({
 });
 export type BookingStop = z.infer<typeof bookingStopSchema>;
 
+// 0026. What a ticket prints beyond where and when: the seat, the gate, the bag
+// allowance, the hotel's stars. One jsonb object — see the migration for why —
+// and every key optional, because a booking copied from an email rarely has
+// more than one or two of them.
+//
+// `boarding` is the time as printed ("05:40"), not an instant. It is read off
+// the pass and read back to the traveller; nothing computes with it, and
+// storing it as a timestamp would drag in the wall-clock conversion that
+// starts_at needs for no reader at all.
+export const bookingDetailsSchema = z.object({
+  seat: z.string().trim().max(12).optional(),
+  gate: z.string().trim().max(12).optional(),
+  boarding: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .optional(),
+  baggage: z.string().trim().max(20).optional(),
+  carriage: z.string().trim().max(12).optional(),
+  stars: z.number().int().min(1).max(5).optional(),
+  breakfast: z.boolean().optional(),
+  paid: z.boolean().optional(),
+});
+export type BookingDetails = z.infer<typeof bookingDetailsSchema>;
+
+// The details of a booking, or `{}`. Read through here rather than directly for
+// the reason bookingStops gives: listBookings casts its rows, so nothing has
+// checked that the jsonb holds this shape — and on a database without 0026 the
+// key is simply absent.
+export function bookingDetails(booking: {
+  details?: BookingDetails | null;
+}): BookingDetails {
+  const parsed = bookingDetailsSchema.safeParse(booking.details ?? {});
+  return parsed.success ? parsed.data : {};
+}
+
+// The submitted details, or null if what arrived is not a details object.
+// Empty strings and unticked boxes are dropped, so an untouched form stores
+// nothing rather than `{ seat: "" }`.
+export function parseDetailsInput(
+  value: string | undefined,
+): BookingDetails | null {
+  if (!value || !value.trim()) return {};
+  let raw: unknown;
+  try {
+    raw = JSON.parse(value);
+  } catch {
+    return null;
+  }
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    return null;
+  }
+  const cleaned = Object.fromEntries(
+    Object.entries(raw).filter(
+      ([, entry]) => entry !== "" && entry !== null && entry !== false,
+    ),
+  );
+  const parsed = bookingDetailsSchema.safeParse(cleaned);
+  return parsed.success ? parsed.data : null;
+}
+
 export const bookingSchema = z.object({
   id: z.uuid(),
   trip_id: z.uuid(),
@@ -145,6 +205,8 @@ export const bookingSchema = z.object({
   // it: listBookings *casts* its rows, so nothing has actually checked that
   // this jsonb holds the shape the type claims. One place to be defensive.
   stops: z.array(bookingStopSchema).nullable().optional(),
+  // 0026. Seat, gate, stars and the rest — read through bookingDetails().
+  details: bookingDetailsSchema.nullable().optional(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 
@@ -248,6 +310,15 @@ const bookingFields = {
     .optional()
     .refine((value) => parseStopsInput(value) !== null, {
       error: "אחת מהעצירות לא מלאה — צריך לפחות שם של תחנה.",
+    }),
+  // 0026. The ticket's printed details, as the JSON the action assembles from
+  // the form's detail* inputs. See parseDetailsInput.
+  details: z
+    .string()
+    .max(2000)
+    .optional()
+    .refine((value) => parseDetailsInput(value) !== null, {
+      error: "אחד מפרטי הכרטיס לא תקין — שעת עלייה בפורמט 05:40, כוכבים 1–5.",
     }),
   // 0021. Shape-checked here and membership-checked nowhere, on purpose: the
   // list of carriers in domain/airlines.ts is curated and grows, and a code

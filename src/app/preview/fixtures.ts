@@ -21,6 +21,7 @@ import type {
 } from "@/features/trips/domain/ai-suggestion";
 import type { RouteStop, TripRoute } from "@/features/trips/domain/route";
 import type { GearItem } from "@/features/trips/domain/gear";
+import type { EmergencyContact } from "@/features/trips/domain/emergency";
 import type { Trip } from "@/features/trips/domain/trip";
 import type {
   TripInvite,
@@ -743,4 +744,88 @@ export const CITY_DAYS: CityDayPlan[] = [
   { city: "טוקיו", days: 4, source: "lodging" },
   { city: "קיוטו", days: 3, source: "override" },
   { city: UNBREAKABLE, days: null, source: "unset" },
+];
+
+// ---- the documents screen, with the Stitch export's own content -------------
+//
+// The export (design/stitch/…/_3) is a Rome and Florence trip. These rows are
+// its content typed in as data, so the `documents-stitch` scene can be laid
+// next to the export's screen.png and compared line for line — every figure on
+// the scene comes from a field the app actually stores.
+
+export const DOC_BOOKINGS: Booking[] = [
+  {
+    ...bookingBase,
+    id: id("f1"),
+    kind: "flight",
+    title: "LY385",
+    origin: "TLV",
+    destination: "FCO",
+    city: "רומא",
+    starts_at: "2026-09-12T03:20:00Z",
+    ends_at: "2026-09-12T07:10:00Z",
+    confirmation: "LY-994821034-IL",
+    duration_minutes: 230,
+    airline: "LY",
+    details: { seat: "14A", gate: "B4", boarding: "05:40", baggage: "23 ק״ג" },
+  },
+  {
+    ...bookingBase,
+    id: id("f2"),
+    kind: "lodging",
+    title: "Hotel Artemide Rome",
+    origin: null,
+    destination: null,
+    city: "רומא",
+    starts_at: "2026-09-12T12:00:00Z",
+    ends_at: "2026-09-16T08:00:00Z",
+    address: "Via Nazionale 22, Roma",
+    confirmation: "IT-94821",
+    details: { stars: 4, breakfast: true, paid: true },
+  },
+  {
+    ...bookingBase,
+    id: id("f3"),
+    kind: "train",
+    title: "Frecciarossa 9520",
+    origin: "רומא טרמיני",
+    destination: "פירנצה",
+    city: "פירנצה",
+    starts_at: "2026-09-16T08:00:00Z",
+    ends_at: "2026-09-16T09:35:00Z",
+    details: { carriage: "4", seat: "21" },
+  },
+];
+
+export const DOC_GEAR: GearItem[] = [
+  gearItem("91", "דרכון בתוקף ופוליסת ביטוח בריאות", "documents", true),
+  gearItem("92", "מתאם שקעים אירופאי (Type C/F)", "electronics", true),
+  gearItem("93", "חבילת eSIM לאיטליה מותקנת ומוכנה", "electronics", true),
+  gearItem("94", "נעלי הליכה נוחות (לסיורים בעיר)", "clothing"),
+  gearItem("95", "תרופות מרשם וערכת עזרה ראשונה בסיסית", "health"),
+];
+
+export const DOC_MEMBERS: TripMember[] = [
+  { ...MEMBERS[0], member_name: "עומר" },
+  { ...MEMBERS[1], member_name: "מיכל" },
+  { ...MEMBERS[2], member_name: "דניאל" },
+];
+
+export const DOC_CONTACTS: EmergencyContact[] = [
+  {
+    id: id("8a"),
+    trip_id: TRIP_ID,
+    label: "הראל ביטוח חו״ל",
+    phone: "+972-3-7547070",
+    detail: "פוליסה #77820194",
+    created_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: id("8b"),
+    trip_id: TRIP_ID,
+    label: "שגרירות ישראל ברומא",
+    phone: "+39-06-36198500",
+    detail: "Via Michele Mercati 14",
+    created_at: "2026-01-02T00:00:00Z",
+  },
 ];

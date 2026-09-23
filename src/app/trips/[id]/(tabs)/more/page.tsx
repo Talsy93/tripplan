@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
+import { requestOrigin } from "@/lib/origin";
 import {
   getSelectedDestinations,
   getShareToken,
   getTrip,
   listBookings,
+  listEmergencyContacts,
   listGear,
   listMembers,
   TripHub,
@@ -18,11 +20,10 @@ export default async function MorePage({
 }) {
   const { id } = await params;
 
-  // Five reads for five live subtitle lines, and the trip alongside them rather
-  // than ahead of them: awaiting it first made this tab two round trips to the
-  // database where one will do. Together they are the whole cost of a menu that
-  // answers "is there anything I still need to do?" without opening anything.
-  const [trip, bookings, gear, members, selected, shareToken] =
+  // Every read the screen draws from, in one round trip, with the trip
+  // alongside them rather than ahead of them. The origin is the request's own,
+  // for the family link — see ShareTrip for why it is not read from `window`.
+  const [trip, bookings, gear, members, selected, shareToken, contacts, origin] =
     await Promise.all([
       getTrip(id),
       listBookings(id),
@@ -30,6 +31,8 @@ export default async function MorePage({
       listMembers(id),
       getSelectedDestinations(id),
       getShareToken(id),
+      listEmergencyContacts(id),
+      requestOrigin(),
     ]);
   if (!trip) notFound();
 
@@ -42,6 +45,8 @@ export default async function MorePage({
       members={members}
       cities={[...new Set(selected.map((item) => item.city))].filter(Boolean)}
       shareToken={shareToken}
+      emergencyContacts={contacts}
+      origin={origin}
       now={new Date().toISOString()}
     />
   );

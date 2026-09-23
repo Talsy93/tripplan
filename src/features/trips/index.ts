@@ -649,3 +649,7 @@ export {
 export { CurrencyCard } from "./components/currency-converter";
 export { DailyExpensesCard } from "./components/daily-expenses";
 export { PhraseCard } from "./components/phrase-card";
+
+// 0026 — the documents screen's emergency numbers.
+export type { EmergencyContact } from "./domain/emergency";
+export { listEmergencyContacts } from "./infrastructure/emergency-service";

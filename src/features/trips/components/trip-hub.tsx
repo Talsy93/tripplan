@@ -4,90 +4,92 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   ChevronLeft,
+  CirclePlus,
   Compass,
+  Copy,
   Globe,
+  Heart,
+  HouseHeart,
   Languages,
+  LayoutGrid,
+  ListChecks,
   Luggage,
+  MessageSquareText,
+  PlaneTakeoff,
   Share2,
   Ticket,
-  Users,
+  UserPlus,
   type LucideIcon,
 } from "lucide-react";
-import { Badge, Card, Chip } from "@/components/ui";
+import { useToast } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { bookingTodoAlert, cancellationAlert } from "../domain/booking";
-import { gearProgress } from "../domain/gear";
+import { GEAR_CATEGORIES, gearProgress } from "../domain/gear";
+import { memberLabel } from "../domain/membership";
 import type { Booking } from "../domain/booking";
+import type { EmergencyContact } from "../domain/emergency";
 import type { GearItem } from "../domain/gear";
 import type { TripMember } from "../domain/membership";
+import { toggleGearItem } from "../application/gear-actions";
+import { enableSharing } from "../application/share-actions";
 import { AddBookingButton } from "./booking-form";
-import { BookingList } from "./booking-list";
 import { DeleteTripButton } from "./delete-trip-button";
+import { DomainIcon } from "./domain-icon";
+import { EmergencyCard } from "./emergency-card";
+import { HubBookings } from "./hub-bookings";
 
-// The "מסמכים" tab, rebuilt to the screen the design actually draws.
+// The "מסמכים" tab — the Stitch export's third screen (design/stitch/…/_3),
+// copied block for block: the eyebrow and the trip's name with the add pill,
+// four filter pills, then "כרטיסי נסיעה ואישורים", "ציוד ורשימת הכנות",
+// "שותפים ועדכון משפחה" and "חירום וביטוח". Sizes, colours and spacing are the
+// export's own, in the export's Material names mapped onto this app's tokens.
 //
-// Reported as "the documents page does not look like the design", and it did
-// not: the design's third export (design/stitch/…/_3) is a **hub of content** —
-// an eyebrow over the trip's name, a row of filter chips, and then the things
-// themselves: boarding passes, the packing progress, who is coming. What was
-// here was eight link cards in a grid. Same routes, same data, and none of the
-// screen the design is about.
+// Every value on it is real. The fields the export printed that the app did
+// not hold — seat, gate, boarding, bag, stars, breakfast, paid, the emergency
+// numbers — arrived in migration 0026 so that the picture could be data. What
+// is still not the export, and why, is said where it happens: no Wallet pass
+// and no flight status (both paid), no "offline" stamp (nothing is cached), no
+// file upload (it needs a storage bucket; the header adds a booking instead).
 //
-// So the tickets, the packing bar and the sharing state come out of their
-// sub-pages and onto this one, and the destinations that are genuinely separate
-// screens — the city guides, the phrasebook, the trip's own record, the how-to —
-// stay as a compact list at the foot rather than as eight cards at the top.
-//
-// **Two blocks of the design are deliberately not built.** "הוספת קובץ" needs
-// file storage the app has no table or bucket for, and "חירום וביטוח" needs
-// emergency contacts that are nowhere in the schema. Both would be a migration
-// and a decision, and drawing either with invented content would make this
-// screen look finished while being a picture. The primary action is
-// "הוספת כרטיס" instead, which is the real thing this app stores.
+// Below the export's last card, and outside it: the screens that stay screens
+// (the trip's record, the guides, the phrasebook, the how-to) and the delete
+// row. The export has no room for them, and without them they are unreachable.
 
-// Which sections a chip shows. "all" is the state it opens in.
-type Filter = "all" | "tickets" | "gear" | "people";
+// Which sections a pill shows. The emergency card shows under every pill, as
+// the export's `data-category="all"` does.
+type Filter = "all" | "bookings" | "checklist" | "sharing";
 
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: "all", label: "הכל" },
-  { key: "tickets", label: "כרטיסים ואישורים" },
-  { key: "gear", label: "ציוד ומשימות" },
-  { key: "people", label: "שיתוף משפחתי" },
+const FILTERS: { key: Filter; label: string; Icon: LucideIcon }[] = [
+  { key: "all", label: "הכל", Icon: LayoutGrid },
+  { key: "bookings", label: "טיסות ומלונות", Icon: PlaneTakeoff },
+  { key: "checklist", label: "ציוד ומשימות", Icon: ListChecks },
+  { key: "sharing", label: "שיתוף משפחתי", Icon: Share2 },
 ];
 
-// The screens that stay screens. Everything above them is content; these are
-// places to go, so they are a list of rows rather than a grid of cards.
 const ELSEWHERE = [
-  {
-    segment: "trip",
-    label: "פרטי הטיול",
-    hint: "שם, תאריכים, מזג אוויר והוצאות",
-    Icon: Luggage,
-  },
-  {
-    segment: "guides",
-    label: "מדריכי הערים",
-    hint: "אזורי לינה, מסעדות, אטרקציות",
-    Icon: Globe,
-  },
-  {
-    segment: "phrases",
-    label: "מילים שימושיות",
-    hint: "שיחון בשפת היעד, עם תעתיק",
-    Icon: Languages,
-  },
-  {
-    segment: "guide",
-    label: "איך זה עובד",
-    hint: "שלבי העבודה, עם קישור לכל מסך",
-    Icon: Compass,
-  },
+  { segment: "trip", label: "פרטי הטיול", hint: "שם, תאריכים, מזג אוויר והוצאות", Icon: Luggage },
+  { segment: "guides", label: "מדריכי הערים", hint: "אזורי לינה, מסעדות, אטרקציות", Icon: Globe },
+  { segment: "phrases", label: "מילים שימושיות", hint: "שיחון בשפת היעד, עם תעתיק", Icon: Languages },
+  { segment: "guide", label: "איך זה עובד", hint: "שלבי העבודה, עם קישור לכל מסך", Icon: Compass },
 ] as const satisfies readonly {
   segment: string;
   label: string;
   hint: string;
   Icon: LucideIcon;
 }[];
+
+// How many packing rows the card shows. The export draws five; the full list,
+// with its categories and the prep checklist, is one press away.
+const PACKING_ROWS = 5;
+
+// The avatars' colours, by position. The app has no profile photos, so a
+// person is an initial on a tinted disc — the tone tokens, not new colours.
+const AVATAR_TONES = [
+  "bg-sky-tint text-sky-ink",
+  "bg-peach-tint text-peach-ink",
+  "bg-mint-tint text-mint-ink",
+  "bg-lilac-tint text-lilac-ink",
+  "bg-rose-tint text-rose-ink",
+];
 
 export function TripHub({
   tripId,
@@ -98,8 +100,11 @@ export function TripHub({
   cities,
   // Whether a public view link has been issued. Null when it has not.
   shareToken,
-  // Stamped by the server, so the deadline counts cannot disagree between the
-  // server render and hydration.
+  emergencyContacts,
+  // The site's origin, resolved on the server — see ShareTrip for why.
+  origin,
+  // Stamped by the server, so the alerts cannot disagree between the server
+  // render and hydration.
   now,
 }: {
   tripId: string;
@@ -109,290 +114,472 @@ export function TripHub({
   members: TripMember[];
   cities: string[];
   shareToken: string | null;
+  emergencyContacts: EmergencyContact[];
+  origin: string;
   now: string;
 }) {
   const [filter, setFilter] = useState<Filter>("all");
   const shows = (section: Filter) => filter === "all" || filter === section;
 
   const at = new Date(now);
-  const needsAttention = bookings.filter(
-    (booking) =>
-      cancellationAlert(booking, at) !== null ||
-      bookingTodoAlert(booking, at) !== null,
+  // "פעילים": still ahead or under way. A flight that has landed is a record,
+  // not something to have ready at a desk.
+  const active = bookings.filter(
+    (booking) => new Date(booking.ends_at ?? booking.starts_at) >= at,
   ).length;
 
-  const packing = gearProgress(gear);
-  // The owner is in this list and is not "shared with".
-  const sharedWith = members.filter((member) => !member.is_owner).length;
-
   return (
-    <>
-      <header className="flex min-w-0 flex-wrap items-end justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-caption font-medium text-muted">
-            מרכז מסמכים ובקרה
-          </span>
-          <h1 className="min-w-0 text-[1.75rem] font-bold leading-9 wrap-anywhere">
-            {tripName}
-          </h1>
+    <div className="flex w-full min-w-0 flex-col pb-8">
+      {/* No top padding of its own: the layout's <main> already gives the
+          export's 16px under the header. */}
+      <div className="pb-1">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <span className="text-[10px] leading-[14px] font-semibold tracking-wide text-primary">
+              מרכז מסמכים ובקרה
+            </span>
+            <h1 className="text-xl leading-7 font-semibold text-foreground wrap-anywhere">
+              {tripName}
+            </h1>
+          </div>
+          <AddBookingButton tripId={tripId} cities={cities} pill />
         </div>
-        {/* The design's "add a file". This app stores bookings, not files, so
-            the button adds the thing that actually lands on this screen. */}
-        <AddBookingButton tripId={tripId} cities={cities} />
-      </header>
-
-      {/* The filter row. It scrolls rather than wraps, for the reason the day's
-          action row does: four labels of different lengths wrapped to two lines
-          at 375 and the row changed height with the language. */}
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-        {FILTERS.map((option) => (
-          <Chip
-            key={option.key}
-            active={filter === option.key}
-            onClick={() => setFilter(option.key)}
-            className="shrink-0"
-          >
-            {option.label}
-          </Chip>
-        ))}
       </div>
 
-      {shows("tickets") && (
-        <section className="flex min-w-0 flex-col gap-3">
-          <HubHeading
-            icon={<Ticket className="h-5 w-5" aria-hidden="true" />}
-            title="כרטיסי נסיעה ואישורים"
-            meta={
-              needsAttention > 0 ? (
-                <Badge tone="warning">
-                  {needsAttention === 1
-                    ? "אחת דורשת תשומת לב"
-                    : `${needsAttention} דורשות תשומת לב`}
-                </Badge>
-              ) : bookings.length > 0 ? (
-                <Badge tone="neutral">{bookings.length}</Badge>
-              ) : undefined
-            }
-          />
-          <BookingList
+      {/* The pills scroll rather than wrap, as in the export. */}
+      <div className="-mx-4 w-auto overflow-x-auto px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex min-w-max items-center gap-1" role="group" aria-label="סינון">
+          {FILTERS.map(({ key, label, Icon }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setFilter(key)}
+              aria-pressed={filter === key}
+              className={cn(
+                "flex items-center gap-0.5 rounded-full px-4 py-1 text-xs leading-4 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                filter === key
+                  ? "bg-primary text-white shadow-sm"
+                  : "bg-surface-high text-muted-strong",
+              )}
+            >
+              <Icon className="h-4 w-4" aria-hidden="true" />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-2 flex flex-col gap-6">
+        {shows("bookings") && (
+          <section className="flex flex-col gap-4">
+            <SectionHead
+              Icon={Ticket}
+              tone="primary"
+              title="כרטיסי נסיעה ואישורים"
+              meta={
+                bookings.length > 0 && (
+                  <span className="shrink-0 rounded-full bg-success/10 px-2 py-0.5 text-[10px] leading-[14px] font-medium tracking-[0.02em] text-success-strong">
+                    {active} פעילים
+                  </span>
+                )
+              }
+            />
+            <HubBookings
+              tripId={tripId}
+              bookings={bookings}
+              cities={cities}
+              now={now}
+            />
+          </section>
+        )}
+
+        {shows("checklist") && <PackingSection tripId={tripId} gear={gear} />}
+
+        {shows("sharing") && (
+          <SharingSection
             tripId={tripId}
-            bookings={bookings}
-            cities={cities}
-            now={now}
+            members={members}
+            shareToken={shareToken}
+            origin={origin}
           />
-        </section>
-      )}
+        )}
 
-      {shows("gear") && (
-        <section className="flex min-w-0 flex-col gap-3">
-          <HubHeading
-            icon={<Luggage className="h-5 w-5" aria-hidden="true" />}
-            title="ציוד ורשימת הכנות"
-            meta={
-              packing.total > 0 ? (
-                <Badge tone={packing.done ? "success" : "neutral"}>
-                  {packing.packed} מתוך {packing.total} נארזו
-                </Badge>
-              ) : undefined
-            }
-          />
-          {/* The bar, and a way in — not the list itself. The full list lives
-              at /more/gear together with the prep checklist, and rendering the
-              editor in two places is the duplication the day tab was just
-              cured of. */}
-          <Link
-            href={`/trips/${tripId}/more/gear`}
-            className="rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <Card className="flex min-w-0 flex-col gap-3">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="text-sm font-semibold">
-                  {packing.total > 0 ? "מוכנות ליציאה" : "הרשימה עוד ריקה"}
-                </span>
-                <span className="text-sm font-bold tabular-nums text-primary-ink">
-                  {packing.percent}%
-                </span>
-              </div>
-              <div
-                role="progressbar"
-                aria-valuenow={packing.percent}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                className="h-2 overflow-hidden rounded-full bg-surface-2"
-              >
-                <div
-                  className={cn(
-                    "h-full rounded-full transition-[width] duration-settle ease-snap",
-                    packing.done ? "bg-success" : "bg-primary",
-                  )}
-                  style={{ width: `${packing.percent}%` }}
-                />
-              </div>
-              <span className="flex items-center gap-1 text-caption font-semibold text-primary-ink">
-                פתיחת הרשימה המלאה
-                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-              </span>
-            </Card>
-          </Link>
-        </section>
-      )}
+        <EmergencyCard tripId={tripId} contacts={emergencyContacts} />
 
-      {shows("people") && (
-        <section className="flex min-w-0 flex-col gap-3">
-          <HubHeading
-            icon={<Users className="h-5 w-5" aria-hidden="true" />}
-            title="שותפים ושיתוף"
-            meta={
-              sharedWith > 0 ? (
-                <Badge tone="neutral">{sharedWith} שותפים</Badge>
-              ) : undefined
-            }
-          />
-          <div className="grid gap-3 sm:grid-cols-2">
-            <HubLink
-              href={`/trips/${tripId}/more/members`}
-              icon={<Users className="h-5 w-5" aria-hidden="true" />}
-              label="מי בא איתנו"
-              hint={
-                sharedWith === 0
-                  ? "הזמנה לפי אימייל, צפייה או עריכה"
-                  : sharedWith === 1
-                    ? "אדם אחד נוסף לטיול"
-                    : `${sharedWith} אנשים נוספים בטיול`
-              }
-            />
-            <HubLink
-              href={`/trips/${tripId}/more/share`}
-              icon={<Share2 className="h-5 w-5" aria-hidden="true" />}
-              label="שיתוף הטיול"
-              hint={
-                shareToken !== null
-                  ? "קישור צפייה פעיל"
-                  : "קישור פומבי לצפייה, בלי חשבון"
-              }
-            />
-          </div>
-        </section>
-      )}
-
-      {filter === "all" && (
-        <section className="flex min-w-0 flex-col gap-3">
-          <HubHeading
-            icon={<Compass className="h-5 w-5" aria-hidden="true" />}
-            title="עוד בטיול"
-          />
-          <Card padding="none" className="overflow-hidden">
-            <ul className="flex flex-col">
-              {ELSEWHERE.map(({ segment, label, hint, Icon }) => (
-                <li
-                  key={segment}
-                  className="border-b border-border last:border-b-0"
-                >
-                  <Link
-                    href={`/trips/${tripId}/more/${segment}`}
-                    className={cn(
-                      "group/row flex min-w-0 items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-                    )}
+        {filter === "all" && (
+          <>
+            <nav
+              aria-label="עוד בטיול"
+              className="overflow-hidden rounded-xl bg-surface shadow-md"
+            >
+              <ul className="flex flex-col">
+                {ELSEWHERE.map(({ segment, label, hint, Icon }) => (
+                  <li
+                    key={segment}
+                    className="border-b border-surface-2 last:border-b-0"
                   >
-                    <span
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-2 text-muted"
-                      aria-hidden="true"
+                    <Link
+                      href={`/trips/${tripId}/more/${segment}`}
+                      className="group/row flex min-w-0 items-center gap-2 px-4 py-3 transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                     >
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-semibold">
-                        {label}
+                      <span
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-high text-primary"
+                        aria-hidden="true"
+                      >
+                        <Icon className="h-[18px] w-[18px]" />
                       </span>
-                      <span className="block min-w-0 truncate text-caption text-muted">
-                        {hint}
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm leading-5 font-medium">
+                          {label}
+                        </span>
+                        <span className="block min-w-0 truncate text-xs leading-[18px] text-muted-strong">
+                          {hint}
+                        </span>
                       </span>
-                    </span>
-                    <ChevronLeft
-                      className="h-4 w-4 shrink-0 text-border-strong transition-transform group-hover/row:-translate-x-0.5"
-                      aria-hidden="true"
-                    />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </section>
-      )}
+                      <ChevronLeft
+                        className="h-4 w-4 shrink-0 text-border-strong transition-transform group-hover/row:-translate-x-0.5"
+                        aria-hidden="true"
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
 
-      {/* Apart from everything above it, which is law 05: a destructive action
-          does not sit at rest among the things you press every day. */}
-      {filter === "all" && (
-        <Card padding="none" className="overflow-hidden">
-          <DeleteTripButton tripId={tripId} tripName={tripName} variant="row" />
-        </Card>
-      )}
-    </>
+            {/* Apart from everything above it, which is law 05: a destructive
+                action does not sit at rest among the things you press every
+                day. */}
+            <div className="overflow-hidden rounded-xl bg-surface shadow-md">
+              <DeleteTripButton tripId={tripId} tripName={tripName} variant="row" />
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
-// The section header the design draws: a round tinted tile, the title, and the
-// count at the far end.
-function HubHeading({
-  icon,
+// The export's section header: a 32px tinted disc, the title, and whatever sits
+// at the far end.
+function SectionHead({
+  Icon,
+  tone,
   title,
   meta,
 }: {
-  icon: React.ReactNode;
+  Icon: LucideIcon;
+  tone: "primary" | "cta";
   title: string;
   meta?: React.ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 items-center gap-3">
-      <span
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary-ink"
-        aria-hidden="true"
-      >
-        {icon}
-      </span>
-      <h2 className="min-w-0 flex-1 text-lg font-semibold leading-6 wrap-anywhere">
-        {title}
-      </h2>
+    <div className="flex items-center justify-between gap-2">
+      <div className="flex min-w-0 items-center gap-1">
+        <div
+          className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+            tone === "primary"
+              ? "bg-primary-tint text-primary"
+              : "bg-cta-tint text-cta-strong",
+          )}
+          aria-hidden="true"
+        >
+          <Icon className="h-5 w-5" />
+        </div>
+        <h2 className="min-w-0 text-lg leading-6 font-semibold text-foreground">
+          {title}
+        </h2>
+      </div>
       {meta}
     </div>
   );
 }
 
-function HubLink({
-  href,
-  icon,
-  label,
-  hint,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  label: string;
-  hint: string;
-}) {
+// ---- ציוד ורשימת הכנות ------------------------------------------------------
+
+function PackingSection({ tripId, gear }: { tripId: string; gear: GearItem[] }) {
+  // Toggles land here first and are sent after, so a tick is instant. The
+  // server's next render replaces the prop and this map is only ever the
+  // difference between the two.
+  const [local, setLocal] = useState<Record<string, boolean>>({});
+  const items = gear.map((item) =>
+    item.id in local ? { ...item, packed: local[item.id] } : item,
+  );
+  const progress = gearProgress(items);
+
+  // Five rows, and the ones still to pack come first in the choosing — a card
+  // of five ticked boxes is a card that says nothing — but they are drawn in
+  // the list's own order, packed above pending, as the export draws them.
+  const pending = items.filter((item) => !item.packed);
+  const packed = items.filter((item) => item.packed);
+  const chosen = new Set(
+    [...pending.slice(0, PACKING_ROWS), ...packed].slice(0, PACKING_ROWS).map((item) => item.id),
+  );
+  const rows = [...packed, ...pending].filter((item) => chosen.has(item.id));
+  const hidden = items.length - rows.length;
+
+  async function toggle(item: GearItem, next: boolean) {
+    setLocal((current) => ({ ...current, [item.id]: next }));
+    if (!(await toggleGearItem(tripId, item.id, next))) {
+      setLocal((current) => ({ ...current, [item.id]: !next }));
+    }
+  }
+
   return (
-    <Link
-      href={href}
-      className="rounded-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <Card className="group/row flex h-full min-w-0 items-center gap-3 transition-[box-shadow,transform] duration-settle ease-snap hover:-translate-y-0.5 hover:shadow-lift">
-        <span
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary-ink"
-          aria-hidden="true"
-        >
-          {icon}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">{label}</span>
-          <span className="block min-w-0 truncate text-caption text-muted">
-            {hint}
+    <section className="flex flex-col gap-4">
+      <SectionHead
+        Icon={Luggage}
+        tone="cta"
+        title="ציוד ורשימת הכנות"
+        meta={
+          progress.total > 0 && (
+            <span className="shrink-0 rounded-full bg-primary-tint px-2 py-0.5 text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-primary">
+              {progress.packed} מתוך {progress.total} נארזו
+            </span>
+          )
+        }
+      />
+
+      <div className="rounded-xl bg-surface p-4 shadow-md">
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-xs leading-4 font-semibold text-foreground">
+            מוכנות לטיסה
           </span>
-        </span>
-        <ChevronLeft
-          className="h-4 w-4 shrink-0 text-border-strong transition-transform group-hover/row:-translate-x-0.5"
-          aria-hidden="true"
-        />
-      </Card>
-    </Link>
+          <span className="text-base leading-[22px] font-bold text-cta-strong tabular-nums">
+            {progress.percent}%
+          </span>
+        </div>
+        <div
+          role="progressbar"
+          aria-label="מוכנות לטיסה"
+          aria-valuenow={progress.percent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          className="mb-4 h-3 w-full overflow-hidden rounded-full bg-surface-high"
+        >
+          <div
+            className="h-full rounded-full bg-cta-strong transition-all duration-500"
+            style={{ width: `${progress.percent}%` }}
+          />
+        </div>
+
+        {rows.length === 0 ? (
+          <p className="p-2 text-sm leading-5 text-muted-strong">
+            הרשימה עוד ריקה — דרכון, מתאם, תרופות. כל מה שתוסיפו נשמר לכל חברי
+            הטיול.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {rows.map((item) => (
+              <label
+                key={item.id}
+                className="flex cursor-pointer items-center justify-between gap-2 rounded-lg p-2 transition-colors select-none hover:bg-surface-2"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={item.packed}
+                    onChange={(event) => void toggle(item, event.target.checked)}
+                    className="h-5 w-5 shrink-0 cursor-pointer rounded accent-[var(--success-strong)]"
+                  />
+                  <span
+                    className={cn(
+                      "min-w-0 text-sm leading-5 transition-all wrap-anywhere",
+                      item.packed
+                        ? "text-muted-strong line-through"
+                        : "font-medium text-foreground",
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                </div>
+                <DomainIcon
+                  name={GEAR_CATEGORIES[item.category].icon}
+                  className={cn(
+                    "h-[18px] w-[18px] shrink-0",
+                    item.packed ? "text-success-strong" : "text-muted-strong",
+                  )}
+                />
+              </label>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-2 flex items-center justify-between gap-2 pt-2">
+          <Link
+            href={`/trips/${tripId}/more/gear`}
+            className="flex items-center gap-1 rounded-control text-xs leading-4 font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <CirclePlus className="h-[18px] w-[18px]" aria-hidden="true" />
+            {hidden > 0 ? `הוספה, ועוד ${hidden} ברשימה` : "הוספת פריט לרשימה"}
+          </Link>
+          <span className="text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-muted-strong">
+            משותף לכל חברי הטיול
+          </span>
+        </div>
+      </div>
+    </section>
   );
 }
+
+// ---- שותפים ועדכון משפחה ----------------------------------------------------
+
+function SharingSection({
+  tripId,
+  members,
+  shareToken,
+  origin,
+}: {
+  tripId: string;
+  members: TripMember[];
+  shareToken: string | null;
+  origin: string;
+}) {
+  const { showToast } = useToast();
+  const [token, setToken] = useState(shareToken);
+  const [working, setWorking] = useState(false);
+  const shown = members.slice(0, 3);
+
+  // The family link is the trip's public view link. Pressing either button on
+  // a trip that has none issues it first — the export's buttons promise a link,
+  // and "go to another screen and create one" is not what they say.
+  async function ensureUrl(): Promise<string | null> {
+    if (token) return `${origin}/share/${token}`;
+    setWorking(true);
+    const issued = await enableSharing(tripId);
+    setWorking(false);
+    if (!issued) {
+      showToast("יצירת הקישור נכשלה. נסו שוב.", "danger");
+      return null;
+    }
+    setToken(issued);
+    return `${origin}/share/${issued}`;
+  }
+
+  async function copy() {
+    const url = await ensureUrl();
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast("קישור המעקב למשפחה הועתק");
+    } catch {
+      showToast("לא הצלחנו להעתיק. אפשר להעתיק ממסך השיתוף.", "danger");
+    }
+  }
+
+  async function whatsapp() {
+    // Opened before the await, inside the press: a window opened after a
+    // network round trip is a popup, and Safari blocks it.
+    const tab = token ? null : window.open("", "_blank");
+    const url = await ensureUrl();
+    if (!url) {
+      tab?.close();
+      return;
+    }
+    const target = `https://wa.me/?text=${encodeURIComponent(`הלו״ז, המלונות והטיסות של הטיול שלנו, מתעדכן לבד: ${url}`)}`;
+    if (tab) tab.location.href = target;
+    else window.open(target, "_blank", "noopener");
+  }
+
+  return (
+    <section className="flex flex-col gap-4">
+      <SectionHead
+        Icon={UserPlus}
+        tone="primary"
+        title="שותפים ועדכון משפחה"
+        meta={
+          <span className="shrink-0 text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-primary">
+            {members.length === 1 ? "רק אתם" : `${members.length} שותפים פעילים`}
+          </span>
+        }
+      />
+
+      <div className="flex flex-col gap-4 rounded-xl bg-surface p-4 shadow-md">
+        <div>
+          <span className="mb-1 block text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-muted-strong">
+            חברי הנסיעה
+          </span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center -space-x-2 space-x-reverse">
+              {shown.map((member, index) => (
+                <span
+                  key={member.member_id}
+                  title={memberLabel(member)}
+                  className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold shadow-sm ring-2 ring-surface",
+                    AVATAR_TONES[index % AVATAR_TONES.length],
+                  )}
+                >
+                  {initial(memberLabel(member))}
+                </span>
+              ))}
+              <Link
+                href={`/trips/${tripId}/more/members`}
+                aria-label="הוספת שותף"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-high text-primary transition-colors hover:bg-surface-variant focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <UserPlus className="h-5 w-5" aria-hidden="true" />
+              </Link>
+            </div>
+            <Link
+              href={`/trips/${tripId}/more/members`}
+              className="rounded-full bg-surface-2 px-4 py-1 text-xs leading-4 font-medium text-primary transition-colors hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              ניהול הרשאות
+            </Link>
+          </div>
+        </div>
+
+        <div className="relative flex flex-col gap-2 overflow-hidden rounded-xl bg-surface-2 p-4">
+          <div className="flex items-start gap-2">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cta-tint text-cta-strong">
+              <HouseHeart className="h-[22px] w-[22px]" aria-hidden="true" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1">
+                <h4 className="text-base leading-[22px] font-semibold text-foreground">
+                  קישור שקט למשפחה בבית
+                </h4>
+                <Heart
+                  className="h-4 w-4 shrink-0 fill-current text-cta-strong"
+                  aria-hidden="true"
+                />
+              </div>
+              <p className="mt-0.5 text-xs leading-[18px] text-muted-strong">
+                דף צפייה חי שמאפשר להורים ולמשפחה לעקוב אחרי הלו״ז, המלונות
+                והטיסות — בלי חשבון ובלי אפשרות לשנות. מספרי אישור, כתובות
+                מדויקות ומחירים לא מוצגים שם.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => void copy()}
+              disabled={working}
+              className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-surface px-2 py-2 text-xs leading-4 font-medium text-foreground shadow-sm transition-colors hover:bg-background active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Copy className="h-[18px] w-[18px] text-primary" aria-hidden="true" />
+              העתקת לינק
+            </button>
+            <button
+              type="button"
+              onClick={() => void whatsapp()}
+              disabled={working}
+              className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-success-strong px-2 py-2 text-xs leading-4 font-medium text-white shadow-sm transition-opacity hover:opacity-90 active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <MessageSquareText className="h-[18px] w-[18px]" aria-hidden="true" />
+              שיתוף בוואטסאפ
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function initial(label: string): string {
+  return label.trim().charAt(0).toUpperCase() || "?";
+}
+

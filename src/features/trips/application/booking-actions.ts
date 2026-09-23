@@ -52,7 +52,7 @@ const FORM_FIELDS = [
 // real and a reader can be standing in it.
 function bookingWriteError(kind: string, fallback: string): string {
   return kind === "schema"
-    ? "המסד לא מעודכן לגרסת הקוד. הריצו ב-Supabase את 0020_booking_duration.sql, 0021_booking_airline.sql, 0022_booking_standby.sql ו-0023_booking_stops.sql, ואז נסו שוב."
+    ? "המסד לא מעודכן לגרסת הקוד. הריצו ב-Supabase את 0020_booking_duration.sql, 0021_booking_airline.sql, 0022_booking_standby.sql, 0023_booking_stops.sql ו-0026_documents_hub.sql, ואז נסו שוב."
     : fallback;
 }
 
@@ -71,6 +71,32 @@ function optionalNumber(value: FormDataEntryValue | null): number | undefined {
   if (typeof value !== "string" || value.trim() === "") return undefined;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+// 0026. The ticket's printed details, from eight ordinary inputs into the one
+// JSON object the column holds. Uncontrolled inputs rather than a hidden field
+// kept in React state (the way `stops` is): these are a fixed set of boxes, not
+// rows that come and go, so there is nothing to mis-pair.
+//
+// Undefined when nothing was filled, so an untouched form sends no `details`
+// and the service leaves the column alone on insert.
+function detailsFromForm(formData: FormData): string | undefined {
+  const text = (field: string) => formData.get(field)?.toString().trim() ?? "";
+  const stars = Number(text("detailStars"));
+  const details = {
+    seat: text("detailSeat"),
+    gate: text("detailGate"),
+    boarding: text("detailBoarding"),
+    baggage: text("detailBaggage"),
+    carriage: text("detailCarriage"),
+    stars: Number.isFinite(stars) && stars > 0 ? stars : "",
+    breakfast: formData.get("detailBreakfast") !== null,
+    paid: formData.get("detailPaid") !== null,
+  };
+  const filled = Object.values(details).some(
+    (value) => value !== "" && value !== false,
+  );
+  return filled ? JSON.stringify(details) : undefined;
 }
 
 function submittedValues(formData: FormData) {
@@ -98,6 +124,10 @@ function submittedValues(formData: FormData) {
     formData.get("durationHours")?.toString(),
     formData.get("durationMinutes")?.toString(),
   );
+  // 0026. The details travel back as the one JSON string the form reads.
+  const details = detailsFromForm(formData);
+  if (details) values.details = details;
+
   if (combined) values.durationMinutes = combined;
   else delete values.durationMinutes;
 
@@ -140,6 +170,8 @@ export async function addBooking(
     // 0023. One field for the whole route. Validated by the schema, converted
     // to instants by the service — see parseStopsInput.
     stops: formData.get("stops") || undefined,
+    // 0026. Assembled from the detail* inputs — see detailsFromForm.
+    details: detailsFromForm(formData),
   });
 
   if (!parsed.success) {
@@ -205,6 +237,8 @@ export async function editBooking(
     // 0023. One field for the whole route. Validated by the schema, converted
     // to instants by the service — see parseStopsInput.
     stops: formData.get("stops") || undefined,
+    // 0026. Assembled from the detail* inputs — see detailsFromForm.
+    details: detailsFromForm(formData),
   });
 
   if (!parsed.success) {

@@ -46,6 +46,8 @@
   --muted: #58616d;
   /* Stitch's outline grey — captions on the day cards, small metadata. */
   --outline: #707881;
+  /* Stitch on-surface-variant: secondary text on the documents screen. */
+  --muted-strong: #3f4850;
 
   /* --- brand: deep maritime blue ----------------------------------------
      Structure, links, the active tab, focus. Not the call to action — that is
@@ -63,6 +65,10 @@
   --ring: #007bb9;
   /* primary-fixed-dim: the quiet line on a maritime fill. */
   --primary-soft: #93ccff;
+  /* 0026 (documents): primary-container, the far stop of the boarding pass
+     gradient, and on-primary-fixed, the ink on a primary-fixed pill. */
+  --primary-bright: #007bb9;
+  --primary-deep: #001d31;
 
   /* The call to action: "הוסף יעד", "הצג ברקוד", "הוספה". One per screen. */
   --cta: #ea580c;
@@ -94,6 +100,9 @@
   --success: #00855d;
   /* tertiary-fixed: the mint chip — booked, anchored, confirmed. */
   --success-bright: #85f8c4;
+  /* Stitch tertiary, and on-tertiary-fixed — the "offline" tag ink. */
+  --success-strong: #006948;
+  --success-deep: #002114;
 
   --danger-tint: #ffdad6;
   --danger-ink: #93000a;
@@ -293,6 +302,11 @@
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-outline: var(--outline);
+  --color-muted-strong: var(--muted-strong);
+  --color-primary-bright: var(--primary-bright);
+  --color-primary-deep: var(--primary-deep);
+  --color-success-strong: var(--success-strong);
+  --color-success-deep: var(--success-deep);
   --color-primary-soft: var(--primary-soft);
   --color-cta-bright: var(--cta-bright);
   --color-cta-strong: var(--cta-strong);

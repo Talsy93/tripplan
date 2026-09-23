@@ -1,7 +1,15 @@
 "use client";
 
-import { ArrowLeft, Clock, Hash, Plane, Wallet } from "lucide-react";
-import { Badge, Dialog } from "@/components/ui";
+import {
+  ArrowLeft,
+  Clock,
+  Hash,
+  Pencil,
+  Plane,
+  Trash2,
+  Wallet,
+} from "lucide-react";
+import { Badge, Button, Dialog } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import {
   BOOKING_KINDS,
@@ -33,10 +41,17 @@ export function BookingDetails({
   booking,
   open,
   onClose,
+  onEdit,
+  onRemove,
 }: {
   booking: Booking;
   open: boolean;
   onClose: () => void;
+  // The documents screen opens this as the way into a booking, so there it
+  // carries the two things the day never offers. Absent elsewhere — the day
+  // stays read-only for the reason above.
+  onEdit?: () => void;
+  onRemove?: () => void;
 }) {
   const kind = BOOKING_KINDS[booking.kind];
   const { legs, stops } = flightRoute(booking);
@@ -51,7 +66,29 @@ export function BookingDetails({
   const route = kind.isTransport ? bookingWhere(booking) : null;
 
   return (
-    <Dialog open={open} onClose={onClose} title={route ?? booking.title}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={route ?? booking.title}
+      footer={
+        onEdit || onRemove ? (
+          <>
+            {onRemove && (
+              <Button variant="outline" onClick={onRemove}>
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                הסרה
+              </Button>
+            )}
+            {onEdit && (
+              <Button variant="brand" onClick={onEdit}>
+                <Pencil className="h-4 w-4" aria-hidden="true" />
+                עריכה
+              </Button>
+            )}
+          </>
+        ) : undefined
+      }
+    >
       <div className="flex min-w-0 flex-col gap-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="neutral">

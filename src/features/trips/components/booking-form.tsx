@@ -21,9 +21,12 @@ import {
   BOOKING_KINDS,
   DEFAULT_REMINDER_DAYS,
   REMINDER_PRESETS,
+  bookingDetails,
   bookingStops,
+  parseDetailsInput,
   splitDuration,
   toDateTimeLocal,
+  type BookingDetails,
 } from "../domain/booking";
 import { AIRLINES } from "../domain/airlines";
 import { CURRENCIES, DEFAULT_CURRENCY } from "../domain/expenses";
@@ -93,6 +96,44 @@ function stopRowsFrom(echo: string | undefined, booking: Booking | undefined): S
     flight: stop.flight ?? "",
     airline: stop.airline ?? "",
   }));
+}
+
+// 0026. The details the form should start from: a rejected submission's echo,
+// else the booking being edited, else nothing.
+function detailsFrom(
+  echo: string | undefined,
+  booking: Booking | undefined,
+): BookingDetails {
+  if (echo) {
+    const parsed = parseDetailsInput(echo);
+    if (parsed) return parsed;
+  }
+  return booking ? bookingDetails(booking) : {};
+}
+
+function DetailInput({
+  name,
+  label,
+  value,
+  placeholder,
+}: {
+  name: string;
+  label: string;
+  value: string | undefined;
+  placeholder: string;
+}) {
+  return (
+    <label className="flex min-w-0 flex-col gap-1 text-sm">
+      <span className="text-muted">{label}</span>
+      <Input
+        name={name}
+        maxLength={name === "detailBaggage" ? 20 : 12}
+        dir="auto"
+        placeholder={placeholder}
+        defaultValue={value ?? ""}
+      />
+    </label>
+  );
 }
 
 function FieldError({ message }: { message?: string }) {
@@ -292,6 +333,9 @@ export function BookingForm({
   // directly would throw away what was typed on exactly the submission that
   // needs it kept.
   const durationParts = splitDuration(was("durationMinutes"));
+
+  // 0026. The echo first, then the booking — the same order `was` resolves in.
+  const details = detailsFrom(state.values?.details, booking);
 
   // The datalist needs an id, and two of these forms can be on one page — the
   // add form on the bookings screen and the edit dialog over it.
@@ -553,6 +597,88 @@ export function BookingForm({
             <FieldError message={errorFor("durationMinutes")} />
           </fieldset>
         )}
+
+        {/* 0026. What the ticket prints beyond where and when — the fields the
+            documents screen draws on its boarding pass and hotel card. Folded,
+            like the block below: a booking is complete without any of it.
+            Keyed on the kind so switching flight → hotel swaps the boxes rather
+            than carrying a seat number into a hotel. */}
+        <Disclosure
+          key={`details-${kind}-${formGeneration}`}
+          defaultOpen={Object.keys(details).length > 0}
+          title={isTransport ? "מושב, שער וכבודה" : "כוכבים, ארוחת בוקר ותשלום"}
+          detail="מופיע על הכרטיס במסך המסמכים"
+        >
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {isTransport && (
+              <DetailInput name="detailSeat" label="מושב" value={details.seat} placeholder="14A" />
+            )}
+            {kind === "flight" && (
+              <>
+                <DetailInput name="detailGate" label="שער" value={details.gate} placeholder="B4" />
+                <label className="flex min-w-0 flex-col gap-1 text-sm">
+                  <span className="text-muted">עלייה למטוס</span>
+                  <Input
+                    type="time"
+                    name="detailBoarding"
+                    dir="ltr"
+                    defaultValue={details.boarding ?? ""}
+                  />
+                </label>
+                <DetailInput
+                  name="detailBaggage"
+                  label="מזוודה"
+                  value={details.baggage}
+                  placeholder="23 ק״ג"
+                />
+              </>
+            )}
+            {kind === "train" && (
+              <DetailInput
+                name="detailCarriage"
+                label="קרון"
+                value={details.carriage}
+                placeholder="4"
+              />
+            )}
+            {kind === "lodging" && (
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
+                <span className="text-muted">כוכבים</span>
+                <Select name="detailStars" defaultValue={details.stars ? String(details.stars) : ""}>
+                  <option value="">—</option>
+                  {[1, 2, 3, 4, 5].map((count) => (
+                    <option key={count} value={count}>
+                      {"★".repeat(count)}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            {kind === "lodging" && (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  name="detailBreakfast"
+                  defaultChecked={details.breakfast === true}
+                  className="h-4 w-4 shrink-0 accent-[var(--primary)]"
+                />
+                ארוחת בוקר כלולה
+              </label>
+            )}
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                name="detailPaid"
+                defaultChecked={details.paid === true}
+                className="h-4 w-4 shrink-0 accent-[var(--primary)]"
+              />
+              שולם במלואו
+            </label>
+          </div>
+          <FieldError message={errorFor("details")} />
+        </Disclosure>
 
         {/* Everything from here to the notes is optional, and on the form it
             was five more controls between the times and the submit button. A
@@ -854,27 +980,43 @@ export function BookingForm({
 export function AddBookingButton({
   tripId,
   cities,
+  pill = false,
 }: {
   tripId: string;
   cities: string[];
+  // The documents screen's header action, drawn as the Stitch export draws
+  // "הוספת קובץ": a primary-fixed pill. The button adds a booking, which is
+  // what that screen holds, so it says so.
+  pill?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      {/* `sm` and a short label, because this now lives in the section heading
-          rather than on a line of its own — see the trip page for why. The long
-          form is still the dialog's title, which is where a full sentence has
-          room. */}
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setOpen(true)}
-        className="self-start"
-      >
-        <Plus className="h-4 w-4" aria-hidden="true" />
-        הוספה
-      </Button>
+      {pill ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex shrink-0 items-center gap-1 rounded-full bg-primary-tint px-4 py-2 text-xs leading-4 font-medium text-primary-deep shadow-sm transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <Plus className="h-[18px] w-[18px]" aria-hidden="true" />
+          הוספת כרטיס
+        </button>
+      ) : (
+        // `sm` and a short label, because this now lives in the section heading
+        // rather than on a line of its own — see the trip page for why. The
+        // long form is still the dialog's title, which is where a full
+        // sentence has room.
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setOpen(true)}
+          className="self-start"
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          הוספה
+        </Button>
+      )}
 
       <Dialog
         open={open}
