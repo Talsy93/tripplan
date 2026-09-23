@@ -346,9 +346,16 @@ export {
   aiPlanCitySchema,
   aiTripPlanSchema,
   planFromChatRequestSchema,
+  refinePlanRequestSchema,
+  PLAN_TWEAKS,
   planTotals,
 } from "./domain/trip-plan";
-export type { AiPlanItem, AiPlanCity, AiTripPlan } from "./domain/trip-plan";
+export type {
+  AiPlanItem,
+  AiPlanCity,
+  AiTripPlan,
+  RefinePlanRequest,
+} from "./domain/trip-plan";
 export { savePlanFromChat } from "./infrastructure/trip-plan-service";
 export { resetChat, applyPlan } from "./application/chat-actions";
 export { TripChat } from "./components/trip-chat";

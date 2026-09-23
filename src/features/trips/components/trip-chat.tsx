@@ -9,7 +9,7 @@ import { aiErrorFromResponse } from "../domain/ai-errors";
 import { PlanPreview } from "./plan-preview";
 import type { TripChatMessage } from "../domain/chat";
 import { planTotals } from "../domain/trip-plan";
-import type { AiTripPlan } from "../domain/trip-plan";
+import type { AiTripPlan, RefinePlanRequest } from "../domain/trip-plan";
 
 type Turn = {
   id: string;
@@ -99,6 +99,9 @@ export function TripChat({
   // Which half of the screen is showing. "chat" is the conversation; "plan" is
   // what the conversation would add to the trip.
   const [view, setView] = useState<"chat" | "plan">("chat");
+  // Which tuning request is in flight, by its own text, so the chip that was
+  // pressed is the one that says so.
+  const [tweaking, setTweaking] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const [applied, setApplied] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
@@ -230,6 +233,38 @@ export function TripChat({
     }
   }
 
+  // The same plan, changed. Replaces what is on screen rather than adding a
+  // second card: there is one proposal, and the point of a tweak is that it is
+  // now the proposal.
+  async function tweakPlan(instruction: string) {
+    if (!plan) return;
+    setTweaking(instruction);
+    setError(null);
+    try {
+      // Typed as the route's own request type rather than built loose and
+      // stringified. `fetch` does not check a body, so a field renamed on the
+      // schema would otherwise fail at runtime as a 400 with nothing pointing
+      // at the cause; this way it fails in the type-check, in this file.
+      const body: RefinePlanRequest = { tripId, plan, instruction };
+      const res = await fetch("/api/ai/refine-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        setError(
+          await aiErrorFromResponse(res, "העדכון נכשל. נסו שוב."),
+        );
+        return;
+      }
+      setPlan((await res.json()) as AiTripPlan);
+    } catch {
+      setError("שגיאת רשת. נסו שוב.");
+    } finally {
+      setTweaking(null);
+    }
+  }
+
   async function confirmPlan() {
     if (!plan) return;
     setApplying(true);
@@ -342,12 +377,17 @@ export function TripChat({
 
       {view === "plan" && (
         <div className="flex flex-1 flex-col gap-4">
+          {/* A failed tweak says so beside the card it failed to change. The
+              chat's own banner is on the other half and would be unread here. */}
+          {plan && error && <Banner tone="danger">{error}</Banner>}
           {plan ? (
             <PlanPreview
               plan={plan}
               applying={applying}
               onApply={() => void confirmPlan()}
               onDismiss={() => setPlan(null)}
+              onTweak={(instruction) => void tweakPlan(instruction)}
+              tweaking={tweaking}
             />
           ) : (
             <div className="flex flex-col items-start gap-3 rounded-card bg-surface p-4 shadow-card">

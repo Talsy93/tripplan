@@ -39,6 +39,35 @@ export const planFromChatRequestSchema = z.object({
   tripId: z.uuid(),
 });
 
+// Asking for the same plan again, changed.
+//
+// The whole plan goes up rather than an id, because nothing has been saved: a
+// proposal lives in the browser until it is applied, so the server has nothing
+// to look it up by. That also keeps the route honest — it revises what the
+// traveller is actually looking at, not a row that may have moved on.
+export const refinePlanRequestSchema = z.object({
+  tripId: z.uuid(),
+  plan: aiTripPlanSchema,
+  // What to change, in the traveller's words. Capped because it goes into a
+  // prompt: a long enough instruction can push the plan itself out of the
+  // model's attention, and there is nothing worth saying here that needs more.
+  instruction: z.string().trim().min(2).max(200),
+});
+export type RefinePlanRequest = z.infer<typeof refinePlanRequestSchema>;
+
+// The tweaks offered as chips. The first two are the export's own, word for
+// word; the rest are the same shape of ask — a swap, a constraint, a pace.
+//
+// Written as instructions rather than as labels, so the chip's text is exactly
+// what gets sent. A label that has to be translated into a prompt somewhere
+// else is a second place for the two to drift apart.
+export const PLAN_TWEAKS = [
+  "החליפו את מסעדת הצהריים",
+  "התאימו לצמחונים",
+  "פחות הליכה ביום",
+  "הוסיפו משהו לערב",
+] as const;
+
 // Everything the plan would add, counted for the confirmation prompt.
 export function planTotals(plan: AiTripPlan) {
   return {

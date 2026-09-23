@@ -1,8 +1,8 @@
 "use client";
 
-import { Clock, ListPlus, Map as MapIcon, X } from "lucide-react";
+import { Clock, ListPlus, Map as MapIcon, Wand2, X } from "lucide-react";
 import { categoryLabel } from "../domain/place";
-import { planTotals } from "../domain/trip-plan";
+import { PLAN_TWEAKS, planTotals } from "../domain/trip-plan";
 import type { AiTripPlan } from "../domain/trip-plan";
 import { PlacePhoto } from "./place-photo";
 
@@ -18,6 +18,8 @@ export function PlanPreview({
   applying,
   onApply,
   onDismiss,
+  onTweak,
+  tweaking = null,
 }: {
   plan: AiTripPlan;
   applying: boolean;
@@ -25,6 +27,14 @@ export function PlanPreview({
   // pass a function, can still draw the card.
   onApply?: () => void;
   onDismiss?: () => void;
+  // Ask for the same plan with one thing changed. Absent in the harness, and
+  // then the tuning row is not drawn at all — a row of chips that do nothing
+  // is worse than no row.
+  onTweak?: (instruction: string) => void;
+  // Which tweak is in flight, so its own chip can say so. A single string
+  // rather than a boolean: four chips and one spinner somewhere else is a
+  // spinner that belongs to nothing.
+  tweaking?: string | null;
 }) {
   const { cities, items } = planTotals(plan);
 
@@ -158,6 +168,34 @@ export function PlanPreview({
             לא עכשיו
           </button>
         </div>
+        {/* The tuning row the export draws under the card — "swap the lunch
+            place", "make it vegetarian".
+
+            It is a revision and not a new plan, which is the whole point: the
+            traveller has something they are broadly happy with and wants one
+            thing different. See /api/ai/refine-plan, whose prompt says to
+            return everything the request did not touch unchanged.
+
+            Each press is a model round, so the chips disable together while one
+            is running — four chips you can queue up is four calls against a
+            twenty-a-day quota. */}
+        {onTweak && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {PLAN_TWEAKS.map((tweak) => (
+              <button
+                key={tweak}
+                type="button"
+                onClick={() => onTweak(tweak)}
+                disabled={tweaking !== null || applying}
+                className="flex items-center gap-0.5 rounded-full bg-surface-high px-2 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface-sunken disabled:opacity-60"
+              >
+                <Wand2 className="h-3 w-3 shrink-0" aria-hidden="true" />
+                {tweaking === tweak ? "מעדכן…" : tweak}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* The reassurance that makes the button safe to press. */}
         <p className="mt-1 text-[0.625rem] leading-[0.875rem] text-muted">
           ההוספה לא מוחקת כלום ממה שכבר בחרתם, וכל פריט ניתן להסרה.
