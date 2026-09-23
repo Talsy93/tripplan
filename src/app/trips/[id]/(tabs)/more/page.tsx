@@ -6,7 +6,7 @@ import {
   listBookings,
   listGear,
   listMembers,
-  MoreMenu,
+  TripHub,
 } from "@/features/trips";
 
 export const metadata = { title: "מסמכים" };
@@ -34,7 +34,7 @@ export default async function MorePage({
   if (!trip) notFound();
 
   return (
-    <MoreMenu
+    <TripHub
       tripId={trip.id}
       tripName={trip.name}
       bookings={bookings}

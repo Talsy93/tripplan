@@ -51,7 +51,7 @@ import {
   CityGuide,
   CityGuideList,
   MemberList,
-  MoreMenu,
+  TripHub,
   NewTripButton,
   NightStay,
   Phrasebook,
@@ -914,7 +914,7 @@ export const SCENES: Scene[] = [
         startDate: f.LONG_START,
         cities: FRAME_CITIES,
         children: (
-          <MoreMenu
+          <TripHub
             tripId={f.TRIP_ID}
             tripName="יפן בסתיו"
             bookings={f.BOOKINGS}

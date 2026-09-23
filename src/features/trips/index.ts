@@ -424,7 +424,7 @@ export { EmptyDays, RouteCities } from "./components/route-cities";
 export { ExploreScreen } from "./components/explore-screen";
 export { CityGuideList } from "./components/city-guide-list";
 export { CityBand } from "./components/city-band";
-export { MoreMenu } from "./components/more-menu";
+export { TripHub } from "./components/trip-hub";
 export { HomeRail } from "./components/home-rail";
 export { HomeMap } from "./components/home-map";
 export { HomePanel } from "./components/home-panel";
