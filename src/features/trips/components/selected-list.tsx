@@ -5,8 +5,9 @@ import { Check, ChevronDown, X } from "lucide-react";
 import { Card, EmptyState } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { setSelected } from "../application/guide-actions";
-import { categoryLabel } from "../domain/place";
+import { categoryIcon, categoryLabel } from "../domain/place";
 import { PlacePhoto } from "./place-photo";
+import { DomainIcon } from "./domain-icon";
 import type { SelectedItem } from "../domain/ai-suggestion";
 import { MapPin } from "lucide-react";
 
@@ -136,6 +137,15 @@ export function SelectedList({
               query={item.name}
               near={item.city}
               className="h-14 w-14 shrink-0 rounded-control"
+              // The same placeholder as the suggestions above. "Uniform" has
+              // to mean the screen, not one list on it — two lists of cards
+              // where only one keeps its shape is the same raggedness moved.
+              fallback={
+                <DomainIcon
+                  name={categoryIcon(item.category)}
+                  className="h-5 w-5"
+                />
+              }
             />
             {/* group/pick, not group: the row also sits inside whatever the
                 caller wrapped it in, and an unnamed group would be captured by

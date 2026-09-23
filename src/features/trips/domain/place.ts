@@ -136,6 +136,32 @@ export function categoryLabel(category: string) {
   return CATEGORY_LABELS[category] ?? category;
 }
 
+// The glyph for a category, for the placeholder a card draws when it has no
+// photo. Takes a plain string for the reason categoryLabel does — a selected
+// item's category comes from either vocabulary, and a lookup that accepted only
+// one would fall through to nothing on half the rows.
+//
+// The last resort is "other", which is a real icon rather than an empty tile:
+// the point of the placeholder is that every card is the same shape, and a
+// category nobody mapped is exactly the row that would otherwise break it.
+export function categoryIcon(category: string): DomainIconName {
+  const known = PLACE_CATEGORIES[category as PlaceCategory];
+  if (known) return known.icon;
+
+  switch (category) {
+    case "attractions":
+      return "attraction";
+    case "restaurants":
+      return "restaurant";
+    case "experiences":
+      return "event";
+    case "areas":
+      return "lodging";
+    default:
+      return "other";
+  }
+}
+
 // Selected items carry a category from one of two vocabularies: the four an AI
 // city guide produces, and the six the attractions search uses. They share one
 // column, so anything validating a category has to accept both — validating

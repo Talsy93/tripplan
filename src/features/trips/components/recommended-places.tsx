@@ -4,7 +4,9 @@ import { useState } from "react";
 import { Plus, Check, Star } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { setSelected } from "../application/guide-actions";
+import { categoryIcon } from "../domain/place";
 import { PlacePhoto } from "./place-photo";
+import { DomainIcon } from "./domain-icon";
 import type { AiCategoryKey, CityGuideData } from "../domain/ai-suggestion";
 
 // "מומלצים ב<עיר>" — the section the _4 export opens its results with, and the
@@ -154,6 +156,15 @@ export function RecommendedPlaces({
               query={item.name}
               near={city}
               className="h-20 w-20 shrink-0 rounded-control"
+              // Asked for: a placeholder when there is no photo, so the list
+              // is one shape. Wikipedia has a page for some of these names and
+              // not others, and which is which tells the reader nothing.
+              fallback={
+                <DomainIcon
+                  name={categoryIcon(item.category)}
+                  className="h-7 w-7"
+                />
+              }
             />
 
             <div className="flex min-w-0 flex-1 flex-col gap-1">
