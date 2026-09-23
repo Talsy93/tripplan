@@ -16,5 +16,5 @@ export default async function TripPage({
     notFound();
   }
 
-  redirect(`/trips/${trip.id}/${defaultTripTab(trip.start_date)}`);
+  redirect(`/trips/${trip.id}/${defaultTripTab()}`);
 }

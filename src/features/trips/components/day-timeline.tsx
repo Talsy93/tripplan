@@ -552,7 +552,14 @@ function EntryRow({
       <CompactRow
         time={formatMinutes(startMinutes)}
         title={entry.title}
-        sub={[entry.note || null, anchored].filter(Boolean).join(" · ") || null}
+        // Only the note's first line. It can be a multi-line stage list, and
+        // joining that with " · " produced one run of text several lines long
+        // inside a row meant to be glanced at.
+        sub={
+          [entry.note?.split("\n")[0] || null, anchored]
+            .filter(Boolean)
+            .join(" · ") || null
+        }
       />
     );
   }
@@ -576,8 +583,21 @@ function EntryRow({
             />
           )}
         </span>
+        {/* One line here, all of it on a press.
+            Reported about the airport transfer: "the plan for getting from
+            place to place does not need all the information — reduce it in the
+            display to a heading with an option to show everything." That note
+            is a stage-by-stage list, one line per leg, written that way on
+            purpose for someone standing in arrivals — and on the schedule,
+            where it sits under a title beside six other rows, it is four lines
+            of something you already decided.
+
+            A clamp rather than a <details>: this whole row is a button, and
+            interactive content inside a button is invalid and unreachable by
+            keyboard. The "show everything" is the row itself — pressing it
+            opens the entry, where the note is in full. */}
         {entry.note && (
-          <span className="min-w-0 text-caption text-muted wrap-anywhere">
+          <span className="line-clamp-1 min-w-0 text-caption text-muted wrap-anywhere">
             {entry.note}
           </span>
         )}

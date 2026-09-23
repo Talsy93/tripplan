@@ -449,7 +449,7 @@ export type { RailShortcut, RailShortcutKey } from "./domain/rail-shortcuts";
 export { WorkspaceMap } from "./components/workspace-map";
 export {
   TRIP_TABS,
-  visibleTripTabs,
+  tripTabsFor,
   tripTabHref,
   defaultTripTab,
 } from "./domain/trip-tabs";

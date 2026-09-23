@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Compass, Menu, Sun } from "lucide-react";
+import { CalendarDays, Compass, Lock, Menu, Sun } from "lucide-react";
 import {
   BottomNav,
   IconRail,
@@ -12,7 +12,7 @@ import {
 } from "@/components/layout";
 import { cn } from "@/lib/cn";
 import {
-  visibleTripTabs,
+  tripTabsFor,
   tripTabHref,
   type TripTabSegment,
 } from "../domain/trip-tabs";
@@ -29,16 +29,21 @@ const ICONS: Record<TripTabSegment, typeof Sun> = {
 function useTripNavItems(tripId: string, live: boolean): NavItem[] {
   const pathname = usePathname();
 
-  return visibleTripTabs(live).map((tab) => {
-    const Icon = ICONS[tab.segment];
-    const href = tripTabHref(tripId, tab.segment);
-    return {
-      href,
-      label: tab.label,
-      icon: <Icon className="h-5 w-5" />,
-      active: pathname === href || pathname.startsWith(`${href}/`),
-    };
-  });
+  // The waiting tab is dropped from the presentations that have no way to draw
+  // one — the phone bar and the side rail are icon lists, and a dead icon among
+  // live ones says nothing. The panel's row draws it; see TripTabs.
+  return tripTabsFor(live)
+    .filter((tab) => !tab.waiting)
+    .map((tab) => {
+      const Icon = ICONS[tab.segment];
+      const href = tripTabHref(tripId, tab.segment);
+      return {
+        href,
+        label: tab.label,
+        icon: <Icon className="h-5 w-5" />,
+        active: pathname === href || pathname.startsWith(`${href}/`),
+      };
+    });
 }
 
 // The panel's tab row (v5). Segmented, links rather than buttons: each tab is
@@ -60,40 +65,69 @@ function useTripNavItems(tripId: string, live: boolean): NavItem[] {
 export function TripTabs({
   tripId,
   // Whether the trip is being lived right now. False before it starts and after
-  // it ends, and then the "today" tab is not drawn — see TRIP_TABS.
+  // it ends, and then "היום" is drawn but cannot be pressed — see tripTabsFor.
   live = false,
 }: {
   tripId: string;
   live?: boolean;
 }) {
-  const items = useTripNavItems(tripId, live);
+  const pathname = usePathname();
+  const tabs = tripTabsFor(live);
 
   return (
     <nav
       aria-label="חלקי הטיול"
       className="flex gap-1 rounded-control border border-border bg-surface-2 p-1"
     >
-      {items.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          prefetch
-          aria-current={item.active ? "page" : undefined}
-          className={cn(
-            "flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[calc(var(--radius-control)-2px)] px-2 py-1.5 text-sm font-semibold",
-            "transition-[background-color,color,box-shadow] duration-press ease-snap",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            item.active
-              ? "bg-surface text-foreground shadow-card"
-              : "text-muted hover:text-foreground",
-          )}
-        >
-          <span aria-hidden="true" className="hidden sm:inline lg:hidden xl:inline">
-            {item.icon}
-          </span>
-          <span className="truncate">{item.label}</span>
-        </Link>
-      ))}
+      {tabs.map((tab) => {
+        const Icon = ICONS[tab.segment];
+        const href = tripTabHref(tripId, tab.segment);
+        const active = pathname === href || pathname.startsWith(`${href}/`);
+
+        // Present, smaller, and not a link. A span rather than a disabled
+        // button or a link with pointer-events-none: there is nothing to
+        // activate, so there should be nothing focusable to land on — and
+        // `title` plus the visually-hidden sentence say why to a pointer and to
+        // a screen reader respectively. It does not take an equal share of the
+        // row either; `flex-none` keeps the three live tabs at full width, so
+        // the waiting one reads as a note beside them rather than as a quarter
+        // of the navigation that happens to be broken.
+        if (tab.waiting) {
+          return (
+            <span
+              key={href}
+              title="ייפתח כשהטיול יתחיל"
+              className="flex flex-none items-center gap-1 rounded-[calc(var(--radius-control)-2px)] px-2 py-1.5 text-caption font-semibold text-border-strong"
+            >
+              <Lock className="h-3 w-3 shrink-0" aria-hidden="true" />
+              <span className="truncate">{tab.label}</span>
+              <span className="sr-only">— ייפתח כשהטיול יתחיל</span>
+            </span>
+          );
+        }
+
+        return (
+          <Link
+            key={href}
+            href={href}
+            prefetch
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-[calc(var(--radius-control)-2px)] px-2 py-1.5 text-sm font-semibold",
+              "transition-[background-color,color,box-shadow] duration-press ease-snap",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              active
+                ? "bg-surface text-foreground shadow-card"
+                : "text-muted hover:text-foreground",
+            )}
+          >
+            <span aria-hidden="true" className="hidden sm:inline lg:hidden xl:inline">
+              <Icon className="h-5 w-5" />
+            </span>
+            <span className="truncate">{tab.label}</span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }

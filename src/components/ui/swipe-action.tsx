@@ -234,5 +234,18 @@ export function SwipeAction({
 // under a thumb that is scrolling past, and the cost of honouring it to the
 // letter here was a delete button nobody could find. The gesture stays — it is
 // still the faster way — and the button is the discoverable one.
+//
+// **And now it rests everywhere.** The touch fix above was half the answer, and
+// the other half came back as the same report from a desktop: "I cannot see the
+// bin on the booking cards." Of course not — a pointer has hover, but you only
+// hover a row you are already reaching for, and finding a control by sweeping
+// the mouse across rows hoping something appears is not finding it.
+//
+// Reported twice about the same button is the signal that the rule is being
+// applied to the wrong thing. It is written for a list of cheap rows; a booking
+// carries a confirmation code and a price, and its delete already opens a
+// confirm dialog — so the danger the rule guards against is handled by the
+// dialog, not by hiding the button. Muted at rest and red on hover, which says
+// "destructive" without a red bin on every row.
 export const REVEALED_ACTION =
-  "opacity-0 transition-opacity duration-settle group-hover/swipe:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100";
+  "text-muted transition-colors hover:text-danger-ink focus-visible:text-danger-ink";

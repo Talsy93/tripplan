@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { ArrowDown, ChevronDown, Pencil, Plane, X } from "lucide-react";
+import { ArrowDown, ChevronDown, Pencil, Plane, Trash2, X } from "lucide-react";
 import {
   Badge,
   Banner,
@@ -33,6 +33,7 @@ import {
   stopsLabel,
 } from "../domain/booking";
 import { cn } from "@/lib/cn";
+import { toneClass } from "../domain/tone";
 import { formatInZone } from "@/lib/datetime";
 import { formatMoney } from "../domain/expenses";
 import { APP_TIME_ZONE } from "../domain/weather";
@@ -191,6 +192,12 @@ export function BookingList({
           const kind = BOOKING_KINDS[booking.kind];
           const nights = bookingNights(booking);
           const clashing = doubleBooked.has(booking.id);
+          // What the row is called. For transport that is the journey, and the
+          // booking's own title — the flight or train number — is demoted into
+          // the details. A journey missing one of its ends falls back to the
+          // number, because half a route is not a name.
+          const route = kind.isTransport ? bookingWhere(booking) : null;
+          const headline = route ?? booking.title;
           // 0023. How many times this one ticket touches down on the way.
           const stopCount = bookingStops(booking).length;
 
@@ -227,14 +234,26 @@ export function BookingList({
                 onAction={() => setConfirming(booking)}
                 className="h-full"
               >
-                <Card padding="none" className="h-full overflow-hidden">
+                {/* The kind's colour, as a spine and a tinted glyph. Three
+                    bookings of three kinds in one list were three identical
+                    white cards distinguished only by a grey icon; now a flight,
+                    a train and a hotel are told apart before anything is read.
+                    The tone class scopes it, so the Glyph below picks the
+                    colour up without being told which one it got. */}
+                <Card
+                  padding="none"
+                  className={cn(
+                    "h-full overflow-hidden border-s-4 border-s-tone-dot",
+                    toneClass(kind.tone),
+                  )}
+                >
                   <div className="flex items-start gap-3 p-4 pb-2">
                     {/* The kind glyph leads the card as its own tile rather than
                         sitting inline before the title. Inline it moved with the
                         text: on a phone the badges wrapped and the glyph ended up
                         wherever the wrap left it, so no two cards in a list
                         started the same way. */}
-                    <Glyph size="md">
+                    <Glyph size="md" tone>
                       <DomainIcon name={kind.icon} />
                     </Glyph>
 
@@ -250,8 +269,20 @@ export function BookingList({
                           page instead of ellipsing. The parent having `min-w-0`
                           does not help: the constraint has to be on the item that
                           cannot wrap. */}
+                      {/* The route, not the flight number.
+                          Asked for as "show the flight's details without the
+                          identifier, it is less interesting — put it in the
+                          additional details". Right: "LY086" identifies the
+                          ticket to an airline and tells the traveller nothing,
+                          while "נתב״ג → הנדה, טוקיו" is the thing the row is.
+                          The number moves into the folded block below, next to
+                          the confirmation code, which is where you look when you
+                          are actually being asked for it.
+
+                          A lodging has no route, so its own title — the hotel's
+                          name — stays the headline. */}
                       <span className="min-w-0 truncate text-base font-semibold">
-                        {booking.title}
+                        {headline}
                       </span>
                       {/* Beside the title rather than in the meta row below:
                           which carrier it is belongs with what the flight is
@@ -307,18 +338,20 @@ export function BookingList({
                       >
                         <Pencil className="h-4 w-4" aria-hidden="true" />
                       </IconButton>
-                      {/* Revealed by hovering the card or by focusing this
-                          button, never at rest — the finger uses the swipe
-                          and the hold instead. */}
+                      {/* A bin, and it is visible. Reported as "I cannot
+                          see the bin on the booking cards" — it was an X, and
+                          it was hover-only. Both were wrong: an X reads as
+                          "close", and a control you have to hover to discover
+                          is one you do not discover. See REVEALED_ACTION. */}
                       <IconButton
                         label={`הסר ${kind.label}`}
-                        variant="danger"
+                        variant="ghost"
                         size="sm"
                         className={REVEALED_ACTION}
                         disabled={removing === booking.id}
                         onClick={() => setConfirming(booking)}
                       >
-                        <X className="h-4 w-4" aria-hidden="true" />
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
                       </IconButton>
                     </span>
                   </div>
@@ -359,7 +392,8 @@ export function BookingList({
                     <StayLeg booking={booking} nights={nights} />
                   )}
 
-                  {(booking.confirmation ||
+                  {(route ||
+                    booking.confirmation ||
                     booking.note ||
                     booking.free_cancellation_until ||
                     booking.cost_amount !== null ||
@@ -369,6 +403,14 @@ export function BookingList({
                     // the provider chose — a 36-character confirmation code has no
                     // spaces to break at.
                     <div className="flex flex-col gap-1 border-t border-dashed border-border px-4 py-3 text-caption text-muted wrap-anywhere">
+                      {/* Where the identifier went. Only when the headline is
+                          the route — otherwise this would print the hotel's
+                          name underneath the hotel's name. */}
+                      {route && (
+                        <span dir="ltr" className="tabular-nums">
+                          {kind.label}: {booking.title}
+                        </span>
+                      )}
                       {booking.confirmation && (
                         <span dir="ltr" className="tabular-nums">
                           קוד הזמנה: {booking.confirmation}

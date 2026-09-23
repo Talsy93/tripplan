@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useActionState } from "react";
-import { Plus, RotateCcw, X } from "lucide-react";
+import { Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { Badge, Button, Card, Dialog, Disclosure, Field, Glyph, IconButton, Input, REVEALED_ACTION, SectionHeading, Select, SwipeAction, useToast } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import {
@@ -179,12 +179,12 @@ export function GearList({
                             which is what the swipe and the hold are for. */}
                         <IconButton
                           label={`הסרת ${item.label}`}
-                          variant="danger"
+                          variant="ghost"
                           size="sm"
                           className={REVEALED_ACTION}
                           onClick={() => void remove(item)}
                         >
-                          <X className="h-3.5 w-3.5" aria-hidden="true" />
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                         </IconButton>
                       </div>
                     </SwipeAction>

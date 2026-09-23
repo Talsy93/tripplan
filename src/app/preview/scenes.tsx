@@ -1575,10 +1575,30 @@ export const SCENES: Scene[] = [
   },
   {
     slug: "trip-dates",
-    title: "תאריכי הטיול",
-    note: "שני שדות תאריך זה לצד זה",
+    title: "תאריכי הטיול · עוד לא נקבעו",
+    note: "השורה היא הפקד. בלי תאריכים היא הזמנה לפעולה בכחול ולא שורה ריקה — טיול בלי תאריכים לא יכול לבנות לו״ז",
     render: () => (
       <TripDatesForm tripId={f.TRIP_ID} startDate={null} endDate={null} />
+    ),
+  },
+  {
+    slug: "trip-dates-set",
+    title: "תאריכי הטיול · נקבעו",
+    note: "הטופס ירד לתוך דיאלוג: שני שדות תאריך פתוחים לתמיד היו כל התצוגה של מסך שמשנים בו תאריכים בערך פעם אחת. הלחיצה על השורה פותחת אותם",
+    render: () => (
+      <TripDatesForm
+        tripId={f.TRIP_ID}
+        startDate="2026-09-24"
+        endDate="2026-10-07"
+      />
+    ),
+  },
+  {
+    slug: "trip-dates-open-ended",
+    title: "תאריכי הטיול · בלי חזרה",
+    note: "יש יציאה ואין חזרה — השורה אומרת את שניהם, כי ״יוצאים ב-24.09״ לבדו נקרא כאילו התאריך השני פשוט לא נטען",
+    render: () => (
+      <TripDatesForm tripId={f.TRIP_ID} startDate="2026-09-24" endDate={null} />
     ),
   },
 

@@ -1,5 +1,6 @@
 import * as z from "zod";
 import type { DomainIconName } from "./icons";
+import type { Tone } from "./tone";
 import { instantToWallClock } from "@/lib/datetime";
 // weather.ts imports nothing, so this direction cannot become a cycle — the
 // mistake that broke the build in phase E and was designed out in phase F.
@@ -19,6 +20,19 @@ export const BOOKING_KINDS: Record<
     label: string;
     icon: DomainIconName;
     isTransport: boolean;
+    // The colour that tells the three kinds apart at a glance.
+    //
+    // Asked for as "add a colour that separates hotels, trains and lodging more
+    // clearly". It has to come from the tone palette rather than the role trios
+    // — the roles are blue/amber/green/red and all four already mean something
+    // (action, now, done, error), so a flight in green would be a flight that
+    // looks finished.
+    //
+    // It is worn as a tinted glyph tile and a spine down the leading edge, not
+    // as a filled card: the city tones are already in play on these screens as
+    // dots and tags, and two full-colour systems on one list is the mistake
+    // that got reverted in phase D.
+    tone: Tone;
     // Hebrew grammatical gender differs by kind (טיסה/רכבת are feminine,
     // מלון is masculine), so the toast's confirmation is data here rather
     // than a string built in the component.
@@ -30,6 +44,7 @@ export const BOOKING_KINDS: Record<
     label: "טיסה",
     icon: "flight",
     isTransport: true,
+    tone: "sky",
     addedLabel: "הטיסה נוספה",
     updatedLabel: "הטיסה עודכנה",
   },
@@ -37,6 +52,7 @@ export const BOOKING_KINDS: Record<
     label: "רכבת",
     icon: "train",
     isTransport: true,
+    tone: "mint",
     addedLabel: "הרכבת נוספה",
     updatedLabel: "הרכבת עודכנה",
   },
@@ -44,6 +60,7 @@ export const BOOKING_KINDS: Record<
     label: "לינה",
     icon: "lodging",
     isTransport: false,
+    tone: "lilac",
     addedLabel: "המלון נוסף",
     updatedLabel: "המלון עודכן",
   },

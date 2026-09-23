@@ -1,9 +1,14 @@
 "use client";
 
-import { ArrowLeft, Clock, Hash, Wallet } from "lucide-react";
+import { ArrowLeft, Clock, Hash, Plane, Wallet } from "lucide-react";
 import { Badge, Dialog } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { BOOKING_KINDS, flightRoute, layoverLabel } from "../domain/booking";
+import {
+  BOOKING_KINDS,
+  bookingWhere,
+  flightRoute,
+  layoverLabel,
+} from "../domain/booking";
 import { formatMoney } from "../domain/expenses";
 import { APP_TIME_ZONE } from "../domain/weather";
 import type { Booking, RouteLeg } from "../domain/booking";
@@ -40,9 +45,13 @@ export function BookingDetails({
       ? formatMoney(booking.cost_amount, booking.cost_currency)
       : null;
   const duration = booking.duration_minutes ?? null;
+  // The journey is the title; the number is a detail. Same call the booking
+  // list makes — "LY086" identifies the ticket to an airline and tells the
+  // traveller nothing, while the two ends are what the ticket is.
+  const route = kind.isTransport ? bookingWhere(booking) : null;
 
   return (
-    <Dialog open={open} onClose={onClose} title={booking.title}>
+    <Dialog open={open} onClose={onClose} title={route ?? booking.title}>
       <div className="flex min-w-0 flex-col gap-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone="neutral">
@@ -81,6 +90,15 @@ export function BookingDetails({
         </ol>
 
         <dl className="flex min-w-0 flex-col gap-2 border-t border-dashed border-border pt-3">
+          {/* Where the identifier lives now: with the confirmation code, which
+              is the other string you are read back at a desk. */}
+          {route && (
+            <Row icon={<Plane className="h-4 w-4" />} label={kind.label}>
+              <span dir="ltr" className="font-semibold tabular-nums">
+                {booking.title}
+              </span>
+            </Row>
+          )}
           {booking.confirmation && (
             <Row icon={<Hash className="h-4 w-4" />} label="קוד הזמנה">
               {/* Selectable and LTR: this is the string you read out at a desk

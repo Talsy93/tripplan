@@ -31,25 +31,42 @@ export const TRIP_TABS = [
 
 export type TripTabSegment = (typeof TRIP_TABS)[number]["segment"];
 
-// The tabs actually drawn. `live` is "the trip has started and has not
-// finished" — the only state in which a "today" exists.
-export function visibleTripTabs(
+// The tabs, each with whether it can be pressed yet. `live` is "the trip has
+// started and has not finished" — the only state in which a "today" exists.
+//
+// Shown-but-dead rather than absent, on second thought and on request: "add it
+// back small and not pressable, so the user understands this tab opens the
+// moment the trip starts." Which is the better answer than hiding it. A tab
+// that disappears and reappears is an app that changed shape; a tab that is
+// visibly waiting is an app that told you what is coming. It costs one row of
+// muted text and removes the only surprise in the navigation.
+export function tripTabsFor(
   live: boolean,
-): readonly { segment: TripTabSegment; label: string }[] {
-  return TRIP_TABS.filter((tab) => live || !("onlyDuringTrip" in tab));
+): readonly { segment: TripTabSegment; label: string; waiting: boolean }[] {
+  return TRIP_TABS.map((tab) => ({
+    segment: tab.segment,
+    label: tab.label,
+    waiting: "onlyDuringTrip" in tab && !live,
+  }));
 }
 
 export function tripTabHref(tripId: string, segment: TripTabSegment) {
   return `/trips/${tripId}/${segment}`;
 }
 
-// Where a trip opens. A trip with no departure date is still being planned, so
-// it lands on discovery; anything else lands on the day view.
+// Where a trip opens: the schedule, always.
 //
-// This was written expecting tripPhase to replace it. It should not: tripPhase
-// returns "undated" exactly when start_date is null, so routing on the phase
-// gives the same two answers while costing the redirect a day-count query. The
-// day view already handles before/during/after itself once you are there.
-export function defaultTripTab(startDate: string | null): TripTabSegment {
-  return startDate ? "today" : "explore";
+// It used to be "today" for a dated trip and "planning" for one without dates,
+// which made opening a trip a small guess about what you came for. Asked for
+// directly — "entering a trip, the main page should go to the schedule" — and
+// it is the right default whichever phase the trip is in: before, the schedule
+// is what you are building; during, it is what you are following; after, it is
+// what happened. "היום" is one press away for the days it exists, and the
+// planning tab is where you go to add something rather than to look.
+//
+// It takes nothing now. The date was the only input and there is no longer a
+// branch to feed, and a parameter that is accepted and ignored is a signature
+// that says a decision is being made here when none is.
+export function defaultTripTab(): TripTabSegment {
+  return "days";
 }
