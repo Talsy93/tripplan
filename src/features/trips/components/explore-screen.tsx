@@ -91,9 +91,16 @@ export function ExploreScreen({
           opens it — so it names itself and says the way back. */}
       <header className="flex min-w-0 flex-col gap-2">
         <MoreBackLink tripId={tripId} href={`/trips/${tripId}/days`} label="למסלול" />
-        <h1 className="text-[1.75rem] leading-9 font-bold">הוספת יעדים</h1>
-        <p className="text-sm text-muted">
-          חפשו מקום, דפדפו לפי קטגוריה, או קבלו הצעות לפי מה שאתם אוהבים.
+        <h1 className="min-w-0 text-[1.75rem] font-bold leading-9 wrap-anywhere">
+          הוספת מקומות ויעדים
+        </h1>
+        {/* The export's own sentence, and it names the city. "Search, browse by
+            category, or get suggestions" described the three controls under it,
+            which the controls already do; this says what the screen is for. */}
+        <p className="min-w-0 max-w-measure text-sm text-muted">
+          {searchCities[0]
+            ? `כאן הטיול מתמלא בתוכן. בחרו מה לעשות, איפה לאכול ומה לראות ב${searchCities[0]}.`
+            : "כאן הטיול מתמלא בתוכן. בחרו יעדים, ואז מה לעשות בכל אחד מהם."}
         </p>
       </header>
 

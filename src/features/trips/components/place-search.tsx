@@ -16,7 +16,6 @@ import {
   Button,
   Chip,
   EmptyState,
-  Glyph,
   Input,
   ListRow,
   SectionHeading,
@@ -31,8 +30,6 @@ import type { AiRecommendation } from "../domain/ai-suggestion";
 import {
   cityToneClass,
   cityToneMap,
-  toneByIndex,
-  toneClass,
 } from "../domain/tone";
 import type { PlaceCategory } from "../domain/place";
 import type { Place } from "../domain/place";
@@ -416,26 +413,34 @@ export function PlaceSearch({
             category chosen, free text searches across every category at once".
             The grid was simply a dead end, with no way to search without first
             picking one. */}
+        {/* v6 (_4): one pill, with the field and the action inside it rather
+            than a boxed input beside a separate button. The export draws this
+            as a single rounded-full bar on the page's own surface, and it is
+            the first thing under the title. */}
         <form
           onSubmit={(event) => {
             event.preventDefault();
             void search(null);
           }}
-          className="flex gap-2"
+          className="flex items-center gap-1 rounded-full bg-surface p-1.5 shadow-card"
         >
-          <div className="relative flex-1">
-            <Search
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 start-3 my-auto h-4 w-4 text-muted"
-            />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={`חפשו מקום, שכונה או אטרקציה ב${city}`}
-              className="ps-9"
-            />
-          </div>
-          <Button type="submit" loading={status.kind === "searching"}>
+          <Search
+            aria-hidden="true"
+            className="ms-2 h-5 w-5 shrink-0 text-muted"
+          />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={`חיפוש מקום, מסעדה, מוזיאון או אטרקציה ב${city}…`}
+            aria-label={`חיפוש ב${city}`}
+            className="min-w-0 flex-1 bg-transparent px-1 text-sm text-foreground outline-none placeholder:text-muted"
+          />
+          <Button
+            type="submit"
+            size="sm"
+            loading={status.kind === "searching"}
+            className="shrink-0 rounded-full"
+          >
             חיפוש
           </Button>
         </form>
@@ -459,25 +464,20 @@ export function PlaceSearch({
             ))}
           </div>
         )}
-        {/* Three columns at every width, which is what the design draws. It
-            used to be 2/3/4/6, and at xl that put six tiles in one 110px-tall
-            row above an otherwise empty screen — a toolbar, not the opening
-            move of a tab. */}
-        {/* Open, and back to being open.
+        {/* v6 (_4): a chip carousel, not a grid of tiles.
+            The export replaces the six cards with one scrolling row of pills,
+            and that settles an argument this file has had twice. The grid was
+            folded once because it was heavy and unfolded again because it is
+            the tab's opening move; a chip row is both — it is visible the
+            moment the tab opens and it costs one line instead of two rows of
+            110px cards. The count of what is already in the trip rides on the
+            chip it belongs to.
 
-            It was folded for one commit, on the third request to fold category
-            lists — and then: "take the browse-by-category out, as it was, shown
-            straight away and not closed." Which settles the question I had
-            flagged twice and got wrong once: this grid is the tab's opening
-            move, not a list sitting beside other content. A tab whose first
-            screen is a closed row has nothing on it.
-
-            stagger + animate-rise: the six tiles are the first thing on the
-            tab, and arriving in sequence over 0.5s reads as the screen
-            assembling rather than as six things sliding. Both are inert under
-            prefers-reduced-motion — globals.css. */}
-        <div className="stagger grid grid-cols-3 gap-2.5">
-          {CATEGORY_KEYS.map((key, index) => {
+            stagger + animate-rise stay: the chips are the first thing on the
+            tab, and arriving in sequence reads as the screen assembling. Inert
+            under prefers-reduced-motion — globals.css. */}
+        <div className="stagger -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          {CATEGORY_KEYS.map((key) => {
             const meta = PLACE_CATEGORIES[key];
             const count = savedCounts[key] ?? 0;
             return (
@@ -485,34 +485,21 @@ export function PlaceSearch({
                 key={key}
                 type="button"
                 onClick={() => openCategory(key)}
-                // The tone tints the icon's square, not the tile.
-                //
-                // These tiles were filled edge to edge with one of the six
-                // pastels once, and that was reverted for a good reason: six
-                // saturated blocks on the opening screen of the tab, and the
-                // colour said nothing. The design's answer is the middle one — a
-                // white card with a tinted 40px square inside it, the same
-                // treatment every domain glyph in the app already gets. The card
-                // stays quiet and the row of icons stays scannable.
                 className={cn(
-                  toneClass(toneByIndex(index)),
-                  "animate-rise",
-                  "flex flex-col items-center gap-2 rounded-card border border-border bg-surface p-3 text-center shadow-soft transition-shadow",
-                  "hover:border-border-strong hover:shadow-lift",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  "animate-rise flex shrink-0 items-center gap-2 rounded-full bg-surface px-4 py-2 shadow-card",
+                  "text-sm font-medium transition-colors hover:bg-surface-2",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 )}
               >
-                <Glyph tone size="md">
-                  <DomainIcon name={meta.icon} className="h-5 w-5 shrink-0" />
-                </Glyph>
-                <span className="min-w-0 text-sm font-bold wrap-anywhere">
-                  {meta.label}
-                </span>
-                {/* Only when there is something to count. The design's tile is an
-                  icon and a label; "לחיפוש" under every one of the six said the
-                  same thing six times and told nobody anything. */}
+                <DomainIcon
+                  name={meta.icon}
+                  className="h-4 w-4 shrink-0 text-primary-ink"
+                />
+                <span className="whitespace-nowrap">{meta.label}</span>
                 {count > 0 && (
-                  <span className="text-caption text-muted">{count} בטיול</span>
+                  <span className="shrink-0 rounded-full bg-primary-tint px-1.5 text-caption font-bold tabular-nums text-primary-ink">
+                    {count}
+                  </span>
                 )}
               </button>
             );

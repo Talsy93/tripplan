@@ -102,7 +102,7 @@ export function SelectedList({
   return (
     <Card padding="none" className="overflow-hidden">
       <ul>
-        {items.map((item) => {
+        {items.map((item, index) => {
           const key = keyOf(item);
           const isOpen = expanded.has(key);
           // Only worth expanding when there is more than the one line shows.
@@ -118,6 +118,16 @@ export function SelectedList({
             className="flex min-w-0 flex-col border-b border-border last:border-b-0"
           >
            <div className="flex min-w-0 items-center gap-2.5 px-3 py-2.5">
+            {/* v6 (_4): the row's number, and it is the same number the map
+                draws on its pin. The export numbers this list 1..N for exactly
+                that reason — a list of six names beside a map of six pins is
+                two lists until something ties them together. */}
+            <span
+              aria-hidden="true"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-2 text-caption font-bold tabular-nums text-muted"
+            >
+              {index + 1}
+            </span>
             {/* group/pick, not group: the row also sits inside whatever the
                 caller wrapped it in, and an unnamed group would be captured by
                 the nearest one. */}
