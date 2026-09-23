@@ -12,7 +12,7 @@ import { Button, buttonClasses } from "@/components/ui";
 // the overlay already shows the real stack.
 export default function Error({ reset }: { error: Error; reset: () => void }) {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-5 px-4 text-center">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-4 text-center">
       <span
         className="flex h-14 w-14 items-center justify-center rounded-full bg-danger-tint text-danger-ink"
         aria-hidden="true"

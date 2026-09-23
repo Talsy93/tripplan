@@ -12,6 +12,7 @@ import {
   Banner,
   Button,
   Card,
+  ReadMore,
   SectionHeading,
   Skeleton,
   Surface,
@@ -302,9 +303,9 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
   }
 
   return (
-    // gap-5, not gap-8: the pill row and the section it selects are one thing,
+    // gap-4, not gap-8: the pill row and the section it selects are one thing,
     // and eight units of air between them read as two.
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-4">
       {error && <Banner tone="danger">{error}</Banner>}
 
       {keptNotice !== null && keptNotice > 0 && (
@@ -358,7 +359,13 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
         <div className="flex flex-col gap-4">
           {(guide.intro || guide.gettingThere) && (
             <Surface tone="quiet" padding="lg" className="flex flex-col gap-3">
-              {guide.intro && <p className="max-w-measure">{guide.intro}</p>}
+              {/* The model writes three or four sentences here and they open
+                  the tab. The first two say which city this is and what shape
+                  it has, which is what the reader came for; the rest is worth
+                  having and worth asking for. */}
+              {guide.intro && (
+                <ReadMore className="text-foreground">{guide.intro}</ReadMore>
+              )}
               {guide.gettingThere && (
                 <p className="flex max-w-measure items-start gap-2 text-sm text-muted">
                   <Compass
@@ -371,10 +378,12 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
             </Surface>
           )}
 
+          {/* The caption that used to sit beside this button said "refresh
+              brings new suggestions, what you added stays" — which is word for
+              word what the banner says after a refresh, where it is actually
+              needed. Standing furniture explaining a button nobody has pressed
+              yet. */}
           <div className="flex items-center gap-3">
-            <p className="max-w-measure text-caption text-muted">
-              רענון מביא הצעות חדשות. מה שהוספתם לטיול נשאר.
-            </p>
             <Button
               type="button"
               variant="outline"

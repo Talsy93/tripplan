@@ -9,7 +9,7 @@ export const metadata = { title: "הדף לא נמצא · MyTrip" };
 // English. On a Hebrew RTL app that reads as a crash rather than a dead link.
 export default function NotFound() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-5 px-4 text-center">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-4 text-center">
       <span
         className="flex h-14 w-14 items-center justify-center rounded-full bg-primary-tint text-primary-ink"
         aria-hidden="true"

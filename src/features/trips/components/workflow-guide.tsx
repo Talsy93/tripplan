@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Lightbulb } from "lucide-react";
-import { Badge, Card, Disclosure } from "@/components/ui";
+import { Badge, Card, Disclosure, ReadMore } from "@/components/ui";
 import { WORKFLOW_STEPS } from "../domain/workflow";
 
 // The order of work, with a link straight to the screen each step happens on.
@@ -44,7 +44,7 @@ export function WorkflowGuide({ tripId }: { tripId: string | null }) {
               }
               defaultOpen={index === 0}
             >
-              <p className="max-w-measure text-sm text-muted">{step.body}</p>
+              <ReadMore>{step.body}</ReadMore>
 
               {step.tips && step.tips.length > 0 && (
                 <ul className="flex flex-col gap-1.5 border-t border-dashed border-border pt-3">

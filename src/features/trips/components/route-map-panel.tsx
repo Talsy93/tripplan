@@ -45,7 +45,7 @@ export async function RouteMapPanel({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <RouteMap
         tripId={tripId}
         route={route}

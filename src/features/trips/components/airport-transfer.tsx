@@ -19,6 +19,7 @@ import {
   Chip,
   Dialog,
   Disclosure,
+  InfoTip,
   Field,
   Input,
   Skeleton,
@@ -358,12 +359,16 @@ function TransferDialog({
               ))}
             </ul>
 
-            {/* Said once, plainly, and not repeated on every card. The whole
-                feature rests on the traveller knowing these are the standing
-                figures rather than today's departures. */}
-            <p className="text-caption text-muted">
-              הזמנים והמחירים אופייניים ולא לוח זמנים חי — בדקו מול המפעיל לפני
-              שסומכים על החיבור האחרון של הלילה.
+            {/* Said once, and now on request rather than under every result
+                set. The caveat is real — these are standing figures, not
+                today's departures — but it is a fact about the feature, learned
+                once, and it was sitting under the list every single time. */}
+            <p className="flex items-center gap-1 text-caption text-muted">
+              זמנים ומחירים אופייניים
+              <InfoTip label="עד כמה הזמנים מדויקים">
+                הזמנים והמחירים אופייניים ולא לוח זמנים חי — בדקו מול המפעיל
+                לפני שסומכים על החיבור האחרון של הלילה.
+              </InfoTip>
             </p>
           </>
         )}

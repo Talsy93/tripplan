@@ -405,6 +405,37 @@
   --radius-tile: 0.875rem;
   --radius-modal: 1.25rem;
 
+  /* --- the spacing scale ------------------------------------------------
+     No tokens here, because Tailwind's own `gap-N` already is the scale.
+     What was missing is which rungs this app uses and what each one means —
+     and the answer, once the 600-odd call sites were counted, is that the
+     scale was already consistent and simply never written down. Six rungs,
+     each with a job:
+
+       gap-1 / gap-1.5   a label above its control; an icon beside a caption
+       gap-2             chips, buttons, tags in a row
+       gap-2.5           an icon tile and the text beside it, inside a row.
+                         Not a rounding error: Banner, ListRow, Disclosure and
+                         a dozen list rows all reach for it for exactly this,
+                         and it is the gap that keeps a 32–40px tile optically
+                         centred against two lines of text
+       gap-3             items within a section — fields, rows, cards
+       gap-4             the sections of an aside (TwoPane sets it)
+       gap-6             sections of a page (PageEnter and TwoPane set it)
+
+     **gap-5 is not a rung.** It sat between "within a section" and "between
+     sections" and did neither job, so the page-level uses of it moved to 6
+     and the within-section ones to 4. Two survive on purpose: the hero and
+     the build overlay are tuned compositions with their own padding rhythm
+     (px-5 pb-6 pt-7), where the gap is part of that tuning rather than part
+     of the page's.
+
+     The rung that matters most is the last one. A page whose sections are
+     3 apart — the same distance as the rows inside them — has no sections,
+     only a wall; that is what PageEnter's gap-6 is for and why a component
+     that stacks whole sections should not invent its own.
+     -------------------------------------------------------------------- */
+
   /* elevation — raw values are --elevation-* on :root, for the reason
      documented there. The names differ on purpose: --shadow-* is Tailwind's own
      namespace, and a self-referential --shadow-soft: var(--shadow-soft) would

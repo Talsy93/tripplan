@@ -201,6 +201,18 @@ export function BookingForm({
         booking.free_cancellation_until !== null),
   );
 
+  // The same trick for the optional block. A new booking never has any of it;
+  // an edit opens it when there is something in there to edit, because a field
+  // you filled in last week must not vanish behind a chevron you did not press.
+  const [optionalOpen] = useState(
+    () =>
+      booking !== undefined &&
+      (Boolean(booking.city) ||
+        Boolean(booking.confirmation) ||
+        booking.cost_amount !== null ||
+        Boolean(booking.note)),
+  );
+
   const [leadChoice, setLeadChoice] = useState<string>(() => {
     const initial = defaults.reminderDaysBefore;
     if (initial === undefined) return String(DEFAULT_REMINDER_DAYS);
@@ -489,7 +501,17 @@ export function BookingForm({
           // one: a <label> points at a single control, and wrapping both in it
           // makes clicking the word focus whichever the browser guesses.
           <fieldset className="flex min-w-0 flex-col gap-1 border-0 p-0 text-sm">
-            <legend className="text-muted">משך הנסיעה (לא חובה)</legend>
+            <legend className="flex items-center gap-1 text-muted">
+              משך הנסיעה (לא חובה)
+              {/* Two lines of arithmetic explanation that were under this
+                  field on every transport booking. It is a real answer to a
+                  real question — "why doesn't it work this out itself" — and
+                  it is asked once, not on every booking. */}
+              <InfoTip label="למה המשך לא מחושב לבד">
+                כמו שמופיע בכרטיס. לא מחושב משעות היציאה וההגעה, כי שתיהן
+                נשמרות בשעון אחד ולכן ההפרש ביניהן אינו משך הטיסה.
+              </InfoTip>
+            </legend>
             <div className="flex min-w-0 items-start gap-2">
               <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-28">
                 <Input
@@ -529,16 +551,31 @@ export function BookingForm({
               </label>
             </div>
             <FieldError message={errorFor("durationMinutes")} />
-            <span className="text-caption text-muted">
-              כמו שמופיע בכרטיס. לא מחושב משעות היציאה וההגעה, כי שתיהן נשמרות
-              בשעון אחד ולכן ההפרש ביניהן אינו משך הטיסה.
-            </span>
           </fieldset>
         )}
 
+        {/* Everything from here to the notes is optional, and on the form it
+            was five more controls between the times and the submit button. A
+            flight you are copying off a boarding pass needs the number, the two
+            ends and the two times; the city, the confirmation code, the price
+            and a note are things you may or may not have, and asking for them
+            in the open made the short case look like the long one.
+
+            Same <details> contract as the block below it: closed still submits,
+            because the inputs stay in the DOM. */}
+        <Disclosure
+          defaultOpen={optionalOpen}
+          title="עיר, אישור, עלות והערות"
+          detail="הכול לא חובה"
+        >
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="text-muted">עיר או אזור (לא חובה)</span>
+            <span className="flex items-center gap-1 text-muted">
+              עיר או אזור (לא חובה)
+              <InfoTip label="מה קורה לעיר חדשה">
+                עיר שעוד לא בטיול תתווסף אליו, ואפשר יהיה לפתוח לה מדריך.
+              </InfoTip>
+            </span>
             {/* An input with a datalist, not a select.
 
                 It was a picker limited to the trip's existing cities, which made
@@ -564,9 +601,7 @@ export function BookingForm({
                 <option key={city} value={city} />
               ))}
             </datalist>
-            <span className="text-caption text-muted">
-              עיר שעוד לא בטיול תתווסף אליו, ואפשר יהיה לפתוח לה מדריך.
-            </span>
+
           </label>
           <label className="flex min-w-0 flex-col gap-1 text-sm">
             <span className="text-muted">מספר אישור (לא חובה)</span>
@@ -625,6 +660,7 @@ export function BookingForm({
             defaultValue={was("note")}
           />
         </label>
+        </Disclosure>
 
         {/* ---- Deadlines and reminders (0011) --------------------------------
             Separated by a rule because everything above describes the booking
