@@ -20,7 +20,7 @@ import {
 const ICONS: Record<TripTabSegment, typeof Sun> = {
   today: Compass,
   days: CalendarDays,
-  explore: Sparkles,
+  ai: Sparkles,
   more: FolderOpen,
 };
 

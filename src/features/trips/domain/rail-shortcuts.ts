@@ -32,7 +32,7 @@ export const RAIL_CATALOG: readonly RailShortcut[] = [
   { key: "days", label: 'לו"ז', path: "days" },
   { key: "explore", label: "תכנון", path: "explore" },
   { key: "guides", label: "מדריכי הערים", path: "more/guides" },
-  { key: "chat", label: "הצ׳אט של הטיול", path: "more/chat" },
+  { key: "chat", label: "הצ׳אט של הטיול", path: "ai" },
   { key: "gear", label: "רשימות והכנות", path: "more/gear" },
   { key: "phrases", label: "מילים שימושיות", path: "more/phrases" },
   { key: "members", label: "מי בא איתנו", path: "more/members" },

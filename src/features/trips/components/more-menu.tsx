@@ -7,7 +7,6 @@ import {
   Globe,
   Languages,
   Luggage,
-  MessageCircle,
   Share2,
   Users,
   type LucideIcon,
@@ -73,13 +72,6 @@ const ENTRIES = [
     hint: "שיחון בשפת היעד, עם תעתיק",
     Icon: Languages,
     tone: "mint",
-  },
-  {
-    segment: "chat",
-    label: "הצ׳אט של הטיול",
-    hint: "לתכנן את הטיול בשיחה חופשית",
-    Icon: MessageCircle,
-    tone: "peach",
   },
   {
     segment: "members",

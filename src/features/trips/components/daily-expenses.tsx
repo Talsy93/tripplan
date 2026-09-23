@@ -333,3 +333,74 @@ function ExpenseForm({
     </form>
   );
 }
+
+// Stitch's expenses row on the היום tab (v6): a pale terracotta disc, "הוצאות
+// היום ב…", the total with its shekel value beside it, and a deep terracotta
+// "הוסף" that opens the same dialog the tile does.
+export function DailyExpensesCard({
+  tripId,
+  dayNumber,
+  expenses,
+  currency,
+  rates = [],
+  city,
+}: {
+  tripId: string;
+  dayNumber: number;
+  expenses: DailyExpense[];
+  currency: string;
+  rates?: ExchangeRate[];
+  city?: string | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const totals = expenseTotals(expenses);
+  const main = totals[0] ?? null;
+  const mainRate = main ? rateFor(rates, main.currency) : null;
+  const inHome =
+    main && mainRate
+      ? formatMoney(convert(main.total, mainRate, "toBase"), mainRate.base)
+      : null;
+
+  return (
+    <div className="flex min-w-0 items-center justify-between gap-2 rounded-card bg-surface p-4 shadow-card">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cta-tint text-cta-deep" aria-hidden="true">
+          <Wallet className="h-5 w-5" />
+        </span>
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate text-[0.625rem] leading-[0.875rem] font-semibold text-muted">
+            הוצאות היום{city ? ` ב${city}` : ""}
+          </span>
+          <div className="flex min-w-0 items-baseline gap-1">
+            <span className="text-lg leading-6 font-bold text-foreground tabular-nums" dir="ltr">
+              {main ? formatMoney(main.total, main.currency) : formatMoney(0, currency)}
+            </span>
+            {inHome && (
+              <span className="truncate font-mono text-[0.625rem] text-muted" dir="ltr">
+                (~{inHome})
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex shrink-0 items-center gap-1 rounded-card bg-cta-strong px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      >
+        <Plus className="h-4 w-4" aria-hidden="true" />
+        הוסף
+      </button>
+
+      <ExpensesDialog
+        tripId={tripId}
+        dayNumber={dayNumber}
+        expenses={expenses}
+        currency={currency}
+        rates={rates}
+        open={open}
+        onClose={() => setOpen(false)}
+      />
+    </div>
+  );
+}

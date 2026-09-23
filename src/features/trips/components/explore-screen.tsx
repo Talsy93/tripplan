@@ -4,7 +4,7 @@ import { SectionHeading } from "@/components/ui";
 import { savedCountsByCategory } from "../domain/place";
 import type { AiCitySuggestion, SelectedItem } from "../domain/ai-suggestion";
 import type { AddedPlace } from "../infrastructure/place-service";
-import { AiConcierge } from "./ai-concierge";
+import { MoreBackLink } from "./more-back-link";
 import { ManualPlaceForm } from "./manual-place-form";
 import { PlaceSearch } from "./place-search";
 import { PlanningPanel } from "./planning-panel";
@@ -87,7 +87,15 @@ export function ExploreScreen({
       {/* The band above names the trip and the app bar names the tab, so the
           screen needs no visible title of its own — and the design's first
           element under the search is the category grid. */}
-      <AiConcierge tripId={tripId} />
+      {/* v6: this screen is no longer a tab — "הוסף יעד" on the itinerary
+          opens it — so it names itself and says the way back. */}
+      <header className="flex min-w-0 flex-col gap-2">
+        <MoreBackLink tripId={tripId} href={`/trips/${tripId}/days`} label="למסלול" />
+        <h1 className="text-[1.75rem] leading-9 font-bold">הוספת יעדים</h1>
+        <p className="text-sm text-muted">
+          חפשו מקום, דפדפו לפי קטגוריה, או קבלו הצעות לפי מה שאתם אוהבים.
+        </p>
+      </header>
 
       <PlaceSearch
         tripId={tripId}

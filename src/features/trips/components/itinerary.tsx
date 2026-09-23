@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { Compass, Route, Sparkles } from "lucide-react";
+import { Compass, MapPinPlus, Route, Sparkles } from "lucide-react";
 import { TwoPane } from "@/components/layout";
 import {
   Badge,
@@ -11,7 +12,6 @@ import {
   Disclosure,
   EmptyState,
   SectionHeading,
-  ToneDot,
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { deleteItineraryEntry } from "../application/itinerary-actions";
@@ -39,7 +39,7 @@ import { EditEntryDialog } from "./edit-entry-dialog";
 import { EmptyDays, RouteCities } from "./route-cities";
 import { TripCalendar } from "./trip-calendar";
 import { withEmptyDays } from "../domain/itinerary-plan";
-import { cityToneClass, cityToneMap } from "../domain/tone";
+import { cityToneMap } from "../domain/tone";
 import {
   clampDay,
   dateOfDay,
@@ -81,6 +81,11 @@ type ItineraryProps = {
   // What each day is marked with (migration 0025) — a holiday, a rest day.
   // Above the schedule rather than in it: a note has no hour.
   dayNotes?: DayNote[];
+  // v6 (Stitch): the route map card, drawn between the day selector and the
+  // day — a node, because resolving the route belongs to the page's boundary.
+  map?: ReactNode;
+  // Initials of the people on the trip, for the "עריכה משותפת" pill.
+  collaborators?: string[];
 };
 
 export function Itinerary({
@@ -95,6 +100,8 @@ export function Itinerary({
   currentDay = null,
   reminders = [],
   dayNotes = [],
+  map,
+  collaborators = [],
 }: ItineraryProps) {
   const [scheduled, setScheduled] = useState<ItineraryDay[]>(initialItinerary);
 
@@ -450,30 +457,23 @@ export function Itinerary({
         activeDay={active.day}
         currentDay={currentDay}
         onSelect={setChosenDay}
+        labels={Object.fromEntries(
+          days.map((day) => [
+            day.day,
+            cityOfDay.get(day.day) ?? day.items[0]?.title ?? null,
+          ]),
+        )}
       />
 
-      <div
-        className={cn(
-          "flex flex-wrap items-baseline gap-x-2.5 gap-y-1",
-          cityToneClass(tones, activeCity),
-        )}
-      >
-        <h2 className="flex min-w-0 items-center gap-2 text-title font-black">
-          <ToneDot />
-          <span className="min-w-0 truncate">
-            יום {active.day}
-            {activeCity && ` · ${activeCity}`}
-          </span>
-        </h2>
-        {activeDate && (
-          <span className="text-sm text-muted">
-            {weekdayAfterDayNumber(activeDate)}
-          </span>
-        )}
-        <span className="ms-auto shrink-0 text-caption font-semibold text-muted">
-          מתוך {dayCount}
-        </span>
-      </div>
+      {map}
+
+      {/* The day's name lives on its card in the selector above, which is
+          where Stitch puts it; the screen carries no second heading for it. */}
+      <h2 className="sr-only">
+        יום {active.day}
+        {activeCity && ` · ${activeCity}`}
+        {activeDate && ` · ${weekdayAfterDayNumber(activeDate)}`}
+      </h2>
 
       {/* What is true of the whole day, above everything that happens in it.
           A holiday changes what the rest of the day should hold, so it is read
@@ -484,19 +484,11 @@ export function Itinerary({
         dayCount={dayCount}
       />
 
-      {/* The bed and the to-do list, as two tiles rather than two full-width
-          blocks. See DayTiles. */}
-      <DayTiles
-        tripId={tripId}
-        stay={stay}
-        reminders={remindersForDay(reminders, active.day)}
-        dayNumber={active.day}
-        dayCount={dayCount}
-      />
-
       {/* Pin an hour, lock the booked ones — the same two controls the היום
           tab has, so a day is shaped the same wherever it is looked at. */}
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      {/* Stitch's "פעולות מהירות" bar: a lavender strip with the day's controls. */}
+      <div className="flex flex-wrap items-center gap-2 rounded-card bg-surface-2 p-2 [&>button]:h-7 [&>button]:rounded-lg [&>button]:bg-surface [&>button]:px-2 [&>button]:text-xs [&>button]:font-medium [&>button]:text-primary [&>button]:shadow-none">
+        <span className="text-xs font-medium text-muted">פעולות מהירות:</span>
         {/* Only on a day that lands. It is the one day whose first hours are a
             problem to be solved rather than a choice to be made. */}
         {arrival && (
@@ -590,11 +582,50 @@ export function Itinerary({
         // The dashed row the mockup ends the day with. It goes to the tab where
         // things are chosen, because that is where a day gains an item —
         // scheduling happens on the build.
-        addHref={`/trips/${tripId}/explore`}
-        addLabel={
-          activeCity ? `הוסיפו משהו ב${activeCity}` : "הוסיפו משהו ליום הזה"
-        }
       />
+
+      {/* The bed and the to-do list, as two tiles rather than two full-width
+          blocks. See DayTiles. */}
+      <DayTiles
+        tripId={tripId}
+        stay={stay}
+        reminders={remindersForDay(reminders, active.day)}
+        dayNumber={active.day}
+        dayCount={dayCount}
+      />
+
+      {/* Stitch's floating foot: who edits this with you, and the one
+          terracotta action — add a destination. Sticky, so it rides above the
+          tab bar while the day scrolls under it. */}
+      <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 flex items-center justify-between gap-2 pt-2 lg:bottom-4">
+        {collaborators.length > 1 ? (
+          <span className="flex items-center gap-1 rounded-full bg-surface/90 px-2 py-1 shadow-md backdrop-blur-xl">
+            <span className="flex -space-x-1.5 space-x-reverse">
+              {collaborators.slice(0, 3).map((initial, index) => (
+                <span
+                  key={index}
+                  className={cn(
+                    "flex h-6 w-6 items-center justify-center rounded-full text-[0.625rem] font-bold ring-2 ring-surface",
+                    ["bg-primary-tint text-primary-ink", "bg-cta-tint text-cta-deep", "bg-success-bright text-success-ink"][index],
+                  )}
+                >
+                  {initial}
+                </span>
+              ))}
+            </span>
+            <span className="text-[0.625rem] font-medium text-muted">עריכה משותפת</span>
+          </span>
+        ) : (
+          <span />
+        )}
+        <Link
+          href={`/trips/${tripId}/explore`}
+          className="inline-flex items-center gap-1 rounded-full bg-cta-bright px-6 py-2 text-base font-semibold text-cta-foreground shadow-lg shadow-cta/30 transition-transform hover:bg-cta active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          <MapPinPlus className="h-5 w-5" aria-hidden="true" />
+          הוסף יעד
+        </Link>
+      </div>
         </div>
 
         {building && <BuildingItinerary dayCount={dayCount} />}

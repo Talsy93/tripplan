@@ -7,6 +7,7 @@ import {
   Bell,
   ChevronLeft,
   Clock,
+  Equal,
   Footprints,
   Lock,
   MoonStar,
@@ -36,6 +37,7 @@ import type {
   Transition,
 } from "../domain/timeline";
 import { DomainIcon } from "./domain-icon";
+import { PlacePhoto } from "./place-photo";
 import { ReminderRow } from "./reminder-dialog";
 import { BookingDetails } from "./booking-details";
 
@@ -197,50 +199,54 @@ export function DayTimeline({
   // item gets a round marker on it — the item's glyph, with its time under it —
   // and a gap is a small dot on the line with its pill beside it. The compact
   // list keeps its one card of divided rows.
+  // Stitch's node: a 28px disc in a 48px column, the time under it. The disc
+  // takes the colour of what the row is — a journey in the maritime fill, a
+  // bed in pale terracotta, a stop in the lavender well.
   const railed = merged.map((item, index) => {
     const row = rows[index];
     if (item.kind === "gap") {
       return (
-        <div key={item.key} className="flex min-w-0 items-center gap-3">
-          <span className="flex w-11 shrink-0 justify-center" aria-hidden="true">
-            <span className="h-2 w-2 rounded-full bg-border-strong ring-4 ring-background" />
+        <div key={item.key} className="relative flex min-w-0 items-center gap-4 py-0.5">
+          <span className="flex w-12 shrink-0 justify-center" aria-hidden="true">
+            <span className="h-2 w-2 rounded-full bg-border-strong" />
           </span>
           <div className="min-w-0 flex-1">{row}</div>
         </div>
       );
     }
+    const kind =
+      item.kind === "booking" ? BOOKING_KINDS[item.booking.booking.kind] : null;
     const marker =
       item.kind === "booking"
-        ? {
-            icon: BOOKING_KINDS[item.booking.booking.kind].icon,
-            time: item.booking.startMinutes,
-            strong: BOOKING_KINDS[item.booking.booking.kind].isTransport,
-          }
+        ? { icon: kind!.icon, time: item.booking.startMinutes }
         : item.kind === "entry"
-          ? { icon: "attraction" as const, time: item.entry.startMinutes, strong: false }
+          ? { icon: "attraction" as const, time: item.entry.startMinutes }
           : null;
+    const disc = kind?.isTransport
+      ? "bg-brand-2 text-primary-foreground shadow-md"
+      : item.kind === "booking"
+        ? "bg-cta-tint text-cta-deep shadow-sm"
+        : "bg-surface-high text-primary shadow-sm";
     return (
-      <div key={item.key} className="flex min-w-0 items-start gap-3">
-        <span className="flex w-11 shrink-0 flex-col items-center gap-1 pt-2" aria-hidden="true">
+      <div key={item.key} className="relative flex min-w-0 items-start gap-4">
+        <span className="relative z-10 flex w-12 shrink-0 flex-col items-center" aria-hidden="true">
           {marker ? (
             <>
+              <span className={cn("flex h-7 w-7 items-center justify-center rounded-full", disc)}>
+                <DomainIcon name={marker.icon} className="h-4 w-4" />
+              </span>
               <span
                 className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-full ring-4 ring-background",
-                  marker.strong
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-primary-tint text-primary",
+                  "mt-0.5 text-[0.625rem] leading-[0.875rem] font-bold tabular-nums",
+                  kind?.isTransport ? "text-primary" : "text-foreground",
                 )}
               >
-                <DomainIcon name={marker.icon} className="h-5 w-5" />
-              </span>
-              <span className="text-[0.6875rem] font-bold tabular-nums text-foreground">
                 {formatMinutes(marker.time)}
               </span>
             </>
           ) : (
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-callout-tint text-callout-ink ring-4 ring-background">
-              <Bell className="h-4.5 w-4.5" />
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-callout-tint text-callout-ink shadow-sm">
+              <Bell className="h-4 w-4" />
             </span>
           )}
         </span>
@@ -259,7 +265,7 @@ export function DayTimeline({
           {rows}
         </Card>
       ) : (
-        <div className="relative flex min-w-0 flex-col gap-3 before:absolute before:inset-y-3 before:start-[1.3125rem] before:w-0.5 before:rounded-full before:bg-primary-tint">
+        <div className="relative flex min-w-0 flex-col gap-4 before:absolute before:bottom-8 before:start-6 before:top-4 before:w-0.5 before:bg-surface-variant">
           {railed}
         </div>
       )}
@@ -628,75 +634,76 @@ function EntryRow({
     );
   }
 
-  const body = (
-    <>
-      {/* An itinerary entry carries no category — it is a title, a time and a
-          note — so there is one glyph for all of them rather than a guess per
-          title. The city's colour on the tile is what distinguishes them. */}
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        {/* The rail beside the card carries the glyph and the start; the card
-            carries the range, as Stitch's category chip. */}
-        <span className="self-start rounded-full bg-primary-tint px-2 py-0.5 text-[0.6875rem] font-semibold tabular-nums text-primary-ink">
-          {timeRange(startMinutes, endMinutes)}
-        </span>
-        <span className="flex min-w-0 items-center gap-1.5 text-base font-semibold wrap-anywhere">
-          {entry.title}
-          {anchored && (
-            <Lock
-              className="h-3.5 w-3.5 shrink-0 text-muted"
-              aria-label="מעוגן — לא זז בעדכון הלו״ז"
-            />
-          )}
-        </span>
-        {/* One line here, all of it on a press.
-            Reported about the airport transfer: "the plan for getting from
-            place to place does not need all the information — reduce it in the
-            display to a heading with an option to show everything." That note
-            is a stage-by-stage list, one line per leg, written that way on
-            purpose for someone standing in arrivals — and on the schedule,
-            where it sits under a title beside six other rows, it is four lines
-            of something you already decided.
+  const minutes = endMinutes > startMinutes ? endMinutes - startMinutes : 0;
 
-            A clamp rather than a <details>: this whole row is a button, and
-            interactive content inside a button is invalid and unreachable by
-            keyboard. The "show everything" is the row itself — pressing it
-            opens the entry, where the note is in full. */}
-        {entry.note && (
-          <span className="line-clamp-2 min-w-0 text-sm text-muted wrap-anywhere">
-            {entry.note}
-          </span>
-        )}
-        {/* Written by hand — knowing you need 25 minutes to get here is the
-            reason it was typed in, so it is never what gets dropped. */}
-        {(entry.travelNote || entry.travelMinutes !== null) && (
-          <span className="mt-0.5 flex min-w-0 items-center gap-1 text-caption text-primary-ink">
-            <Clock className="h-3 w-3 shrink-0" aria-hidden="true" />
-            {entry.travelMinutes !== null && (
-              <span className="shrink-0 font-semibold tabular-nums">
-                {entry.travelMinutes} דק׳
+  // v6 (Stitch): chip, title, one line of description, a drag handle at the
+  // far end, and a photo under it all. The chip is what the item is — here,
+  // how long it takes, since an entry carries no category; the start time is
+  // on the node beside the card.
+  const body = (
+    <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 items-start justify-between gap-1">
+        <div className="min-w-0 flex-1">
+          <div className="mb-0.5 flex min-w-0 flex-wrap items-center gap-1">
+            <span className="inline-flex items-center gap-0.5 rounded-[0.25rem] bg-surface-high px-1 py-0.5 text-[0.625rem] leading-[0.875rem] font-semibold text-primary tabular-nums">
+              {timeRange(startMinutes, endMinutes)}
+            </span>
+            {minutes > 0 && (
+              <>
+                <span className="text-[0.625rem] text-outline">•</span>
+                <span className="text-[0.625rem] leading-[0.875rem] font-semibold text-muted">
+                  {durationLabel(minutes)}
+                </span>
+              </>
+            )}
+            {anchored && (
+              <span className="inline-flex items-center gap-0.5 rounded-[0.25rem] bg-success-bright px-1 py-0.5 text-[0.625rem] leading-[0.875rem] font-semibold text-success-ink">
+                <Lock className="h-3 w-3" aria-hidden="true" />
+                מעוגן
               </span>
             )}
-            {entry.travelNote && (
-              <span className="min-w-0 wrap-anywhere">{entry.travelNote}</span>
-            )}
-          </span>
+          </div>
+          <h3 className="min-w-0 truncate text-base leading-[1.375rem] font-semibold text-foreground">
+            {entry.title}
+          </h3>
+          {/* One line here, all of it on a press: the note can be a
+              stage-by-stage list, and this row is one of seven. A clamp rather
+              than a <details>, because the whole row is a button. */}
+          {entry.note && (
+            <p className="mt-0.5 line-clamp-2 min-w-0 text-xs leading-[1.125rem] text-muted wrap-anywhere">
+              {entry.note}
+            </p>
+          )}
+          {(entry.travelNote || entry.travelMinutes !== null) && (
+            <p className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-primary-ink">
+              <Clock className="h-3 w-3 shrink-0" aria-hidden="true" />
+              {entry.travelMinutes !== null && (
+                <span className="shrink-0 font-semibold tabular-nums">
+                  {entry.travelMinutes} דק׳
+                </span>
+              )}
+              {entry.travelNote && (
+                <span className="min-w-0 wrap-anywhere">{entry.travelNote}</span>
+              )}
+            </p>
+          )}
+        </div>
+        {onEdit && (
+          <Equal className="h-[1.125rem] w-[1.125rem] shrink-0 text-outline" aria-hidden="true" />
         )}
       </div>
-      {onEdit && (
-        // RTL: "forward" points left. The row opens the editor — a chevron
-        // rather than two icon buttons, which is both the design and one fewer
-        // thing to mis-tap.
-        <ChevronLeft
-          className="mt-1 h-5 w-5 shrink-0 text-border-strong"
-          aria-hidden="true"
-        />
-      )}
-    </>
+
+      <PlacePhoto
+        query={entry.title}
+        near={entry.city}
+        className="mt-2 h-28 rounded-lg"
+      />
+    </div>
   );
 
   if (!onEdit) {
     return (
-      <Card padding="none" className="flex min-w-0 items-start gap-3 p-4">
+      <Card padding="none" className="flex min-w-0 p-4">
         {body}
       </Card>
     );
@@ -712,7 +719,7 @@ function EntryRow({
       <Card
         variant="interactive"
         padding="none"
-        className="flex min-w-0 items-start gap-3 p-4"
+        className="flex min-w-0 p-4 hover:translate-y-0"
       >
         {body}
       </Card>

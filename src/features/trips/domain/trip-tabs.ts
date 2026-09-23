@@ -24,16 +24,19 @@ export const TRIP_TABS = [
     // The route is untouched: a bookmark or a shared link still resolves.
     onlyDuringTrip: true,
   },
-  // v6 (Stitch): the four tabs of the design — "מסלול", "עוזר AI", "מסמכים".
-  // The routes are unchanged, so every link and bookmark still resolves; only
-  // the names moved to the design's. "עוזר AI" is the planning screen, which is
-  // where the AI suggestions and the trip chat live; "מסמכים" is the trip hub.
+  // v6 (Stitch): the four tabs of the design. "עוזר AI" is the design's chat
+  // screen — the conversation with its plan cards — at /ai. The planning
+  // screen (search, categories, discovery) is still at /explore, reached from
+  // "הוסף יעד" on the itinerary and from the assistant; it is no longer a tab.
   { segment: "days", label: "מסלול" },
-  { segment: "explore", label: "עוזר AI" },
+  { segment: "ai", label: "עוזר AI" },
   { segment: "more", label: "מסמכים" },
 ] as const;
 
 export type TripTabSegment = (typeof TRIP_TABS)[number]["segment"];
+
+// Every top-level screen of a trip, tab or not.
+export type TripSection = TripTabSegment | "explore";
 
 // The tabs, each with whether it can be pressed yet. `live` is "the trip has
 // started and has not finished" — the only state in which a "today" exists.
@@ -54,7 +57,7 @@ export function tripTabsFor(
   }));
 }
 
-export function tripTabHref(tripId: string, segment: TripTabSegment) {
+export function tripTabHref(tripId: string, segment: TripSection) {
   return `/trips/${tripId}/${segment}`;
 }
 

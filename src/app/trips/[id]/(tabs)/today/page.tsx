@@ -1,14 +1,13 @@
 import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
-import { TwoPane } from "@/components/layout";
-import { Skeleton } from "@/components/ui";
+import { SectionHeading, Skeleton } from "@/components/ui";
+import { getCurrentUser } from "@/features/auth";
+import { instantToWallClock } from "@/lib/datetime";
 import {
   APP_TIME_ZONE,
   ArrivalWatcher,
   bookingsByDay,
-  DayForecastPanel,
   DayPager,
-  DayStopsPanel,
   focusDayNumber,
   currentDayNumber,
   daysUntil,
@@ -20,11 +19,16 @@ import {
   listDayNotes,
   listDayReminders,
   listExpenses,
+  listMembers,
   lodgingByDay,
+  NextStopCard,
   NowCard,
+  OpenItems,
+  PartnersCard,
   dateOfDay,
-  TodayDuringAside,
-  TodayStats,
+  TodayGreeting,
+  TodayToolbox,
+  TonightCard,
   todayIn,
   tripOpenItems,
   tripPhase,
@@ -68,6 +72,8 @@ export default async function TodayPage({
     reminders,
     expenses,
     dayNotes,
+    members,
+    user,
   ] = await Promise.all([
     getTrip(id),
     getItinerary(id),
@@ -76,6 +82,8 @@ export default async function TodayPage({
     listDayReminders(id),
     listExpenses(id),
     listDayNotes(id),
+    listMembers(id),
+    getCurrentUser(),
   ]);
   if (!trip) notFound();
 
@@ -142,43 +150,38 @@ export default async function TodayPage({
     : null;
   const urgent = live ? open.filter((item) => item.urgency === "now") : [];
 
+  // The first name to greet, from the account: Google gives a full name, an
+  // email sign-up gives none, and then the greeting goes without one.
+  const meta = (user?.user_metadata ?? {}) as { full_name?: string; name?: string };
+  const firstName =
+    (meta.full_name ?? meta.name ?? "").trim().split(/\s+/)[0] ||
+    members.find((member) => member.is_owner)?.member_name?.split(/\s+/)[0] ||
+    null;
+  const hour = Number(instantToWallClock(nowIso, APP_TIME_ZONE).slice(11, 13));
+  const stopCount = live
+    ? live.day.items.length + (live.bookings?.length ?? 0)
+    : 0;
+
+  // v6 (Stitch): the screen in the design's order — greeting, the featured
+  // card, the next stop, tonight's bed, the toolbox, the people. The day's full
+  // schedule follows at the foot, which is where "הבא בתור" points.
   return (
-    <TwoPane
-      aside={
-        <TodayDuringAside
-          tripId={trip.id}
-          bookings={bookings}
-          now={nowIso}
-          cities={routeCities}
-          urgent={urgent}
-          stops={
-            live ? (
-              <Suspense fallback={<Skeleton className="h-56 rounded-card" />}>
-                <DayStopsPanel
-                  tripId={trip.id}
-                  tripName={trip.name}
-                  day={live.day}
-                  city={liveCity}
-                />
-              </Suspense>
-            ) : undefined
-          }
-          forecast={
-            live?.date ? (
-              <Suspense fallback={<Skeleton className="h-28 rounded-card" />}>
-                <DayForecastPanel
-                  tripId={trip.id}
-                  tripName={trip.name}
-                  city={liveCity}
-                  date={live.date}
-                />
-              </Suspense>
-            ) : undefined
-          }
-        />
-      }
-    >
+    <div className="enter-children mx-auto flex w-full min-w-0 max-w-main flex-col gap-6">
       <h1 className="sr-only">{trip.name}</h1>
+
+      {live && (
+        <Suspense fallback={<Skeleton className="h-24 rounded-card" />}>
+          <TodayGreeting
+            tripId={trip.id}
+            tripName={trip.name}
+            date={live.date}
+            city={liveCity}
+            firstName={firstName}
+            stopCount={stopCount}
+            hour={Number.isFinite(hour) ? hour : 9}
+          />
+        </Suspense>
+      )}
 
       {live && (
         <NowCard
@@ -189,46 +192,61 @@ export default async function TodayPage({
         />
       )}
 
-      {live && (
-        <ArrivalWatcher tripId={trip.id} day={live.day} />
+      {live && <ArrivalWatcher tripId={trip.id} day={live.day} />}
+
+      {urgent.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <SectionHeading level="section" tone="now">
+            דורש תשומת לב
+          </SectionHeading>
+          <OpenItems tripId={trip.id} items={urgent} />
+        </section>
       )}
 
       {live && (
-        <Suspense
-          fallback={
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {[0, 1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-[4.75rem] rounded-card" />
-              ))}
-            </div>
-          }
-        >
-          <TodayStats
+        <NextStopCard
+          day={live.day}
+          bookings={live.bookings}
+          date={live.date}
+          now={nowIso}
+        />
+      )}
+
+      {live && currentDay !== null && (
+        <TonightCard tripId={trip.id} stay={lodging[currentDay] ?? null} />
+      )}
+
+      {live && currentDay !== null && (
+        <Suspense fallback={<Skeleton className="h-72 rounded-card" />}>
+          <TodayToolbox
             tripId={trip.id}
             tripName={trip.name}
-            date={live.date}
-            dayNumber={currentDay}
             city={liveCity}
+            dayNumber={currentDay}
             expenses={expenses}
-            lodging={currentDay !== null ? (lodging[currentDay] ?? null) : null}
           />
         </Suspense>
       )}
 
+      {live && <PartnersCard tripId={trip.id} members={members} />}
+
       {showDay ? (
-        <DayPager
-          tripId={trip.id}
-          days={itinerary}
-          initialDay={focusDay}
-          startDate={trip.start_date}
-          currentDay={currentDay}
-          bookingsByDay={byDay}
-          lodgingByDay={lodging}
-          reminders={reminders}
-          dayNotes={dayNotes}
-          nowIso={phase.kind === "during" ? nowIso : undefined}
-        />
+        <section className="flex flex-col gap-3">
+          <SectionHeading level="section">הלו״ז של היום</SectionHeading>
+          <DayPager
+            tripId={trip.id}
+            days={itinerary}
+            initialDay={focusDay}
+            startDate={trip.start_date}
+            currentDay={currentDay}
+            bookingsByDay={byDay}
+            lodgingByDay={lodging}
+            reminders={reminders}
+            dayNotes={dayNotes}
+            nowIso={phase.kind === "during" ? nowIso : undefined}
+          />
+        </section>
       ) : null}
-    </TwoPane>
+    </div>
   );
 }

@@ -14,6 +14,7 @@ import {
   listCityDays,
   listDayNotes,
   listDayReminders,
+  listMembers,
   lodgingByDay,
   RouteMapPanel,
   todayIn,
@@ -29,8 +30,16 @@ export default async function DaysPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [trip, itinerary, bookings, selected, overrides, reminders, dayNotes] =
-    await Promise.all([
+  const [
+    trip,
+    itinerary,
+    bookings,
+    selected,
+    overrides,
+    reminders,
+    dayNotes,
+    members,
+  ] = await Promise.all([
       getTrip(id),
       getItinerary(id),
       listBookings(id),
@@ -38,6 +47,7 @@ export default async function DaysPage({
       listCityDays(id),
       listDayReminders(id),
       listDayNotes(id),
+      listMembers(id),
     ]);
   if (!trip) notFound();
 
@@ -68,16 +78,19 @@ export default async function DaysPage({
   const cities = [...new Set(selected.map((item) => item.city))].filter(Boolean);
 
   return (
-    <>
-      {/* Stitch's itinerary opens on the route map, with the day strip and the
-          timeline under it. Its own boundary: resolving the route can mean
-          geocoding a city, which is paced at a request a second, and the
-          schedule must not wait for that. */}
-      <Suspense fallback={<Skeleton className="h-[17.75rem] rounded-card" />}>
-        <RouteMapPanel tripId={id} tripName={trip.name} variant="compact" />
-      </Suspense>
-
     <Itinerary
+      // Stitch's itinerary puts the route map between the day selector and the
+      // day. Its own boundary: resolving the route can mean geocoding a city,
+      // paced at a request a second, and the schedule must not wait for it.
+      map={
+        <Suspense fallback={<Skeleton className="h-44 rounded-card" />}>
+          <RouteMapPanel tripId={id} tripName={trip.name} variant="compact" />
+        </Suspense>
+      }
+      collaborators={members.map(
+        (member) =>
+          (member.member_name ?? member.member_email ?? "?").trim()[0] ?? "?",
+      )}
       tripId={id}
       initialItinerary={itinerary}
       startDate={trip.start_date}
@@ -97,6 +110,5 @@ export default async function DaysPage({
         dayCount,
       )}
     />
-    </>
   );
 }

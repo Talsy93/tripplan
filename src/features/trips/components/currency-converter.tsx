@@ -227,3 +227,87 @@ function trim(amount: number): string {
   if (amount >= 10) return amount.toFixed(1).replace(/\.0$/, "");
   return amount.toFixed(2).replace(/\.?0+$/, "");
 }
+
+// Stitch's "ממיר מטבע מהיר" (v6): the converter inline on the היום tab rather
+// than behind a tile — an amount in the destination's currency on one side,
+// what it is in shekels on the other, and the rate as a chip. The chip opens
+// the full dialog, which is where another currency is picked.
+export function CurrencyCard({
+  rates,
+  initialQuote = null,
+}: {
+  rates: ExchangeRate[];
+  initialQuote?: string | null;
+}) {
+  const [open, setOpen] = useState(false);
+  const [quote, setQuote] = useState<string | null>(initialQuote);
+  const [amount, setAmount] = useState("25");
+
+  const rate =
+    rates.find((candidate) => candidate.quote === (quote ?? initialQuote)) ??
+    rates[0] ??
+    null;
+  if (!rate) return null;
+
+  const value = Number(amount.replace(",", "."));
+  const valid = amount.trim() !== "" && Number.isFinite(value) && value >= 0;
+  const inBase = valid ? convert(value, rate, "toBase") : null;
+  // A unit big enough to read: "1€ = 4.02 ₪", but "100¥ = 2.16 ₪" rather than
+  // "1¥ = 0.02 ₪".
+  const perOne = convert(1, rate, "toBase");
+  const unit = perOne >= 0.1 ? 1 : perOne >= 0.01 ? 100 : 1000;
+  const one = perOne * unit;
+
+  return (
+    <div className="flex min-w-0 flex-col gap-2 rounded-card bg-surface p-4 shadow-card">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1">
+          <ArrowLeftRight className="h-5 w-5 text-primary" aria-hidden="true" />
+          <h4 className="text-base leading-[1.375rem] font-semibold text-foreground">
+            ממיר מטבע מהיר
+          </h4>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          dir="ltr"
+          className="rounded-full bg-surface-high px-2 py-0.5 text-[0.625rem] leading-[0.875rem] font-semibold text-muted tabular-nums transition-colors hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {unit}{currencySymbol(rate.quote)} = {trim(one)} {currencySymbol(rate.base)}
+        </button>
+      </div>
+      <div className="flex min-w-0 items-center gap-2">
+        <label className="flex min-w-0 flex-1 flex-col rounded-lg bg-surface-2 p-2">
+          <span className="text-[0.625rem] leading-[0.875rem] font-semibold text-muted">
+            סכום ב-{rate.quote} ({currencySymbol(rate.quote)})
+          </span>
+          <input
+            type="number"
+            inputMode="decimal"
+            min={0}
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            className="w-full min-w-0 bg-transparent text-lg leading-6 font-semibold text-foreground tabular-nums focus:outline-none"
+          />
+        </label>
+        <ArrowLeftRight className="h-5 w-5 shrink-0 text-muted" aria-hidden="true" />
+        <div className="flex min-w-0 flex-1 flex-col rounded-lg bg-surface-2 p-2">
+          <span className="text-[0.625rem] leading-[0.875rem] font-semibold text-muted">
+            שווה ב-{rate.base} ({currencySymbol(rate.base)})
+          </span>
+          <span className="truncate text-lg leading-6 font-bold text-primary tabular-nums" dir="ltr">
+            {inBase === null ? "—" : formatMoney(inBase, rate.base)}
+          </span>
+        </div>
+      </div>
+
+      <ConverterDialog
+        rates={rates}
+        rate={rate}
+        onPick={setQuote}
+        open={open}
+        onClose={() => setOpen(false)}
+      />
+    </div>
+  );
+}

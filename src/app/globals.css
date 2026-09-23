@@ -37,10 +37,15 @@
   --surface: #ffffff;
   --surface-2: #f2f3ff;
   --surface-sunken: #eaedff;
+  /* surface-container-high / surface-variant: the node discs, the spine. */
+  --surface-high: #e2e7ff;
+  --surface-variant: #dae2fd;
   --border: #e6e9f7;
   --border-strong: #bfc7d2;
   --foreground: #131b2e;
   --muted: #58616d;
+  /* Stitch's outline grey — captions on the day cards, small metadata. */
+  --outline: #707881;
 
   /* --- brand: deep maritime blue ----------------------------------------
      Structure, links, the active tab, focus. Not the call to action — that is
@@ -56,11 +61,21 @@
   --primary-tint: #cce5ff;
   --primary-ink: #004b73;
   --ring: #007bb9;
+  /* primary-fixed-dim: the quiet line on a maritime fill. */
+  --primary-soft: #93ccff;
 
   /* The call to action: "הוסף יעד", "הצג ברקוד", "הוספה". One per screen. */
   --cta: #ea580c;
   --cta-hover: #c2410c;
   --cta-foreground: #ffffff;
+  /* secondary-container: the bright terracotta of a live dot and the FAB. */
+  --cta-bright: #fd651e;
+  /* secondary: the deep terracotta of the live badge and a pressed FAB. */
+  --cta-strong: #a73a00;
+  /* secondary-fixed: pale terracotta chips and discs, with their inks. */
+  --cta-tint: #ffdbce;
+  --cta-ink: #7f2b00;
+  --cta-deep: #370e00;
 
   /* --- role trios -------------------------------------------------------
      tint = pale background, ink = readable text on it, solid = the fill. */
@@ -77,6 +92,8 @@
   --success-tint: #d5f5e6;
   --success-ink: #005137;
   --success: #00855d;
+  /* tertiary-fixed: the mint chip — booked, anchored, confirmed. */
+  --success-bright: #85f8c4;
 
   --danger-tint: #ffdad6;
   --danger-ink: #93000a;
@@ -269,10 +286,19 @@
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-surface-sunken: var(--surface-sunken);
+  --color-surface-high: var(--surface-high);
+  --color-surface-variant: var(--surface-variant);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
+  --color-outline: var(--outline);
+  --color-primary-soft: var(--primary-soft);
+  --color-cta-bright: var(--cta-bright);
+  --color-cta-strong: var(--cta-strong);
+  --color-cta-tint: var(--cta-tint);
+  --color-cta-ink: var(--cta-ink);
+  --color-cta-deep: var(--cta-deep);
 
   /* brand and action */
   --color-brand: var(--brand);
@@ -298,6 +324,7 @@
   --color-success: var(--success);
   --color-success-tint: var(--success-tint);
   --color-success-ink: var(--success-ink);
+  --color-success-bright: var(--success-bright);
   --color-danger: var(--danger);
   --color-danger-tint: var(--danger-tint);
   --color-danger-ink: var(--danger-ink);
@@ -392,9 +419,9 @@
      -------------------------------------------------------------------- */
   /* v5 tightened these back down: a workspace with a map, a panel and pins is
      a tool, and 12px is where a card reads as organised rather than soft. */
-  /* v6 (Stitch): 12px controls, 16px cards, 24px sheets. */
+  /* v6 (Stitch): 12px everywhere (its rounded-xl), 24px for sheets. */
   --radius-control: 0.75rem;
-  --radius-card: 1rem;
+  --radius-card: 0.75rem;
   --radius-tile: 0.75rem;
   --radius-modal: 1.5rem;
 

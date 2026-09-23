@@ -1,22 +1,13 @@
-import { listChatMessages, MoreBackLink, TripChat } from "@/features/trips";
+import { redirect } from "next/navigation";
+import { tripTabHref } from "@/features/trips";
 
-export const metadata = { title: "שיחה" };
-
+// The chat became the "עוזר AI" tab (v6). This address stays so old links and
+// the installed app's shortcuts still land on it.
 export default async function ChatPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const messages = await listChatMessages(id);
-
-  return (
-    <>
-      <MoreBackLink tripId={id} />
-      {/* The heading lives inside TripChat, next to the actions that belong
-          with it — the page had its own h2 as well, so the screen opened with
-          two headings saying almost the same thing. */}
-      <TripChat tripId={id} initialMessages={messages} />
-    </>
-  );
+  redirect(tripTabHref(id, "ai"));
 }

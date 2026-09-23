@@ -70,6 +70,15 @@ import {
   tripAura,
   UnlocatedCities,
   NowCard,
+  TripChat,
+  PlanPreview,
+
+  NextStopCard,
+  TonightCard,
+  PartnersCard,
+  CurrencyCard,
+  DailyExpensesCard,
+  PhraseCard,
   OpenItems,
   RailTripProgress,
   RailTripSwitcher,
@@ -561,6 +570,100 @@ export const SCENES: Scene[] = [
   // until now. The two fetching panels arrive as nodes, so the scene can draw
   // the layout with fixed data instead of going to Overpass and Open-Meteo.
   {
+    slug: "ai-chat",
+    title: "עוזר AI · שיחה וכרטיס מסלול",
+    note: "הבאנר, הודעה של המטייל, תשובה, וכרטיס מסלול כמו ב-Stitch. **שום קריאה למודל** — ההודעות בדויות, והכרטיס מוצג לבד מתחת",
+    bleed: true,
+    render: () =>
+      appFrame({
+        title: "יפן בסתיו",
+        active: "ai",
+        phase: { kind: "during", dayNumber: 3 },
+        startDate: "2026-09-09",
+        cities: FRAME_CITIES,
+        children: (
+          <div className="flex flex-col gap-6">
+            <TripChat
+              tripId={f.TRIP_ID}
+              cities={["טוקיו", "קיוטו"]}
+              initialMessages={[
+                {
+                  id: "00000000-0000-0000-0000-00000000c001",
+                  trip_id: f.TRIP_ID,
+                  role: "user",
+                  content:
+                    "אנחנו רוצים יום שלם שמתמקד באוכל ואווירה אותנטית, בלי לרוץ בין מוזיאונים, עם שקיעה יפה בסוף. יש לך רעיון?",
+                  created_at: `${f.TODAY}T07:42:00Z`,
+                },
+                {
+                  id: "00000000-0000-0000-0000-00000000c002",
+                  trip_id: f.TRIP_ID,
+                  role: "model",
+                  content:
+                    "איזה כיף! הרכבתי לכם יום רגוע של טעמים אמיתיים, פינות קסומות ושקיעה בלתי נשכחת — בקצב של המקומיים.",
+                  created_at: `${f.TODAY}T07:42:30Z`,
+                },
+              ]}
+            />
+            <PlanPreview
+              applying={false}
+              plan={{
+                summary: "יום של אוכל ושקיעה בטוקיו, בלי מוזיאונים.",
+                cities: [
+                  {
+                    name: "טוקיו",
+                    intro: "",
+                    items: [
+                      { name: "שוק צוקיג'י החיצוני", category: "restaurants", description: "ארוחת בוקר של סושי טרי ותמגויאקי" },
+                      { name: "שיבויה", category: "areas", description: "הצומת המפורסם וסמטאות קטנות" },
+                      { name: "טוקיו סקייטרי", category: "attractions", description: "שקיעה מהתצפית" },
+                    ],
+                  },
+                ],
+              }}
+            />
+          </div>
+        ),
+      }),
+  },
+  {
+    slug: "today-stitch",
+    title: "היום · בסדר של Stitch",
+    note: "עכשיו (עם תמונה מויקיפדיה), התחנה הבאה, איפה ישנים, ארגז הכלים ושותפים. הברכה עם מזג האוויר פונה לרשת ולכן לא כאן",
+    bleed: true,
+    render: () =>
+      appFrame({
+        title: "יפן בסתיו",
+        active: "today",
+        phase: { kind: "during", dayNumber: 3 },
+        startDate: "2026-09-09",
+        cities: FRAME_CITIES,
+        children: (
+          <div className="enter-children mx-auto flex w-full min-w-0 max-w-main flex-col gap-6">
+            <NowCard day={f.ITINERARY[0]} date={f.TODAY} now={`${f.TODAY}T00:10:00Z`} />
+            <NextStopCard day={f.ITINERARY[0]} date={f.TODAY} now={`${f.TODAY}T00:10:00Z`} />
+            <TonightCard tripId={f.TRIP_ID} stay={f.LODGING} />
+            <CurrencyCard
+              rates={[{ base: "ILS", quote: "JPY", rate: 46.2, date: f.TODAY }]}
+              initialQuote="JPY"
+            />
+            <PhraseCard tripId={f.TRIP_ID} phrasebook={f.PHRASEBOOK} />
+            <DailyExpensesCard
+              tripId={f.TRIP_ID}
+              dayNumber={1}
+              currency="JPY"
+              city="טוקיו"
+              rates={[{ base: "ILS", quote: "JPY", rate: 46.2, date: f.TODAY }]}
+              expenses={[
+                { id: "00000000-0000-0000-0000-00000000e001", trip_id: f.TRIP_ID, day_number: 1, amount: 2400, currency: "JPY", note: "צהריים בשוק", created_at: f.NOW },
+              ]}
+            />
+            <PartnersCard tripId={f.TRIP_ID} members={f.MEMBERS} />
+          </div>
+        ),
+      }),
+  },
+  {
     slug: "today-during",
     title: "היום · בטיול, עם החלונית המלאה",
     note: "ארבעה כרטיסים בחלונית בסדר של המוקאפ: התחנות של היום, מזג האוויר, דורש תשומת לב, ומה שזה עלה. הכרטיס הכהה נשאר הדבר היחיד המואר בטור",
@@ -712,6 +815,15 @@ export const SCENES: Scene[] = [
             lodgingByDay={{ 1: f.LODGING }}
             bookingsByDay={{ 1: [f.BOOKINGS[0]] }}
             cityDays={f.CITY_DAYS}
+            map={
+              <RouteMapCard
+                tripId={f.TRIP_ID}
+                stops={f.ROUTE.stops}
+                places={f.ROUTE.places}
+                unlocatedCount={0}
+              />
+            }
+            collaborators={["ט", "ר", "ע"]}
           />
         ),
       }),

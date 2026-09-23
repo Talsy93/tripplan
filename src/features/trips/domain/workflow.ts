@@ -1,4 +1,4 @@
-import type { TripTabSegment } from "./trip-tabs";
+import type { TripSection } from "./trip-tabs";
 
 // How the app is meant to be used, as data.
 //
@@ -17,7 +17,7 @@ export type WorkflowStep = {
   // What the step is for, in one sentence.
   body: string;
   // The tab this happens on, and the label for the link to it.
-  tab: TripTabSegment;
+  tab: TripSection;
   // A sub-route under the tab, for the steps that live one level down.
   subPath?: string;
   action: string;
