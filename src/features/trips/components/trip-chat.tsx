@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Bot, Mic, Route, Sparkles, Trash2 } from "lucide-react";
 import { Banner, Button, SegmentedControl } from "@/components/ui";
 import { cn } from "@/lib/cn";
@@ -369,9 +370,29 @@ export function TripChat({
         ]}
       />
 
+      {/* What actually happened, and what is left.
+          This said "the destinations and items now appear in the route and on
+          the map", and half of that was untrue: applying a plan writes the
+          trip's destinations, which the planning tab and the map read — the
+          schedule is built rows, and it does not change until it is rebuilt.
+          Reported as "I added from the AI's suggestion and nothing was updated
+          in the route", which is precisely what the sentence promised would
+          not happen. Now it says where they went and offers the press that
+          finishes the job. */}
       {applied && (
         <Banner tone="success">
-          נוסף לטיול — היעדים והפריטים מופיעים עכשיו במסלול ובמפה.
+          <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="min-w-0">
+              נוסף לטיול — היעדים והפריטים מופיעים ב״תכנון״ ועל המפה. כדי שייכנסו
+              גם ללו״ז, בנו אותו מחדש.
+            </span>
+            <Link
+              href={`/trips/${tripId}/days`}
+              className="shrink-0 font-semibold text-primary-ink underline"
+            >
+              למסלול
+            </Link>
+          </span>
         </Banner>
       )}
 

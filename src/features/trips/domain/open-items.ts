@@ -53,6 +53,7 @@ export function tripOpenItems({
   cities,
   itinerary,
   bookings,
+  selectedNames = [],
 }: {
   startDate: string | null;
   // Null when the trip has no start date, which is itself the first item below.
@@ -62,6 +63,9 @@ export function tripOpenItems({
   cities: string[];
   itinerary: ItineraryDay[];
   bookings: Booking[];
+  // Everything picked for the trip, by name. Used for one thing: noticing that
+  // something was chosen after the schedule was last built.
+  selectedNames?: string[];
 }): OpenItem[] {
   const items: OpenItem[] = [];
   const soon =
@@ -105,6 +109,38 @@ export function tripOpenItems({
       path: "days",
     });
   } else {
+    // Chosen, but nowhere in the schedule.
+    //
+    // Reported as "I added from the AI's suggestion and nothing changed in the
+    // route" — and that was exactly right. Adding a place writes it to the
+    // trip's destinations, which the planning tab and the map read; the
+    // schedule is built rows, and it does not change until it is rebuilt.
+    // Nothing anywhere said so, because the only signal about the schedule was
+    // "not built yet", which stops applying the moment there is one.
+    //
+    // Matched by name, which is what the builder itself places: an item on a
+    // day carries the title it was given here.
+    const scheduled = new Set(
+      itinerary.flatMap((day) => day.items.map((item) => item.title)),
+    );
+    const unscheduled = selectedNames.filter((name) => !scheduled.has(name));
+    if (unscheduled.length > 0) {
+      items.push({
+        id: "unscheduled",
+        text:
+          unscheduled.length === 1
+            ? "מקום אחד שנבחר עוד לא בלו״ז"
+            : `${unscheduled.length} מקומות שנבחרו עוד לא בלו״ז`,
+        detail: `${describeList(unscheduled.slice(0, MAX_NAMED))}${
+          unscheduled.length > MAX_NAMED
+            ? ` ועוד ${unscheduled.length - MAX_NAMED}`
+            : ""
+        } — בנו את הלו״ז מחדש כדי לשבץ אותם`,
+        urgency: "later",
+        path: "days",
+      });
+    }
+
     const empty = itinerary.filter((day) => day.items.length === 0);
     if (empty.length > 0) {
       const dates = empty

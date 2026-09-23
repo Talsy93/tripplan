@@ -184,6 +184,11 @@ const FAR_OPEN = tripOpenItems({
   cities: FRAME_CITIES,
   itinerary: f.ITINERARY,
   bookings: f.BOOKINGS,
+  // One of these is on the itinerary and five are not, which is the state the
+  // "chosen but not scheduled" row exists for — and the state a trip lands in
+  // the moment anything is added after the schedule was built. The one that
+  // matches is what proves the comparison does something.
+  selectedNames: f.SELECTED.map((item) => item.name),
 });
 
 // The whole shell around a tab's content, so that more than one scene can be a

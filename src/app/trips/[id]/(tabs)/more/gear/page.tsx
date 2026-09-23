@@ -80,6 +80,8 @@ export default async function ListsPage({
     cities,
     itinerary,
     bookings,
+    // So "chosen but not in the schedule" can be noticed. Already read above.
+    selectedNames: selected.map((item) => item.name),
   });
 
   const suggestions = suggestPrepItems({

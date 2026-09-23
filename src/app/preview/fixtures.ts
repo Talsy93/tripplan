@@ -449,6 +449,18 @@ export const ROUTE_EMPTY: TripRoute = {
 // and one hand-typed place whose "description" is the address that was entered —
 // the case that would otherwise be stored and never shown.
 export const SELECTED: SelectedItem[] = [
+  // Deliberately the same name as the one item on ITINERARY's first day.
+  //
+  // Without it every fixture picked was unscheduled, so "chosen but not in the
+  // schedule" counted everything and a bug that never matched anything would
+  // have looked exactly the same. This is the row that proves the match works:
+  // six picked, five reported.
+  {
+    city: "טוקיו",
+    category: "attractions",
+    name: "שוק צוקיג׳י החיצוני",
+    description: "כבר בלו״ז — כאן כדי שהשוואת השמות תיבדק",
+  },
   {
     city: "טוקיו",
     category: "attractions",

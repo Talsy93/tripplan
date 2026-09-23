@@ -116,6 +116,8 @@ export default async function TodayPage({
     cities: routeCities,
     itinerary,
     bookings,
+    // So "chosen but not in the schedule" can be noticed. Already read above.
+    selectedNames: selected.map((item) => item.name),
   });
 
   const onTheTrip = phase.kind === "during" || phase.kind === "after";
