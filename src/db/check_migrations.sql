@@ -130,7 +130,23 @@ with checks(migration, checks_for, present) as (
     ('0023_booking_stops', 'trip_bookings.stops',
       exists (select 1 from information_schema.columns
               where table_schema = 'public' and table_name = 'trip_bookings'
-                and column_name = 'stops'))
+                and column_name = 'stops')),
+
+    -- 0024 and 0025 were missing from this file until the day they were run by
+    -- hand, which is the second time that has happened — see the note above
+    -- 0021. A migration that ships without its row here is a migration this
+    -- file cannot report, and this file is the only thing that answers "what
+    -- has actually run". Adding the row belongs in the same commit as the .sql.
+    ('0024_today_tools', 'tables trip_expenses, trip_reminders, trip_prep_items + itinerary_items.fixed',
+      to_regclass('public.trip_expenses') is not null
+      and to_regclass('public.trip_reminders') is not null
+      and to_regclass('public.trip_prep_items') is not null
+      and exists (select 1 from information_schema.columns
+                  where table_schema = 'public' and table_name = 'itinerary_items'
+                    and column_name = 'fixed')),
+
+    ('0025_day_notes', 'table trip_day_notes',
+      to_regclass('public.trip_day_notes') is not null)
 )
 select
   migration,

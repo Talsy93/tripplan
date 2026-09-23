@@ -88,10 +88,17 @@ led to them, are in `HANDOFF.md`.
 - **`truncate` on a flex child needs `min-w-0`, and `min-w-0` alone is not
   enough** if the text has no break opportunity — `break-words` does not reduce
   an element's min-content width, only `wrap-anywhere` does.
-- **The Gemini free tier is 20 requests/minute for the whole project.** Do not
-  run real AI calls casually.
+- **The Gemini free tier is 20 requests per _day_, per model** — not per
+  minute, which is what this line said until the number was read off a real 429
+  body (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, `quotaValue: 20`;
+  it is recorded in `src/lib/ai/quota.ts`). The difference matters: at 20 a
+  minute a test call costs nothing, at 20 a day it is 5% of the day. Only the
+  owner runs real calls — see CLAUDE.md, and `src/lib/ai/provider.ts` for the
+  model chain that sums the per-model quotas.
 - **Migrations are applied by hand** in the Supabase SQL editor, in order. They
   are idempotent except `0016`, which guards itself with an
   `applied_migrations` table. **`src/db/check_migrations.sql` reports which of
   them a database actually has** — nothing else does, because only 0016 records
-  itself.
+  itself. **A new migration adds its row to that file in the same commit as the
+  `.sql`.** It has been forgotten twice (0021–0023, then 0024–0025), and a
+  migration with no row there is one the only available report cannot see.
