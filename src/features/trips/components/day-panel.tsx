@@ -1,13 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { EmptyState, IconButton, Surface, ToneDot } from "@/components/ui";
+import { EmptyState } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { cityByDay } from "../domain/route";
 import { cityToneClass, cityToneMap } from "../domain/tone";
-import { clampDay, dateOfDay, dayOfTripLabel } from "../domain/trip-days";
-import { DayStrip } from "./day-strip";
+import { dateOfDay } from "../domain/trip-days";
 import { DayTimeline } from "./day-timeline";
 import { AddReminderButton } from "./reminder-dialog";
 import { AnchorsButton } from "./anchors-dialog";
@@ -23,15 +20,27 @@ import type { NightLodging } from "../domain/trip-days";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 import { CalendarDays } from "lucide-react";
 
-// One day at a time, opened on the day you are actually living.
+// One day — the one you are in — and nothing about the others.
 //
-// The day is client state rather than a URL param: getItinerary already
-// returns the whole trip in one query, so paging costs nothing, while ?day=
-// would spend a server round trip on every arrow tap.
-export function DayPager({
+// It was a pager: arrows to the previous and next day, the city and "day 3 of
+// 14" between them, and a strip of every day in the trip under that. Reported
+// as the duplication it was: "on the today tab do not show the schedule with
+// all the other days, only what belongs to that day. It creates duplication
+// like the route tab and there is no need for it."
+//
+// Right, and the two tabs had drifted into the same screen. "מסלול" is the tab
+// about the shape of the trip — every day, a calendar, the cities, how long in
+// each — and this one is about the day you are standing in. Paging through the
+// whole trip from here made it a worse copy of the other, and it is also the
+// wrong question: the day you want on this tab is today.
+//
+// What is left is what belongs to today: what it is marked with, where you
+// sleep and what is left to do, the things you add to *this* day, and its
+// schedule.
+export function DayPanel({
   tripId,
   days,
-  initialDay,
+  dayNumber,
   startDate,
   currentDay,
   bookingsByDay,
@@ -50,10 +59,13 @@ export function DayPager({
   // reschedule button appears. Only the running trip passes it.
   nowIso?: string;
   days: ItineraryDay[];
-  initialDay: number;
+  // Which day this is. Decided by the page from the trip's phase — the day
+  // being lived, or the last one once it is over.
+  dayNumber: number;
   startDate: string | null;
-  // The day the calendar says it is, or null outside the trip. Marks "today"
-  // in the strip even while looking at another day.
+  // The day the calendar says it is, or null outside the trip. Only used to
+  // decide whether "late" means anything: a reminder for Thursday is not
+  // overdue on Tuesday.
   currentDay: number | null;
   bookingsByDay: Record<number, Booking[]>;
   // Where you sleep on each night, which bookingsByDay cannot tell you: it
@@ -61,8 +73,6 @@ export function DayPager({
   // one day and nowhere else.
   lodgingByDay: Record<number, NightLodging>;
 }) {
-  const [dayNumber, setDayNumber] = useState(initialDay);
-
   const dayCount = days.length;
   const active = days.find((d) => d.day === dayNumber) ?? days[0];
   const tones = cityToneMap([...cityByDay(days).values()]);
@@ -95,62 +105,8 @@ export function DayPager({
   const nowMinutes =
     nowIso && active.day === currentDay ? minutesOfDay(nowIso) : null;
 
-  const go = (delta: number) =>
-    setDayNumber((d) => clampDay(d + delta, dayCount));
-
   return (
     <div className={cn("flex flex-col gap-4", cityToneClass(tones, city))}>
-      {/* A neutral surface with a tone dot, not a tone-filled panel. Filling a
-          full-width header with a pastel is what put six competing colours on
-          one screen; the dot says the same thing at a tenth of the volume. */}
-      <Surface
-        tone="quiet"
-        padding="none"
-        className="flex items-center justify-between gap-2 px-3 py-3"
-      >
-        {/* RTL: "previous" is on the right and its glyph points right. The
-            order in the DOM is what decides the sides — do not also mirror. */}
-        <IconButton
-          label="היום הקודם"
-          variant="surface"
-          size="sm"
-          disabled={active.day <= 1}
-          onClick={() => go(-1)}
-        >
-          <ChevronRight className="h-4 w-4" aria-hidden="true" />
-        </IconButton>
-
-        <div className="flex min-w-0 flex-col items-center text-center">
-          <p className="flex min-w-0 items-center gap-2 text-title font-bold">
-            <ToneDot />
-            <span className="min-w-0 truncate">{city ?? "הטיול"}</span>
-          </p>
-          <p className="text-caption font-semibold text-muted">
-            {dayOfTripLabel(active.day, dayCount, date)}
-          </p>
-        </div>
-
-        <IconButton
-          label="היום הבא"
-          variant="surface"
-          size="sm"
-          disabled={active.day >= dayCount}
-          onClick={() => go(1)}
-        >
-          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-        </IconButton>
-      </Surface>
-
-      {/* Shared with the ימים tab since T2 — the pills used to live here and
-          only here, which is why the tab about the days had none. */}
-      <DayStrip
-        dayNumbers={days.map((day) => day.day)}
-        startDate={startDate}
-        activeDay={active.day}
-        currentDay={currentDay}
-        onSelect={setDayNumber}
-      />
-
       {/* The bookings used to be listed here as well as on the timeline
           below. They are the timeline's now — it is the component that knows
           where they sit in the day, and it was rendering the same three facts
@@ -168,9 +124,16 @@ export function DayPager({
 
 
 
-      {/* The two things you do to a day while living it: pin a reminder to an
-          hour, and tell the plan where you actually are. */}
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      {/* One row, scrolling sideways rather than wrapping. Asked for as
+          "a note/reminder for quick adding to that day, and updating the
+          schedule — one row of buttons that scrolls".
+
+          Wrapping was the alternative and it is worse here: four buttons at
+          375px wrapped to two lines, and which two depended on how long the
+          labels were, so the row changed height between days. A scroller keeps
+          it one line always, and the fourth button peeking off the edge is what
+          says there is more. */}
+      <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 [&>*]:shrink-0">
         <AddDayNoteButton
           tripId={tripId}
           dayNumber={active.day}

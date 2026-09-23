@@ -301,7 +301,7 @@ export { NightStay } from "./components/night-stay";
 export { lodgingOrigin, entryDestination } from "./domain/directions";
 export { aiErrorMessage, aiErrorFromResponse } from "./domain/ai-errors";
 export type { AiErrorCode } from "./domain/ai-errors";
-export { DayPager } from "./components/day-pager";
+export { DayPanel } from "./components/day-panel";
 export type {
   DailyWeather,
   CityWeather,

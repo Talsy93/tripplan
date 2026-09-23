@@ -121,23 +121,23 @@ export function EmptyDays({
   dayNumbers,
   startDate,
   onSelect,
+  // Without the card and the heading. For a caller that already said both — the
+  // route pane folds this behind a summary that carries "ימים ריקים" and the
+  // count, and repeating them inside would be the same sentence twice, in a
+  // card inside a card.
+  bare = false,
 }: {
   dayNumbers: number[];
   startDate: string | null;
   onSelect: (dayNumber: number) => void;
+  bare?: boolean;
 }) {
   if (dayNumbers.length === 0) return null;
 
-  return (
-    <Card className="flex flex-col gap-2">
-      <span className="text-sm font-bold">
-        {dayNumbers.length === 1
-          ? "יום אחד עוד ריק"
-          : `${dayNumbers.length} ימים עוד ריקים`}
-      </span>
-      {/* Buttons and not a sentence: each one goes to the day it names, which is
-          the whole point of listing them rather than counting them. */}
-      <div className="flex flex-wrap gap-1.5">
+  // Buttons and not a sentence: each one goes to the day it names, which is the
+  // whole point of listing them rather than counting them.
+  const chips = (
+    <div className="flex flex-wrap gap-1.5">
         {dayNumbers.map((dayNumber) => {
           const date = dateOfDay(startDate, dayNumber);
           return (
@@ -151,7 +151,19 @@ export function EmptyDays({
             </button>
           );
         })}
-      </div>
+    </div>
+  );
+
+  if (bare) return chips;
+
+  return (
+    <Card className="flex flex-col gap-2">
+      <span className="text-sm font-bold">
+        {dayNumbers.length === 1
+          ? "יום אחד עוד ריק"
+          : `${dayNumbers.length} ימים עוד ריקים`}
+      </span>
+      {chips}
     </Card>
   );
 }

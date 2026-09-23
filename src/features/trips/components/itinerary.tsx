@@ -376,11 +376,12 @@ export function Itinerary({
           <Disclosure
             leading={<Route className="h-4 w-4" />}
             title="המסלול כולו"
-            detail={
-              stops.length > 0
-                ? stops.map((stop) => stop.city).join(" · ")
-                : "כמה ימים בכל עיר, ובנייה מחדש של הלו״ז"
-            }
+            // The count and nothing else. The names were in here and they
+            // defeated the fold: six cities joined by dots is the list again,
+            // wrapped to three lines, sitting under a heading whose whole job
+            // is to stand in for it. "A closed section does not need the whole
+            // list of cities, just a heading with the count."
+            detail="כמה ימים בכל עיר, ובנייה מחדש של הלו״ז"
             meta={
               stops.length > 0 ? (
                 <Badge tone="neutral">{stops.length}</Badge>
@@ -418,11 +419,23 @@ export function Itinerary({
             </Button>
           </Disclosure>
 
-          <EmptyDays
-            dayNumbers={emptyDayNumbers}
-            startDate={startDate}
-            onSelect={setChosenDay}
-          />
+          {/* Behind a press, like everything else in this pane. The count is
+              the part that matters — "3 days still empty" is the whole message,
+              and the dates you would jump to are what you open it for. */}
+          {emptyDayNumbers.length > 0 && (
+            <Disclosure
+              leading={<CalendarDays className="h-4 w-4" />}
+              title="ימים ריקים"
+              meta={<Badge tone="neutral">{emptyDayNumbers.length}</Badge>}
+            >
+              <EmptyDays
+                dayNumbers={emptyDayNumbers}
+                startDate={startDate}
+                onSelect={setChosenDay}
+                bare
+              />
+            </Disclosure>
+          )}
         </>
       }
     >

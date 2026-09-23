@@ -7,7 +7,7 @@ import {
   APP_TIME_ZONE,
   ArrivalWatcher,
   bookingsByDay,
-  DayPager,
+  DayPanel,
   focusDayNumber,
   currentDayNumber,
   daysUntil,
@@ -233,10 +233,10 @@ export default async function TodayPage({
       {showDay ? (
         <section className="flex flex-col gap-3">
           <SectionHeading level="section">הלו״ז של היום</SectionHeading>
-          <DayPager
+          <DayPanel
             tripId={trip.id}
             days={itinerary}
-            initialDay={focusDay}
+            dayNumber={focusDay}
             startDate={trip.start_date}
             currentDay={currentDay}
             bookingsByDay={byDay}

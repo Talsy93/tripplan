@@ -35,7 +35,7 @@ import {
   CityDaysEditor,
   CreateTripForm,
   daysUntil,
-  DayPager,
+  DayPanel,
   DayTiles,
   DayTimeline,
   DayMapCard,
@@ -340,10 +340,10 @@ export const SCENES: Scene[] = [
                 </div>
               </li>
             </ul>
-            <DayPager
+            <DayPanel
               tripId={f.TRIP_ID}
               days={f.ITINERARY}
-              initialDay={1}
+              dayNumber={1}
               startDate={f.TODAY}
               currentDay={1}
               bookingsByDay={{ 1: [f.BOOKINGS[0]] }}
@@ -433,10 +433,10 @@ export const SCENES: Scene[] = [
         map={<WorkspaceMap stops={f.STOPS} places={f.ROUTE.places} liveCity="טוקיו" />}
       >
         <NowCard day={f.ITINERARY[0]} date={f.TODAY} now={`${f.TODAY}T07:10:00Z`} />
-        <DayPager
+        <DayPanel
           tripId={f.TRIP_ID}
           days={f.ITINERARY}
-          initialDay={1}
+          dayNumber={1}
           startDate={f.TODAY}
           currentDay={1}
           bookingsByDay={{}}
@@ -557,7 +557,7 @@ export const SCENES: Scene[] = [
   //
   // The state T1 exists for. Measured at 1911px before the fix, the main column
   // was 817px of nothing: today/page.tsx rendered NowCard only when there is a
-  // current day and DayPager only during or after the trip, and on a trip
+  // current day and DayPanel only during or after the trip, and on a trip
   // leaving in 62 days both are false — so the column drew an sr-only heading
   // and stopped, while the whole screen sat in the 372px pane beside it.
   //
@@ -711,10 +711,10 @@ export const SCENES: Scene[] = [
               date={f.TODAY}
               now={`${f.TODAY}T07:10:00Z`}
             />
-            <DayPager
+            <DayPanel
               tripId={f.TRIP_ID}
               days={f.ITINERARY_LONG}
-              initialDay={3}
+              dayNumber={3}
               startDate="2026-09-09"
               currentDay={3}
               bookingsByDay={{}}
@@ -1731,30 +1731,32 @@ export const SCENES: Scene[] = [
     ),
   },
   {
-    slug: "day-pager",
-    title: "רצועת הימים",
-    note: "יום בשבוע מעל תאריך, לא ״יום N״ — והנבחר בדיו ולא בכחול הפעולה. היום הנוכחי מסומן בטבעת, כדי ש״היום״ ו״נבחר״ יוכלו להיות נכונים בו-זמנית",
+    slug: "day-panel",
+    title: "היום · רק היום הזה",
+    note: "היה כאן פייג׳ר: חיצים ליום הקודם והבא, ״יום 3 מתוך 14״ ביניהם, ורצועה של כל ימי הטיול מתחת. כל זה שייך לטאב ״מסלול״, וכאן הוא היה עותק גרוע יותר שלו. מה שנשאר הוא מה ששייך להיום — מה הוא מסומן בו, איפה ישנים ומה נשאר לעשות, שורת הפעולות שמוסיפות לאותו יום, והלו״ז שלו",
     render: () => (
-      <DayPager
+      <DayPanel
         tripId={f.TRIP_ID}
         days={f.ITINERARY}
-        initialDay={1}
+        dayNumber={1}
         startDate="2026-09-11"
-        currentDay={2}
+        currentDay={1}
         bookingsByDay={{ 1: f.BOOKINGS }}
-        lodgingByDay={{}}
+        lodgingByDay={{ 1: f.LODGING }}
+        reminders={f.DAY_REMINDERS}
+        nowIso={f.NOW}
       />
     ),
   },
   {
-    slug: "day-pager-undated",
-    title: "רצועת הימים · בלי תאריך התחלה",
-    note: "אין לוח שנה להתייחס אליו, אז הגלולות חוזרות ל״יום N״ — הנפילה לאחור שהיא הסיבה שהעוזר בדומיין מחזיר null",
+    slug: "day-panel-bare",
+    title: "היום · יום ריק ובלי תאריכים",
+    note: "אין לינה, אין תזכורות, אין הזמנות ואין תאריך התחלה — כלומר שני האריחים לא מצוירים בכלל ולא מציירים ריבועים ריקים שמסבירים את היעדרם. שורת הפעולות היא מה שנשאר, וזה נכון: זה היום שהכי צריך אותה",
     render: () => (
-      <DayPager
+      <DayPanel
         tripId={f.TRIP_ID}
         days={f.ITINERARY}
-        initialDay={1}
+        dayNumber={1}
         startDate={null}
         currentDay={null}
         bookingsByDay={{}}
