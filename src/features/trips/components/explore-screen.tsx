@@ -1,12 +1,18 @@
 import type { ReactNode } from "react";
 import { TwoPane } from "@/components/layout";
+import { Map as MapIcon } from "lucide-react";
 import { SectionHeading } from "@/components/ui";
 import { savedCountsByCategory } from "../domain/place";
-import type { AiCitySuggestion, SelectedItem } from "../domain/ai-suggestion";
+import type {
+  AiCitySuggestion,
+  CityGuideData,
+  SelectedItem,
+} from "../domain/ai-suggestion";
 import type { AddedPlace } from "../infrastructure/place-service";
 import { MoreBackLink } from "./more-back-link";
 import { ManualPlaceForm } from "./manual-place-form";
 import { PlaceSearch } from "./place-search";
+import { RecommendedPlaces } from "./recommended-places";
 import { PlanningPanel } from "./planning-panel";
 import { SelectedList } from "./selected-list";
 
@@ -36,6 +42,7 @@ export function ExploreScreen({
   // need to geocode a city — the page owns that boundary, and passing it in is
   // what lets a scene draw this layout without going to Nominatim.
   map,
+  cityGuide = null,
 }: {
   tripId: string;
   searchCities: string[];
@@ -44,6 +51,9 @@ export function ExploreScreen({
   addedPlaces: AddedPlace[];
   savedCities: AiCitySuggestion[];
   map: ReactNode;
+  // The saved guide for the first destination, for "מומלצים ב<עיר>". Null when
+  // nothing has been generated for it yet.
+  cityGuide?: CityGuideData | null;
 }) {
   return (
     <TwoPane
@@ -65,20 +75,26 @@ export function ExploreScreen({
               the pins above them. On a phone the pane falls into the flow and
               this lands after the discovery panel — grid, then suggestions, then
               what you picked, which is the mockup's order exactly. */}
+          {/* _4's header for this section, one to one: the title, a filled
+              count pill beside it, and — at the far end — the quiet green note
+              that these are the pins on the map. */}
           <section className="flex flex-col gap-3">
-            <SectionHeading
-              level="section"
-              tone="done"
-              actions={
-                selected.length > 0 ? (
-                  <span className="text-caption text-muted">
-                    {selected.length} מקומות
-                  </span>
-                ) : undefined
-              }
-            >
-              נבחרו לטיול
-            </SectionHeading>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h2 className="min-w-0 text-lg font-semibold leading-6">
+                נבחרו לטיול
+              </h2>
+              {selected.length > 0 && (
+                <span className="shrink-0 rounded-full bg-primary-tint px-2 py-0.5 text-caption font-bold text-primary-ink">
+                  {selected.length} מקומות
+                </span>
+              )}
+              {selected.length > 0 && (
+                <span className="ms-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-success-tint px-2 py-0.5 text-caption font-medium text-success-ink">
+                  <MapIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                  מופיעים על המפה
+                </span>
+              )}
+            </div>
             <SelectedList tripId={tripId} items={selected} />
           </section>
         </>
@@ -110,6 +126,17 @@ export function ExploreScreen({
         addedPlaces={addedPlaces}
         savedCounts={savedCountsByCategory(selected)}
       />
+
+      {/* _4 opens its results with "מומלצים ב<עיר>". Fed from the saved city
+          guide, so what is recommended here is what was generated for that
+          city rather than a second, unrelated list. */}
+      {searchCities[0] && (
+        <RecommendedPlaces
+          tripId={tripId}
+          city={searchCities[0]}
+          guide={cityGuide}
+        />
+      )}
 
       <section id="discover" className="flex scroll-mt-20 flex-col gap-4">
         <SectionHeading

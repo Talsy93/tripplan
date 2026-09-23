@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  ArrowLeft,
   Check,
   ChevronRight,
   Compass,
@@ -424,25 +425,37 @@ export function PlaceSearch({
           }}
           className="flex items-center gap-1 rounded-full bg-surface p-1.5 shadow-card"
         >
-          <Search
+          <span
             aria-hidden="true"
-            className="ms-2 h-5 w-5 shrink-0 text-muted"
-          />
+            className="flex h-10 w-10 shrink-0 items-center justify-center text-primary"
+          >
+            <Search className="h-5 w-5" />
+          </span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={`חיפוש מקום, מסעדה, מוזיאון או אטרקציה ב${city}…`}
+            placeholder="חיפוש מקום, מסעדה, מוזיאון או אטרקציה…"
             aria-label={`חיפוש ב${city}`}
-            className="min-w-0 flex-1 bg-transparent px-1 text-sm text-foreground outline-none placeholder:text-muted"
+            className="min-w-0 flex-1 bg-transparent px-1 text-sm text-foreground outline-none placeholder:text-outline"
           />
-          <Button
+          {/* A round icon button at the end, which is what the export draws —
+              not a filled pill. Ours submits (the export's is a filter that
+              opens nothing), so it carries the arrow rather than the sliders:
+              a control that looks like a filter and runs a search is worse
+              than one that looks like what it does. */}
+          <button
             type="submit"
-            size="sm"
-            loading={status.kind === "searching"}
-            className="shrink-0 rounded-full"
+            aria-label={`חיפוש ב${city}`}
+            disabled={status.kind === "searching"}
+            className={cn(
+              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+              "bg-surface-sunken text-primary transition-colors hover:bg-primary-tint",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              status.kind === "searching" && "opacity-60",
+            )}
           >
-            חיפוש
-          </Button>
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+          </button>
         </form>
         {/* Which destination, when there is more than one. The category view has
             its own copy of this in a sticky bar; here it is a plain row, because
@@ -486,15 +499,12 @@ export function PlaceSearch({
                 type="button"
                 onClick={() => openCategory(key)}
                 className={cn(
-                  "animate-rise flex shrink-0 items-center gap-2 rounded-full bg-surface px-4 py-2 shadow-card",
-                  "text-sm font-medium transition-colors hover:bg-surface-2",
+                  "animate-rise flex shrink-0 items-center gap-1.5 rounded-full bg-surface-sunken px-4 py-2",
+                  "text-caption font-medium text-foreground transition-colors hover:bg-surface-high",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 )}
               >
-                <DomainIcon
-                  name={meta.icon}
-                  className="h-4 w-4 shrink-0 text-primary-ink"
-                />
+                <span aria-hidden="true">{meta.emoji}</span>
                 <span className="whitespace-nowrap">{meta.label}</span>
                 {count > 0 && (
                   <span className="shrink-0 rounded-full bg-primary-tint px-1.5 text-caption font-bold tabular-nums text-primary-ink">

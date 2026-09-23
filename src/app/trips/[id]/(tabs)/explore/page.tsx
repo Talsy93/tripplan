@@ -4,6 +4,7 @@ import {
   ExploreScreen,
   getAddedPlaces,
   getSavedCities,
+  getSavedCityGuide,
   getSelectedDestinations,
   getTrip,
   RouteMapPanel,
@@ -34,6 +35,14 @@ export default async function ExplorePage({
     Boolean,
   );
 
+  // The saved guide for the first destination, which feeds "מומלצים ב<עיר>".
+  // A second read and not part of the wave above, because it needs a city out
+  // of the first one's answer. Null when nothing has been generated yet, and
+  // then the section does not draw.
+  const cityGuide = searchCities[0]
+    ? await getSavedCityGuide(id, searchCities[0])
+    : null;
+
   // The manual form suggests a wider set: a city that was only *suggested* is
   // still somewhere the user is likely to be typing a place for, even though
   // the search can't work there until something is added.
@@ -49,6 +58,7 @@ export default async function ExplorePage({
       selected={selected}
       addedPlaces={addedPlaces}
       savedCities={savedCities}
+      cityGuide={cityGuide}
       // The one thing a desktop can do here that a phone cannot: results beside
       // the map they are results on. On a phone this is two tabs and a round
       // trip between them; from 1280 up it is one screen.
