@@ -6,6 +6,8 @@ import {
   ChevronDown,
   CirclePlus,
   ExternalLink,
+  Eye,
+  EyeOff,
   Luggage,
   Plus,
   X,
@@ -85,6 +87,7 @@ export function ChecklistCard({
   const [local, setLocal] = useState<Record<string, boolean>>({});
   const [removed, setRemoved] = useState<string[]>([]);
   const [expanded, setExpanded] = useState(false);
+  const [showDone, setShowDone] = useState(false);
   const [adding, setAdding] = useState(false);
 
   const rows: Row[] = [
@@ -110,17 +113,24 @@ export function ChecklistCard({
   const done = rows.filter((row) => row.done).length;
   const percent = total === 0 ? 0 : Math.round((done / total) * 100);
 
-  // Drawn done-above-pending, as the export draws it. The five shown by
-  // default are chosen pending-first — a card of five ticked boxes says
-  // nothing — and "הצג עוד" then shows every row in the same order.
+  // What is done is hidden until asked for: a checklist is read for what is
+  // left, and ticked rows pushing the open ones below "הצג עוד" is the list
+  // hiding its own point. Asked for as "a button that also shows the ones
+  // marked done". When shown they are drawn above the open rows, as the
+  // export draws them; the five shown by default are still chosen open-first,
+  // and "הצג עוד" then shows every visible row in the same order.
   const pending = rows.filter((row) => !row.done);
   const finished = rows.filter((row) => row.done);
-  const ordered = [...finished, ...pending];
+  const visible = showDone ? [...finished, ...pending] : pending;
   const chosen = new Set(
-    [...pending, ...finished].slice(0, DEFAULT_ROWS).map((row) => row.id),
+    [...pending, ...(showDone ? finished : [])]
+      .slice(0, DEFAULT_ROWS)
+      .map((row) => row.id),
   );
-  const shown = expanded ? ordered : ordered.filter((row) => chosen.has(row.id));
-  const hidden = total - shown.length;
+  const shown = expanded
+    ? visible
+    : visible.filter((row) => chosen.has(row.id));
+  const hidden = visible.length - shown.length;
 
   async function toggle(row: Row, next: boolean) {
     setLocal((current) => ({ ...current, [row.id]: next }));
@@ -189,6 +199,10 @@ export function ChecklistCard({
             הרשימה עוד ריקה — דרכון, מתאם, להזמין eSIM. כל מה שתוסיפו נשמר לכל
             חברי הטיול.
           </p>
+        ) : shown.length === 0 ? (
+          <p className="p-2 text-sm leading-5 text-muted-strong">
+            הכול סומן. אפשר להציג את מה שבוצע בכפתור למטה.
+          </p>
         ) : (
           <ul className="flex flex-col gap-1">
             {shown.map((row) => (
@@ -208,19 +222,42 @@ export function ChecklistCard({
           </ul>
         )}
 
-        {(hidden > 0 || expanded) && total > DEFAULT_ROWS && (
-          <button
-            type="button"
-            onClick={() => setExpanded((was) => !was)}
-            aria-expanded={expanded}
-            className="mt-1 flex w-full items-center justify-center gap-1 rounded-lg py-2 text-xs leading-4 font-medium text-primary transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {expanded ? "הצג פחות" : `הצג עוד ${hidden}`}
-            <ChevronDown
-              className={cn("h-4 w-4 transition-transform", expanded && "rotate-180")}
-              aria-hidden="true"
-            />
-          </button>
+        {(finished.length > 0 || visible.length > DEFAULT_ROWS) && (
+          <div className="mt-1 flex items-center justify-between gap-2">
+            {visible.length > DEFAULT_ROWS ? (
+              <button
+                type="button"
+                onClick={() => setExpanded((was) => !was)}
+                aria-expanded={expanded}
+                className="flex items-center gap-1 rounded-lg px-2 py-2 text-xs leading-4 font-medium text-primary transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {expanded ? "הצג פחות" : `הצג עוד ${hidden}`}
+                <ChevronDown
+                  className={cn("h-4 w-4 transition-transform", expanded && "rotate-180")}
+                  aria-hidden="true"
+                />
+              </button>
+            ) : (
+              <span />
+            )}
+            {finished.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowDone((was) => !was)}
+                aria-pressed={showDone}
+                className="flex items-center gap-1 rounded-lg px-2 py-2 text-xs leading-4 font-medium text-muted-strong transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {showDone ? (
+                  <EyeOff className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden="true" />
+                )}
+                {showDone
+                  ? "הסתר את מה שבוצע"
+                  : `הצג גם מה שבוצע (${finished.length})`}
+              </button>
+            )}
+          </div>
         )}
 
         <div className="mt-2 flex items-center justify-between gap-2 pt-2">
