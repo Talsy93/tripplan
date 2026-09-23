@@ -101,4 +101,12 @@ led to them, are in `HANDOFF.md`.
   them a database actually has** — nothing else does, because only 0016 records
   itself. **A new migration adds its row to that file in the same commit as the
   `.sql`.** It has been forgotten twice (0021–0023, then 0024–0025), and a
-  migration with no row there is one the only available report cannot see.
+  migration with no row there is one that report cannot see.
+- **`npm run db:check` asks the live database the same question from outside**,
+  and covers the two things the SQL file cannot: it reads the `.sql` files
+  themselves, so a migration nobody added a row for is still checked, and it
+  asks for **every** declared column rather than one sentinel each, so a
+  migration that errored halfway through the SQL editor is caught. Read-only,
+  uses the public anon key, and ends by asking for a table, a column and a
+  function that cannot exist — if those three do not fail, it says the run
+  proved nothing and exits non-zero.
