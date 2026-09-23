@@ -50,7 +50,7 @@ export function TodayDuringAside({
 
       {urgent.length > 0 && (
         <section className="flex flex-col gap-3">
-          <SectionHeading level="section">דורש תשומת לב</SectionHeading>
+          <SectionHeading level="section" tone="now">דורש תשומת לב</SectionHeading>
           <OpenItems tripId={tripId} items={urgent} />
         </section>
       )}
@@ -60,7 +60,7 @@ export function TodayDuringAside({
           narrower than xl it falls back to where it has always been: below the
           day. */}
       <section className="flex flex-col gap-3">
-        <SectionHeading level="section">מה קרוב</SectionHeading>
+        <SectionHeading level="section" tone="now">מה קרוב</SectionHeading>
         <UpNext bookings={bookings} now={now} cities={cities} />
       </section>
 

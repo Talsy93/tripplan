@@ -13,6 +13,7 @@
 
 import type { Booking } from "@/features/trips/domain/booking";
 import type {
+  AiCitySuggestion,
   CityGuideData,
   GuideItem,
   ItineraryDay,
@@ -573,6 +574,32 @@ export const WEATHER: CityWeather[] = [
       { date: "2026-09-10", code: 95, maxC: 24, minC: 18, rainChance: 90 },
     ],
   },
+];
+
+// What one round of "suggest destinations" comes back with. Five, which is
+// what MORE_COUNT asks for, and one carrying the unbreakable name so the row is
+// checked against a city title with nowhere to wrap.
+export const CITY_SUGGESTIONS: AiCitySuggestion[] = [
+  {
+    name: "קנאזאווה",
+    description:
+      "גן קנרוקואן, רובע גיישות שמור ושוק דגים — עיר קטנה שאפשר לכסות ברגל ביומיים.",
+  },
+  {
+    name: "טקאיאמה",
+    description:
+      "עיירה בהרים עם בתי עץ מתקופת אדו ושוק בוקר יומי. בסיס נוח לשירקאווה־גו.",
+  },
+  {
+    name: "נארה",
+    description:
+      "הבירה הראשונה של יפן, בשעה מקיוטו: מקדש טודאיג׳י והאיילים בפארק.",
+  },
+  {
+    name: "הירושימה",
+    description: "פארק השלום, ואי מיאג׳ימה מול החוף עם השער שעומד במים.",
+  },
+  { name: UNBREAKABLE, description: LONG },
 ];
 
 // ---- a city guide --------------------------------------------------------

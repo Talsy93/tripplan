@@ -77,7 +77,7 @@ export function TodayBefore({
       {/* First, because it is the only thing on this screen with a clock on it.
           Everything below is a task; this is an appointment. */}
       <section className="flex flex-col gap-3">
-        <SectionHeading level="section">מה קרוב</SectionHeading>
+        <SectionHeading level="section" tone="now">מה קרוב</SectionHeading>
         <UpNext bookings={bookings} now={now} cities={cities} />
       </section>
 

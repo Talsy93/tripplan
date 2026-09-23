@@ -769,7 +769,7 @@ export const SCENES: Scene[] = [
             knownCities={FRAME_CITIES}
             selected={f.SELECTED}
             addedPlaces={[]}
-            savedCities={[]}
+            savedCities={f.CITY_SUGGESTIONS}
             map={
               <RouteMapCard
                 tripId={f.TRIP_ID}

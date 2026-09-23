@@ -56,7 +56,7 @@ export function TodayPrep({
           <>
             {bookings.length > 0 && (
               <section className="flex flex-col gap-3">
-                <SectionHeading level="section">מה קרוב</SectionHeading>
+                <SectionHeading level="section" tone="now">מה קרוב</SectionHeading>
                 <UpNext bookings={bookings} now={now} cities={cities} />
               </section>
             )}

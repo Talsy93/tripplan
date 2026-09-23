@@ -61,7 +61,7 @@ export default async function TripDetailsPage({
         </section>
 
         <section className="flex flex-col gap-3">
-          <SectionHeading level="section">תזכורות</SectionHeading>
+          <SectionHeading level="section" tone="now">תזכורות</SectionHeading>
           {/* Per-device, not per-trip: a subscription belongs to the browser it
               was created in, so this is the same switch on every trip page. */}
           <PushToggle />
@@ -92,6 +92,7 @@ export default async function TripDetailsPage({
             fixed place, above the thing it adds to. */}
         <SectionHeading
           level="section"
+          tone="action"
           actions={<AddBookingButton tripId={trip.id} cities={cities} />}
         >
           טיסות, רכבות ולינה

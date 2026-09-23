@@ -5,6 +5,7 @@ import {
   Check,
   ChevronRight,
   Compass,
+  LayoutGrid,
   MapPin,
   Search,
   Sparkles,
@@ -15,6 +16,7 @@ import {
   Banner,
   Button,
   Chip,
+  Disclosure,
   EmptyState,
   Glyph,
   Input,
@@ -408,6 +410,13 @@ export function PlaceSearch({
 
   // ---- The grid: where this tab starts -------------------------------------
   if (category === null) {
+    // What is already in the trip, across every category — the one number the
+    // folded row can carry that the category tiles carried six of.
+    const savedTotal = CATEGORY_KEYS.reduce(
+      (sum, key) => sum + (savedCounts[key] ?? 0),
+      0,
+    );
+
     return (
       <div className="flex flex-col gap-4">
         {/* Free text across every category, which is what the design puts
@@ -463,52 +472,74 @@ export function PlaceSearch({
             used to be 2/3/4/6, and at xl that put six tiles in one 110px-tall
             row above an otherwise empty screen — a toolbar, not the opening
             move of a tab. */}
-        {/* stagger + animate-rise: the six tiles are the first thing on the
-            tab, and arriving in sequence over 0.5s reads as the screen
-            assembling rather than as six things sliding. Both are inert under
-            prefers-reduced-motion — globals.css. */}
-        <div className="stagger grid grid-cols-3 gap-2.5">
-          {CATEGORY_KEYS.map((key, index) => {
-            const meta = PLACE_CATEGORIES[key];
-            const count = savedCounts[key] ?? 0;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => openCategory(key)}
-                // The tone tints the icon's square, not the tile.
-                //
-                // These tiles were filled edge to edge with one of the six
-                // pastels once, and that was reverted for a good reason: six
-                // saturated blocks on the opening screen of the tab, and the
-                // colour said nothing. The design's answer is the middle one — a
-                // white card with a tinted 40px square inside it, the same
-                // treatment every domain glyph in the app already gets. The card
-                // stays quiet and the row of icons stays scannable.
-                className={cn(
-                  toneClass(toneByIndex(index)),
-                  "animate-rise",
-                  "flex flex-col items-center gap-2 rounded-card border border-border bg-surface p-3 text-center shadow-soft transition-shadow",
-                  "hover:border-border-strong hover:shadow-lift",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                )}
-              >
-                <Glyph tone size="md">
-                  <DomainIcon name={meta.icon} className="h-5 w-5 shrink-0" />
-                </Glyph>
-                <span className="min-w-0 text-sm font-bold wrap-anywhere">
-                  {meta.label}
-                </span>
-                {/* Only when there is something to count. The design's tile is an
-                  icon and a label; "לחיפוש" under every one of the six said the
-                  same thing six times and told nobody anything. */}
-                {count > 0 && (
-                  <span className="text-caption text-muted">{count} בטיול</span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        {/* Folded, after two requests to fold category lists and then a third
+            naming this one: "a list of cards, like filtering by categories".
+            It held out through the first two because it is the tab's own
+            navigation rather than a list beside other content — but the free
+            search above it can reach every category at once, so browsing by
+            category is the second way in, not the only one. A closed row says
+            it is there; the grid is what you get for pressing.
+
+            The count of what is already in the trip moves onto the summary,
+            because that is the part worth knowing without opening: it is the
+            answer to "have I done anything on this tab yet".
+
+            stagger + animate-rise stay on the tiles: they now arrive when the
+            section is opened, which is when a sequence reads as an answer to
+            the press. Both are inert under prefers-reduced-motion. */}
+        <Disclosure
+          leading={<LayoutGrid className="h-4 w-4" />}
+          title="עיון לפי קטגוריה"
+          detail={`${CATEGORY_KEYS.length} קטגוריות ב${city}`}
+          meta={
+            savedTotal > 0 ? (
+              <Badge tone="neutral">{savedTotal} בטיול</Badge>
+            ) : undefined
+          }
+        >
+          <div className="stagger grid grid-cols-3 gap-2.5">
+            {CATEGORY_KEYS.map((key, index) => {
+              const meta = PLACE_CATEGORIES[key];
+              const count = savedCounts[key] ?? 0;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => openCategory(key)}
+                  // The tone tints the icon's square, not the tile.
+                  //
+                  // These tiles were filled edge to edge with one of the six
+                  // pastels once, and that was reverted for a good reason: six
+                  // saturated blocks on the opening screen of the tab, and the
+                  // colour said nothing. The design's answer is the middle one — a
+                  // white card with a tinted 40px square inside it, the same
+                  // treatment every domain glyph in the app already gets. The card
+                  // stays quiet and the row of icons stays scannable.
+                  className={cn(
+                    toneClass(toneByIndex(index)),
+                    "animate-rise",
+                    "flex flex-col items-center gap-2 rounded-card border border-border bg-surface p-3 text-center shadow-soft transition-shadow",
+                    "hover:border-border-strong hover:shadow-lift",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  )}
+                >
+                  <Glyph tone size="md">
+                    <DomainIcon name={meta.icon} className="h-5 w-5 shrink-0" />
+                  </Glyph>
+                  <span className="min-w-0 text-sm font-bold wrap-anywhere">
+                    {meta.label}
+                  </span>
+                  {/* Only when there is something to count. The design's tile is an
+                    icon and a label; "לחיפוש" under every one of the six said the
+                    same thing six times and told nobody anything. */}
+                  {count > 0 && (
+                    <span className="text-caption text-muted">{count} בטיול</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </Disclosure>
         {status.kind === "searching" && (
           <p className="text-sm text-muted">מחפש ב־{city}…</p>
         )}

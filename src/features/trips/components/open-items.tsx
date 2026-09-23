@@ -29,7 +29,13 @@ export function OpenItems({
 }) {
   return (
     <section className="flex flex-col gap-3">
-      <SectionHeading level="section">
+      {/* The tone answers the heading: blue while there is something to do,
+          green once there is not. One bar, two states, and it is the same pair
+          of inks the rest of the app already uses for exactly that. */}
+      <SectionHeading
+        level="section"
+        tone={items.length > 0 ? "action" : "done"}
+      >
         {items.length > 0 ? "עדיין פתוח" : "הכול מסודר"}
       </SectionHeading>
 

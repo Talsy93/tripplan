@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Check, Compass, Lightbulb, Map as MapIcon } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Compass,
+  Lightbulb,
+  Map as MapIcon,
+} from "lucide-react";
 import {
   Banner,
   Button,
@@ -70,6 +76,18 @@ function toGuideData(guide: AiCityGuide): CityGuideData {
   };
 }
 
+// One recommendation: a name, a way to add it, and the rest on request.
+//
+// This was a card carrying the name, a description, a tip and a Maps link, all
+// open — times however many the model returned, in a grid. A category with ten
+// of them was ten paragraphs to read past, and the question a reader is
+// actually asking here is "is this on my list yet", which the name and the
+// button answer on their own.
+//
+// The add button stays outside the fold, because it is the one thing you might
+// want without reading anything. It cannot sit inside the <summary> — a button
+// inside the control that opens a section makes two press targets fight over
+// the same place — so the row is the summary and the button sits beside it.
 function GuideCard({
   item,
   city,
@@ -80,9 +98,40 @@ function GuideCard({
   onToggle: () => void;
 }) {
   return (
-    <Card className="flex h-full flex-col gap-2">
-      <div className="flex items-start justify-between gap-3">
-        <span className="text-base font-semibold">{item.name}</span>
+    <Card padding="none" className="flex h-full min-w-0 flex-col overflow-hidden">
+      <div className="flex min-w-0 items-start gap-2 p-3">
+        <details className="group/guide min-w-0 flex-1">
+          <summary className="flex min-w-0 cursor-pointer list-none items-center gap-1.5 rounded-control text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+            <span className="min-w-0 text-base font-semibold wrap-anywhere">
+              {item.name}
+            </span>
+            <ChevronDown
+              className="h-4 w-4 shrink-0 text-muted transition-transform group-open/guide:rotate-180"
+              aria-hidden="true"
+            />
+          </summary>
+
+          <div className="flex flex-col gap-2 pt-2">
+            <p className="text-sm text-muted">{item.description}</p>
+            <p className="flex items-start gap-1.5 text-caption text-muted">
+              <Lightbulb
+                className="mt-0.5 h-3.5 w-3.5 shrink-0"
+                aria-hidden="true"
+              />
+              {item.tip}
+            </p>
+            <a
+              href={googleMapsSearchUrl(`${item.name} ${city}`)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 self-start text-caption font-semibold text-primary-ink hover:underline"
+            >
+              <MapIcon className="h-3.5 w-3.5" aria-hidden="true" />
+              פתיחה ב-Google Maps
+            </a>
+          </div>
+        </details>
+
         <Button
           type="button"
           variant={item.selected ? "primary" : "outline"}
@@ -91,23 +140,9 @@ function GuideCard({
           className="shrink-0"
         >
           {item.selected && <Check className="h-4 w-4" aria-hidden="true" />}
-          {item.selected ? "נוסף" : "הוספה לטיול"}
+          {item.selected ? "נוסף" : "הוספה"}
         </Button>
       </div>
-      <p className="text-sm text-muted">{item.description}</p>
-      <p className="flex items-start gap-1.5 text-caption text-muted">
-        <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        {item.tip}
-      </p>
-      <a
-        href={googleMapsSearchUrl(`${item.name} ${city}`)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-auto flex items-center gap-1 self-start text-caption font-semibold text-primary-ink hover:underline"
-      >
-        <MapIcon className="h-3.5 w-3.5" aria-hidden="true" />
-        פתיחה ב-Google Maps
-      </a>
     </Card>
   );
 }

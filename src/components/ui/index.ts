@@ -14,6 +14,7 @@ export { IconButton, iconButtonClasses } from "./icon-button";
 export { InfoTip } from "./info-tip";
 export { ListRow } from "./list-row";
 export { SectionHeading } from "./section-heading";
+export type { HeadingTone } from "./section-heading";
 export { SegmentedControl } from "./segmented-control";
 export type { SegmentedItem } from "./segmented-control";
 export { Skeleton } from "./skeleton";

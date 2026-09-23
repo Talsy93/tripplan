@@ -67,6 +67,7 @@ export function ExploreScreen({
           <section className="flex flex-col gap-3">
             <SectionHeading
               level="section"
+              tone="done"
               actions={
                 selected.length > 0 ? (
                   <span className="text-caption text-muted">
@@ -97,6 +98,7 @@ export function ExploreScreen({
       <section className="flex flex-col gap-4">
         <SectionHeading
           level="section"
+          tone="action"
           description="תארו את הטיול ותקבלו יעדים להתחיל מהם"
         >
           גילוי יעדים
