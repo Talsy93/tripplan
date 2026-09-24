@@ -504,6 +504,7 @@ export { PlanningPanel } from "./components/planning-panel";
 export { CityGuide } from "./components/city-guide";
 export { SelectedList } from "./components/selected-list";
 export { CityGlance } from "./components/city-glance";
+export { PopularCities } from "./components/popular-cities";
 export { Itinerary } from "./components/itinerary";
 export { MapSheet } from "./components/map-sheet";
 export { RouteMap } from "./components/route-map";

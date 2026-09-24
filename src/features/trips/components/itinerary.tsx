@@ -7,6 +7,7 @@ import {
   CalendarPlus,
   CalendarX2,
   ChevronLeft,
+  MapPinned,
   Plus,
   WandSparkles,
 } from "lucide-react";
@@ -237,6 +238,35 @@ export function Itinerary({
   // Nothing built yet. A different shape rather than the same screen with a
   // strip of one day and an empty card in it: the only thing to do here is
   // build, and the day-at-a-time layout has no day to be at.
+  // A new trip: no schedule and nothing to build one from. The build button
+  // here used to be the only thing on screen, and pressing it failed — there
+  // were no places to divide into days. Say what this screen will hold, and
+  // send the traveller to where the places come from.
+  if ((!hasItinerary || !active) && cityDays.length === 0) {
+    return (
+      <div className="mx-auto flex w-full max-w-main flex-col items-center gap-3 pt-10 text-center">
+        <span
+          className="mb-2 flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full bg-primary-tint text-primary"
+          aria-hidden="true"
+        >
+          <MapPinned className="h-8 w-8" />
+        </span>
+        <h2 className="text-[1.375rem] leading-7 font-bold">עוד אין יעדים</h2>
+        <p className="max-w-measure text-sm text-muted">
+          כאן יופיע המסלול — יום אחרי יום, עם מפה. מתחילים בבחירת ערים
+          ומקומות, והלו״ז ייבנה מהם.
+        </p>
+        <Link
+          href={`/trips/${tripId}/explore`}
+          className="mt-3 inline-flex h-[3.25rem] items-center justify-center gap-2 rounded-full bg-cta px-7 text-base font-semibold text-cta-foreground shadow-lift transition-colors hover:bg-cta-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          בואו נתחיל לתכנן
+          <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+        </Link>
+      </div>
+    );
+  }
+
   if (!hasItinerary || !active) {
     return (
       // The same centred measure TwoPane falls back to with no pane. Left full

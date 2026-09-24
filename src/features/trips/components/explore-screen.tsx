@@ -57,6 +57,9 @@ export function ExploreScreen({
   plan = EMPTY_PLAN,
   // `?day=N` from מסלול's empty day.
   focusDay = null,
+  // A new trip's first offer — PopularCities, streamed by the page. Drawn
+  // under the title only while nothing has been picked.
+  start,
 }: {
   tripId: string;
   searchCities: string[];
@@ -72,6 +75,7 @@ export function ExploreScreen({
   tripDayCount?: number | null;
   plan?: SchedulingPlan;
   focusDay?: number | null;
+  start?: ReactNode;
 }) {
   const focused =
     focusDay !== null ? plan.days.find((day) => day.day === focusDay) : undefined;
@@ -117,6 +121,8 @@ export function ExploreScreen({
         </h1>
         <ManualPlaceForm tripId={tripId} cities={knownCities} />
       </header>
+
+      {selected.length === 0 && start}
 
       {/* Keyed by day, so a place checked on day 3 is not still checked when
           the card switches to day 5. */}

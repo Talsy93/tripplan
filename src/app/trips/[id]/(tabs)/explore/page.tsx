@@ -14,6 +14,7 @@ import {
   listBookings,
   listCityDays,
   lodgingByDay,
+  PopularCities,
   RouteMapPanel,
   tripDayCount,
 } from "@/features/trips";
@@ -49,9 +50,16 @@ export default async function ExplorePage({
   // The destinations the search can look around — the cities things were
   // already added in. Also the route's cities, in the order every other surface
   // colours them in.
-  const searchCities = [...new Set(selected.map((item) => item.city))].filter(
+  const pickedCities = [...new Set(selected.map((item) => item.city))].filter(
     Boolean,
   );
+  // Before anything is picked, the cities the trip was given (a popular city
+  // added from the name, or the AI's suggestions) are where the search looks —
+  // otherwise a new trip's category grid had no city and did nothing.
+  const searchCities =
+    pickedCities.length > 0
+      ? pickedCities
+      : [...new Set(savedCities.map((city) => city.name))].filter(Boolean).slice(0, 8);
 
   // The saved guide for the first destination, which feeds "מומלצים ב<עיר>".
   // A second read and not part of the wave above, because it needs a city out
@@ -102,10 +110,21 @@ export default async function ExplorePage({
       addedPlaces={addedPlaces}
       savedCities={savedCities}
       cityGuide={cityGuide}
-      cityDays={cityDayPlan(searchCities, bookings, overrides, APP_TIME_ZONE)}
+      cityDays={cityDayPlan(pickedCities, bookings, overrides, APP_TIME_ZONE)}
       tripDayCount={dayCount}
       plan={plan}
       focusDay={focusDay}
+      start={
+        selected.length === 0 ? (
+          <Suspense fallback={null}>
+            <PopularCities
+              tripId={id}
+              tripName={trip?.name ?? ""}
+              exclude={savedCities.map((city) => city.name)}
+            />
+          </Suspense>
+        ) : undefined
+      }
       // The one thing a desktop can do here that a phone cannot: results beside
       // the map they are results on. Its own boundary: resolving the route may
       // need to geocode a new city, paced at about a request per second, and
