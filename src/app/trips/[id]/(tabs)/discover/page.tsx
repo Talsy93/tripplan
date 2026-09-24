@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { after } from "next/server";
+import { discoverAround, warmDiscover } from "@/lib/discover";
 import {
   DiscoverDeck,
   getSelectedDestinations,
@@ -9,6 +11,10 @@ import { flagEmoji } from "@/features/trips/domain/discover";
 import type { DiscoverDestination } from "@/features/trips/components/discover-deck";
 
 export const metadata = { title: "גילוי" };
+
+// Long enough for the background warm-up in `after()` to deal the trip's
+// cities into the cache.
+export const maxDuration = 60;
 
 // The "גילוי" tab: a swipe deck of attractions around one of the trip's
 // cities, or across every city of one of its countries. The page only works
@@ -70,6 +76,42 @@ export default async function DiscoverPage({
     }));
 
   const destinations = [...cities, ...countries];
+  const points = route.stops.slice(0, 4).map((stop) => ({
+    city: stop.city,
+    latitude: stop.latitude,
+    longitude: stop.longitude,
+  }));
+
+  // The first deck, dealt into the page when it is already known, so the card
+  // is there on arrival with no request from the browser at all. Waited on for
+  // a moment only: a city nobody has opened yet is not worth holding the page
+  // for, and the deal it started keeps running into the cache regardless —
+  // the deck's own request a second later then finds it done or nearly so.
+  const first = points[0];
+  const initialCards = first
+    ? await Promise.race([
+        discoverAround({
+          city: first.city,
+          center: { latitude: first.latitude, longitude: first.longitude },
+          category: "all",
+        }).then((result) => (result.ok ? result.cards : undefined)),
+        new Promise<undefined>((resolve) => setTimeout(resolve, 1_200)),
+      ])
+    : undefined;
+
+  // Every other city and chip, after the page has gone out, so a press on
+  // "טבע ונוף" or on the next city is served from the cache and not from a
+  // cold public server.
+  after(() =>
+    warmDiscover(points, [
+      "all",
+      "mustsee",
+      "nature",
+      "hidden",
+      "food",
+      "shopping",
+    ]),
+  );
 
   return (
     <DiscoverDeck
@@ -78,6 +120,7 @@ export default async function DiscoverPage({
       initialKey={destinations[0]?.key ?? null}
       savedCount={selected.length}
       savedKeys={selected.map((item) => `${item.city}|${item.name}`)}
+      initialCards={initialCards}
     />
   );
 }

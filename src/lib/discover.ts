@@ -11,11 +11,13 @@
 //   3. Wikipedia — the first two sentences, Hebrew where there is a Hebrew
 //      article and English otherwise.
 //
-// Cached for a day: the Overpass answer and the finished decks in memory (see
-// ELEMENTS and DECKS for why not in Next's fetch cache), Wikidata and
-// Wikipedia in Next's fetch cache and per entity in memory. A city's sights
-// do not change between two swipes, and Overpass asks to be spared.
+// Three layers of cache, fastest first: finished decks in memory (DECKS), the
+// same decks in Next's persistent data cache for a week (persistedDeck), and
+// the raw answers — Overpass per city, Wikidata per entity — in memory. The
+// discover page warms a trip's cities in the background (warmDiscover), so the
+// slow first deal is paid by nobody who is waiting for it.
 
+import { unstable_cache } from "next/cache";
 import {
   kindOf,
   matchesCategory,
@@ -49,11 +51,9 @@ export type DiscoverOutcome =
   | { ok: true; cards: DiscoverCard[] }
   | { ok: false; reason: "unavailable" };
 
-// The finished deck per city and chip, for a day. Next's fetch cache does
-// not cover the expensive step: an Overpass answer for a city centre is well
-// over the 2MB it will store, so without this every chip press paid the full
-// fifteen seconds again. In memory, so per server instance — which on a warm
-// instance is exactly the swiping session it is for.
+// The finished deck per city and chip, in memory for a day — the fastest of
+// the three layers (this, persistedDeck, then the network). Per server
+// instance, which on a warm instance is exactly the swiping session.
 const DECKS = new Map<string, { at: number; cards: DiscoverCard[] }>();
 const DECK_TTL_MS = 86_400_000;
 
@@ -62,17 +62,83 @@ export async function discoverAround(args: {
   center: { latitude: number; longitude: number };
   category: DiscoverCategory;
 }): Promise<DiscoverOutcome> {
-  const key = `${args.center.latitude.toFixed(3)},${args.center.longitude.toFixed(3)}|${args.category}`;
+  const lat = Number(args.center.latitude.toFixed(3));
+  const lon = Number(args.center.longitude.toFixed(3));
+  const key = `${lat},${lon}|${args.category}`;
+  const withCity = (cards: DiscoverCard[]) =>
+    cards.map((card) => ({ ...card, city: args.city }));
+
   const hit = DECKS.get(key);
   if (hit && Date.now() - hit.at < DECK_TTL_MS) {
-    return { ok: true, cards: hit.cards.map((card) => ({ ...card, city: args.city })) };
+    return { ok: true, cards: withCity(hit.cards) };
   }
-  const result = await deal(args);
-  if (result.ok && result.cards.length > 0) {
-    if (DECKS.size > 200) DECKS.delete(DECKS.keys().next().value!);
-    DECKS.set(key, { at: Date.now(), cards: result.cards });
+
+  // The page's warm-up and the deck's own request often ask for the same city
+  // at the same moment; the second waits for the first instead of dealing it
+  // all again.
+  let dealing = DEALING.get(key);
+  if (!dealing) {
+    dealing = persistedDeck(lat, lon, args.category)
+      .then((cards) => {
+        if (DECKS.size > 200) DECKS.delete(DECKS.keys().next().value!);
+        DECKS.set(key, { at: Date.now(), cards });
+        return cards;
+      })
+      .finally(() => DEALING.delete(key));
+    DEALING.set(key, dealing);
   }
-  return result;
+  try {
+    return { ok: true, cards: withCity(await dealing) };
+  } catch {
+    return { ok: false, reason: "unavailable" };
+  }
+}
+
+const DEALING = new Map<string, Promise<DiscoverCard[]>>();
+
+// The deck for a point and a chip, kept by Next's data cache — on disk in
+// development, and the platform's shared data cache in production — for a
+// week. This is what makes the wait a one-time cost per city rather than a
+// per-visitor one: reported as "it loads for a very long time and then shows
+// an error; a user cannot wait that long", and every open source measured for
+// the first load (Overpass 7–50 s and 504s, Wikidata SPARQL 502, Wikipedia's
+// geosearch capped at the nearest 500 — a kilometre in Rome) is either slow or
+// unreliable on the first try. Paying it once, in the background (see
+// warmDiscover), is the part that can be fixed.
+//
+// A failure throws, and unstable_cache does not store a throw — a busy
+// Overpass must not be remembered as "Rome has no sights" for a week. An
+// empty deck is stored: a chip with nothing in a city is a real answer.
+const persistedDeck = unstable_cache(
+  async (latitude: number, longitude: number, category: DiscoverCategory) => {
+    const result = await deal({ city: "", center: { latitude, longitude }, category });
+    if (!result.ok) throw new Error("discover: unavailable");
+    return result.cards;
+  },
+  ["discover-deck-v1"],
+  { revalidate: 7 * 86_400 },
+);
+
+// Deals every chip for each of these cities, one after another, so that by
+// the time the traveller opens a city or presses a chip it is already there.
+// Called from `after()` on the discover page: the response has gone, and
+// nobody waits for this.
+export async function warmDiscover(
+  points: { city: string; latitude: number; longitude: number }[],
+  categories: DiscoverCategory[],
+) {
+  for (const point of points) {
+    for (const category of categories) {
+      const result = await discoverAround({
+        city: point.city,
+        center: { latitude: point.latitude, longitude: point.longitude },
+        category,
+      });
+      // Overpass refused this city — its other chips would all wait for the
+      // same answer. Move on; the visitor's own request will try again.
+      if (!result.ok) break;
+    }
+  }
 }
 
 async function deal({
