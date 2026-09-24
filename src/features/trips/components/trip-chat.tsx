@@ -78,11 +78,16 @@ export function TripChat({
   tripId,
   initialMessages,
   cities = [],
+  initialDraft = "",
 }: {
   tripId: string;
   initialMessages: TripChatMessage[];
   // The trip's cities, for the line under the concierge's name.
   cities?: string[];
+  // A question typed in for the traveller and left unsent — the ✨ on a
+  // "גילוי" card lands here with one about that place. Unsent on purpose:
+  // every send is a model call, and the traveller decides when to spend one.
+  initialDraft?: string;
 }) {
   const [turns, setTurns] = useState<Turn[]>(() =>
     initialMessages.map((message) => ({
@@ -92,7 +97,7 @@ export function TripChat({
       at: message.created_at,
     })),
   );
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(initialDraft);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [plan, setPlan] = useState<AiTripPlan | null>(null);

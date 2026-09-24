@@ -100,7 +100,10 @@ import {
   TripTabs,
   TripWorkspace,
   WorkspaceMap,
+  DiscoverDeck,
 } from "@/features/trips";
+import type { DiscoverCard } from "@/features/trips";
+import discoverCards from "./discover-cards.json";
 import type { DayNote, MappedTrip, PrepItem, TripPhase } from "@/features/trips";
 import {
   AuraField,
@@ -944,6 +947,38 @@ export const SCENES: Scene[] = [
             emergencyContacts={[]}
             origin="http://localhost:3000"
             now={f.NOW}
+          />
+        ),
+      }),
+  },
+// "גילוי" against design/stitch/…/discover_page/screen.png. Real cards —  // discover-cards.json is lib/discover.ts's own answer for Rome, saved — so the  // scene needs no network except for the Commons photographs.  {    slug: "discover",    title: "גילוי · מול הייצוא של Stitch",    note: "כרטיסים אמיתיים מ-OpenStreetMap, Wikidata וויקיפדיה (רומא). החלקה ימינה שומרת, שמאלה מדלגת; ← → במקלדת",    bleed: true,    render: () =>      appFrame({        title: "הטיול לרומא ופירנצה",        active: "discover",        phase: { kind: "during", dayNumber: 3 },        startDate: "2026-09-12",        cities: ["רומא", "פירנצה"],        children: (          <DiscoverDeck            tripId={f.TRIP_ID}            destinations={[              { key: "city:רומא", label: "רומא", cities: ["רומא"], flag: "🇮🇹", kind: "city" },              { key: "city:פירנצה", label: "פירנצה", cities: ["פירנצה"], flag: "🇮🇹", kind: "city" },              { key: "country:it", label: "איטליה", cities: ["רומא", "פירנצה"], flag: "🇮🇹", kind: "country" },            ]}            initialKey="city:רומא"            savedCount={7}            savedKeys={[]}            initialCards={discoverCards as DiscoverCard[]}          />        ),      }),  },
+  // "גילוי" against design/stitch/…/discover_page/screen.png. Real cards —
+  // discover-cards.json is lib/discover.ts's own answer for Rome, saved — so the
+  // scene needs no network except for the Commons photographs.
+  {
+    slug: "discover",
+    title: "גילוי · מול הייצוא של Stitch",
+    note: "כרטיסים אמיתיים מ-OpenStreetMap, Wikidata וויקיפדיה (רומא). החלקה ימינה שומרת, שמאלה מדלגת; ← → במקלדת",
+    bleed: true,
+    render: () =>
+      appFrame({
+        title: "הטיול לרומא ופירנצה",
+        active: "discover",
+        phase: { kind: "during", dayNumber: 3 },
+        startDate: "2026-09-12",
+        cities: ["רומא", "פירנצה"],
+        children: (
+          <DiscoverDeck
+            tripId={f.TRIP_ID}
+            destinations={[
+              { key: "city:רומא", label: "רומא", cities: ["רומא"], flag: "🇮🇹", kind: "city" },
+              { key: "city:פירנצה", label: "פירנצה", cities: ["פירנצה"], flag: "🇮🇹", kind: "city" },
+              { key: "country:it", label: "איטליה", cities: ["רומא", "פירנצה"], flag: "🇮🇹", kind: "country" },
+            ]}
+            initialKey="city:רומא"
+            savedCount={7}
+            savedKeys={[]}
+            initialCards={discoverCards as DiscoverCard[]}
           />
         ),
       }),

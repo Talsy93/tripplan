@@ -29,6 +29,8 @@ export const TRIP_TABS = [
   // screen (search, categories, discovery) is still at /explore, reached from
   // "הוסף יעד" on the itinerary and from the assistant; it is no longer a tab.
   { segment: "days", label: "מסלול" },
+  // The swipe deck (design/stitch/…/discover_page, 2026-09-24).
+  { segment: "discover", label: "גילוי" },
   { segment: "ai", label: "עוזר AI" },
   { segment: "more", label: "מסמכים" },
 ] as const;

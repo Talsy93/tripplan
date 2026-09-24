@@ -2,8 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import * as z from "zod";
-import { manualPlaceSchema, placeSchema } from "../domain/place";
-import { addManualPlace, addPlaceToTrip } from "../infrastructure/place-service";
+import {
+  manualPlaceSchema,
+  placeCategorySchema,
+  placeSchema,
+} from "../domain/place";
+import { discoverCardSchema } from "../domain/discover";
+import {
+  addDiscoveredPlace,
+  addManualPlace,
+  addPlaceToTrip,
+} from "../infrastructure/place-service";
 
 // Adds a place found in the attractions search to the trip.
 //
@@ -78,4 +87,23 @@ export async function createManualPlace(
   // to be revalidated or the addition only shows up after a manual refresh.
   revalidatePath(`/trips/${parsedId.data}`, "layout");
   return { ok: true, existed: result.existed };
+}
+
+// "גילוי": a swipe right. The card is validated as it was dealt, and saved
+// under the app's own place category it maps to (discover.ts KINDS).
+export async function addDiscoveredCard(
+  tripId: string,
+  card: unknown,
+): Promise<boolean> {
+  const parsedId = z.uuid().safeParse(tripId);
+  const parsed = discoverCardSchema.safeParse(card);
+  if (!parsedId.success || !parsed.success) return false;
+  const category = placeCategorySchema.safeParse(parsed.data.placeCategory);
+
+  const ok = await addDiscoveredPlace(parsedId.data, {
+    ...parsed.data,
+    category: category.success ? category.data : "attractions",
+  });
+  if (ok) revalidatePath(`/trips/${parsedId.data}`, "layout");
+  return ok;
 }

@@ -1,0 +1,163 @@
+[
+  {
+    "id": "relation/13448560",
+    "wikidata": "Q185382",
+    "city": "רומא",
+    "name": "מזרקת טרווי",
+    "localName": "Fontana di Trevi",
+    "kindLabel": "אטרקציה",
+    "category": "mustsee",
+    "placeCategory": "attractions",
+    "latitude": 41.9009648,
+    "longitude": 12.4832817,
+    "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Trevi%20Fountain%20-%20Roma.jpg?width=800",
+    "summary": "מזרקת טרווי (באיטלקית: Fontana di Trevi) היא הגדולה שבמזרקות מתקופת הבארוק ברומא ומאתרי התיירות הבולטים ברומא. במשך שעות היום והלילה גודשים תיירים רבים את המדרגות היורדות לכיוון המזרקה.",
+    "wikiUrl": "https://he.wikipedia.org/wiki/%D7%9E%D7%96%D7%A8%D7%A7%D7%AA_%D7%98%D7%A8%D7%95%D7%95%D7%99",
+    "languages": 66,
+    "fee": null,
+    "openingHours": null,
+    "website": null,
+    "visit": [
+      45,
+      60
+    ]
+  },
+  {
+    "id": "relation/1834818",
+    "wikidata": "Q10285",
+    "city": "רומא",
+    "name": "קולוסיאום",
+    "localName": "Colosseo",
+    "kindLabel": "אתר ארכאולוגי",
+    "category": "mustsee",
+    "placeCategory": "attractions",
+    "latitude": 41.8902602,
+    "longitude": 12.4923737,
+    "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Colosseo%202020.jpg?width=800",
+    "summary": "הקוֹלוֹסֵיאוּם (מלטינית: Colosseum; באיטלקית: Colosseo) הוא אמפיתיאטרון אליפטי, הבנוי מבטון ומאבן, שנמצא במרכז רומא, שבאיטליה. הקולוסיאום הוא האמפיתיאטרון הגדול ביותר שנבנה אי פעם, ונחשב בימיו וגם כיום לאחת מהיצירות הגדולות של ההנדסה והאדריכלות הרומית.",
+    "wikiUrl": "https://he.wikipedia.org/wiki/%D7%A7%D7%95%D7%9C%D7%95%D7%A1%D7%99%D7%90%D7%95%D7%9D",
+    "languages": 143,
+    "fee": true,
+    "openingHours": "Mar 29-Sep 30 08:30-19:15; Oct 01-Oct 24 08:30-18:30; Oct 25-Feb 28 08:30-16:30; Jan 01 off; Dec 25 off",
+    "website": "https://colosseo.it/",
+    "visit": [
+      60,
+      90
+    ]
+  },
+  {
+    "id": "relation/3374342",
+    "wikidata": "Q99309",
+    "city": "רומא",
+    "name": "הפנתאון ברומא",
+    "localName": "Pantheon",
+    "kindLabel": "מבנה דת",
+    "category": "mustsee",
+    "placeCategory": "temples",
+    "latitude": 41.8986261,
+    "longitude": 12.4768335,
+    "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Pantheon%20(Rome)%20-%20Right%20side%20and%20front.jpg?width=800",
+    "summary": "הפנתאון (בלטינית: Pantheum; באיטלקית: Pantheon; בעברית נהוג השם היווני המקורי) הוא מבנה מתקופת רומא העתיקה, הנמצא בעיר רומא, בירת איטליה. מקור השם \"פנתאון\" במילה היוונית Πάνθεον, שפירושה \"מקום סגידה לכל האלים\".",
+    "wikiUrl": "https://he.wikipedia.org/wiki/%D7%94%D7%A4%D7%A0%D7%AA%D7%90%D7%95%D7%9F_%D7%91%D7%A8%D7%95%D7%9E%D7%90",
+    "languages": 79,
+    "fee": true,
+    "openingHours": "Mo-Sa 08:30-19:15; Su 09:00-17:45",
+    "website": "https://pantheonroma.org/",
+    "visit": [
+      30,
+      45
+    ]
+  },
+  {
+    "id": "relation/1841080",
+    "wikidata": "Q180212",
+    "city": "רומא",
+    "name": "פורום רומאנום",
+    "localName": "Forum Romanum",
+    "kindLabel": "אתר ארכאולוגי",
+    "category": "mustsee",
+    "placeCategory": "attractions",
+    "latitude": 41.8916837,
+    "longitude": 12.4870791,
+    "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Foro%20Romano%20Musei%20Capitolini%20Roma.jpg?width=800",
+    "summary": "הפורום הרומאי (בלטינית: forum romanum - פורום רומאנום; באיטלקית: Foro Romano) אשר שרידיו נמצאים ברומא היווה את מרכז רומא העתיקה ומרכז האימפריה הרומית. הפורום נקרא בתקופה הרומית \"הפורום הגדול\" - פורום מאגנום (forum magnum) או פשוט הפורום.",
+    "wikiUrl": "https://he.wikipedia.org/wiki/%D7%A4%D7%95%D7%A8%D7%95%D7%9D_%D7%A8%D7%95%D7%9E%D7%90%D7%A0%D7%95%D7%9D",
+    "languages": 68,
+    "fee": null,
+    "openingHours": null,
+    "website": null,
+    "visit": [
+      60,
+      90
+    ]
+  },
+  {
+    "id": "way/8035487",
+    "wikidata": "Q486382",
+    "city": "רומא",
+    "name": "טירת סנטאנג'לו",
+    "localName": "Castel Sant’Angelo",
+    "kindLabel": "טירה ומבצר",
+    "category": "mustsee",
+    "placeCategory": "attractions",
+    "latitude": 41.9030762,
+    "longitude": 12.4663312,
+    "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Castel%20Sant'Angelo%20at%20Night.jpg?width=800",
+    "summary": "טירת סנטאנג'לו (באיטלקית: Castel Sant'Angelo) היא מבנה מעגלי גבוה הנמצא ברומא שבאיטליה. במקור היה המבנה מאוזולאום שבנה הקיסר הרומי אדריאנוס עבור עצמו.",
+    "wikiUrl": "https://he.wikipedia.org/wiki/%D7%98%D7%99%D7%A8%D7%AA_%D7%A1%D7%A0%D7%98%D7%90%D7%A0%D7%92'%D7%9C%D7%95",
+    "languages": 56,
+    "fee": true,
+    "openingHours": "Mo-Su 09:00-19:30",
+    "website": null,
+    "visit": [
+      60,
+      90
+    ]
+  },
+  {
+    "id": "way/4247138",
+    "wikidata": "Q463400",
+    "city": "רומא",
+    "name": "פיאצה נאבונה",
+    "localName": "Piazza Navona",
+    "kindLabel": "אטרקציה",
+    "category": "mustsee",
+    "placeCategory": "attractions",
+    "latitude": 41.8989256,
+    "longitude": 12.4730991,
+    "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Paolo%20Monti%20-%20Servizio%20fotografico%20(Roma%2C%201966)%20-%20BEIC%206329173.jpg?width=800",
+    "summary": "פיאצה נאבונה (באיטלקית: Piazza Navona) היא כיכר מרכזית עם יצירות ובניינים בסגנון הבארוק, בליבו של האזור התיירותי של רומא. את הכיכר תכנן ברניני, מהאדריכלים המובילים בתקופתו, עבור משפחת האפיפיור אינוקנטיוס העשירי.",
+    "wikiUrl": "https://he.wikipedia.org/wiki/%D7%A4%D7%99%D7%90%D7%A6%D7%94_%D7%A0%D7%90%D7%91%D7%95%D7%A0%D7%94",
+    "languages": 45,
+    "fee": null,
+    "openingHours": null,
+    "website": null,
+    "visit": [
+      45,
+      60
+    ]
+  },
+  {
+    "id": "way/112137587",
+    "wikidata": "Q182955",
+    "city": "רומא",
+    "name": "מוזיאון הוותיקן",
+    "localName": "Musei Vaticani",
+    "kindLabel": "מוזיאון",
+    "category": "mustsee",
+    "placeCategory": "attractions",
+    "latitude": 41.9062675,
+    "longitude": 12.4527441,
+    "image": "https://commons.wikimedia.org/wiki/Special:FilePath/Mura%20vaticane%20-%20ingresso%20ai%20Musei%2000410.JPG?width=800",
+    "summary": "מוזיאוני הוותיקן (באיטלקית: Musei Vaticani) הם מתחם של מספר מוזיאוני אמנות וארכאולוגיה בוותיקן, המציגים את אוספי הכנסייה הקתולית. המוזיאון הוקם במאה ה-16 על ידי האפיפיור יוליוס השני.",
+    "wikiUrl": "https://he.wikipedia.org/wiki/%D7%9E%D7%95%D7%96%D7%99%D7%90%D7%95%D7%A0%D7%99_%D7%94%D7%95%D7%95%D7%AA%D7%99%D7%A7%D7%9F",
+    "languages": 63,
+    "fee": true,
+    "openingHours": "Mo-Sa 09:00-18:00; Su 09:00-14:00",
+    "website": "https://www.museivaticani.va/",
+    "visit": [
+      90,
+      120
+    ]
+  }
+]

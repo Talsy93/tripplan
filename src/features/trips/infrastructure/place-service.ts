@@ -183,3 +183,44 @@ export async function getAddedPlaces(tripId: string): Promise<AddedPlace[]> {
 function placeKey(city: string | null, name: string) {
   return `${city ?? ""}|${normaliseName(name)}`;
 }
+
+// A card swiped right on "גילוי". The same row addPlaceToTrip writes — one
+// table of places, whichever screen they were found on — with the card's
+// Wikipedia lines as the description, since that is what was read when it was
+// chosen.
+export async function addDiscoveredPlace(
+  tripId: string,
+  card: {
+    id: string;
+    city: string;
+    name: string;
+    category: string;
+    summary: string | null;
+    openingHours: string | null;
+    latitude: number;
+    longitude: number;
+  },
+) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("suggested_destinations").upsert(
+    {
+      trip_id: tripId,
+      city: card.city,
+      category: card.category,
+      name: card.name,
+      description: card.summary ? card.summary.slice(0, 400) : "",
+      tip: card.openingHours,
+      latitude: card.latitude,
+      longitude: card.longitude,
+      external_id: card.id,
+      source: "manual" as const,
+      selected: true,
+    },
+    { onConflict: "trip_id,city,category,name" },
+  );
+  if (error) {
+    console.error("addDiscoveredPlace failed:", error.message);
+    return false;
+  }
+  return true;
+}

@@ -1,9 +1,9 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, Compass, FolderOpen, Sparkles, Sun } from "lucide-react";
+import { Bot, Compass, Flame, Folder, Route, Sun } from "lucide-react";
 import {
   BottomNav,
   IconRail,
@@ -17,12 +17,40 @@ import {
   type TripTabSegment,
 } from "../domain/trip-tabs";
 
+// The discover_page export's five icons: explore, route,
+// local_fire_department, smart_toy, folder.
 const ICONS: Record<TripTabSegment, typeof Sun> = {
   today: Compass,
-  days: CalendarDays,
-  ai: Sparkles,
-  more: FolderOpen,
+  days: Route,
+  discover: Flame,
+  ai: Bot,
+  more: Folder,
 };
+
+// The terracotta dot the export puts on "גילוי": new here, until it has been
+// opened once on this device. Per device on purpose — it is about what this
+// person has seen, and it is nothing worth a column.
+const SEEN_KEY = "mytrip:discover-seen";
+const seenListeners = new Set<() => void>();
+function subscribeSeen(listener: () => void) {
+  seenListeners.add(listener);
+  return () => seenListeners.delete(listener);
+}
+function readSeen() {
+  try {
+    return window.localStorage.getItem(SEEN_KEY) === "1";
+  } catch {
+    return true;
+  }
+}
+function markSeen() {
+  try {
+    window.localStorage.setItem(SEEN_KEY, "1");
+  } catch {
+    // Private mode: the dot simply stays.
+  }
+  seenListeners.forEach((listener) => listener());
+}
 
 const WAITING = "ייפתח כשהטיול יתחיל";
 
@@ -32,6 +60,13 @@ const WAITING = "ייפתח כשהטיול יתחיל";
 // than one that changes shape.
 function useTripNavItems(tripId: string, live: boolean): NavItem[] {
   const pathname = usePathname();
+  // `true` on the server, so the dot is never in the server HTML and then
+  // pulled out on hydration for someone who has seen the tab.
+  const seen = useSyncExternalStore(subscribeSeen, readSeen, () => true);
+  const onDiscover = pathname.startsWith(tripTabHref(tripId, "discover"));
+  useEffect(() => {
+    if (onDiscover) markSeen();
+  }, [onDiscover]);
 
   return tripTabsFor(live).map((tab) => {
     const Icon = ICONS[tab.segment];
@@ -39,7 +74,15 @@ function useTripNavItems(tripId: string, live: boolean): NavItem[] {
     return {
       href,
       label: tab.label,
-      icon: <Icon className="h-[1.375rem] w-[1.375rem]" />,
+      icon:
+        tab.segment === "discover" && !seen && !onDiscover ? (
+          <span className="relative">
+            <Icon className="h-[1.375rem] w-[1.375rem]" />
+            <span className="absolute -top-0.5 -left-0.5 h-2 w-2 rounded-full bg-cta-strong ring-2 ring-surface" />
+          </span>
+        ) : (
+          <Icon className="h-[1.375rem] w-[1.375rem]" />
+        ),
       active: pathname === href || pathname.startsWith(`${href}/`),
       waiting: tab.waiting ? WAITING : undefined,
     };

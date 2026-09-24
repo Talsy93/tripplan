@@ -652,3 +652,13 @@ export { PhraseCard } from "./components/phrase-card";
 // 0026 — the documents screen's emergency numbers.
 export type { EmergencyContact } from "./domain/emergency";
 export { listEmergencyContacts } from "./infrastructure/emergency-service";
+
+// "גילוי" — the swipe deck (2026-09-24).
+export {
+  DISCOVER_CATEGORIES,
+  DISCOVER_CATEGORY_ORDER,
+  discoverRequestSchema,
+} from "./domain/discover";
+export type { DiscoverCard, DiscoverCategory } from "./domain/discover";
+export { addDiscoveredCard } from "./application/place-actions";
+export { DiscoverDeck } from "./components/discover-deck";

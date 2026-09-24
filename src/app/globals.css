@@ -53,6 +53,10 @@
      filled in. Lighter than --outline and never bold, so an empty field looks
      empty — still 3:1 on white, the contrast a hint needs. */
   --placeholder: #8e97a2;
+  /* Stitch inverse-surface / inverse-on-surface: the dark foot of a photo
+     card on "גילוי", and the light text written on it. */
+  --inverse-surface: #283044;
+  --inverse-foreground: #eef0ff;
 
   /* --- brand: deep maritime blue ----------------------------------------
      Structure, links, the active tab, focus. Not the call to action — that is
@@ -315,6 +319,8 @@
   --color-outline: var(--outline);
   --color-muted-strong: var(--muted-strong);
   --color-placeholder: var(--placeholder);
+  --color-inverse-surface: var(--inverse-surface);
+  --color-inverse-foreground: var(--inverse-foreground);
   --color-primary-bright: var(--primary-bright);
   --color-primary-deep: var(--primary-deep);
   --color-success-strong: var(--success-strong);
