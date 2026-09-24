@@ -20,7 +20,7 @@ import {
 } from "../domain/booking";
 import { APP_TIME_ZONE } from "../domain/weather";
 import { removeBooking } from "../application/booking-actions";
-import type { Booking } from "../domain/booking";
+import type { Booking, BookingKind } from "../domain/booking";
 import { BookingDetails } from "./booking-details";
 import { BookingForm } from "./booking-form";
 import { DomainIcon } from "./domain-icon";
@@ -39,16 +39,29 @@ import { DomainIcon } from "./domain-icon";
 // Each card is itself the button that opens the ticket, and the ticket's
 // footer is where it is corrected or removed. A swipe (or a hold) removes, as
 // it does on every list in the app.
+// The order the groups come in, and the heading each gets. Flights first: they
+// are the tickets a trip is arranged around.
+const KIND_ORDER: BookingKind[] = ["flight", "lodging", "train"];
+const KIND_HEADING: Record<BookingKind, string> = {
+  flight: "טיסות",
+  lodging: "לינה",
+  train: "רכבות",
+};
+
 export function HubBookings({
   tripId,
   bookings: initial,
   cities,
   now,
+  kind = null,
 }: {
   tripId: string;
   bookings: Booking[];
   cities: string[];
   now: string;
+  // One kind of ticket, from the documents screen's chips; null is all of
+  // them, grouped under a heading per kind.
+  kind?: BookingKind | null;
 }) {
   // Same contract as BookingList: the prop is the truth, only pending
   // deletions are local, so a booking added through the header appears on the
@@ -59,7 +72,14 @@ export function HubBookings({
   const [confirming, setConfirming] = useState<Booking | null>(null);
   const at = new Date(now);
 
-  const bookings = initial.filter((booking) => !removed.includes(booking.id));
+  const kept = initial.filter((booking) => !removed.includes(booking.id));
+  // Grouped by kind (the sort is stable, so each group keeps the server's
+  // chronological order). Asked for as "all the cards are shown together — I
+  // want a filter per kind, or a calmer view".
+  const bookings = (kind ? kept.filter((booking) => booking.kind === kind) : kept)
+    .slice()
+    .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
+  const grouped = !kind && new Set(bookings.map((booking) => booking.kind)).size > 1;
 
   async function remove(id: string) {
     setRemoved((current) => [...current, id]);
@@ -79,7 +99,7 @@ export function HubBookings({
 
   return (
     <>
-      {bookings.map((booking) => {
+      {bookings.map((booking, index) => {
         // What the pill on a card says: the most pressing of the booking's
         // own alerts, else what state it is in. A live "on time" is a flight
         // status, which this app has no free source for.
@@ -99,7 +119,21 @@ export function HubBookings({
             : { label: "הוזמן", tone: "success" };
         const open = () => setOpened(booking);
 
-        return (
+        const heading =
+          grouped && bookings[index - 1]?.kind !== booking.kind ? (
+            <h3
+              key={`heading-${booking.kind}`}
+              className="flex items-baseline gap-1.5 pt-2 text-sm font-bold text-muted first:pt-0 @2xl:col-span-2"
+            >
+              {KIND_HEADING[booking.kind]}
+              <span className="font-medium tabular-nums">
+                {bookings.filter((entry) => entry.kind === booking.kind).length}
+              </span>
+            </h3>
+          ) : null;
+
+        return [
+          heading,
           <SwipeAction
             key={booking.id}
             icon={<X className="h-4 w-4" aria-hidden="true" />}
@@ -112,8 +146,8 @@ export function HubBookings({
             ) : (
               <TrainCard booking={booking} status={status} onOpen={open} />
             )}
-          </SwipeAction>
-        );
+          </SwipeAction>,
+        ];
       })}
 
       {opened && (
@@ -375,11 +409,12 @@ function PassFact({
   return (
     <div className="min-w-0">
       <span className="block text-[11px] leading-4 text-muted">{label}</span>
-      <span
-        dir="auto"
-        className="block truncate text-base leading-6 font-bold text-foreground"
-      >
-        {value ?? "—"}
+      {/* Not `dir="auto"` on the block: that made a Latin value ("14A",
+          "07:15") an LTR block, aligned to the left while its Hebrew label sat
+          on the right — label on one side of the column, value on the other.
+          The block keeps the card's direction and <bdi> isolates the value. */}
+      <span className="block truncate text-start text-base leading-6 font-bold text-foreground">
+        <bdi>{value ?? "—"}</bdi>
       </span>
     </div>
   );
@@ -440,7 +475,7 @@ function BookingRow({
     <button
       type="button"
       onClick={onOpen}
-      className="flex w-full min-w-0 items-center gap-3 rounded-[18px] bg-surface p-4 text-start shadow-card transition-shadow hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex h-[4.625rem] w-full min-w-0 items-center gap-3 rounded-[18px] bg-surface px-4 text-start shadow-card transition-shadow hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span
         className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[14px] bg-primary-tint text-primary"
@@ -449,8 +484,15 @@ function BookingRow({
         <DomainIcon name={BOOKING_KINDS[booking.kind].icon} className="h-5 w-5" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-base leading-6 font-semibold text-foreground wrap-anywhere">
-          {title}
+        {/* One line, always: a long hotel name used to wrap to two and a row
+            with stars grew a line, so the rows beside each other never matched.
+            The name truncates; the full name is in the ticket. */}
+        <span className="flex min-w-0 text-base leading-6 font-semibold text-foreground">
+          {typeof title === "string" ? (
+            <span dir="auto" className="min-w-0 truncate">{title}</span>
+          ) : (
+            title
+          )}
         </span>
         {meta && (
           <span
@@ -495,10 +537,11 @@ function HotelCard({
       onOpen={onOpen}
       meta={meta}
       title={
-        // No `dir="auto"` on the name: a Latin hotel name in an RTL card
-        // still sits on the start edge, as the design draws it.
-        <span className="inline-flex max-w-full flex-wrap items-center gap-1">
-          <span className="min-w-0">{booking.title}</span>
+        // The row is RTL, so the name still sits on the start edge as the
+        // design draws it; `dir="auto"` is on the name alone, so a Latin name
+        // that does not fit is cut at its own end ("Hotel Arte…"), not its start.
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span dir="auto" className="min-w-0 truncate">{booking.title}</span>
           {details.stars && (
             <span
               className="inline-flex shrink-0 text-callout"

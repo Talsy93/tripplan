@@ -45,13 +45,27 @@ import { PushToggle } from "./push-toggle";
 // Which sections are on screen. The first four are the chips; the last two
 // have no chip and are reached from a tile or a row.
 // Sharing is the header's share button only (2026-09-25) — no chip, no section.
-type View = "all" | "bookings" | "checklist" | "expenses" | "emergency";
+// "bookings" is every ticket and the money beside them (what "#expenses"
+// lands on); the three kinds are one kind of ticket each.
+type View =
+  | "all"
+  | "bookings"
+  | BookingKind
+  | "checklist"
+  | "expenses"
+  | "emergency";
 
-const FILTERS: { key: View; label: string }[] = [
-  { key: "all", label: "הכל" },
-  { key: "bookings", label: "טיסות ומלונות" },
-  { key: "checklist", label: "ציוד" },
+// A chip per kind of ticket rather than one "טיסות ומלונות" for all of them —
+// asked for as "all the cards are shown together; I want a filter per kind".
+// Only the kinds the trip has get a chip (see below).
+const KIND_FILTERS: { key: BookingKind; label: string }[] = [
+  { key: "flight", label: "טיסות" },
+  { key: "lodging", label: "לינה" },
+  { key: "train", label: "רכבות" },
 ];
+
+const isKindView = (view: View): view is BookingKind =>
+  view === "flight" || view === "lodging" || view === "train";
 
 // Anchors other screens link to — "הוצאות עד כה" on the prep page lands on
 // #expenses, the device-reminder suggestion on #device-reminders — mapped to
@@ -133,7 +147,16 @@ export function TripHub({
     top.current?.scrollIntoView({ block: "start", behavior: "smooth" });
   }
 
-  const shows = (section: View) => view === "all" || view === section;
+  const shows = (section: View) =>
+    view === "all" ||
+    view === section ||
+    (section === "bookings" && isKindView(view));
+
+  const filters: { key: View; label: string }[] = [
+    { key: "all", label: "הכל" },
+    ...KIND_FILTERS.filter(({ key }) => bookings.some((booking) => booking.kind === key)),
+    { key: "checklist", label: "ציוד" },
+  ];
 
   // The gear tile: the packing list and the reminders counted as the one
   // checklist ChecklistCard draws.
@@ -170,7 +193,7 @@ export function TripHub({
       {/* The chips scroll rather than wrap. */}
       <div className="order-1 -mx-4 w-auto overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex min-w-max items-center gap-2" role="group" aria-label="סינון">
-          {FILTERS.map(({ key, label }) => (
+          {filters.map(({ key, label }) => (
             <button
               key={key}
               type="button"
@@ -198,6 +221,7 @@ export function TripHub({
           className="order-1 grid gap-3 @2xl:grid-cols-2 @2xl:items-start"
         >
           <HubBookings
+            kind={isKindView(view) ? view : null}
             tripId={tripId}
             bookings={bookings}
             cities={cities}
