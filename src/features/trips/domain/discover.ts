@@ -192,6 +192,26 @@ export type DiscoverCard = z.infer<typeof discoverCardSchema>;
 export const MUST_SEE_LANGUAGES = 40;
 export const POPULAR_LANGUAGES = 70;
 
+// The place's page on Google Maps, where its rating and reviews are.
+//
+// Asked for as "the rating should come from Google, and the link should go
+// through it". The rating itself is only served by the Places API, which needs
+// a billing account with a card on file — against the rule that everything
+// here is free — so the card links to where Google shows it instead. A Maps
+// URL needs no key: https://developers.google.com/maps/documentation/urls.
+//
+// Searched by the name on the sign and the city, not by coordinates: a
+// coordinate search drops a pin, while a name search opens the place's own
+// page, which is the one with the stars.
+export function googleMapsUrl(card: {
+  name: string;
+  localName: string | null;
+  city: string;
+}): string {
+  const query = `${card.localName ?? card.name}, ${card.city}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
 export function feeLabel(fee: boolean | null): string | null {
   if (fee === false) return "כניסה חופשית";
   if (fee === true) return "בתשלום";

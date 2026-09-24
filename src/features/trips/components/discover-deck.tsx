@@ -14,7 +14,7 @@ import {
   Flame,
   Heart,
   Info,
-  Languages,
+  Star,
   MapPin,
   RotateCcw,
   Search,
@@ -30,6 +30,7 @@ import {
   MUST_SEE_LANGUAGES,
   POPULAR_LANGUAGES,
   feeLabel,
+  googleMapsUrl,
   visitLabel,
   type DiscoverCard,
   type DiscoverCategory,
@@ -462,13 +463,20 @@ export function DiscoverDeck({
                 </h2>
 
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 pt-0.5 text-xs leading-[18px] text-surface-variant">
-                  {/* No free source has star ratings; how many Wikipedias
-                      write about it is the real measure of how known it is. */}
-                  <span className="flex items-center gap-1" title="מספר השפות שיש בהן ערך בוויקיפדיה">
-                    <Languages className="h-4 w-4 text-cta-bright" aria-hidden="true" />
-                    <span className="font-bold text-inverse-foreground">{top.languages}</span>
-                    <span className="opacity-80">שפות</span>
-                  </span>
+                  {/* The export's rating slot. Google's stars are only served
+                      by the paid Places API, so the slot is the way to them:
+                      the place's own page on Google Maps. See googleMapsUrl.
+                      stopPropagation, or pressing it starts a drag. */}
+                  <a
+                    href={googleMapsUrl(top)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onPointerDown={(event) => event.stopPropagation()}
+                    className="flex items-center gap-1 rounded-full hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                  >
+                    <Star className="h-4 w-4 fill-current text-cta-bright" aria-hidden="true" />
+                    <span className="font-bold text-inverse-foreground">ביקורות בגוגל</span>
+                  </a>
                   {feeLabel(top.fee) && (
                     <>
                       <span aria-hidden="true">•</span>
@@ -691,13 +699,13 @@ export function DiscoverDeck({
             </dl>
             <div className="flex flex-wrap gap-2">
               <a
-                href={`https://www.openstreetmap.org/?mlat=${details.latitude}&mlon=${details.longitude}#map=17/${details.latitude}/${details.longitude}`}
+                href={googleMapsUrl(details)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 rounded-full bg-surface-high px-3 py-1.5 text-xs font-medium text-primary"
               >
                 <MapPin className="h-4 w-4" aria-hidden="true" />
-                פתיחה במפה
+                גוגל מפות — דירוג וביקורות
               </a>
               {details.wikiUrl && (
                 <a
@@ -723,7 +731,7 @@ export function DiscoverDeck({
               )}
             </div>
             <p className="text-[11px] text-muted">
-              מידע ותמונה: OpenStreetMap, ויקיפדיה ו-Wikimedia Commons.
+              מידע ותמונה: OpenStreetMap, ויקיפדיה ו-Wikimedia Commons. הדירוג והביקורות — בגוגל מפות.
             </p>
           </div>
         )}
