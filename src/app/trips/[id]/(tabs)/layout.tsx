@@ -154,10 +154,16 @@ export default async function TripTabsLayout({
               <ChevronRight className="h-5 w-5" aria-hidden="true" />
             </Link>
           }
+          // Only while the trip is on — "רומא, יום 3 מ-7". Before it, the
+          // pill said "לפני היציאה · dates" under the name on every screen,
+          // which the owner asked to remove (2026-09-25): the dates are one
+          // press away on the name itself.
           pill={
-            <HeaderPill icon={<MapPin />} className={live ? "text-foreground" : undefined}>
-              {pill}
-            </HeaderPill>
+            live ? (
+              <HeaderPill icon={<MapPin />} className="text-foreground">
+                {pill}
+              </HeaderPill>
+            ) : undefined
           }
           trailing={
             <ShareButton

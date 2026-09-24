@@ -21,7 +21,7 @@ import {
 const ICONS: Record<TripTabSegment, typeof Sun> = {
   today: Sun,
   days: Route,
-  discover: Layers,
+  explore: Layers,
   ai: MessageCircle,
   more: FolderOpen,
 };
@@ -74,7 +74,7 @@ function useTripNavItems(tripId: string, live: boolean): NavItem[] {
       href,
       label: tab.label,
       icon:
-        tab.segment === "discover" && !seen && !onDiscover ? (
+        tab.segment === "explore" && !seen && !onDiscover ? (
           <span className="relative">
             <Icon className="h-[1.375rem] w-[1.375rem]" />
             <span className="absolute -top-0.5 -left-0.5 h-2 w-2 rounded-full bg-cta ring-2 ring-surface" />
@@ -82,7 +82,11 @@ function useTripNavItems(tripId: string, live: boolean): NavItem[] {
         ) : (
           <Icon className="h-[1.375rem] w-[1.375rem]" />
         ),
-      active: pathname === href || pathname.startsWith(`${href}/`),
+      // "תכנון" is lit on both of its views.
+      active:
+        pathname === href ||
+        pathname.startsWith(`${href}/`) ||
+        (tab.segment === "explore" && onDiscover),
       waiting: tab.waiting ? WAITING : undefined,
     };
   });

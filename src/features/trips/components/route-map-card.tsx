@@ -3,7 +3,6 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Map as MapIcon, MapPinOff } from "lucide-react";
-import type { ReactNode } from "react";
 import { buildDayTimeline } from "../domain/timeline";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 import type { RoutePlace, RouteStop } from "../domain/route";
@@ -154,19 +153,32 @@ export function dayMapPins(day: ItineraryDay): {
 // second, quieter pill rather than a silent gap.
 //
 // A day with nothing to pin (an empty day, or one built from AI guide items
-// alone) falls back to `fallback` — on the page, the whole-route card — rather
-// than to an empty rectangle.
+// alone) gets one slim line saying so, with the way to the full map — not the
+// whole-route card it used to fall back to: this map answers for the day, and a
+// map of the whole trip under day 5 read as day 5's.
 export function DayRouteMapCard({
   tripId,
   day,
-  fallback = null,
 }: {
   tripId: string;
   day: ItineraryDay;
-  fallback?: ReactNode;
 }) {
   const { pins, unlocated } = dayMapPins(day);
-  if (pins.length === 0) return <>{fallback}</>;
+  if (pins.length === 0) {
+    return (
+      <div className="flex h-11 min-w-0 items-center gap-2 rounded-full bg-surface-2 ps-4 pe-1.5 text-sm text-muted">
+        <MapPinOff className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span className="min-w-0 flex-1 truncate">אין מיקומים ליום הזה</span>
+        <Link
+          href={`/trips/${tripId}/map`}
+          className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-surface px-3 text-xs font-semibold text-foreground shadow-card transition-shadow hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <MapIcon className="h-4 w-4" aria-hidden="true" />
+          פתח מפה
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="relative overflow-hidden rounded-[20px] bg-surface-2 shadow-card">

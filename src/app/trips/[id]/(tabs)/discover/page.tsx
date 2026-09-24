@@ -6,6 +6,7 @@ import {
   getSelectedDestinations,
   getTrip,
   getTripRoute,
+  PlanSwitch,
 } from "@/features/trips";
 import { flagEmoji } from "@/features/trips/domain/discover";
 import type { DiscoverDestination } from "@/features/trips/components/discover-deck";
@@ -105,13 +106,16 @@ export default async function DiscoverPage({
   after(() => warmDiscover(points, ["all"]));
 
   return (
-    <DiscoverDeck
-      tripId={trip.id}
-      destinations={destinations}
-      initialKey={destinations[0]?.key ?? null}
-      savedCount={selected.length}
-      savedKeys={selected.map((item) => `${item.city}|${item.name}`)}
-      initialCards={initialCards}
-    />
+    <div className="mx-auto flex w-full max-w-md flex-col gap-3">
+      <PlanSwitch tripId={trip.id} active="discover" />
+      <DiscoverDeck
+        tripId={trip.id}
+        destinations={destinations}
+        initialKey={destinations[0]?.key ?? null}
+        savedCount={selected.length}
+        savedKeys={selected.map((item) => `${item.city}|${item.name}`)}
+        initialCards={initialCards}
+      />
+    </div>
   );
 }

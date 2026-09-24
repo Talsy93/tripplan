@@ -1,13 +1,18 @@
 import type { ReactNode } from "react";
 import { TwoPane } from "@/components/layout";
 import Link from "next/link";
-import { ChevronRight, Map as MapIcon } from "lucide-react";
+import { Map as MapIcon, RefreshCw } from "lucide-react";
 import type {
   AiCitySuggestion,
   CityGuideData,
   SelectedItem,
 } from "../domain/ai-suggestion";
 import type { AddedPlace } from "../infrastructure/place-service";
+import type { CityDayPlan } from "../domain/city-days";
+import type { SchedulingPlan } from "../domain/schedule-new";
+import { CityDaysEditor } from "./city-days-editor";
+import { EmptyDaysSection, PlanDayCard } from "./plan-day-card";
+import { PlanSwitch } from "./plan-switch";
 import { ManualPlaceForm } from "./manual-place-form";
 import { PlaceSearch } from "./place-search";
 import { RecommendedPlaces } from "./recommended-places";
@@ -15,16 +20,20 @@ import { PlanningPanel } from "./planning-panel";
 import { SelectedList } from "./selected-list";
 import { ScheduleButton } from "./schedule-button";
 
-// "הוספת מקומות", in the Pencil design's order.
+// "תכנון הטיול" — the יעדים view of the תכנון tab (2026-09-25). It was
+// "הוספת מקומות", a screen you reached from מסלול; now it is a tab of its own
+// and holds the whole plan: where the trip goes and for how long, which days are
+// still empty, what was picked, and the ways to find more.
 //
 // A component rather than JSX in the page, for the reason TodayBefore gives: the
 // harness cannot render the page — the page reads the database — so a
 // composition left there is one no scene can check.
 //
-// The design's order: the search pill, the category grid, the AI box, then
-// "מומלצים ב<עיר>", with a sticky bar at the foot. The picked list under its
-// map, which the frame does not draw, follows the recommendations; the manual
-// form is a compact pill in the title row.
+// Order, top to bottom: the view switch; the title with the manual-add pill; the
+// day card when מסלול sent you here for one day (`?day=N`); the search and the
+// category grid; the AI box; "מומלצים ב<עיר>"; then the trip as it stands — the
+// route, the empty days, the picked list under its map — and the sticky
+// scheduling bar at the foot.
 export function ExploreScreen({
   tripId,
   // Destinations the search can look around: the cities things were already
@@ -41,6 +50,13 @@ export function ExploreScreen({
   // what lets a scene draw this layout without going to Nominatim.
   map,
   cityGuide = null,
+  // Nights per city, for "המסלול כולו" — the same plan מסלול used to draw.
+  cityDays = [],
+  tripDayCount = null,
+  // What is waiting to be scheduled and every day it could go to.
+  plan = EMPTY_PLAN,
+  // `?day=N` from מסלול's empty day.
+  focusDay = null,
 }: {
   tripId: string;
   searchCities: string[];
@@ -52,43 +68,60 @@ export function ExploreScreen({
   // The saved guide for the first destination, for "מומלצים ב<עיר>". Null when
   // nothing has been generated for it yet.
   cityGuide?: CityGuideData | null;
+  cityDays?: CityDayPlan[];
+  tripDayCount?: number | null;
+  plan?: SchedulingPlan;
+  focusDay?: number | null;
 }) {
+  const focused =
+    focusDay !== null ? plan.days.find((day) => day.day === focusDay) : undefined;
+
+  // Picked places per city, in the order the cities were first picked — the
+  // one-line answer to "how much do we have in each place" above the list.
+  const perCity = new Map<string, number>();
+  for (const item of selected) {
+    if (item.city) perCity.set(item.city, (perCity.get(item.city) ?? 0) + 1);
+  }
+
+  const waiting = plan.pending.length;
+
   return (
     <TwoPane>
-      {/* The Pencil header: a round back button and the title on one line.
-          v6: this screen is no longer a tab — "הוסף יעד" on the itinerary opens
-          it — so it names itself and says the way back. The sentence that used
-          to sit under the title went with the design; the search pill below
-          names the city, which was the one fact it carried. */}
-      <header className="flex min-w-0 items-center gap-1">
-        <Link
-          href={`/trips/${tripId}/days`}
-          aria-label="חזרה למסלול"
-          className="-ms-2.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {/* RTL: "back" points the way the text runs. */}
-          <ChevronRight className="h-6 w-6" aria-hidden="true" />
-        </Link>
+      {/* The tab's two views. */}
+      <PlanSwitch tripId={tripId} active="explore" />
+
+      {/* The title and, at its far end, the manual form as a compact pill —
+          one press from arrival for the one person who needs it. No back
+          chevron any more: this is a tab, not a screen pushed from מסלול. */}
+      <header className="-mt-2 flex min-w-0 items-center gap-2">
         <h1 className="min-w-0 flex-1 text-[1.625rem] font-bold leading-8 wrap-anywhere">
-          הוספת מקומות
+          תכנון הטיול
         </h1>
-        {/* The escape hatch, moved up from the foot of the screen: a small
-            pill at the far end of the title row, one press from arrival, that
-            opens the same form in a sheet. It used to be a whole card below
-            the picked list, where the one person who needed it had to scroll
-            past everything else first. */}
         <ManualPlaceForm tripId={tripId} cities={knownCities} />
       </header>
 
-      <PlaceSearch
-        tripId={tripId}
-        cities={searchCities}
-        addedPlaces={addedPlaces}
-      />
+      {/* Keyed by day, so a place checked on day 3 is not still checked when
+          the card switches to day 5. */}
+      {focused && (
+        <PlanDayCard
+          key={focused.day}
+          tripId={tripId}
+          day={focused}
+          pending={plan.pending}
+        />
+      )}
 
-      {/* The AI box sits straight under the grid, as the export draws it. It
-          used to hang under a "גילוי יעדים" heading; its own question is the
-          heading now. The id stays — other screens link to #discover. */}
+      <section id="search" className="flex min-w-0 scroll-mt-20 flex-col">
+        <PlaceSearch
+          tripId={tripId}
+          cities={searchCities}
+          addedPlaces={addedPlaces}
+        />
+      </section>
+
+      {/* The AI box sits straight under the grid, as the export draws it. Its
+          own question is the heading. The id stays — other screens link to
+          #discover. */}
       <section id="discover" className="flex scroll-mt-20 flex-col">
         <PlanningPanel
           tripId={tripId}
@@ -107,11 +140,32 @@ export function ExploreScreen({
         />
       )}
 
-      {/* What was picked, under the map it is the pins of. Not in the Pencil
-          frame, which ends at the recommendations — but the list is how a pick
-          is undone and the map is where it lands, so both stay, in the same
-          header language as "מומלצים" above: a title, and a quiet note at the
-          far end. */}
+      {/* "המסלול כולו", moved here from מסלול's pane: the cities and how long
+          in each, with the steppers. The full rebuild stays on מסלול, where the
+          schedule it replaces is on screen — here it is a quiet link there,
+          and nothing on this page calls the model to rebuild. */}
+      {cityDays.length > 0 && (
+        <section className="flex min-w-0 flex-col gap-3" aria-labelledby="route-heading">
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <h2 id="route-heading" className="text-lg font-bold leading-6">
+              המסלול כולו
+            </h2>
+            <Link
+              href={`/trips/${tripId}/days`}
+              className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 text-caption font-semibold text-primary-ink transition-colors hover:bg-primary-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+              בנייה מחדש במסלול
+            </Link>
+          </div>
+          <CityDaysEditor tripId={tripId} plan={cityDays} tripDayCount={tripDayCount} />
+        </section>
+      )}
+
+      <EmptyDaysSection tripId={tripId} days={plan.days} />
+
+      {/* What was picked, under the map it is the pins of — every saved
+          destination, with a count per city above the rows. */}
       <section className="flex min-w-0 flex-col gap-3">
         <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-2">
           <h2 className="min-w-0 text-lg font-bold leading-6">
@@ -129,39 +183,53 @@ export function ExploreScreen({
             </span>
           )}
         </div>
-        {/* The map above the list, which is the reason the note says "on the
-            map": a list of six names beside nothing is not pins. */}
+        {perCity.size > 1 && (
+          <ul className="flex flex-wrap gap-1.5" aria-label="לפי עיר">
+            {[...perCity].map(([city, count]) => (
+              <li
+                key={city}
+                className="inline-flex items-center gap-1 rounded-full bg-surface-sunken px-2.5 py-1 text-caption"
+              >
+                <span className="font-semibold">{city}</span>
+                <span className="tabular-nums text-muted">{count}</span>
+              </li>
+            ))}
+          </ul>
+        )}
         {selected.length > 0 && map}
         <SelectedList tripId={tripId} items={selected} />
       </section>
 
-      {/* The design's sticky bottom bar: how many are waiting, and the one
-          orange call on the screen. It places what is new into the days that
-          already exist (ScheduleButton → scheduleNewPlaces, no model call) and
-          then shows the result on מסלול.
-
-          Sticky rather than fixed, so it rides at the end of the column and
-          never covers the last card, and lifted clear of the floating phone tab
-          bar by the offset the itinerary's own sticky bar uses. Only once
-          something is chosen — before that it would offer to distribute nothing
-          across the days. */}
+      {/* The sticky bottom bar: how many are still waiting for a day, and the
+          one orange call on the screen, which asks how to schedule them
+          (ScheduleButton). Sticky rather than fixed, so it rides at the end of
+          the column and never covers the last card, lifted clear of the phone
+          tab bar. Only once something is chosen. */}
       {selected.length > 0 && (
         <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 md:bottom-4">
           <div className="flex min-w-0 items-center justify-between gap-3 rounded-[20px] bg-surface py-3 pe-3 ps-4 shadow-lift">
             <div className="flex min-w-0 flex-col">
               <span className="min-w-0 text-base font-bold wrap-anywhere">
-                {selected.length === 1
-                  ? "מקום אחד נבחר"
-                  : `${selected.length} מקומות נבחרו`}
+                {waiting === 0
+                  ? "הכול משובץ"
+                  : waiting === 1
+                    ? "מקום אחד ממתין"
+                    : `${waiting} מקומות ממתינים`}
               </span>
               <span className="min-w-0 text-caption text-muted wrap-anywhere">
-                ממתינים לשיבוץ ביום
+                {waiting === 0
+                  ? `${selected.length} מקומות בטיול`
+                  : plan.hasItinerary
+                    ? "לשיבוץ ביום"
+                    : "הלו״ז עוד לא נבנה"}
               </span>
             </div>
-            <ScheduleButton tripId={tripId} />
+            <ScheduleButton tripId={tripId} plan={plan} />
           </div>
         </div>
       )}
     </TwoPane>
   );
 }
+
+const EMPTY_PLAN: SchedulingPlan = { pending: [], days: [], hasItinerary: false };

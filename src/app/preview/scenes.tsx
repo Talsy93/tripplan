@@ -937,14 +937,6 @@ export const SCENES: Scene[] = [
             lodgingByDay={{ 1: f.LODGING }}
             bookingsByDay={{ 1: [f.BOOKINGS[0]] }}
             cityDays={f.CITY_DAYS}
-            map={
-              <RouteMapCard
-                tripId={f.TRIP_ID}
-                stops={f.ROUTE.stops}
-                places={f.ROUTE.places}
-                unlocatedCount={0}
-              />
-            }
             collaborators={["ט", "ר", "ע"]}
           />
         ),
@@ -2482,6 +2474,48 @@ export const SCENES: Scene[] = [
         />
       </div>
     ),
+  },
+  // "תכנון הטיול" with the whole plan (2026-09-25): opened from מסלול's empty
+  // day 3 (the card on top), the route with its steppers, the empty days, and
+  // the sticky "שיבוץ לימים" — press it for the "איך לשבץ?" sheet. Manual mode
+  // walks the fixture's five places; "דלג" and "בחירה מהרשימה" are local, a day
+  // tap is a real server action and fails here (no database).
+  {
+    slug: "schedule-sheet",
+    title: "תכנון הטיול · יום ריק, המסלול, ושיבוץ אוטומטי/ידני",
+    note: "?day=3 פתוח למעלה עם שני המקומות השמורים בטוקיו. הכפתור הכתום פותח את השאלה: אוטומטי או ידני — ובידני מקום אחרי מקום, עם הימים של העיר שלו",
+    bleed: true,
+    render: () =>
+      appFrame({
+        title: "יפן בסתיו",
+        active: "explore",
+        phase: { kind: "before", daysUntilStart: daysUntil(f.LONG_START) },
+        startDate: f.LONG_START,
+        cities: FRAME_CITIES,
+        children: (
+          <ExploreScreen
+            tripId={f.TRIP_ID}
+            searchCities={FRAME_CITIES}
+            knownCities={FRAME_CITIES}
+            selected={f.SELECTED}
+            addedPlaces={[]}
+            savedCities={f.CITY_SUGGESTIONS}
+            cityGuide={f.CITY_GUIDE}
+            cityDays={f.CITY_DAYS}
+            tripDayCount={9}
+            plan={f.SCHEDULE_PLAN}
+            focusDay={3}
+            map={
+              <RouteMapCard
+                tripId={f.TRIP_ID}
+                stops={f.ROUTE.stops}
+                places={f.ROUTE.places}
+                unlocatedCount={f.ROUTE.unlocatedCities.length}
+              />
+            }
+          />
+        ),
+      }),
   },
 ];
 

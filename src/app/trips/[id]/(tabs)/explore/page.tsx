@@ -1,36 +1,54 @@
 import { Suspense } from "react";
 import { Skeleton } from "@/components/ui";
 import {
+  APP_TIME_ZONE,
+  buildSchedulingPlan,
+  cityDayPlan,
   ExploreScreen,
   getAddedPlaces,
+  getItinerary,
   getSavedCities,
   getSavedCityGuide,
   getSelectedDestinations,
   getTrip,
+  listBookings,
+  listCityDays,
+  lodgingByDay,
   RouteMapPanel,
+  tripDayCount,
 } from "@/features/trips";
 
-export const metadata = { title: "עוזר AI" };
+export const metadata = { title: "תכנון הטיול" };
 
 export default async function ExplorePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  // `?day=N` — מסלול links an empty day here.
+  searchParams: Promise<{ day?: string }>;
 }) {
   const { id } = await params;
+  const { day } = await searchParams;
 
-  // The trip itself rides along for one reason: getTripRoute takes its name as
-  // geocoding context, so the map pane cannot resolve a city without it. One
-  // indexed lookup by primary key, in the batch that was already running.
-  const [savedCities, selected, addedPlaces, trip] = await Promise.all([
-    getSavedCities(id),
-    getSelectedDestinations(id),
-    getAddedPlaces(id),
-    getTrip(id),
-  ]);
+  // The trip rides along for the map (getTripRoute takes its name as geocoding
+  // context) and for its dates, which "המסלול כולו" and the day list need. The
+  // itinerary, the bookings and the per-city overrides are the rest of what
+  // מסלול's route pane used to load — that section lives here now.
+  const [savedCities, selected, addedPlaces, trip, itinerary, bookings, overrides] =
+    await Promise.all([
+      getSavedCities(id),
+      getSelectedDestinations(id),
+      getAddedPlaces(id),
+      getTrip(id),
+      getItinerary(id),
+      listBookings(id),
+      listCityDays(id),
+    ]);
 
   // The destinations the search can look around — the cities things were
-  // already added in.
+  // already added in. Also the route's cities, in the order every other surface
+  // colours them in.
   const searchCities = [...new Set(selected.map((item) => item.city))].filter(
     Boolean,
   );
@@ -50,6 +68,31 @@ export default async function ExplorePage({
     ...new Set([...searchCities, ...savedCities.map((city) => city.name)]),
   ].filter(Boolean);
 
+  const startDate = trip?.start_date ?? null;
+  const dayCount = trip ? tripDayCount(trip.start_date, trip.end_date) : null;
+
+  // Where the trip sleeps each night — names the city of a day with nothing on
+  // it yet. The same zone-pinned computation מסלול uses.
+  const lodgingCity = new Map<number, string>();
+  for (const [dayNumber, stay] of lodgingByDay(
+    bookings,
+    startDate,
+    Math.max(dayCount ?? 0, itinerary.length),
+    APP_TIME_ZONE,
+  )) {
+    if (stay.booking.city) lodgingCity.set(dayNumber, stay.booking.city);
+  }
+
+  const plan = buildSchedulingPlan({
+    itinerary,
+    selected,
+    startDate,
+    dayCount,
+    lodgingCity,
+  });
+
+  const focusDay = day && /^\d{1,3}$/.test(day) ? Number(day) : null;
+
   return (
     <ExploreScreen
       tripId={id}
@@ -59,17 +102,14 @@ export default async function ExplorePage({
       addedPlaces={addedPlaces}
       savedCities={savedCities}
       cityGuide={cityGuide}
+      cityDays={cityDayPlan(searchCities, bookings, overrides, APP_TIME_ZONE)}
+      tripDayCount={dayCount}
+      plan={plan}
+      focusDay={focusDay}
       // The one thing a desktop can do here that a phone cannot: results beside
-      // the map they are results on. On a phone this is two tabs and a round
-      // trip between them; from 1280 up it is one screen.
-      //
-      // The "מפה" tab stays. It is still the right place to look at the route
-      // full-screen — this pane answers "where is that?" while you are choosing,
-      // which is a different question.
-      //
-      // Its own boundary: resolving the route may need to geocode a new city,
-      // which is paced at about a request per second. The search beside it must
-      // not wait for that.
+      // the map they are results on. Its own boundary: resolving the route may
+      // need to geocode a new city, paced at about a request per second, and
+      // the search beside it must not wait for that.
       map={
         <Suspense
           // Matches RouteMapCard: a 15rem canvas over a one-line footer.

@@ -1,6 +1,4 @@
-import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { Skeleton } from "@/components/ui";
 import {
   APP_TIME_ZONE,
   bookingsByDay,
@@ -16,7 +14,6 @@ import {
   listDayReminders,
   listMembers,
   lodgingByDay,
-  RouteMapPanel,
   todayIn,
   tripDayCount,
 } from "@/features/trips";
@@ -79,14 +76,6 @@ export default async function DaysPage({
 
   return (
     <Itinerary
-      // The Pencil route screen puts the map between the day selector and the
-      // day. Its own boundary: resolving the route can mean geocoding a city,
-      // paced at a request a second, and the schedule must not wait for it.
-      map={
-        <Suspense fallback={<Skeleton className="h-32 rounded-[20px] sm:h-40" />}>
-          <RouteMapPanel tripId={id} tripName={trip.name} variant="compact" />
-        </Suspense>
-      }
       collaborators={members.map(
         (member) =>
           (member.member_name ?? member.member_email ?? "?").trim()[0] ?? "?",

@@ -29,8 +29,12 @@ export const TRIP_TABS = [
   // screen (search, categories, discovery) is still at /explore, reached from
   // "הוסף יעד" on the itinerary and from the assistant; it is no longer a tab.
   { segment: "days", label: "מסלול" },
-  // The swipe deck (design/stitch/…/discover_page, 2026-09-24).
-  { segment: "discover", label: "גילוי" },
+  // "תכנון" (2026-09-25): the trip's destinations at /explore, with the swipe
+  // deck at /discover as its second view (PlanSwitch). The add-places page had
+  // no tab of its own and was reached only from "הוסף יעד"; the owner asked for
+  // it in the footer, and six tabs do not fit a phone, so the deck moved under
+  // it rather than beside it.
+  { segment: "explore", label: "תכנון" },
   { segment: "ai", label: "עוזר AI" },
   { segment: "more", label: "מסמכים" },
 ] as const;
@@ -38,7 +42,7 @@ export const TRIP_TABS = [
 export type TripTabSegment = (typeof TRIP_TABS)[number]["segment"];
 
 // Every top-level screen of a trip, tab or not.
-export type TripSection = TripTabSegment | "explore";
+export type TripSection = TripTabSegment | "discover";
 
 // The tabs, each with whether it can be pressed yet. `live` is "the trip has
 // started and has not finished" — the only state in which a "today" exists.

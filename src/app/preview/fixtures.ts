@@ -34,6 +34,7 @@ import type {
 } from "@/features/trips/domain/weather";
 import type { AiPhrasebook } from "@/features/trips/domain/phrasebook";
 import type { CityDayPlan } from "@/features/trips/domain/city-days";
+import type { SchedulingPlan } from "@/features/trips/domain/schedule-new";
 import type { NightLodging } from "@/features/trips/domain/trip-days";
 import type { DayReminder } from "@/features/trips/domain/day-reminders";
 
@@ -848,3 +849,30 @@ export const DOC_PREP: PrepItem[] = [
   { id: id("7b"), trip_id: TRIP_ID, title: "צ׳ק-אין לטיסה", done: false, due_date: "2026-09-11", url: "https://www.elal.com", kind: "checkin", created_at: "2026-01-01T00:00:00Z" },
   { id: id("7c"), trip_id: TRIP_ID, title: "להזמין כרטיסים לגלריה אופיצי", done: true, due_date: null, url: null, kind: null, created_at: "2026-01-01T00:00:00Z" },
 ];
+
+// ---- scheduling (the planning page's "שיבוץ לימים" sheet) -----------------
+//
+// Five places waiting across three cities, and a nine-day schedule with empty
+// days in two of them. Osaka has no day at all, so its place shows the "every
+// day" fallback; day 5 is empty in Kyoto, so it is Kyoto's "הכי פנוי".
+export const SCHEDULE_PLAN: SchedulingPlan = {
+  pending: [
+    { name: "מקדש סנסו־ג׳י", city: "טוקיו", category: "attractions" },
+    { name: "רחוב אומויידה יוקוצ׳ו", city: "טוקיו", category: "restaurants" },
+    { name: "פושימי אינארי", city: "קיוטו", category: "temples" },
+    { name: "יער הבמבוק באראשיאמה", city: "קיוטו", category: "experiences" },
+    { name: "שוק קורומון", city: "אוסקה", category: "shopping" },
+  ],
+  days: [
+    { day: 1, city: "טוקיו", date: "2026-09-24", items: ["שוק צוקיג׳י החיצוני", "טוקיו סקייטרי", "ארוחת ערב בשיבויה"] },
+    { day: 2, city: "טוקיו", date: "2026-09-25", items: ["מוזיאון טים-לאב"] },
+    { day: 3, city: "טוקיו", date: "2026-09-26", items: [] },
+    { day: 4, city: "קיוטו", date: "2026-09-27", items: ["שינקנסן לקיוטו", "גיון בערב"] },
+    { day: 5, city: "קיוטו", date: "2026-09-28", items: [] },
+    { day: 6, city: "קיוטו", date: "2026-09-29", items: ["קינקאקו־ג׳י"] },
+    { day: 7, city: "נארה", date: "2026-09-30", items: ["פארק נארה"] },
+    { day: 8, city: "נארה", date: "2026-10-01", items: [] },
+    { day: 9, city: null, date: "2026-10-02", items: ["טיסה הביתה"] },
+  ],
+  hasItinerary: true,
+};

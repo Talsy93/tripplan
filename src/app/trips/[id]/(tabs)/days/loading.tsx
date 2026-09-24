@@ -1,8 +1,8 @@
 import { Skeleton } from "@/components/ui";
 
 // The route screen's own shape, so nothing jumps when the real one arrives:
-// the strip of day pills, the map strip, the day's heading and a few cards
-// beside their time column.
+// the strip of day pills, the day's heading and a few cards beside their time
+// column, then the day's map strip under them.
 export default function Loading() {
   return (
     <div className="mx-auto flex w-full max-w-main flex-col gap-6">
@@ -11,7 +11,6 @@ export default function Loading() {
           <Skeleton key={index} className="h-[78px] w-[60px] shrink-0 rounded-[18px]" />
         ))}
       </div>
-      <Skeleton className="h-32 rounded-[20px] sm:h-40" />
       <div className="flex flex-col gap-3">
         <Skeleton className="h-6 w-48 rounded-full" />
         {Array.from({ length: 3 }, (_, index) => (
@@ -21,6 +20,7 @@ export default function Loading() {
           </div>
         ))}
       </div>
+      <Skeleton className="h-32 rounded-[20px] sm:h-40" />
     </div>
   );
 }

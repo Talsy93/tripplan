@@ -12,7 +12,15 @@ import {
 } from "../infrastructure/itinerary-service";
 import { setCityDays as writeCityDays } from "../infrastructure/city-days-service";
 import { getSelectedDestinations } from "../infrastructure/guide-service";
-import { planPlacements } from "../domain/schedule-new";
+import { getTrip } from "../infrastructure/trips-service";
+import { listBookings } from "../infrastructure/booking-service";
+import {
+  buildSchedulingPlan,
+  planPlacements,
+  type SchedulingPlan,
+} from "../domain/schedule-new";
+import { lodgingByDay, tripDayCount } from "../domain/trip-days";
+import { APP_TIME_ZONE } from "../domain/weather";
 import { setCityDaysSchema } from "../domain/city-days";
 import {
   updateItineraryEntrySchema,
@@ -215,4 +223,81 @@ export async function scheduleNewPlaces(tripId: string): Promise<{
 
   if (placed > 0) revalidatePath("/trips/[id]", "layout");
   return { ok: placed === placements.length, placed, unplaced: unplaced.length };
+}
+
+// The manual path's data: what is still waiting and every day it could go to
+// (see buildSchedulingPlan). The planning page builds the same thing on the
+// server for its first paint; the sheet asks again on open, so a place
+// scheduled from מסלול in the meantime is not offered twice.
+export async function getSchedulingPlan(
+  tripId: string,
+): Promise<SchedulingPlan | null> {
+  if (!z.uuid().safeParse(tripId).success) return null;
+
+  const [itinerary, selected, trip, bookings] = await Promise.all([
+    getItinerary(tripId),
+    getSelectedDestinations(tripId),
+    getTrip(tripId),
+    listBookings(tripId),
+  ]);
+  if (!trip) return null;
+
+  const dayCount = tripDayCount(trip.start_date, trip.end_date);
+  return buildSchedulingPlan({
+    itinerary,
+    selected,
+    startDate: trip.start_date,
+    dayCount,
+    lodgingCity: lodgingCities(
+      lodgingByDay(
+        bookings,
+        trip.start_date,
+        Math.max(dayCount ?? 0, itinerary.length),
+        APP_TIME_ZONE,
+      ),
+    ),
+  });
+}
+
+function lodgingCities(
+  lodging: Map<number, { booking: { city: string | null } }>,
+): Map<number, string> {
+  const cities = new Map<number, string>();
+  for (const [day, stay] of lodging) {
+    if (stay.booking.city) cities.set(day, stay.booking.city);
+  }
+  return cities;
+}
+
+// One place onto one day, from the manual sheet or the planning page's
+// "שיבוץ ליום הזה". No time: the entry lands untimed at the end of the day,
+// where the day's own re-timing can pick it up.
+const schedulePlaceSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  city: z.string().trim().max(120),
+  dayNumber: z.int().min(1).max(366),
+});
+
+export async function schedulePlaceOnDay(
+  tripId: string,
+  input: unknown,
+): Promise<{ ok: boolean }> {
+  if (!z.uuid().safeParse(tripId).success) return { ok: false };
+  const parsed = schedulePlaceSchema.safeParse(input);
+  if (!parsed.success) return { ok: false };
+
+  const { error } = await addEntry(tripId, {
+    dayNumber: parsed.data.dayNumber,
+    title: parsed.data.name,
+    startLabel: "",
+    endLabel: "",
+    note: null,
+    city: parsed.data.city || null,
+    travelNote: null,
+    travelMinutes: null,
+  });
+  if (error) return { ok: false };
+
+  revalidatePath("/trips/[id]", "layout");
+  return { ok: true };
 }

@@ -424,7 +424,7 @@ export function DiscoverDeck({
       {/* The stack, Tinder's way: the next card itself waits behind the one in
           hand, a little smaller, and grows into place as the top one is dragged
           off — so the hand always sees there is more, and what it is. */}
-      <div className="relative mt-3 h-[clamp(380px,calc(100dvh-380px),600px)] w-full">
+      <div className="relative mt-3 h-[clamp(360px,calc(100dvh-432px),600px)] w-full">
         {top && next && (
           <div
             aria-hidden="true"
