@@ -3,21 +3,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode, RefObject } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Calendar,
   Check,
-  ChevronLeft,
   Dices,
-  EllipsisVertical,
   Globe,
-  LoaderCircle,
   Map as MapIcon,
   MapPin,
   PencilLine,
   Plus,
   Sparkles,
-  ZoomIn,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { loadTripMapPlaces } from "../application/trip-map-actions";
@@ -30,37 +27,24 @@ import type { MappedTrip, OpenedTrip } from "./trips-map-canvas";
 import type { TripMapPlace } from "../domain/trip-map";
 import {
   agoLabel,
-  dateRangeLabel,
-  monthYearLabel,
   shortMonthYearLabel,
 } from "../domain/date-labels";
 import type { DomainIconName } from "../domain/icons";
 import type { StandingTrip } from "../domain/trip-order";
 import { tripTabHref } from "../domain/trip-tabs";
 
-// The home screen, from the Pencil design (design/pencil/exports/home-mobile,
-// home-desktop, home-empty — phase PN, 2026-09-24): a greeting, the trip being
-// lived (or the next one) on the teal card, the one terracotta "new trip",
-// every trip under a segmented filter, and the idea card.
+// The home screen, from the Pencil design (design/pencil/exports/home-*), and
+// then thinned on the owner's word (2026-09-24, "let's clear the load"): no
+// greeting and no headline, the trip being lived (or the next one) on the teal
+// card, the one terracotta "new trip", the map of every trip, the rest of the
+// trips as square tiles, and the idea card.
 //
-// The design has no map on a phone. The map of every trip stays anyway — it is
-// the one place the trips are seen side by side — and sits between the filter
-// and the rows, so the filter visibly drives both. From lg it is the left
-// column, as the desktop export draws it.
-//
-// Client for one reason: the map, its preview card, the featured card and the
-// rows share a selection and a filter. Everything else is fetched on the
-// server, except one trip's destinations, read when that trip is opened on the
-// map.
-//
-// A trip is pressed in two steps (the owner's ask, 2026-09-24). The first
-// press — on a row, on the featured card, on the preview card or on the trip's
-// pin — selects it and flies the map there; it never navigates. A second press
-// on the same trip opens it on the map: its saved places and cities replace
-// the trip pins, the map fits them and becomes pannable and zoomable, and the
-// names appear as it zooms in. Entering a trip is its own control: "כניסה
-// לטיול" on the featured card, the arrow on the preview card, the chevron on a
-// row. The globe goes back to every trip.
+// A trip is pressed in two steps. The first press — on a tile, on the featured
+// card, or on the trip's pin — selects it: the map flies there and draws its
+// saved places, and the names appear when the traveller zooms in by hand. No
+// status line, no card over the map. A second press on the same tile or card
+// enters the trip; the selected tile says so with an arrow pill. The globe goes
+// back to every trip.
 
 // One trip, as the cards and the map need it.
 export type HomeTrip = {
@@ -91,17 +75,16 @@ export type FeaturedDetails = {
 type Filter = "all" | "active" | "past";
 
 export function HomeScreen({
-  firstName,
   trips,
   featuredId,
   details,
   mapped,
-  destinationCount,
   now,
   bell,
   account,
   initialDestinations,
 }: {
+  // Still passed by the page; no longer drawn — the greeting went (2026-09-24).
   firstName: string | null;
   // Every trip, nearest first.
   trips: HomeTrip[];
@@ -145,19 +128,19 @@ export function HomeScreen({
       {/* First column in the DOM is the right-hand one in RTL: the greeting,
           the featured trip and the one call to action, as in the export. */}
       <div className="flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-start-1">
-        <Greeting
-          firstName={firstName}
-          destinationCount={destinationCount}
-          bell={bell}
-          account={account}
-        />
+        <h1 className="sr-only">הטיולים שלי</h1>
+        {(bell || account) && (
+          <div className="flex items-center justify-between md:hidden">
+            {account}
+            {bell}
+          </div>
+        )}
         {featured && details && (
           <FeaturedCard
             trip={featured}
             details={details}
             selected={selection.selectedId === featured.entry.trip.id}
-            opened={selection.openId === featured.entry.trip.id}
-            onPick={() => selection.pick(featured.entry.trip.id, { scroll: true })}
+            onPick={() => selection.pick(featured.entry.trip.id, { scroll: true, enter: true })}
           />
         )}
         {empty ? (
@@ -193,58 +176,20 @@ export function HomeScreen({
   );
 }
 
-// ---- 1 · greeting ----------------------------------------------------------
-
-function Greeting({
-  firstName,
-  destinationCount,
-  bell,
-  account,
-}: {
-  firstName: string | null;
-  destinationCount: number;
-  bell?: ReactNode;
-  account?: ReactNode;
-}) {
-  const hello = firstName ? `שלום, ${firstName}` : "שלום";
-  return (
-    <section className="flex items-center gap-3 pt-1">
-      {account && <div className="shrink-0 md:hidden">{account}</div>}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <p className="text-sm text-muted">
-          {hello}
-          {destinationCount > 0 && (
-            <span className="text-outline">
-              {" · "}
-              {destinationCount === 1 ? "יעד אחד" : `${destinationCount} יעדים`}
-            </span>
-          )}
-        </p>
-        <h1 className="text-[26px] font-bold leading-tight tracking-tight text-foreground lg:text-[32px]">
-          לאן נטייל הפעם?
-        </h1>
-      </div>
-      {bell && <div className="shrink-0 md:hidden">{bell}</div>}
-    </section>
-  );
-}
-
 // ---- 2 · the featured trip ------------------------------------------------
 
 function FeaturedCard({
   trip: home,
   details,
   selected,
-  opened,
   onPick,
 }: {
   trip: HomeTrip;
   details: FeaturedDetails;
-  // Whether the map is pointing at this trip, and whether it is open there.
+  // Whether the map is pointing at this trip.
   selected: boolean;
-  opened: boolean;
-  // A press on the card: select the trip on the map, or open it if it already
-  // is. Entering the trip is the white pill.
+  // A press on the card: point the map at the trip, or enter it if the map
+  // already is. The white pill always enters.
   onPick: () => void;
 }) {
   const { trip, phase } = home.entry;
@@ -326,7 +271,7 @@ function FeaturedCard({
             {trip.name}
             <span className="sr-only">
               {" — "}
-              {pickHint(selected, opened)}
+              {pickHint(selected)}
             </span>
           </button>
         </h2>
@@ -434,19 +379,16 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: "past", label: "עבר" },
 ];
 
-// Past four rows the list folds.
-const FOLD = 4;
+// Past six tiles (three rows of two) the grid folds.
+const FOLD = 6;
 
 // A trip's destinations as last read: the places, or "error" when the read
 // failed. Absent while it has not been read (or is being read).
 type DestinationCache = Record<string, TripMapPlace[] | "error">;
 
-// What a screen reader hears after a trip's name, and the status line over the
-// map says in its own words: what the next press on this trip will do.
-function pickHint(selected: boolean, opened: boolean): string {
-  if (opened) return "היעדים מוצגים במפה";
-  if (selected) return "לחיצה נוספת תציג את היעדים במפה";
-  return "הצגה במפה";
+// What a screen reader hears after a trip's name: what the next press does.
+function pickHint(selected: boolean): string {
+  return selected ? "לחיצה נוספת תכניס לטיול" : "הצגה במפה";
 }
 
 // The selection the map, its preview card, the featured card and the rows
@@ -489,16 +431,21 @@ function useTripMapSelection(
     setOpenId(null);
   }, []);
 
+  const router = useRouter();
   const pick = useCallback(
-    (id: string, { scroll = false }: { scroll?: boolean } = {}) => {
+    (id: string, { scroll = false, enter = false }: { scroll?: boolean; enter?: boolean } = {}) => {
       setWorld(false);
-      if (id === selectedId) {
-        // The second press: open it on the map. A trip already open stays so.
+      if (id === selectedId && enter) {
+        // The second press on a tile or the featured card: into the trip.
+        router.push(`/trips/${id}`);
+        return;
+      }
+      if (id !== selectedId) {
+        // The first press: the map flies to the trip and draws its places at
+        // once — zooming in to read their names is the traveller's own gesture.
+        setSelectedId(id);
         setOpenId(id);
         if (!(id in destinations)) read(id);
-      } else {
-        setSelectedId(id);
-        setOpenId(null);
         // A trip the filter hides (the featured card while "עבר" is on) is
         // still a trip to show: the filter steps back rather than the press
         // doing nothing.
@@ -509,7 +456,7 @@ function useTripMapSelection(
         mapRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       }
     },
-    [selectedId, destinations, read, trips, filter, mapRef],
+    [selectedId, destinations, read, trips, filter, mapRef, router],
   );
 
   // The opened trip as the map draws it. Its cities come from the pins the
@@ -530,16 +477,6 @@ function useTripMapSelection(
     };
   }, [openId, cached, mapped]);
 
-  const status: OpenStatus = !openId
-    ? "none"
-    : cached === undefined
-      ? "loading"
-      : cached === "error"
-        ? "error"
-        : opened && opened.places.length + opened.cities.length === 0
-          ? "empty"
-          : "ready";
-
   return {
     filter,
     setFilter: (next: Filter) => {
@@ -551,21 +488,19 @@ function useTripMapSelection(
     openId,
     world,
     opened,
-    status,
     pick,
     // Back to every trip — the globe.
     showWorld: () => {
       clear();
       setWorld(true);
     },
-    // Escape: an opened trip closes to its selection first, then that clears.
-    back: () => (openId ? setOpenId(null) : clear()),
+    // Escape: back to nothing selected.
+    back: clear,
     // A tap on empty map, from the canvas (never while a trip is open).
     clear,
   };
 }
 
-type OpenStatus = "none" | "loading" | "ready" | "empty" | "error";
 type TripMapSelection = ReturnType<typeof useTripMapSelection>;
 
 function TripsSection({
@@ -587,7 +522,7 @@ function TripsSection({
   selection: TripMapSelection;
   mapRef: RefObject<HTMLDivElement | null>;
 }) {
-  const { filter, selectedId, openId, world, opened, status, back } = selection;
+  const { filter, selectedId, openId, world, opened, back } = selection;
   const [unfolded, setUnfolded] = useState(false);
 
   const shown = useMemo(
@@ -604,8 +539,8 @@ function TripsSection({
   );
   const rows = others.filter((trip) => shownIds.has(trip.entry.trip.id));
 
-  // The card over the map always names a trip: the one pressed, or else the
-  // featured one, or else the first the filter keeps.
+  // Where the map looks: the trip pressed, or else the featured one, or else
+  // the first the filter keeps.
   const selected = selectedId && shownIds.has(selectedId) ? selectedId : null;
   const focus =
     shown.find((trip) => trip.entry.trip.id === selected) ??
@@ -671,12 +606,11 @@ function TripsSection({
           // scroll-mb clears the phone's floating tab bar, so a press on the
           // featured card scrolls the map fully into view, not behind it.
           "relative w-full scroll-mt-4 scroll-mb-28 overflow-hidden rounded-3xl bg-surface-2 shadow-card md:scroll-mb-4",
-          // An opened trip is a map to explore, so it gets the room for it.
-          isOpen ? "h-[22rem] lg:h-[30rem]" : "h-56 lg:h-80",
-          // Leaflet's bottom controls (the attribution) move to the top, clear
-          // of the preview card; the zoom buttons of an opened trip sit under
-          // the globe rather than behind it.
-          "[&_.leaflet-bottom]:bottom-auto [&_.leaflet-bottom]:top-0 [&_.leaflet-top.leaflet-left]:top-14",
+          // A selected trip's places are a map to explore, so it gets the room.
+          isOpen ? "h-[20rem] lg:h-[28rem]" : "h-56 lg:h-80",
+          // The zoom buttons of an opened trip sit under the globe rather than
+          // behind it.
+          "[&_.leaflet-top.leaflet-left]:top-14",
         )}
       >
         <HomeMap
@@ -684,7 +618,7 @@ function TripsSection({
           selectedId={selected}
           focusId={world ? null : (focus?.entry.trip.id ?? null)}
           onSelect={(id) => (id ? selection.pick(id) : selection.clear())}
-          insetBottomShare={focus ? (isOpen ? 0.28 : 0.36) : 0}
+          insetBottomShare={0}
           opened={isOpen ? opened : null}
         />
 
@@ -698,55 +632,8 @@ function TripsSection({
           <Globe className="h-5 w-5" aria-hidden="true" />
         </button>
 
-        {focus && (
-          <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex flex-col items-center gap-2">
-            <MapStatus
-              selected={selected !== null}
-              status={isOpen ? status : "none"}
-              count={opened ? opened.places.length || opened.cities.length : 0}
-            />
-            <div className="pointer-events-auto relative flex w-full items-center gap-3 rounded-[18px] bg-surface p-3 shadow-lift">
-              <TripTile trip={focus} />
-              <div className="flex min-w-0 flex-1 flex-col">
-                <div className="flex min-w-0 items-center gap-2">
-                  {/* The card is the same two-step press as the row it
-                      names; the arrow is what enters. */}
-                  <button
-                    type="button"
-                    onClick={() => selection.pick(focus.entry.trip.id)}
-                    aria-pressed={focus.entry.trip.id === selected}
-                    className="min-w-0 truncate text-start text-base font-bold text-foreground after:absolute after:inset-0 after:rounded-[18px] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
-                  >
-                    {focus.entry.trip.name}
-                    <span className="sr-only">
-                      {" — "}
-                      {pickHint(
-                        focus.entry.trip.id === selected,
-                        isOpen && focus.entry.trip.id === openId,
-                      )}
-                    </span>
-                  </button>
-                  <PreviewBadge trip={focus} />
-                </div>
-                <span className="truncate text-[13px] text-muted">
-                  {previewMeta(focus)}
-                </span>
-              </div>
-              <Link
-                href={`/trips/${focus.entry.trip.id}`}
-                aria-label={`כניסה לטיול ${focus.entry.trip.name}`}
-                className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
-                <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-              </Link>
-            </div>
-          </div>
-        )}
       </div>
 
-      <h3 className="hidden pt-2 text-xl font-bold text-foreground lg:block">
-        כל הטיולים
-      </h3>
 
       {rows.length === 0 ? (
         others.length > 0 && (
@@ -756,17 +643,16 @@ function TripsSection({
         )
       ) : (
         <div className="@container">
-          <ul className="grid gap-3 @lg:grid-cols-2">
+          <ul className="grid grid-cols-2 gap-3 @xl:grid-cols-3">
             {visible.map((trip) => {
               const id = trip.entry.trip.id;
               return (
                 <li key={id} className="min-w-0">
-                  <TripRow
+                  <TripSquare
                     trip={trip}
                     now={now}
                     selected={id === selected}
-                    opened={isOpen && id === openId}
-                    onPick={() => selection.pick(id, { scroll: true })}
+                    onPick={() => selection.pick(id, { scroll: true, enter: true })}
                   />
                 </li>
               );
@@ -789,234 +675,102 @@ function TripsSection({
   );
 }
 
-// The one line over the map that says what is happening and what a press will
-// do next. Polite live region, so the read finishing is announced.
-function MapStatus({
-  selected,
-  status,
-  count,
-}: {
-  selected: boolean;
-  status: OpenStatus;
-  count: number;
-}) {
-  let icon: ReactNode = null;
-  let text: string | null = null;
-  switch (status) {
-    case "loading":
-      icon = <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />;
-      text = "טוענים את היעדים…";
-      break;
-    case "ready":
-      icon = <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />;
-      text = `${count === 1 ? "יעד אחד" : `${count} יעדים`} · התקרבו לראות שמות`;
-      break;
-    case "empty":
-      icon = <MapPin className="h-3.5 w-3.5" aria-hidden="true" />;
-      text = "עוד אין בטיול הזה יעדים עם מיקום";
-      break;
-    case "error":
-      icon = <MapPin className="h-3.5 w-3.5" aria-hidden="true" />;
-      text = "לא הצלחנו לטעון את המקומות — מוצגות הערים";
-      break;
-    case "none":
-      if (selected) {
-        icon = <MapPin className="h-3.5 w-3.5" aria-hidden="true" />;
-        text = "לחיצה נוספת על הטיול תציג את היעדים";
-      }
-      break;
-  }
-  return (
-    <p role="status" aria-live="polite" className="flex max-w-full justify-center">
-      {text && (
-        <span className="flex min-w-0 items-center gap-1.5 rounded-full bg-surface/95 px-3 py-1.5 text-[12px] font-semibold text-primary-ink shadow-card">
-          {icon}
-          <span className="truncate">{text}</span>
-        </span>
-      )}
-    </p>
-  );
-}
+// Each phase's two colours: the quiet tint a tile rests in, and the full
+// colour it fills with once selected — "the colour strengthens when chosen".
+const SQUARE_TONE: Record<
+  StandingTrip["phase"]["kind"],
+  { rest: string; on: string; icon: string }
+> = {
+  during: { rest: "bg-cta-tint text-cta-ink", on: "bg-cta text-white", icon: "text-cta" },
+  before: { rest: "bg-primary-tint text-primary-ink", on: "bg-primary text-white", icon: "text-primary" },
+  undated: { rest: "bg-surface-sunken text-muted-strong", on: "bg-foreground text-background", icon: "text-muted" },
+  after: { rest: "bg-success-tint text-success-ink", on: "bg-success text-white", icon: "text-success" },
+};
 
-function PreviewBadge({ trip }: { trip: HomeTrip }) {
-  const { phase } = trip.entry;
-  const [label, tone] =
-    phase.kind === "during"
-      ? ["עכשיו", "bg-cta-tint text-cta-ink"]
-      : phase.kind === "before"
-        ? [`בעוד ${phase.daysUntilStart} ימים`, "bg-primary-tint text-primary-ink"]
-        : phase.kind === "undated"
-          ? ["טיוטה", "bg-surface-sunken text-muted"]
-          : [shortMonthYearLabel(trip.entry.trip.start_date), "bg-success-tint text-success-ink"];
-  return (
-    <span
-      className={cn(
-        "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold",
-        tone,
-      )}
-    >
-      {label}
-    </span>
-  );
-}
-
-function previewMeta(trip: HomeTrip): string {
-  const { phase } = trip.entry;
-  const days = trip.dayCount > 0 ? `${trip.dayCount} ימים` : "עוד אין לו״ז";
-  const places =
-    trip.placeCount === 1 ? "מקום אחד שמור" : `${trip.placeCount} מקומות שמורים`;
-  switch (phase.kind) {
-    case "during":
-      return trip.dayCount > 0
-        ? `יום ${phase.dayNumber} מתוך ${trip.dayCount} • ${places}`
-        : `יום ${phase.dayNumber} • ${places}`;
-    case "before":
-      return `${days} • ${places}`;
-    case "undated":
-      return `בלי תאריכים • ${days}`;
-    case "after":
-      return `הסתיים • ${days}`;
-  }
-}
-
-// The row's icon tile. The design draws status in it — a pencil for a draft, a
-// check for a trip already taken. An upcoming trip had a photo before the
-// redesign, and keeps it in the tile, over a pin while it loads or if none.
-function TripTile({ trip }: { trip: HomeTrip }) {
-  const kind = trip.entry.phase.kind;
-  const tile = "h-12 w-12 shrink-0 rounded-[14px]";
-  if (kind === "after") {
-    return (
-      <span
-        aria-hidden="true"
-        className={cn(tile, "flex items-center justify-center bg-success-tint text-success")}
-      >
-        <Check className="h-5 w-5" />
-      </span>
-    );
-  }
-  if (kind === "undated") {
-    return (
-      <span
-        aria-hidden="true"
-        className={cn(tile, "flex items-center justify-center bg-surface-sunken text-muted")}
-      >
-        <PencilLine className="h-5 w-5" />
-      </span>
-    );
-  }
-  return (
-    <span aria-hidden="true" className={cn(tile, "overflow-hidden bg-primary-tint")}>
-      <PlacePhoto
-        query={trip.city ?? ""}
-        className="h-full w-full bg-primary-tint"
-        fallback={<MapPin className="h-5 w-5 text-primary" />}
-      />
-    </span>
-  );
-}
-
-function rowMeta(trip: HomeTrip, now: string): string {
+function squareMeta(trip: HomeTrip, now: string): string {
   const { trip: t, phase } = trip.entry;
-  const cities = (trip.cities?.length ? trip.cities : trip.city ? [trip.city] : []).slice(0, 2);
-  const days = trip.dayCount > 0 ? `${trip.dayCount} ימים` : null;
   switch (phase.kind) {
     case "undated":
-      return [
-        "טיוטה",
-        trip.dayCount > 0 ? `${trip.dayCount} ימים מתוכננים` : "עוד אין תאריכים",
-        `נוצר ${agoLabel(t.created_at, new Date(now))}`,
-      ].join(" • ");
+      return trip.dayCount > 0
+        ? `טיוטה · ${trip.dayCount} ימים`
+        : `טיוטה · נוצר ${agoLabel(t.created_at, new Date(now))}`;
     case "after":
-      return [
-        ...(cities.length ? cities : [monthYearLabel(t.start_date)]),
-        days,
-        trip.placeCount > 0 ? `${trip.placeCount} מקומות` : null,
-      ]
+      return [shortMonthYearLabel(t.start_date), trip.dayCount > 0 ? `${trip.dayCount} ימים` : null]
         .filter(Boolean)
-        .join(" • ");
+        .join(" · ");
     case "during":
-      return [`יום ${phase.dayNumber} בטיול`, ...cities, days].filter(Boolean).join(" • ");
+      return `יום ${phase.dayNumber} בטיול`;
     case "before":
-      return [
-        phase.daysUntilStart === 1 ? "מחר" : `בעוד ${phase.daysUntilStart} ימים`,
-        dateRangeLabel(t.start_date, t.end_date),
-        trip.placeCount > 0 ? `${trip.placeCount} מקומות שמורים` : null,
-      ]
-        .filter(Boolean)
-        .join(" • ");
+      return phase.daysUntilStart === 1 ? "יוצאים מחר" : `בעוד ${phase.daysUntilStart} ימים`;
   }
 }
 
-function TripRow({
+// One trip as a square. The whole tile is the press: the first points the map
+// at the trip, and the tile fills with its phase's colour and grows an arrow
+// pill — "press again to go in"; the second press enters.
+function TripSquare({
   trip: home,
   now,
   selected,
-  opened,
   onPick,
 }: {
   trip: HomeTrip;
   now: string;
-  // The trip the map's pin is pointing at — ringed, so a press on the map
-  // finds its row.
   selected: boolean;
-  // Its destinations are the ones on the map.
-  opened: boolean;
-  // The row's press: select on the map, or open there if already selected.
-  // Entering the trip is the chevron at the row's end, a target of its own.
   onPick: () => void;
 }) {
   const { trip, phase } = home.entry;
+  const tone = SQUARE_TONE[phase.kind];
+  const cities = home.cities?.length ? home.cities : home.city ? [home.city] : [];
+  const Icon = phase.kind === "after" ? Check : phase.kind === "undated" ? PencilLine : MapPin;
   return (
-    <article
-      aria-current={selected ? "true" : undefined}
+    <button
+      type="button"
+      onClick={onPick}
+      aria-pressed={selected}
       className={cn(
-        "relative flex min-w-0 items-center gap-2 rounded-[18px] bg-surface py-3 ps-3.5 pe-2 shadow-card transition-shadow",
-        selected && "ring-2 ring-primary",
+        "relative flex aspect-square w-full flex-col justify-between overflow-hidden rounded-[22px] p-3.5 text-start",
+        "transition-[background-color,color,transform,box-shadow] duration-200 active:scale-[0.97]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        selected ? cn(tone.on, "shadow-lift") : tone.rest,
       )}
     >
-      <TripTile trip={home} />
-      <div className="ms-1 flex min-w-0 flex-1 flex-col gap-0.5">
-        <button
-          type="button"
-          onClick={onPick}
-          aria-pressed={selected}
-          className="min-w-0 truncate text-start text-base font-bold text-foreground after:absolute after:inset-0 after:rounded-[18px] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
-        >
-          {trip.name}
-          <span className="sr-only">
-            {" — "}
-            {pickHint(selected, opened)}
-          </span>
-        </button>
-        <span className="truncate text-[13px] text-muted">
-          {opened ? (
-            <span className="font-semibold text-primary-ink">היעדים מוצגים במפה</span>
-          ) : (
-            rowMeta(home, now)
-          )}
-        </span>
-      </div>
-      {/* A draft's settings shortcut, from before the redesign. Above the
-          stretched button, so it is its own target. */}
-      {phase.kind === "undated" && (
-        <Link
-          href={`/trips/${trip.id}/more/trip`}
-          aria-label={`הגדרות הטיול ${trip.name}`}
-          className="relative z-10 flex h-11 w-9 shrink-0 items-center justify-center rounded-full text-outline hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <EllipsisVertical className="h-5 w-5" aria-hidden="true" />
-        </Link>
-      )}
-      {/* Into the trip — the one control on the row that navigates. */}
-      <Link
-        href={`/trips/${trip.id}`}
-        aria-label={`כניסה לטיול ${trip.name}`}
-        className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2 text-primary transition-[background-color,transform] hover:bg-primary-tint active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      <span
+        aria-hidden="true"
+        className={cn(
+          "flex h-10 w-10 items-center justify-center rounded-[12px] transition-colors",
+          selected ? "bg-white/20 text-current" : cn("bg-surface", tone.icon),
+        )}
       >
-        <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-      </Link>
-    </article>
+        <Icon className="h-5 w-5" />
+      </span>
+
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="line-clamp-2 text-base leading-tight font-bold">{trip.name}</span>
+        {cities.length > 0 && (
+          <span className={cn("truncate text-xs", selected ? "opacity-85" : "opacity-75")}>
+            {cities.slice(0, 2).join(" · ")}
+          </span>
+        )}
+        <span className={cn("truncate text-xs font-semibold", selected ? "opacity-95" : "opacity-80")}>
+          {squareMeta(home, now)}
+        </span>
+      </span>
+
+      {/* The indicator the owner asked for: on the selected tile only, the
+          arrow that says the next press goes in. */}
+      <span
+        aria-hidden="true"
+        className={cn(
+          "absolute end-3 top-3 flex h-9 items-center gap-1 rounded-full bg-white px-3 text-xs font-bold text-foreground shadow-card transition-[opacity,transform] duration-200",
+          selected ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-1 opacity-0",
+        )}
+      >
+        כניסה
+        <ArrowLeft className="h-3.5 w-3.5" />
+      </span>
+      <span className="sr-only">{" — "}{pickHint(selected)}</span>
+    </button>
   );
 }
 
