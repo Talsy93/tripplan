@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { Button, Dialog, useToast } from "@/components/ui";
 import { cn } from "@/lib/cn";
+import { normaliseName } from "@/lib/text";
 import {
   DISCOVER_CATEGORIES,
   DISCOVER_CATEGORY_ORDER,
@@ -86,6 +87,7 @@ export function DiscoverDeck({
   initialKey,
   savedCount: initialSaved,
   savedKeys,
+  scheduledNames = [],
   // For the preview harness: a dealt deck, so the scene needs no network.
   initialCards,
 }: {
@@ -95,6 +97,11 @@ export function DiscoverDeck({
   savedCount: number;
   // `city|name` of every place already in the trip — dealt cards skip them.
   savedKeys: string[];
+  // Every title already on the schedule, normalised (normaliseName). A place
+  // that is on some day already is not dealt again, whatever list put it there
+  // — asked for directly: "the places shown must not already be in the
+  // schedule".
+  scheduledNames?: string[];
   initialCards?: DiscoverCard[];
 }) {
   const { showToast } = useToast();
@@ -126,12 +133,15 @@ export function DiscoverDeck({
   const generation = useRef(0);
   // True while the server is still dealing the full deck behind a quick one.
   const [filling, setFilling] = useState(false);
+  // The last deal ended without the full deck (see the end of load).
+  const [incomplete, setIncomplete] = useState(false);
 
   const load = useCallback(async () => {
     if (!destination) return;
     const mine = ++generation.current;
     setState("loading");
     setFilling(false);
+    setIncomplete(false);
 
     const ask = async () =>
       fetch("/api/discover", {
@@ -198,7 +208,13 @@ export function DiscoverDeck({
         // The next round asks again.
       }
     }
-    if (mine === generation.current) setFilling(false);
+    if (mine === generation.current) {
+      setFilling(false);
+      // Still partial after a minute: the full deal did not make it this time.
+      // Said so, with a way to ask again, rather than a spinner that never
+      // stops or a "nothing here" that is not true.
+      setIncomplete(partial);
+    }
   }, [destination, tripId]);
 
   // Dealt on arrival and whenever the destination changes — not the chip: a
@@ -216,6 +232,7 @@ export function DiscoverDeck({
   }, [load, destKey]);
 
   const inTrip = useMemo(() => new Set(savedKeys), [savedKeys]);
+  const onSchedule = useMemo(() => new Set(scheduledNames), [scheduledNames]);
   const deck = useMemo(() => {
     const decidedIds = new Set(decided.map((entry) => entry.card.id));
     const needle = query.trim().toLowerCase();
@@ -223,6 +240,8 @@ export function DiscoverDeck({
       (card) =>
         !decidedIds.has(card.id) &&
         !inTrip.has(`${card.city}|${card.name}`) &&
+        !onSchedule.has(normaliseName(card.name)) &&
+        !(card.localName && onSchedule.has(normaliseName(card.localName))) &&
         (category === "all" || card.category === category) &&
         (!onlyFree || card.fee === false) &&
         (!onlyKnown || card.languages >= MUST_SEE_LANGUAGES) &&
@@ -230,13 +249,22 @@ export function DiscoverDeck({
           card.name.toLowerCase().includes(needle) ||
           (card.localName ?? "").toLowerCase().includes(needle)),
     );
+    // One card per name: two OSM objects for one place (a church and its
+    // square, a node and a way) can carry two Wikidata ids and the same name.
+    const seenNames = new Set<string>();
+    const unique = open.filter((card) => {
+      const key = normaliseName(card.name);
+      if (seenNames.has(key)) return false;
+      seenNames.add(key);
+      return true;
+    });
     // "פינות נסתרות" is the places fewer people have heard of: least known
     // first, the one chip dealt the other way round.
-    if (category === "hidden") open.sort((a, b) => a.languages - b.languages);
+    if (category === "hidden") unique.sort((a, b) => a.languages - b.languages);
     // Bookmarked cards go behind everything else, in the order they were sent.
-    const back = later.flatMap((id) => open.filter((card) => card.id === id));
-    return [...open.filter((card) => !later.includes(card.id)), ...back];
-  }, [cards, decided, later, inTrip, onlyFree, onlyKnown, query, category]);
+    const back = later.flatMap((id) => unique.filter((card) => card.id === id));
+    return [...unique.filter((card) => !later.includes(card.id)), ...back];
+  }, [cards, decided, later, inTrip, onSchedule, onlyFree, onlyKnown, query, category]);
 
   const top = deck[0] ?? null;
   const next = deck[1] ?? null;
@@ -438,8 +466,51 @@ export function DiscoverDeck({
           </div>
         )}
 
-        {state === "loading" || (!top && filling) ? (
+        {state === "loading" || (!top && filling && category === "all") ? (
           <SkeletonCard label={`מחפשים מקומות ב${destination?.label ?? ""}…`} />
+        ) : !top && (filling || incomplete) ? (
+          // A chip the full deck has not reached yet. Not a spinner with no
+          // end: what is happening, and the way back to what is ready.
+          <DeckMessage
+            tone="bg-primary-tint text-primary"
+            icon={
+              filling ? (
+                <LoaderCircle className="h-9 w-9 animate-spin" aria-hidden="true" />
+              ) : (
+                <Search className="h-9 w-9" aria-hidden="true" />
+              )
+            }
+            title={
+              filling
+                ? `עוד אוספים ${DISCOVER_CATEGORIES[category].label} ב${destination?.label ?? ""}`
+                : "החפיסה המלאה עוד לא הגיעה"
+            }
+            text={
+              filling
+                ? "זה לוקח עד דקה בפעם הראשונה בעיר. בינתיים יש כרטיסים בקטגוריות אחרות."
+                : "השרת של המפות איטי כרגע. אפשר לנסות שוב, או לחזור לכל המקומות."
+            }
+          >
+            <div className="flex w-full flex-col gap-2.5">
+              {!filling && (
+                <button
+                  type="button"
+                  onClick={() => void load()}
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground text-[15px] font-semibold text-background"
+                >
+                  לנסות שוב
+                  <RotateCw className="h-[17px] w-[17px]" aria-hidden="true" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setCategory("all")}
+                className="inline-flex h-12 w-full items-center justify-center rounded-full border border-border bg-surface text-sm font-medium text-foreground"
+              >
+                לכל המקומות
+              </button>
+            </div>
+          </DeckMessage>
         ) : state === "error" ? (
           <DeckMessage
             tone="bg-callout-tint text-callout-ink"

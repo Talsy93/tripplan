@@ -43,7 +43,7 @@ const PER_CITY = 40;
 // deal. Reported as "very slow, or not working at all, when I change
 // category" — each chip used to be its own Overpass + Wikidata + Wikipedia
 // pass, cold the first time, and answered empty-and-partial while it ran.
-const PER_CHIP = 20;
+const PER_CHIP = 15;
 const CHIPS = ["mustsee", "food", "nature", "shopping", "hidden"] as const;
 
 type Element = {
@@ -178,7 +178,13 @@ const NOT_A_SIGHT_WORDS =
 
 // A label for the chip on a quick card, from the few Wikidata types that are
 // most of what a city centre's landmarks are. Anything else is "ציון דרך".
-const QUICK_KINDS: Record<string, { label: string; visit: [number, number] }> = {
+// Parks and gardens go under "טבע ונוף" and fountains under "פינות נסתרות", so
+// those chips have cards from the first second instead of waiting on the full
+// deal; everything else here is a sight.
+const QUICK_KINDS: Record<
+  string,
+  { label: string; visit: [number, number]; category?: "nature" | "hidden" }
+> = {
   Q33506: { label: "מוזיאון", visit: [90, 120] },
   Q207694: { label: "מוזיאון", visit: [90, 120] },
   Q845945: { label: "מקדש שינטו", visit: [30, 45] },
@@ -189,14 +195,14 @@ const QUICK_KINDS: Record<string, { label: string; visit: [number, number] }> = 
   Q163687: { label: "בזיליקה", visit: [30, 45] },
   Q23413: { label: "טירה ומבצר", visit: [60, 90] },
   Q16560: { label: "ארמון", visit: [60, 90] },
-  Q22698: { label: "פארק", visit: [45, 90] },
-  Q1107656: { label: "גן", visit: [30, 60] },
+  Q22698: { label: "פארק", visit: [45, 90], category: "nature" },
+  Q1107656: { label: "גן", visit: [30, 60], category: "nature" },
   Q12518: { label: "מגדל", visit: [45, 60] },
   Q839954: { label: "אתר ארכאולוגי", visit: [60, 90] },
   Q4989906: { label: "ציון דרך ומורשת", visit: [30, 45] },
   Q174782: { label: "כיכר", visit: [20, 30] },
   Q12280: { label: "גשר", visit: [15, 20] },
-  Q483453: { label: "מזרקה", visit: [15, 30] },
+  Q483453: { label: "מזרקה", visit: [15, 30], category: "hidden" },
 };
 
 const QUICK_TYPES = new Set(["landmark", "monument", "mountain", "isle"]);
@@ -265,7 +271,7 @@ export async function quickAround({
             name,
             localName,
             kindLabel: kind?.label ?? "ציון דרך",
-            category: "mustsee",
+            category: kind?.category ?? "mustsee",
             placeCategory: "attractions",
             latitude: point.latitude,
             longitude: point.longitude,
@@ -529,7 +535,9 @@ async function cityElements(center: {
   const pending = PENDING.get(key);
   if (pending) return pending;
 
-  const request = overpass(center).then((elements) => {
+  const request = persistedElements(Number(key.split(",")[0]), Number(key.split(",")[1]))
+    .catch(() => null)
+    .then((elements) => {
     PENDING.delete(key);
     if (elements) {
       if (ELEMENTS.size > 50) ELEMENTS.delete(ELEMENTS.keys().next().value!);
@@ -540,6 +548,25 @@ async function cityElements(center: {
   PENDING.set(key, request);
   return request;
 }
+
+// The Overpass answer for a point, in Next's data cache for a day — shared by
+// every server instance. The full deal is Overpass, then Wikidata, then
+// Wikipedia, and on a cold city the three together can run past the route's
+// sixty seconds; the deal is then cut off and nothing of it is kept, so the
+// next ask paid for Overpass again and the chips under "הכל" spun forever
+// (reported 2026-09-25: "I change category and get only a spinner"). Kept on
+// its own, the second try starts after the slowest step. Wikidata and
+// Wikipedia already ride fetch's own day cache. A failure throws, so it is
+// never stored.
+const persistedElements = unstable_cache(
+  async (latitude: number, longitude: number) => {
+    const elements = await overpass({ latitude, longitude });
+    if (!elements) throw new Error("discover: overpass unavailable");
+    return elements;
+  },
+  ["discover-elements-v1"],
+  { revalidate: 86_400 },
+);
 
 async function overpass(center: {
   latitude: number;

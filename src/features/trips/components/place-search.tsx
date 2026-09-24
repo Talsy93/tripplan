@@ -18,7 +18,6 @@ import {
   Button,
   Chip,
   EmptyState,
-  Input,
   ListRow,
   Surface,
 } from "@/components/ui";
@@ -26,7 +25,7 @@ import { cn } from "@/lib/cn";
 import { addPlace } from "../application/place-actions";
 import { saveMore, setSelected } from "../application/guide-actions";
 import { aiErrorFromResponse } from "../domain/ai-errors";
-import { SEARCH_PRESETS, SEARCH_PRESET_KEYS } from "../domain/place";
+import { PLACE_CATEGORIES, SEARCH_PRESETS, SEARCH_PRESET_KEYS } from "../domain/place";
 import type { AiRecommendation } from "../domain/ai-suggestion";
 import {
   cityToneClass,
@@ -37,6 +36,7 @@ import type { Place } from "../domain/place";
 import type { AddedPlace } from "../infrastructure/place-service";
 import { PlaceDetails } from "./place-details";
 import { DomainIcon } from "./domain-icon";
+import { PlacePhoto } from "./place-photo";
 
 // The Pencil grid's eight tiles. Presets, not stored categories — see
 // SEARCH_PRESETS in domain/place.ts for why the two are different lists.
@@ -119,6 +119,8 @@ export function PlaceSearch({
   tripId,
   cities,
   addedPlaces,
+  initialCategory = null,
+  initialPlaces,
 }: {
   tripId: string;
   // The trip's destinations, in route order — the filter's options.
@@ -126,12 +128,18 @@ export function PlaceSearch({
   // Places already in the trip, with the itinerary days they're scheduled on,
   // so results can say so instead of offering to add them twice.
   addedPlaces: AddedPlace[];
+  // For the preview harness: a category already open with its results, so the
+  // result cards can be seen without the search route (it needs a session).
+  initialCategory?: SearchPreset | null;
+  initialPlaces?: Place[];
 }) {
   const [city, setCity] = useState(cities[0] ?? "");
   // Null means the category grid — the screen this tab opens on.
-  const [category, setCategory] = useState<SearchPreset | null>(null);
+  const [category, setCategory] = useState<SearchPreset | null>(initialCategory);
   const [query, setQuery] = useState("");
-  const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [status, setStatus] = useState<Status>(
+    initialPlaces ? { kind: "results", places: initialPlaces } : { kind: "idle" },
+  );
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [near, setNear] = useState<NearPoint | null>(null);
   // A district inside the city, typed by the user — "Omotesando" in Tokyo.
@@ -351,6 +359,7 @@ export function PlaceSearch({
   // rendered in one place and lived inline there.
   const results = (
     <>
+      {status.kind === "searching" && <ResultSkeletons />}
       {status.kind === "results" && status.places.length === 0 && (
         <EmptyState
           icon={<Search />}
@@ -363,78 +372,34 @@ export function PlaceSearch({
         />
       )}
       {status.kind === "results" && status.places.length > 0 && (
-        <ul className="grid gap-2 @2xl:grid-cols-2">
-          {status.places.slice(0, visibleCount).map((place) => {
-            const days = added.get(place.id);
-            return (
-              <li key={place.id} className={cityToneClass(tones, city)}>
-                <ListRow
-                  accent="tone"
-                  title={
-                    <button
-                      type="button"
-                      onClick={() => setOpen(place)}
-                      className="flex min-w-0 items-center gap-2 rounded text-start hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <span className="min-w-0 truncate">{place.name}</span>
-                      {place.notable && (
-                        <Badge
-                          tone="action"
-                          title="למקום יש ערך בוויקיפדיה"
-                          className="shrink-0"
-                        >
-                          מוכר
-                        </Badge>
-                      )}
-                    </button>
-                  }
-                  subtitle={
-                    [place.brand, place.cuisine, place.openingHours]
-                      .filter(Boolean)
-                      .join(" · ") ||
-                    place.address ||
-                    undefined
-                  }
-                  trailing={
-                    days ? (
-                      <Badge tone="success">
-                        <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                        {dayLabel(days)}
-                      </Badge>
-                    ) : (
-                      // Pencil's round "+" — outlined at rest, the same control
-                      // the recommended list uses, so "add" looks like one
-                      // thing across the screen.
-                      <button
-                        type="button"
-                        onClick={() => void add(place)}
-                        disabled={adding === place.id}
-                        aria-label={`הוספת ${place.name} לטיול`}
-                        className={cn(
-                          "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border-strong bg-surface text-foreground transition-colors hover:bg-surface-sunken active:scale-95",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                          adding === place.id && "opacity-60",
-                        )}
-                      >
-                        <Plus className="h-5 w-5" aria-hidden="true" />
-                      </button>
-                    )
-                  }
-                />
-              </li>
-            );
-          })}
+        // Cards, two across on a phone (2026-09-25, "design how the results
+        // look"): a list of forty text rows read as a directory; a grid of
+        // tinted cards reads as places. The card is the details button; the
+        // round "+" in its corner is the add, its own target.
+        <ul className="stagger grid grid-cols-2 gap-3 @2xl:grid-cols-3">
+          {status.places.slice(0, visibleCount).map((place) => (
+            <li key={place.id} className="animate-rise min-w-0">
+              <ResultCard
+                place={place}
+                city={city}
+                preset={category}
+                days={added.get(place.id)}
+                adding={adding === place.id}
+                onOpen={() => setOpen(place)}
+                onAdd={() => void add(place)}
+              />
+            </li>
+          ))}
         </ul>
       )}
       {status.kind === "results" && status.places.length > visibleCount && (
         <Button
           type="button"
           variant="outline"
-          size="sm"
           onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-          className="self-start"
+          className="self-center rounded-full px-6"
         >
-          עוד תוצאות
+          עוד {Math.min(PAGE_SIZE, status.places.length - visibleCount)} מקומות
         </Button>
       )}
     </>
@@ -545,9 +510,6 @@ export function PlaceSearch({
             );
           })}
         </div>
-        {status.kind === "searching" && (
-          <p className="text-sm text-muted">מחפש ב־{city}…</p>
-        )}
         {status.kind === "error" && (
           <Banner tone="danger">{status.message}</Banner>
         )}
@@ -566,75 +528,73 @@ export function PlaceSearch({
 
   // ---- One category --------------------------------------------------------
   const meta = SEARCH_PRESETS[category];
+  const found = status.kind === "results" ? status.places.length : null;
 
   return (
     <div className="flex flex-col gap-4">
-      <button
-        type="button"
-        onClick={backToGrid}
-        className="flex items-center gap-1 self-start rounded-control text-sm text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <ChevronRight className="h-4 w-4" aria-hidden="true" />
-        חזרה לקטגוריות
-      </button>
-
-      <div className="flex min-w-0 items-center gap-3">
-        <PresetTile preset={category} size="md" />
-        <h2 className="min-w-0 text-xl font-bold leading-7 wrap-anywhere">
-          {meta.label}
-        </h2>
-      </div>
-
-      {/* The destination name used to scroll away with the first result, so a
-          long list of "restaurants" gave no reminder of which city they were
-          in once the chip row above them was gone. Sticky and full-bleed
-          (matching <main>'s own padding so the bar reaches the edges it
-          scrolls under), it stays in view for as long as the results do. */}
-      <div className="sticky top-0 z-20 -mx-4 flex flex-col gap-2 border-b border-border bg-surface/95 px-4 py-2 backdrop-blur md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-1.5 text-sm font-bold">
-            <MapPin
-              className="h-4 w-4 shrink-0 text-primary"
-              aria-hidden="true"
-            />
-            <span className="min-w-0 truncate">
-              {near
-                ? `ליד ${near.label}`
-                : activeArea
-                  ? `${activeArea} · ${city}`
-                  : city}
-            </span>
+      {/* The category's own band: its tint edge to edge of the card, the tile,
+          the name, how many were found and where — and the city chips inside
+          it, so which city this is never scrolls out of the header. */}
+      <section className={cn("flex flex-col gap-3 rounded-[24px] p-4", PRESET_TONES[category])}>
+        <div className="flex min-w-0 items-center gap-3">
+          <button
+            type="button"
+            onClick={backToGrid}
+            aria-label="חזרה לקטגוריות"
+            className="-ms-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface/70 text-foreground transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <ChevronRight className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <PresetTile preset={category} size="md" className="bg-surface" />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <h2 className="min-w-0 text-xl leading-7 font-bold text-foreground wrap-anywhere">
+              {meta.label}
+            </h2>
+            <p className="flex min-w-0 items-center gap-1 text-[13px] text-muted-strong">
+              <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="truncate">
+                {found !== null && `${found} מקומות · `}
+                {near ? `ליד ${near.label}` : activeArea ? `${activeArea} · ${city}` : city}
+              </span>
+            </p>
           </div>
           {near && (
             <button
               type="button"
               onClick={clearNear}
-              className="flex shrink-0 items-center gap-1 rounded-control text-caption text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-9 shrink-0 items-center gap-1 rounded-full bg-surface/70 px-3 text-xs font-semibold text-foreground hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <X className="h-3.5 w-3.5" aria-hidden="true" />
-              חזרה לכל {city}
+              כל {city}
             </button>
           )}
         </div>
         {cities.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {cities.map((option) => (
-              <Chip
+              <button
                 key={option}
-                active={option === city}
+                type="button"
                 onClick={() => {
                   setCity(option);
                   setNear(null);
                   void search(category, option, null);
                 }}
+                aria-pressed={option === city}
+                className={cn(
+                  "h-9 shrink-0 rounded-full px-4 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  option === city ? "bg-foreground text-background" : "bg-surface/70 text-foreground hover:bg-surface",
+                )}
               >
                 {option}
-              </Chip>
+              </button>
             ))}
           </div>
         )}
-      </div>
+      </section>
 
+      {/* One search pill for a name inside the category; the district search is
+          a second, quieter pill — it is the less common question. */}
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -642,67 +602,55 @@ export function PlaceSearch({
         }}
         className="flex flex-col gap-2"
       >
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 start-3 my-auto h-4 w-4 text-muted"
-            />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={`חיפוש בתוך ${meta.label}`}
-              className="ps-9"
-            />
-          </div>
-          <Button type="submit" loading={status.kind === "searching"}>
-            חיפוש
-          </Button>
+        <div className="flex h-12 items-center gap-2 rounded-full bg-surface pe-1.5 ps-4 shadow-card focus-within:ring-2 focus-within:ring-ring">
+          <Search className="h-[18px] w-[18px] shrink-0 text-muted" aria-hidden="true" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={`חיפוש בתוך ${meta.label}`}
+            aria-label={`חיפוש בתוך ${meta.label}`}
+            enterKeyHint="search"
+            className="h-full min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-placeholder"
+          />
+          {(query.trim() || area.trim()) && (
+            <button
+              type="submit"
+              aria-label="חיפוש"
+              disabled={status.kind === "searching"}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-60"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            </button>
+          )}
         </div>
-
-        {/* The field that makes a district searchable at all.
-            The search above matches a place's *name*, so typing "Omotesando"
-            into it finds nothing — no café is called Omotesando. This one is
-            resolved to a point and becomes the centre of the search instead,
-            so the category is looked for *inside* the district. */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <MapPin
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 start-3 my-auto h-4 w-4 text-muted"
-            />
-            <Input
-              value={area}
-              onChange={(event) => setArea(event.target.value)}
-              placeholder={`אזור או שכונה ב${city} — למשל Omotesando`}
-              className="ps-9"
-              disabled={near !== null}
-            />
-          </div>
+        {/* The field that makes a district searchable at all: the name search
+            above matches a place's *name*, so "Omotesando" finds nothing there.
+            This one is resolved to a point and becomes the search's centre. */}
+        <div className="flex h-11 items-center gap-2 rounded-full border border-border bg-surface/60 pe-1.5 ps-4">
+          <MapPin className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
+          <input
+            value={area}
+            onChange={(event) => setArea(event.target.value)}
+            placeholder={`שכונה ב${city} — למשל Omotesando`}
+            aria-label={`שכונה ב${city}`}
+            disabled={near !== null}
+            className="h-full min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-placeholder disabled:opacity-50"
+          />
           {area.trim() && (
-            <Button
+            <button
               type="button"
-              variant="outline"
               onClick={() => {
                 setArea("");
                 void search(category, city, near, "");
               }}
+              aria-label="ניקוי השכונה"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface-sunken"
             >
-              נקה
-            </Button>
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
           )}
         </div>
       </form>
-
-      {status.kind === "searching" && (
-        <p className="text-sm text-muted">
-          מחפש{" "}
-          {activeArea || area.trim()
-            ? `ב${area.trim() || activeArea}`
-            : `ב־${city}`}
-          …
-        </p>
-      )}
 
       {status.kind === "error" && (
         <Banner tone="danger">{status.message}</Banner>
@@ -808,5 +756,112 @@ export function PlaceSearch({
         />
       )}
     </div>
+  );
+}
+
+// One search result as a card: the category's tint and glyph on top — or, for a
+// place with a Wikipedia entry, its photograph, which is the one kind of place
+// the free photo lookup reliably finds — then the name and one line of what it
+// is, and the round "+" (or the day it is on) in the corner.
+function ResultCard({
+  place,
+  city,
+  preset,
+  days,
+  adding,
+  onOpen,
+  onAdd,
+}: {
+  place: Place;
+  city: string;
+  preset: SearchPreset | null;
+  days: number[] | undefined;
+  adding: boolean;
+  onOpen: () => void;
+  onAdd: () => void;
+}) {
+  const tone = preset ? PRESET_TONES[preset] : "bg-surface-sunken text-muted";
+  const icon = preset
+    ? SEARCH_PRESETS[preset].icon
+    : PLACE_CATEGORIES[place.category ?? "other"].icon;
+  const glyph = <DomainIcon name={icon} className="h-8 w-8" />;
+  const meta =
+    [place.cuisine, place.brand].filter(Boolean).join(" · ") ||
+    place.openingHours ||
+    place.address;
+  return (
+    <article className="relative flex h-full flex-col overflow-hidden rounded-[20px] bg-surface shadow-card">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex flex-1 flex-col text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+      >
+        <span className={cn("relative flex h-24 w-full items-center justify-center", tone)}>
+          {place.notable ? (
+            <PlacePhoto
+              query={place.localName ?? place.name}
+              near={city}
+              className={cn("absolute inset-0 flex h-full w-full items-center justify-center", tone)}
+              fallback={glyph}
+            />
+          ) : (
+            glyph
+          )}
+          {place.notable && (
+            <span className="absolute top-2 start-2 rounded-full bg-surface/90 px-2 py-0.5 text-[11px] font-bold text-foreground">
+              מוכר
+            </span>
+          )}
+        </span>
+        <span className="flex flex-1 flex-col gap-0.5 p-3 pb-14">
+          <span className="line-clamp-2 text-[15px] leading-snug font-bold text-foreground">
+            {place.name}
+          </span>
+          {meta && (
+            <span className="line-clamp-1 text-xs text-muted" dir="auto">
+              {meta}
+            </span>
+          )}
+        </span>
+      </button>
+      <div className="absolute end-2.5 bottom-2.5">
+        {days ? (
+          <span className="flex h-9 items-center gap-1 rounded-full bg-success-tint px-3 text-xs font-bold text-success">
+            <Check className="h-3.5 w-3.5" aria-hidden="true" />
+            {dayLabel(days)}
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={onAdd}
+            disabled={adding}
+            aria-label={`הוספת ${place.name} לטיול`}
+            className={cn(
+              "flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-card transition-transform active:scale-90",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              adding && "opacity-60",
+            )}
+          >
+            <Plus className="h-5 w-5" aria-hidden="true" />
+          </button>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function ResultSkeletons() {
+  return (
+    <ul aria-hidden="true" className="grid grid-cols-2 gap-3 @2xl:grid-cols-3">
+      {Array.from({ length: 6 }, (_, index) => (
+        <li key={index} className="overflow-hidden rounded-[20px] bg-surface shadow-card">
+          <div className="h-24 animate-pulse bg-surface-sunken" />
+          <div className="flex flex-col gap-2 p-3 pb-6">
+            <div className="h-4 w-4/5 animate-pulse rounded bg-surface-sunken" />
+            <div className="h-3 w-1/2 animate-pulse rounded bg-surface-sunken" />
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

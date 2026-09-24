@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { discoverAround, warmDiscover } from "@/lib/discover";
+import { normaliseName } from "@/lib/text";
 import {
   DiscoverDeck,
+  getItinerary,
   getSelectedDestinations,
   getTrip,
   getTripRoute,
@@ -31,9 +33,10 @@ export default async function DiscoverPage({
 
   // The route is what knows each city's country (cached with its
   // coordinates), in the order the trip visits them.
-  const [route, selected] = await Promise.all([
+  const [route, selected, itinerary] = await Promise.all([
     getTripRoute(trip.id, trip.name),
     getSelectedDestinations(trip.id),
+    getItinerary(trip.id),
   ]);
 
   const cities: DiscoverDestination[] = [
@@ -114,6 +117,10 @@ export default async function DiscoverPage({
         initialKey={destinations[0]?.key ?? null}
         savedCount={selected.length}
         savedKeys={selected.map((item) => `${item.city}|${item.name}`)}
+        // What is already on some day is not dealt again.
+        scheduledNames={[
+          ...new Set(itinerary.flatMap((day) => day.items.map((item) => normaliseName(item.title)))),
+        ]}
         initialCards={initialCards}
       />
     </div>

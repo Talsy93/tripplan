@@ -11,6 +11,7 @@
 // Kept in the harness rather than in a feature, because it is test data and
 // nothing in the app may import it.
 
+import type { Place } from "@/features/trips/domain/place";
 import type { Booking } from "@/features/trips/domain/booking";
 import type {
   AiCitySuggestion,
@@ -876,3 +877,36 @@ export const SCHEDULE_PLAN: SchedulingPlan = {
   ],
   hasItinerary: true,
 };
+
+// ---- search results (the planning page's category view) --------------------
+
+const place = (
+  id: string,
+  name: string,
+  extra: Partial<Place> = {},
+): Place => ({
+  id,
+  name,
+  localName: null,
+  latitude: 41.9,
+  longitude: 12.48,
+  category: "restaurants",
+  cuisine: null,
+  openingHours: null,
+  website: null,
+  phone: null,
+  address: null,
+  brand: null,
+  notable: false,
+  detailCount: 1,
+  ...extra,
+});
+
+export const SEARCH_RESULTS: Place[] = [
+  place("node/1", "Da Enzo al 29", { cuisine: "roman", openingHours: "Mo-Sa 12:30-15:00", notable: true, localName: "Da Enzo al 29" }),
+  place("node/2", "Roscioli Salumeria", { cuisine: "italian", address: "Via dei Giubbonari 21" }),
+  place("node/3", "Pizzarium Bonci", { cuisine: "pizza", openingHours: "11:00-22:00" }),
+  place("node/4", "Trattoria Da Teo", { cuisine: "roman" }),
+  place("node/5", "Armando al Pantheon", { cuisine: "italian", notable: true }),
+  place("node/6", "Supplizio", { cuisine: "street food" }),
+];

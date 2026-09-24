@@ -41,6 +41,7 @@ import {
   DayMapCard,
   DayWeatherCard,
   ExploreScreen,
+  PlaceSearch,
   ExpenseSummary,
   GearList,
   HomeRail,
@@ -2474,6 +2475,32 @@ export const SCENES: Scene[] = [
         />
       </div>
     ),
+  },
+  // The planning page's category view with results already in hand — the
+  // result cards (2026-09-25). The search route needs a session, so the scene
+  // opens the category with fixture places instead of searching.
+  {
+    slug: "explore-category",
+    title: "תכנון · תוצאות קטגוריה",
+    note: "כרטיסי תוצאות: צבע ואייקון (תמונה למקום מוכר), שם, שורה, ו-+ בפינה",
+    bleed: true,
+    render: () =>
+      appFrame({
+        title: "הטיול לרומא ופירנצה",
+        active: "explore",
+        phase: { kind: "during", dayNumber: 3 },
+        startDate: "2026-09-12",
+        cities: ["רומא", "פירנצה"],
+        children: (
+          <PlaceSearch
+            tripId={f.TRIP_ID}
+            cities={["רומא", "פירנצה"]}
+            addedPlaces={[]}
+            initialCategory="food"
+            initialPlaces={f.SEARCH_RESULTS}
+          />
+        ),
+      }),
   },
   // "תכנון הטיול" with the whole plan (2026-09-25): opened from מסלול's empty
   // day 3 (the card on top), the route with its steppers, the empty days, and
