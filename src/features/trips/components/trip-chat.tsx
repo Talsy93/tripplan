@@ -105,6 +105,29 @@ export function TripChat({
   // Which half of the screen is showing. "chat" is the conversation; "plan" is
   // what the conversation would add to the trip.
   const [view, setView] = useState<"chat" | "plan">("chat");
+  const switchSentinel = useRef<HTMLDivElement>(null);
+  const [switchStuck, setSwitchStuck] = useState(false);
+
+  // Stuck = the spot the switcher sits in has scrolled up behind the header
+  // (4.5rem: the 4rem bar and the gap the switcher floats at).
+  useEffect(() => {
+    const el = switchSentinel.current;
+    if (!el) return;
+    let frame = 0;
+    const measure = () => {
+      frame = 0;
+      setSwitchStuck(el.getBoundingClientRect().top < 72);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    measure();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
   // Which tuning request is in flight, by its own text, so the chip that was
   // pressed is the one that says so.
   const [tweaking, setTweaking] = useState<string | null>(null);
@@ -359,21 +382,37 @@ export function TripChat({
           questions: "talk it through" and "what would this add to my trip". The
           count on the second tab is the point of it — it says there is
           something to look at without opening it. */}
-      <SegmentedControl
-        aria-label="תצוגת העוזר"
-        value={view}
-        onChange={(next: string) => setView(next === "plan" ? "plan" : "chat")}
-        items={[
-          { id: "chat", label: "שיחה חופשית" },
-          {
-            id: "plan",
-            label: "מסלול מוצע",
-            // The count is the point of the tab: it says there is something to
-            // look at without opening it.
-            count: plan ? planTotals(plan).items : undefined,
-          },
-        ]}
-      />
+      {/* Floats under the header once the page scrolls past it, centred —
+          a long conversation otherwise leaves the way to the plan a scroll
+          back up (asked for 2026-09-24). The sentinel is what tells it has
+          stuck: a sticky element cannot see that for itself. */}
+      <div ref={switchSentinel} aria-hidden="true" className="-mb-6 h-0" />
+      <div
+        className={cn(
+          "sticky top-[calc(4.5rem+env(safe-area-inset-top))] z-20 flex",
+          switchStuck ? "justify-center" : "justify-start",
+        )}
+      >
+        <SegmentedControl
+          aria-label="תצוגת העוזר"
+          value={view}
+          onChange={(next: string) => setView(next === "plan" ? "plan" : "chat")}
+          className={cn(
+            "transition-shadow duration-settle",
+            switchStuck && "bg-surface-sunken/90 shadow-lift backdrop-blur-md",
+          )}
+          items={[
+            { id: "chat", label: "שיחה חופשית" },
+            {
+              id: "plan",
+              label: "מסלול מוצע",
+              // The count is the point of the tab: it says there is something
+              // to look at without opening it.
+              count: plan ? planTotals(plan).items : undefined,
+            },
+          ]}
+        />
+      </div>
 
       {/* What actually happened, and what is left.
           This said "the destinations and items now appear in the route and on
