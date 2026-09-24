@@ -23,7 +23,6 @@ import {
   lodgingByDay,
   NowCard,
   OpenItems,
-  PartnersCard,
   dateOfDay,
   TodayGreeting,
   TodayToolbox,
@@ -220,7 +219,6 @@ export default async function TodayPage({
         </Suspense>
       )}
 
-      {live && <PartnersCard tripId={trip.id} members={members} />}
 
       {showDay ? (
         <section className="flex flex-col gap-3">

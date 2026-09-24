@@ -6,28 +6,18 @@ import {
   BookOpen,
   ChevronLeft,
   Compass,
-  Copy,
-  Heart,
-  HouseHeart,
   Languages,
   Luggage,
-  MessageSquareText,
   Phone,
-  UserPlus,
-  Users,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
-import { useToast } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import type { PrepItem, PrepSuggestion } from "../domain/prep";
-import { memberLabel } from "../domain/membership";
 import type { Booking } from "../domain/booking";
 import type { EmergencyContact } from "../domain/emergency";
 import { costTotalsByCurrency, formatMoney } from "../domain/expenses";
 import type { GearItem } from "../domain/gear";
-import type { TripMember } from "../domain/membership";
-import { enableSharing } from "../application/share-actions";
 import { AddBookingButton } from "./booking-form";
 import { ChecklistCard } from "./checklist-card";
 import { DeleteTripButton } from "./delete-trip-button";
@@ -52,13 +42,13 @@ import { PushToggle } from "./push-toggle";
 
 // Which sections are on screen. The first four are the chips; the last two
 // have no chip and are reached from a tile or a row.
-type View = "all" | "bookings" | "checklist" | "sharing" | "expenses" | "emergency";
+// Sharing is the header's share button only (2026-09-25) — no chip, no section.
+type View = "all" | "bookings" | "checklist" | "expenses" | "emergency";
 
 const FILTERS: { key: View; label: string }[] = [
   { key: "all", label: "הכל" },
   { key: "bookings", label: "טיסות ומלונות" },
   { key: "checklist", label: "ציוד" },
-  { key: "sharing", label: "שיתוף" },
 ];
 
 // Anchors other screens link to — "הוצאות עד כה" on the prep page lands on
@@ -78,21 +68,10 @@ const ELSEWHERE: {
   Icon: LucideIcon;
   to: { segment: string } | { view: View };
 }[] = [
-  { key: "members", label: "מי בא איתנו", Icon: Users, to: { segment: "members" } },
   { key: "guides", label: "מדריכי הערים", Icon: BookOpen, to: { segment: "guides" } },
   { key: "phrases", label: "מילים שימושיות", Icon: Languages, to: { segment: "phrases" } },
   { key: "emergency", label: "חירום וביטוח", Icon: Phone, to: { view: "emergency" } },
   { key: "guide", label: "איך זה עובד", Icon: Compass, to: { segment: "guide" } },
-];
-
-// The avatars' colours, by position. The app has no profile photos, so a
-// person is an initial on a tinted disc — the tone tokens, not new colours.
-const AVATAR_TONES = [
-  "bg-sky-tint text-sky-ink",
-  "bg-peach-tint text-peach-ink",
-  "bg-mint-tint text-mint-ink",
-  "bg-lilac-tint text-lilac-ink",
-  "bg-rose-tint text-rose-ink",
 ];
 
 export function TripHub({
@@ -103,13 +82,8 @@ export function TripHub({
   prepItems,
   prepSuggestions,
   today,
-  members,
   cities,
-  // Whether a public view link has been issued. Null when it has not.
-  shareToken,
   emergencyContacts,
-  // The site's origin, resolved on the server — see ShareTrip for why.
-  origin,
   // Stamped by the server, so the alerts cannot disagree between the server
   // render and hydration.
   now,
@@ -123,11 +97,8 @@ export function TripHub({
   prepSuggestions: PrepSuggestion[];
   // YYYY-MM-DD in the trip's zone.
   today: string;
-  members: TripMember[];
   cities: string[];
-  shareToken: string | null;
   emergencyContacts: EmergencyContact[];
-  origin: string;
   now: string;
 }) {
   const [view, setView] = useState<View>("all");
@@ -267,15 +238,6 @@ export function TripHub({
           prepItems={prepItems}
           suggestions={prepSuggestions}
           today={today}
-        />
-      )}
-
-      {view === "sharing" && (
-        <SharingSection
-          tripId={tripId}
-          members={members}
-          shareToken={shareToken}
-          origin={origin}
         />
       )}
 
@@ -425,162 +387,4 @@ function SectionHead({
   );
 }
 
-// ---- שותפים ועדכון משפחה ----------------------------------------------------
-
-function SharingSection({
-  tripId,
-  members,
-  shareToken,
-  origin,
-}: {
-  tripId: string;
-  members: TripMember[];
-  shareToken: string | null;
-  origin: string;
-}) {
-  const { showToast } = useToast();
-  const [token, setToken] = useState(shareToken);
-  const [working, setWorking] = useState(false);
-  const shown = members.slice(0, 3);
-
-  // The family link is the trip's public view link. Pressing either button on
-  // a trip that has none issues it first — the export's buttons promise a link,
-  // and "go to another screen and create one" is not what they say.
-  async function ensureUrl(): Promise<string | null> {
-    if (token) return `${origin}/share/${token}`;
-    setWorking(true);
-    const issued = await enableSharing(tripId);
-    setWorking(false);
-    if (!issued) {
-      showToast("יצירת הקישור נכשלה. נסו שוב.", "danger");
-      return null;
-    }
-    setToken(issued);
-    return `${origin}/share/${issued}`;
-  }
-
-  async function copy() {
-    const url = await ensureUrl();
-    if (!url) return;
-    try {
-      await navigator.clipboard.writeText(url);
-      showToast("קישור המעקב למשפחה הועתק");
-    } catch {
-      showToast("לא הצלחנו להעתיק. אפשר להעתיק ממסך השיתוף.", "danger");
-    }
-  }
-
-  async function whatsapp() {
-    // Opened before the await, inside the press: a window opened after a
-    // network round trip is a popup, and Safari blocks it.
-    const tab = token ? null : window.open("", "_blank");
-    const url = await ensureUrl();
-    if (!url) {
-      tab?.close();
-      return;
-    }
-    const target = `https://wa.me/?text=${encodeURIComponent(`הלו״ז, המלונות והטיסות של הטיול שלנו, מתעדכן לבד: ${url}`)}`;
-    if (tab) tab.location.href = target;
-    else window.open(target, "_blank", "noopener");
-  }
-
-  return (
-    <section className="flex flex-col gap-4">
-      <SectionHead
-        title="שותפים ועדכון משפחה"
-        meta={
-          <span className="shrink-0 text-xs font-semibold text-primary">
-            {members.length === 1 ? "רק אתם" : `${members.length} שותפים פעילים`}
-          </span>
-        }
-      />
-
-      <div className="flex flex-col gap-4 rounded-[18px] bg-surface p-4 shadow-card">
-        <div>
-          <span className="mb-1 block text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-muted-strong">
-            חברי הנסיעה
-          </span>
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center -space-x-2 space-x-reverse">
-              {shown.map((member, index) => (
-                <span
-                  key={member.member_id}
-                  title={memberLabel(member)}
-                  className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold shadow-sm ring-2 ring-surface",
-                    AVATAR_TONES[index % AVATAR_TONES.length],
-                  )}
-                >
-                  {initial(memberLabel(member))}
-                </span>
-              ))}
-              <Link
-                href={`/trips/${tripId}/more/members`}
-                aria-label="הוספת שותף"
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-high text-primary transition-colors hover:bg-surface-variant focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <UserPlus className="h-5 w-5" aria-hidden="true" />
-              </Link>
-            </div>
-            <Link
-              href={`/trips/${tripId}/more/members`}
-              className="rounded-full bg-surface-2 px-4 py-1 text-xs leading-4 font-medium text-primary transition-colors hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              ניהול הרשאות
-            </Link>
-          </div>
-        </div>
-
-        <div className="relative flex flex-col gap-2 overflow-hidden rounded-2xl bg-surface-2 p-4">
-          <div className="flex items-start gap-2">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cta-tint text-cta-strong">
-              <HouseHeart className="h-[22px] w-[22px]" aria-hidden="true" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1">
-                <h4 className="text-base leading-[22px] font-semibold text-foreground">
-                  קישור שקט למשפחה בבית
-                </h4>
-                <Heart
-                  className="h-4 w-4 shrink-0 fill-current text-cta-strong"
-                  aria-hidden="true"
-                />
-              </div>
-              <p className="mt-0.5 text-xs leading-[18px] text-muted-strong">
-                דף צפייה חי שמאפשר להורים ולמשפחה לעקוב אחרי הלו״ז, המלונות
-                והטיסות — בלי חשבון ובלי אפשרות לשנות. מספרי אישור, כתובות
-                מדויקות ומחירים לא מוצגים שם.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => void copy()}
-              disabled={working}
-              className="flex flex-1 items-center justify-center gap-1 min-h-11 rounded-[14px] bg-surface px-2 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-background active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Copy className="h-[18px] w-[18px] text-primary" aria-hidden="true" />
-              העתקת לינק
-            </button>
-            <button
-              type="button"
-              onClick={() => void whatsapp()}
-              disabled={working}
-              className="flex flex-1 items-center justify-center gap-1 min-h-11 rounded-[14px] bg-success-strong px-2 py-2 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90 active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <MessageSquareText className="h-[18px] w-[18px]" aria-hidden="true" />
-              שיתוף בוואטסאפ
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function initial(label: string): string {
-  return label.trim().charAt(0).toUpperCase() || "?";
-}
 

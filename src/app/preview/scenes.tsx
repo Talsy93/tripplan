@@ -1038,11 +1038,8 @@ export const SCENES: Scene[] = [
             prepItems={[]}
             prepSuggestions={[]}
             today="2026-09-11"
-            members={f.MEMBERS}
             cities={FRAME_CITIES}
-            shareToken="abcdef0123456789"
             emergencyContacts={[]}
-            origin="http://localhost:3000"
             now={f.NOW}
           />
         ),
@@ -1134,11 +1131,8 @@ export const SCENES: Scene[] = [
             prepItems={f.DOC_PREP}
             prepSuggestions={[]}
             today="2026-09-11"
-            members={f.DOC_MEMBERS}
             cities={["רומא", "פירנצה"]}
-            shareToken="abcdef0123456789"
             emergencyContacts={f.DOC_CONTACTS}
-            origin="http://localhost:3000"
             now={f.NOW}
           />
         ),

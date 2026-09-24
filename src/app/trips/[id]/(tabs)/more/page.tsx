@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { requestOrigin } from "@/lib/origin";
 import {
   APP_TIME_ZONE,
   getSelectedDestinations,
@@ -25,8 +24,7 @@ export default async function MorePage({
   const { id } = await params;
 
   // Every read the screen draws from, in one round trip, with the trip
-  // alongside them rather than ahead of them. The origin is the request's own,
-  // for the family link — see ShareTrip for why it is not read from `window`.
+  // alongside them rather than ahead of them.
   const [
     trip,
     bookings,
@@ -36,7 +34,6 @@ export default async function MorePage({
     shareToken,
     contacts,
     prepItems,
-    origin,
   ] =
     await Promise.all([
       getTrip(id),
@@ -47,7 +44,6 @@ export default async function MorePage({
       getShareToken(id),
       listEmergencyContacts(id),
       listPrepItems(id),
-      requestOrigin(),
     ]);
   if (!trip) notFound();
 
@@ -73,11 +69,8 @@ export default async function MorePage({
       prepItems={prepItems}
       prepSuggestions={prepSuggestions}
       today={todayIn(APP_TIME_ZONE, new Date())}
-      members={members}
       cities={[...new Set(selected.map((item) => item.city))].filter(Boolean)}
-      shareToken={shareToken}
       emergencyContacts={contacts}
-      origin={origin}
       now={new Date().toISOString()}
     />
   );

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, Share2, UserPlus, Users } from "lucide-react";
-import { Dialog, IconButton } from "@/components/ui";
+import { ArrowLeft, Link2, Share2, UserPlus } from "lucide-react";
+import { Dialog } from "@/components/ui";
 import { cn } from "@/lib/cn";
 
 // Sharing, in the app bar of every trip screen.
@@ -34,33 +34,35 @@ export function ShareButton({
 
   return (
     <>
-      {/* Stitch's two round actions: who is on the trip (with a count in
-          terracotta), and share. Both open the same signpost dialog. */}
+      {/* One button (2026-09-25): "sharing the trip and the journey can be one
+          share button". It was two — who is on the trip, and share — opening
+          the same window, beside a third copy on "היום" and a fourth in
+          Documents. The count of people rides on this one as a badge. */}
       <button
         type="button"
         aria-label={
-          memberCount > 0 ? `שותפים לטיול: ${memberCount}` : "שותפים לטיול"
+          isShared
+            ? "שיתוף הטיול — קישור פעיל"
+            : memberCount > 0
+              ? `שיתוף הטיול — ${memberCount} שותפים`
+              : "שיתוף הטיול"
         }
         onClick={() => setOpen(true)}
-        className="relative flex h-11 w-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-sunken hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className={cn(
+          "relative flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-surface-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          active ? "text-primary" : "text-muted hover:text-foreground",
+        )}
       >
-        <Users className="h-5 w-5" aria-hidden="true" />
+        <Share2 className="h-5 w-5" aria-hidden="true" />
         {memberCount > 0 && (
           <span
             aria-hidden="true"
-            className="absolute start-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-cta px-1 text-[0.625rem] font-bold text-cta-foreground"
+            className="absolute start-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-cta px-1 text-[0.625rem] font-bold text-cta-foreground"
           >
             {memberCount}
           </span>
         )}
       </button>
-      <IconButton
-        label={isShared ? "שיתוף הטיול — קישור פעיל" : "שיתוף הטיול"}
-        onClick={() => setOpen(true)}
-        className={cn("h-11 w-11", active && "text-primary")}
-      >
-        <Share2 className="h-5 w-5" aria-hidden="true" />
-      </IconButton>
 
       <Dialog open={open} onClose={() => setOpen(false)} title="שיתוף הטיול">
         <div className="flex flex-col gap-4">
@@ -75,15 +77,15 @@ export function ShareButton({
             <Row
               href={`/trips/${tripId}/more/members`}
               Icon={UserPlus}
-              title="הזמנת אדם לטיול"
-              hint="לפי אימייל, עם צפייה בלבד או עם עריכה. הקישור נשלח בוואטסאפ, ב-SMS או במייל."
+              title="מי בא איתנו"
+              hint="הזמנה לפי אימייל, צפייה או עריכה, הרשאות והזמנות שממתינות."
               onNavigate={() => setOpen(false)}
             />
             <Row
-              href={`/trips/${tripId}/more/members`}
-              Icon={Users}
-              title="מי יכול להיכנס"
-              hint="הרשאות, הסרת גישה, והזמנות שממתינות."
+              href={`/trips/${tripId}/more/share`}
+              Icon={Link2}
+              title={isShared ? "הקישור לצפייה פעיל" : "קישור לצפייה בלבד"}
+              hint="למשפחה ולחברים, בלי חשבון — בלי מחירים, קודים וכתובות מדויקות."
               onNavigate={() => setOpen(false)}
             />
           </div>
