@@ -53,8 +53,18 @@ export function Dialog({
       // because the backdrop is a pseudo-element and has no own target. Any
       // click that did not land on a descendant is therefore a backdrop click.
       onClick={(event) => {
+        // React bubbles through the component tree, not the DOM: a dialog
+        // rendered inside a clickable card hands every click in it — the X
+        // included — to the card, and a card that opens this dialog on click
+        // reopened it at once. That was the flight card on the route tab, and
+        // it read as the app freezing. Nothing inside a modal is the business
+        // of whatever is behind it.
+        event.stopPropagation();
         if (event.target === ref.current) onClose();
       }}
+      // Same for keys: the card opens on Enter and Space, which is also typing
+      // in a field in here.
+      onKeyDown={(event) => event.stopPropagation()}
       className={cn(
         "m-auto max-h-[92dvh] w-[min(32rem,calc(100vw-2rem))] overflow-y-auto rounded-modal bg-surface p-0 text-foreground shadow-modal",
         // Phones: a sheet from the bottom edge (Pencil, v7) — the thumb is

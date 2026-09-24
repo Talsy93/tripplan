@@ -476,7 +476,10 @@ function BookingRow({
 
   const ticket = kind.isTransport && booking.origin && booking.destination;
 
+  // The details are a sibling of the card, not a child: the card opens them
+  // on click, and a child would hand its own clicks back to it.
   return (
+    <>
     <Card
       padding="none"
       className={cn(
@@ -562,6 +565,7 @@ function BookingRow({
         </div>
       )}
 
+    </Card>
       {showing && (
         <BookingDetails
           booking={booking}
@@ -569,7 +573,7 @@ function BookingRow({
           onClose={() => setShowing(false)}
         />
       )}
-    </Card>
+    </>
   );
 }
 
