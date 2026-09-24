@@ -23,6 +23,25 @@
    =========================================================================== */
 
 :root {
+  /* --- v7 — the Pencil redesign (2026-09-24) -------------------------------
+     design/pencil/mytrip.pen, phase PN. Same names, new values: a warm
+     off-white canvas instead of lavender, deep teal (#12555c) for structure,
+     one terracotta call to action per screen, green for saved, red for skip.
+     The v6 notes below still explain what each token is for; only the hex
+     changed. A place card has no photo in this design — its category tint
+     and icon carry it (--cat-* below).
+     -------------------------------------------------------------------- */
+  --cat-mustsee-tint: #f4e2d2;
+  --cat-mustsee-ink: #8a3d17;
+  --cat-food-tint: #fbe3d9;
+  --cat-food-ink: #b2461f;
+  --cat-nature-tint: #ddeedf;
+  --cat-nature-ink: #2d6b3f;
+  --cat-shopping-tint: #f6e7cf;
+  --cat-shopping-ink: #8a5a10;
+  --cat-hidden-tint: #e6e1f3;
+  --cat-hidden-ink: #5b4a99;
+
   /* --- v6 — "Mediterranean Horizon" (Google Stitch, 2026-09-23) ----------
      The whole look moved to the owner's Stitch design. The source of every
      value below is design/stitch/.../mediterranean_horizon/DESIGN.md and the
@@ -33,116 +52,116 @@
      blue-tinted shadow rather than drawn by a border. The border token is
      kept, and kept faint, for the hand-rolled rows that still use it.
      -------------------------------------------------------------------- */
-  --background: #faf8ff;
+  --background: #f6f5f1;
   --surface: #ffffff;
-  --surface-2: #f2f3ff;
-  --surface-sunken: #eaedff;
+  --surface-2: #f1efea;
+  --surface-sunken: #ece9e2;
   /* surface-container-high / surface-variant: the node discs, the spine. */
-  --surface-high: #e2e7ff;
-  --surface-variant: #dae2fd;
-  --border: #e6e9f7;
-  --border-strong: #bfc7d2;
-  --foreground: #131b2e;
-  --muted: #58616d;
+  --surface-high: #e6e3dc;
+  --surface-variant: #ddd9d0;
+  --border: #e6e3dc;
+  --border-strong: #cfcac0;
+  --foreground: #1d1c1a;
+  --muted: #5f5d58;
   /* Stitch's outline grey — captions on the day cards, small metadata. */
-  --outline: #707881;
+  --outline: #8e8b84;
   /* Stitch on-surface-variant: secondary text on the documents screen. */
-  --muted-strong: #3f4850;
+  --muted-strong: #4a4843;
   /* A placeholder is a hint, not a value. It was --muted, the same grey as
      real secondary text, and a field showing "למשל 14A" read as already
      filled in. Lighter than --outline and never bold, so an empty field looks
      empty — still 3:1 on white, the contrast a hint needs. */
-  --placeholder: #8e97a2;
+  --placeholder: #969389;
   /* Stitch inverse-surface / inverse-on-surface: the dark foot of a photo
      card on "גילוי", and the light text written on it. */
-  --inverse-surface: #283044;
-  --inverse-foreground: #eef0ff;
+  --inverse-surface: #1d1c1a;
+  --inverse-foreground: #f6f5f1;
 
   /* --- brand: deep maritime blue ----------------------------------------
      Structure, links, the active tab, focus. Not the call to action — that is
      the terracotta below, which is Stitch's own rule ("reserved exclusively
      for primary action triggers"). */
-  --brand: #006194;
+  --brand: #12555c;
   --brand-foreground: #ffffff;
-  --brand-2: #007bb9;
+  --brand-2: #1b7a74;
 
-  --primary: #006194;
-  --primary-hover: #004b73;
+  --primary: #12555c;
+  --primary-hover: #0d4247;
   --primary-foreground: #ffffff;
-  --primary-tint: #cce5ff;
-  --primary-ink: #004b73;
-  --ring: #007bb9;
+  --primary-tint: #e3efef;
+  --primary-ink: #0d4247;
+  --ring: #1b7a74;
   /* primary-fixed-dim: the quiet line on a maritime fill. */
-  --primary-soft: #93ccff;
+  --primary-soft: #9ccbc9;
   /* 0026 (documents): primary-container, the far stop of the boarding pass
      gradient, and on-primary-fixed, the ink on a primary-fixed pill. */
-  --primary-bright: #007bb9;
-  --primary-deep: #001d31;
+  --primary-bright: #1b7a74;
+  --primary-deep: #06282b;
 
   /* The call to action: "הוסף יעד", "הצג ברקוד", "הוספה". One per screen. */
-  --cta: #ea580c;
-  --cta-hover: #c2410c;
+  --cta: #e2582f;
+  --cta-hover: #c44a25;
   --cta-foreground: #ffffff;
   /* secondary-container: the bright terracotta of a live dot and the FAB. */
-  --cta-bright: #fd651e;
+  --cta-bright: #ee6a40;
   /* secondary: the deep terracotta of the live badge and a pressed FAB. */
-  --cta-strong: #a73a00;
+  --cta-strong: #a63c1c;
   /* secondary-fixed: pale terracotta chips and discs, with their inks. */
-  --cta-tint: #ffdbce;
-  --cta-ink: #7f2b00;
-  --cta-deep: #370e00;
+  --cta-tint: #fbe3d9;
+  --cta-ink: #8a3014;
+  --cta-deep: #3a1206;
 
   /* --- role trios -------------------------------------------------------
      tint = pale background, ink = readable text on it, solid = the fill. */
-  --action-tint: #e2efff;
-  --action-ink: #004b73;
-  --action: #006194;
+  --action-tint: #e3efef;
+  --action-ink: #0d4247;
+  --action: #12555c;
 
   /* Terracotta: "now" — the live badge, the running item, a reminder. */
-  --callout-tint: #ffe6da;
-  --callout-ink: #8a2f00;
-  --callout: #ea580c;
+  --callout-tint: #fbe3d9;
+  --callout-ink: #8a3014;
+  --callout: #e2582f;
 
   /* Palm emerald: confirmed, packed, done. */
-  --success-tint: #d5f5e6;
-  --success-ink: #005137;
-  --success: #00855d;
+  --success-tint: #e2f3ea;
+  --success-ink: #145c3c;
+  --success: #1f8a5b;
   /* tertiary-fixed: the mint chip — booked, anchored, confirmed. */
-  --success-bright: #85f8c4;
+  --success-bright: #bdebd2;
   /* Stitch tertiary, and on-tertiary-fixed — the "offline" tag ink. */
-  --success-strong: #006948;
-  --success-deep: #002114;
+  --success-strong: #17724a;
+  --success-deep: #0b2f1f;
 
-  --danger-tint: #ffdad6;
-  --danger-ink: #93000a;
-  --danger: #ba1a1a;
+  --danger-tint: #fbe9e7;
+  --danger-ink: #8e2a23;
+  --danger: #c8433a;
 
   --warning-tint: var(--callout-tint);
   --warning-ink: var(--callout-ink);
   --warning: var(--callout);
 
   /* --- scrims ----------------------------------------------------------- */
-  --scrim-strong: rgba(19, 27, 46, 0.78);
-  --scrim: rgba(19, 27, 46, 0.45);
-  --scrim-soft: rgba(19, 27, 46, 0.18);
+  --scrim-strong: rgba(29, 28, 26, 0.78);
+  --scrim: rgba(29, 28, 26, 0.45);
+  --scrim-soft: rgba(29, 28, 26, 0.18);
 
   /* --- elevation --------------------------------------------------------
      Stitch's own shadows, blue-tinted. Cards rest on `card`; the featured
      card and anything floating use `lift`. Kept on :root because Leaflet
      pins are built as raw CSS strings and can only reach a token via var(). */
-  --elevation-soft: 0 2px 8px rgba(2, 132, 199, 0.06);
+  --elevation-soft: 0 1px 3px rgba(29, 28, 26, 0.05);
   /* card and lift are what the exports' cards actually render with —
      Tailwind's shadow-md and shadow-lg, on every card and boarding pass in
      _2, _3, _4 and ai. The blue-tinted 0 4px 16px of DESIGN.md was the
      value here first, and at 8% on a lavender canvas it read as no shadow
      at all: cards looked drawn, not lifted. (2026-09-23, "the shadow like in
      the design, on every element".) */
-  --elevation-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --elevation-lift: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --elevation-modal: 0 20px 48px -8px rgba(19, 27, 46, 0.28);
+  --elevation-card: 0 1px 2px rgba(29, 28, 26, 0.04), 0 4px 14px rgba(29, 28, 26, 0.06);
+  --elevation-lift: 0 12px 32px rgba(29, 28, 26, 0.12);
+  --elevation-modal: 0 20px 48px -8px rgba(29, 28, 26, 0.28);
 
   /* The concierge gradient — the one lit surface in the design. */
-  --hero-gradient: linear-gradient(135deg, #004b73 0%, #006194 45%, #007bb9 100%);
+  --hero-gradient: linear-gradient(135deg, #12555c 0%, #1b7a74 100%);
 
   /* --- tone palette -----------------------------------------------------
      Six pastels assigned to cities and categories, by position in the route
@@ -305,6 +324,18 @@
 .tone-peach { --tone-tint: var(--peach-tint); --tone-ink: var(--peach-ink); --tone-dot: var(--peach-dot); }
 
 @theme inline {
+  /* place categories (v7) */
+  --color-cat-mustsee-tint: var(--cat-mustsee-tint);
+  --color-cat-mustsee-ink: var(--cat-mustsee-ink);
+  --color-cat-food-tint: var(--cat-food-tint);
+  --color-cat-food-ink: var(--cat-food-ink);
+  --color-cat-nature-tint: var(--cat-nature-tint);
+  --color-cat-nature-ink: var(--cat-nature-ink);
+  --color-cat-shopping-tint: var(--cat-shopping-tint);
+  --color-cat-shopping-ink: var(--cat-shopping-ink);
+  --color-cat-hidden-tint: var(--cat-hidden-tint);
+  --color-cat-hidden-ink: var(--cat-hidden-ink);
+
   /* surfaces and text */
   --color-background: var(--background);
   --color-surface: var(--surface);

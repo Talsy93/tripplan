@@ -1095,6 +1095,36 @@ export const SCENES: Scene[] = [
         ),
       }),
   },
+  // The same deck with the photographs taken away — the Pencil design's own
+  // card, a category colour and icon, which is what a café or a fountain with
+  // no Commons image gets on the real screen.
+  {
+    slug: "discover-no-photos",
+    title: "גילוי · בלי תמונות (Pencil)",
+    note: "הכרטיס לפי הקטגוריה: צבע ואייקון במקום תמונה",
+    bleed: true,
+    render: () =>
+      appFrame({
+        title: "הטיול לרומא ופירנצה",
+        active: "discover",
+        phase: { kind: "during", dayNumber: 3 },
+        startDate: "2026-09-12",
+        cities: ["רומא", "פירנצה"],
+        children: (
+          <DiscoverDeck
+            tripId={f.TRIP_ID}
+            destinations={[
+              { key: "city:רומא", label: "רומא", cities: ["רומא"], flag: "🇮🇹", kind: "city" },
+              { key: "city:פירנצה", label: "פירנצה", cities: ["פירנצה"], flag: "🇮🇹", kind: "city" },
+            ]}
+            initialKey="city:רומא"
+            savedCount={7}
+            savedKeys={[]}
+            initialCards={(discoverCards as DiscoverCard[]).map((card) => ({ ...card, image: null }))}
+          />
+        ),
+      }),
+  },
   // The documents tab against design/stitch/…/_3/screen.png. The export's own
   // content, typed in as data (fixtures DOC_*), so the scene and the picture
   // can be laid side by side and compared block by block.

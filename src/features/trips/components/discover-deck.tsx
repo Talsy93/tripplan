@@ -4,25 +4,38 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
-  Banknote,
-  BadgeCheck,
   Bookmark,
+  BookmarkCheck,
+  CalendarDays,
+  Check,
   ChevronDown,
   ChevronLeft,
-  Clock,
+  ChevronUp,
+  CloudOff,
+  DoorOpen,
   ExternalLink,
-  Flame,
+  Gem,
+  Globe,
   Heart,
-  Info,
-  Star,
+  Hourglass,
+  Landmark,
+  LoaderCircle,
   MapPin,
-  RotateCcw,
+  Plus,
+  RotateCw,
   Search,
+  ShoppingBag,
   SlidersHorizontal,
   Sparkles,
+  Star,
+  Ticket,
+  Trees,
+  Undo2,
+  Utensils,
   X,
+  type LucideIcon,
 } from "lucide-react";
-import { Button, Dialog, Input, useToast } from "@/components/ui";
+import { Button, Dialog, useToast } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import {
   DISCOVER_CATEGORIES,
@@ -38,10 +51,10 @@ import {
 import { addDiscoveredCard } from "../application/place-actions";
 import { setSelected } from "../application/guide-actions";
 
-// "גילוי" — the swipe deck, from design/stitch/…/discover_page, block for
-// block: the destination pill with the search and filter buttons beside it,
-// the category chips, a stack of three cards with the top one a photograph,
-// the four round buttons, and the "saved to your route" pill.
+// "גילוי" — the swipe deck, from design/pencil/mytrip.pen (phase PN): a city
+// pill and one filter button, the category chips, one card in focus with two
+// edges behind it, the four buttons with their labels, and the saved counter.
+// A card with no photograph is its category's colour and icon.
 //
 // Right is yes and left is no, whatever the reading direction — that is what
 // the export does ("dragging rightwards … means SAVE") and what every swipe
@@ -100,7 +113,6 @@ export function DiscoverDeck({
   const [saved, setSaved] = useState(initialSaved);
 
   const [picking, setPicking] = useState(false);
-  const [searching, setSearching] = useState(false);
   const [filtering, setFiltering] = useState(false);
   const [details, setDetails] = useState<DiscoverCard | null>(null);
   const [query, setQuery] = useState("");
@@ -222,7 +234,6 @@ export function DiscoverDeck({
   }, [cards, decided, later, inTrip, onlyFree, onlyKnown, query]);
 
   const top = deck[0] ?? null;
-  const next = deck[1] ?? null;
 
   // ---- deciding ------------------------------------------------------------
 
@@ -286,7 +297,7 @@ export function DiscoverDeck({
   // Keyboard: ← passes, → saves — the arrows point where the card goes.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
-      if (!top || leaving || picking || searching || filtering || details) return;
+      if (!top || leaving || picking || filtering || details) return;
       const target = event.target;
       if (target instanceof Element && target.closest("input, textarea, select")) {
         return;
@@ -306,338 +317,242 @@ export function DiscoverDeck({
 
   if (destinations.length === 0) {
     return (
-      <div className="mx-auto flex max-w-md flex-col items-center gap-3 rounded-3xl bg-surface p-6 text-center shadow-card">
-        <MapPin className="h-8 w-8 text-primary" aria-hidden="true" />
-        <h1 className="text-lg font-semibold">עוד אין יעדים לגלות בהם</h1>
-        <p className="text-sm text-muted-strong">
-          הוסיפו עיר לטיול, והגילוי יחלק כאן אטרקציות ממנה.
-        </p>
+      <div className="mx-auto flex max-w-md flex-col items-center gap-3 px-6 pt-16 text-center">
+        <span className="flex h-20 w-20 items-center justify-center rounded-full bg-primary-tint">
+          <MapPin className="h-9 w-9 text-primary" aria-hidden="true" />
+        </span>
+        <h1 className="text-xl font-bold">עוד אין יעדים לגלות בהם</h1>
+        <p className="text-sm text-muted">הוסיפו עיר לטיול, והגילוי יחלק כאן מקומות ממנה.</p>
         <Link
           href={`/trips/${tripId}/explore`}
-          className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-white"
+          className="mt-2 inline-flex h-12 items-center gap-2 rounded-full bg-cta px-6 text-sm font-semibold text-cta-foreground"
         >
+          <Plus className="h-[18px] w-[18px]" aria-hidden="true" />
           הוספת יעד
         </Link>
       </div>
     );
   }
 
+  const others = destinations.filter((entry) => entry.key !== destKey);
+  const savedHere = decided.filter((entry) => entry.saved).length;
+  const skippedHere = decided.length - savedHere;
+
   return (
     <div className="mx-auto flex w-full max-w-md flex-col pt-1 select-none">
-      <h1 className="sr-only">גילוי יעדים ואטרקציות</h1>
+      <h1 className="sr-only">גילוי מקומות</h1>
 
-      {/* Destination pill, search, filter. */}
-      <div className="mb-2 flex items-center justify-between gap-2">
+      {/* Where, and the one filter button. The quick search lives inside the
+          filter sheet: two round buttons side by side read as a toolbar, and
+          the design asks for less chrome above the card, not more. */}
+      <div className="flex items-center gap-2.5">
         <button
           type="button"
           onClick={() => setPicking(true)}
-          className="flex min-w-0 items-center gap-1 rounded-full bg-surface px-4 py-1 text-start shadow-sm transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-full border border-border bg-surface px-4 text-start transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <span className="text-base" aria-hidden="true">
-            {destination?.flag ?? "📍"}
+          <MapPin className="h-[18px] w-[18px] shrink-0 text-primary" aria-hidden="true" />
+          <span className="truncate text-base font-semibold text-foreground">
+            {destination?.label ?? "…"}
           </span>
-          <span className="flex min-w-0 flex-col">
-            <span className="text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-outline">
-              יעד נוכחי
+          {destination?.kind === "country" && (
+            <span className="truncate text-[13px] text-outline">
+              {destination.cities.length} ערים
             </span>
-            <span className="truncate text-base leading-none font-semibold text-foreground">
-              מגלים את {destination?.label ?? "…"}
-            </span>
-          </span>
-          <ChevronDown className="h-[18px] w-[18px] shrink-0 text-outline" aria-hidden="true" />
+          )}
+          <ChevronDown className="ms-auto h-4 w-4 shrink-0 text-outline" aria-hidden="true" />
         </button>
-        <div className="flex shrink-0 items-center gap-1">
-          <RoundButton label="חיפוש מהיר" onClick={() => setSearching(true)}>
-            <Search className="h-5 w-5" aria-hidden="true" />
-          </RoundButton>
-          <RoundButton label="סינון מתקדם" onClick={() => setFiltering(true)}>
-            <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
-            {filtered && (
-              <span className="absolute top-1.5 left-1.5 h-2 w-2 rounded-full bg-cta-bright" />
-            )}
-          </RoundButton>
-        </div>
+        <button
+          type="button"
+          onClick={() => setFiltering(true)}
+          aria-label="חיפוש וסינון"
+          className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-foreground transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <SlidersHorizontal className="h-5 w-5" aria-hidden="true" />
+          {filtered && (
+            <span className="absolute top-2 left-2 h-2 w-2 rounded-full bg-cta" />
+          )}
+        </button>
       </div>
 
-      {/* Category chips. */}
+      {/* Category chips — one line that scrolls, never wraps. */}
       <div
-        className="-mx-4 flex items-center gap-1 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="-mx-4 mt-3.5 flex items-center gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="group"
         aria-label="קטגוריות"
       >
-        {DISCOVER_CATEGORY_ORDER.map((key) => (
-          <button
-            key={key}
-            type="button"
-            onClick={() => setCategory(key)}
-            aria-pressed={category === key}
-            className={cn(
-              "flex shrink-0 items-center gap-0.5 rounded-full px-4 py-1.5 text-xs leading-4 font-medium shadow-sm transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              category === key
-                ? "bg-primary text-white"
-                : "bg-surface text-muted-strong active:bg-surface-sunken",
-            )}
-          >
-            <span>{DISCOVER_CATEGORIES[key].label}</span>
-            <span aria-hidden="true">{DISCOVER_CATEGORIES[key].emoji}</span>
-          </button>
-        ))}
+        {DISCOVER_CATEGORY_ORDER.map((key) => {
+          const Icon = CATEGORY_ICON[key];
+          const on = category === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setCategory(key)}
+              aria-pressed={on}
+              className={cn(
+                "flex h-[34px] shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                on
+                  ? "bg-foreground text-background"
+                  : "border border-border bg-surface text-muted",
+              )}
+            >
+              <Icon className="h-[15px] w-[15px]" aria-hidden="true" />
+              {DISCOVER_CATEGORIES[key].label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* The stack. */}
-      <div className="relative mt-1 flex h-[470px] w-full items-center justify-center">
+      {/* The stack: the card in hand, and two edges behind it so it is plain
+          there is more. */}
+      <div className="relative mt-3 h-[clamp(360px,calc(100dvh-420px),452px)] w-full">
         {top && (
           <>
-            <div className="pointer-events-none absolute h-[420px] w-[86%] translate-y-7 scale-90 rounded-3xl bg-surface-high opacity-40 shadow-sm" />
-            <div className="pointer-events-none absolute flex h-[440px] w-[93%] translate-y-3.5 scale-95 flex-col justify-end overflow-hidden rounded-3xl bg-surface p-4 opacity-85 shadow-md">
-              <div className="absolute inset-0 h-1/2 w-full bg-gradient-to-t from-inverse-surface/80 to-transparent" />
-              {next && (
-                <div className="relative z-10 flex flex-col gap-1">
-                  <span className="inline-block self-start rounded-full bg-surface-variant/80 px-2 py-0.5 text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-foreground">
-                    {next.kindLabel}
-                  </span>
-                  <h3 className="text-lg leading-6 font-semibold text-white">
-                    {next.name}
-                    {next.localName && ` (${next.localName})`}
-                  </h3>
-                </div>
-              )}
-            </div>
+            <div className="pointer-events-none absolute inset-x-6 top-6 bottom-0 rounded-[28px] bg-surface-sunken" />
+            <div className="pointer-events-none absolute inset-x-3 top-3 bottom-3 rounded-[28px] border border-border bg-surface" />
           </>
         )}
 
         {state === "loading" || (!top && filling) ? (
-          <DeckMessage>
-            <span className="h-8 w-8 animate-spin rounded-full border-4 border-primary-tint border-t-primary" />
-            <span>מחלקים את הקלפים…</span>
-            <span className="text-xs text-muted">
-              רק כמה שניות
-            </span>
-          </DeckMessage>
+          <SkeletonCard label={`מחפשים מקומות ב${destination?.label ?? ""}…`} />
         ) : state === "error" ? (
-          <DeckMessage>
-            <span className="font-semibold text-foreground">שרת המפות עמוס כרגע</span>
-            <span>הנתונים מגיעים מ-OpenStreetMap, ששרת הציבור שלו עמוס בשעות מסוימות. בדרך כלל מספיק לנסות שוב בעוד רגע.</span>
-            <Button variant="brand" size="sm" onClick={() => void load()}>
-              נסו שוב
-            </Button>
+          <DeckMessage
+            tone="bg-callout-tint text-callout-ink"
+            icon={<CloudOff className="h-9 w-9" aria-hidden="true" />}
+            title="שרת המפות עמוס כרגע"
+            text="זה לא אצלכם. בדרך כלל זה עובר תוך דקה, ומה ששמרתם לא נמחק."
+          >
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="inline-flex h-12 items-center gap-2 rounded-full bg-foreground px-6 text-[15px] font-semibold text-background"
+            >
+              לנסות שוב
+              <RotateCw className="h-[17px] w-[17px]" aria-hidden="true" />
+            </button>
           </DeckMessage>
         ) : !top ? (
-          <DeckMessage>
-            <span className="text-3xl" aria-hidden="true">🎉</span>
-            <span className="font-semibold text-foreground">
-              {cards && cards.length > 0 ? "עברתם על כל הקלפים" : "לא נמצאו כאן מקומות"}
-            </span>
-            <span>
-              {filtered
-                ? "נסו לנקות את הסינון או את החיפוש."
-                : "נסו קטגוריה אחרת או יעד אחר."}
-            </span>
-          </DeckMessage>
+          cards && cards.length > 0 && !filtered ? (
+            <DeckMessage
+              tone="bg-success-tint text-success"
+              icon={<Check className="h-9 w-9" aria-hidden="true" />}
+              title={`עברתם על כל המקומות ב${destination?.label ?? ""}`}
+              text={
+                decided.length > 0
+                  ? `${savedHere} נשמרו · ${skippedHere} דילגתם`
+                  : "נסו קטגוריה אחרת."
+              }
+            >
+              <div className="flex w-full flex-col gap-2.5">
+                <Link
+                  href={`/trips/${tripId}/days`}
+                  className="inline-flex h-[54px] w-full items-center justify-center gap-2 rounded-full bg-cta text-base font-semibold text-cta-foreground"
+                >
+                  שיבוץ המקומות לימים
+                  <CalendarDays className="h-[19px] w-[19px]" aria-hidden="true" />
+                </Link>
+                {others[0] && (
+                  <button
+                    type="button"
+                    onClick={() => setDestKey(others[0].key)}
+                    className="inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-full border border-border bg-surface text-sm font-medium text-foreground"
+                  >
+                    מעבר ל{others[0].label}
+                    <ArrowLeft className="h-4 w-4 text-muted" aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+            </DeckMessage>
+          ) : (
+            <DeckMessage
+              tone="bg-surface-sunken text-muted"
+              icon={<Search className="h-9 w-9" aria-hidden="true" />}
+              title="לא נמצאו כאן מקומות"
+              text={filtered ? "נסו לנקות את הסינון או את החיפוש." : "נסו קטגוריה אחרת או יעד אחר."}
+            />
+          )
         ) : (
-          <div
+          <PlaceCard
             key={top.id}
-            className={cn(
-              "absolute inset-0 flex h-full w-full touch-pan-y flex-col overflow-hidden rounded-3xl bg-surface shadow-xl",
-              dragging ? "cursor-grabbing" : "cursor-grab",
-            )}
-            style={{
-              transform: `translate(${offset}px, ${Math.abs(offset) * 0.1}px) rotate(${offset * 0.06}deg)`,
-              transition: dragging
-                ? "none"
-                : "transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-            }}
+            card={top}
+            offset={offset}
+            dragging={dragging}
+            likeOpacity={likeOpacity}
+            passOpacity={passOpacity}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
-          >
-            <div
-              className="relative h-full w-full bg-surface-high bg-cover bg-center"
-              style={top.image ? { backgroundImage: `url("${top.image}")` } : undefined}
-              role="img"
-              aria-label={top.name}
-            >
-              <div className="absolute inset-x-4 top-4 z-20 flex items-center justify-between">
-                {top.languages >= MUST_SEE_LANGUAGES ? (
-                  <span className="flex items-center gap-1 rounded-full bg-surface/90 px-2 py-1 text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-primary shadow-sm backdrop-blur-md">
-                    <BadgeCheck className="h-[15px] w-[15px] text-success-strong" aria-hidden="true" />
-                    אתר חובה ברשימה
-                  </span>
-                ) : (
-                  <span />
-                )}
-                <button
-                  type="button"
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onClick={() => {
-                    setLater((current) => [...current.filter((id) => id !== top.id), top.id]);
-                    showToast("נחזור אליו בסוף החפיסה");
-                  }}
-                  aria-label="לחזור אליו אחר כך"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-surface/80 text-foreground shadow-sm backdrop-blur-md transition-transform active:scale-90"
-                >
-                  <Bookmark className="h-[19px] w-[19px]" aria-hidden="true" />
-                </button>
-              </div>
-
-              <div
-                className="pointer-events-none absolute top-14 right-6 z-30 rotate-12 rounded-xl bg-success/95 px-4 py-1 text-lg leading-6 font-bold text-white shadow-lg"
-                style={{ opacity: likeOpacity }}
-                aria-hidden="true"
-              >
-                שמור למסלול! ✨
-              </div>
-              <div
-                className="pointer-events-none absolute top-14 left-6 z-30 -rotate-12 rounded-xl bg-cta-bright/95 px-4 py-1 text-lg leading-6 font-bold text-cta-deep shadow-lg"
-                style={{ opacity: passOpacity }}
-                aria-hidden="true"
-              >
-                דלג להבא ✕
-              </div>
-
-              <div className="absolute inset-0 bg-gradient-to-t from-inverse-surface via-inverse-surface/40 to-transparent" />
-
-              <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col gap-1 p-4 text-inverse-foreground">
-                <div className="flex flex-wrap items-center gap-1">
-                  <span className="rounded-full bg-primary/80 px-2 py-0.5 text-[10px] leading-[14px] font-medium tracking-[0.02em] text-white backdrop-blur-sm">
-                    {top.kindLabel}
-                  </span>
-                  {top.languages >= POPULAR_LANGUAGES && (
-                    <span className="flex items-center gap-0.5 rounded-full bg-surface-variant/30 px-2 py-0.5 text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-white backdrop-blur-sm">
-                      <Flame className="h-[13px] w-[13px] text-cta-bright" aria-hidden="true" />
-                      פופולרי במיוחד
-                    </span>
-                  )}
-                </div>
-
-                <h2 className="text-2xl leading-tight font-bold text-inverse-foreground">
-                  {top.name}
-                  {top.localName && (
-                    <span className="block text-base leading-[22px] font-normal opacity-85">
-                      {top.localName}
-                    </span>
-                  )}
-                </h2>
-
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 pt-0.5 text-xs leading-[18px] text-surface-variant">
-                  {/* The export's rating slot. Google's stars are only served
-                      by the paid Places API, so the slot is the way to them:
-                      the place's own page on Google Maps. See googleMapsUrl.
-                      stopPropagation, or pressing it starts a drag. */}
-                  <a
-                    href={googleMapsUrl(top)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onPointerDown={(event) => event.stopPropagation()}
-                    className="flex items-center gap-1 rounded-full hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                  >
-                    <Star className="h-4 w-4 fill-current text-cta-bright" aria-hidden="true" />
-                    <span className="font-bold text-inverse-foreground">ביקורות בגוגל</span>
-                  </a>
-                  {feeLabel(top.fee) && (
-                    <>
-                      <span aria-hidden="true">•</span>
-                      <span className="flex items-center gap-1">
-                        <Banknote className="h-4 w-4 text-success-bright" aria-hidden="true" />
-                        {feeLabel(top.fee)}
-                      </span>
-                    </>
-                  )}
-                  <span aria-hidden="true">•</span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" aria-hidden="true" />
-                    {visitLabel(top.visit)}
-                  </span>
-                </div>
-
-                {top.summary && (
-                  <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-surface-variant">
-                    {top.summary}
-                  </p>
-                )}
-
-                <button
-                  type="button"
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onClick={() => setDetails(top)}
-                  className="mt-0.5 flex items-center justify-between rounded-xl bg-surface/15 px-4 py-1 text-inverse-foreground backdrop-blur-md transition-colors hover:bg-surface/25"
-                >
-                  <span className="flex items-center gap-1.5 text-xs leading-4 font-medium">
-                    <Info className="h-4 w-4 text-primary-tint" aria-hidden="true" />
-                    הקש למפה, שעות פעילות וטיפים
-                  </span>
-                  <ChevronLeft className="h-[18px] w-[18px]" aria-hidden="true" />
-                </button>
-              </div>
-            </div>
-          </div>
+            onLater={() => {
+              setLater((current) => [...current.filter((id) => id !== top.id), top.id]);
+              showToast("נחזור אליו בסוף החפיסה");
+            }}
+            onDetails={() => setDetails(top)}
+          />
         )}
       </div>
 
-      {/* The four buttons. */}
-      <div className="mt-4 flex items-center justify-center gap-4">
-        <button
-          type="button"
-          onClick={() => void undo()}
-          disabled={decided.length === 0}
-          title="ביטול סווייפ אחרון"
-          aria-label="ביטול סווייפ אחרון"
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-surface text-outline shadow-md transition-transform active:scale-90 disabled:opacity-40"
-        >
-          <RotateCcw className="h-[22px] w-[22px]" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
+      {/* The four buttons, each on the side its gesture goes: skip left, save
+          right. Save is the biggest because it is the one that does something. */}
+      <div className="mt-2 flex items-end justify-between px-3">
+        <ActionButton label="ביטול" size="sm" onClick={() => void undo()} disabled={decided.length === 0}>
+          <Undo2 className="h-5 w-5 text-muted" aria-hidden="true" />
+        </ActionButton>
+        <ActionButton
+          label="דלג"
+          size="md"
           onClick={() => top && void decide(top, false)}
           disabled={!top || Boolean(leaving)}
-          title="דלג"
-          aria-label="דלג"
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-surface text-danger shadow-lg transition-all hover:bg-danger-tint/20 active:scale-90 disabled:opacity-40"
         >
-          <X className="h-[30px] w-[30px]" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
+          <X className="h-7 w-7 text-danger" aria-hidden="true" />
+        </ActionButton>
+        <ActionButton
+          label="שמור"
+          size="lg"
           onClick={() => top && void decide(top, true)}
           disabled={!top || Boolean(leaving)}
-          title="שמור למסלול"
-          aria-label="שמור למסלול"
-          className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-tr from-success-strong to-success text-white shadow-xl shadow-success-strong/20 transition-all active:scale-90 disabled:opacity-40"
+          filled
         >
-          <Heart className="h-[34px] w-[34px] fill-current" aria-hidden="true" />
-        </button>
+          <Heart className="h-[30px] w-[30px]" aria-hidden="true" />
+        </ActionButton>
         {top ? (
-          <Link
+          <ActionButton
+            label="שאל AI"
+            size="sm"
             href={`/trips/${tripId}/ai?q=${encodeURIComponent(`ספר לי על ${top.name} ב${top.city} — מתי הכי כדאי להגיע, כמה זמן לתכנן ואיזה טיפ שכדאי לדעת?`)}`}
-            title="תובנת AI מיוחדת"
-            aria-label="לשאול את עוזר ה-AI על המקום"
-            className="flex h-12 w-12 items-center justify-center rounded-full bg-surface text-primary shadow-md transition-transform active:scale-90"
           >
-            <Sparkles className="h-[22px] w-[22px]" aria-hidden="true" />
-          </Link>
+            <Sparkles className="h-5 w-5 text-primary" aria-hidden="true" />
+          </ActionButton>
         ) : (
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-surface text-primary opacity-40 shadow-md">
-            <Sparkles className="h-[22px] w-[22px]" aria-hidden="true" />
-          </span>
+          <ActionButton label="שאל AI" size="sm" disabled>
+            <Sparkles className="h-5 w-5 text-primary" aria-hidden="true" />
+          </ActionButton>
         )}
       </div>
 
-      {/* Saved so far. */}
-      <div className="mt-4 flex w-full justify-center">
-        <Link
-          href={`/trips/${tripId}/explore`}
-          className="inline-flex items-center gap-2 rounded-full bg-surface-sunken px-4 py-1 shadow-sm transition-colors hover:bg-surface-high"
-        >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-[10px] leading-[14px] font-bold text-white">
-            {saved}
-          </span>
-          <span className="text-xs leading-4 font-medium text-foreground">
-            {saved === 1 ? "מקום נשמר למסלול שלך" : "מקומות נשמרו למסלול שלך"}
-          </span>
-          <ArrowLeft className="h-[18px] w-[18px] text-primary" aria-hidden="true" />
-        </Link>
-      </div>
+      <p className="mt-3 hidden items-center justify-center gap-4 text-xs text-outline lg:flex" aria-hidden="true">
+        <span className="flex items-center gap-1.5">
+          <Kbd>→</Kbd> שמור
+        </span>
+        <span className="flex items-center gap-1.5">
+          <Kbd>←</Kbd> דלג
+        </span>
+      </p>
+
+      {/* Saved so far — always in sight, and the way to the list. */}
+      <Link
+        href={`/trips/${tripId}/explore`}
+        className="mt-3 flex h-12 items-center gap-2 rounded-full bg-primary-tint ps-4 pe-2 transition-colors hover:bg-surface-high"
+      >
+        <BookmarkCheck className="h-[18px] w-[18px] shrink-0 text-primary" aria-hidden="true" />
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-primary">
+          {saved === 1 ? "מקום אחד נשמר לטיול" : `${saved} מקומות נשמרו לטיול`}
+        </span>
+        <span className="inline-flex h-[34px] shrink-0 items-center gap-1 rounded-full bg-primary px-3 text-[13px] font-semibold text-primary-foreground">
+          לרשימה
+          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+        </span>
+      </Link>
 
       {/* ---- dialogs ---- */}
 
@@ -653,14 +568,25 @@ export function DiscoverDeck({
                 }}
                 aria-pressed={entry.key === destKey}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-start transition-colors",
+                  "flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-start transition-colors",
                   entry.key === destKey ? "bg-primary-tint" : "hover:bg-surface-2",
                 )}
               >
-                <span className="text-xl" aria-hidden="true">{entry.flag}</span>
+                <span
+                  className={cn(
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
+                    entry.key === destKey ? "bg-surface text-primary" : "bg-surface-2 text-muted",
+                  )}
+                >
+                  {entry.kind === "country" ? (
+                    <Globe className="h-5 w-5" aria-hidden="true" />
+                  ) : (
+                    <MapPin className="h-5 w-5" aria-hidden="true" />
+                  )}
+                </span>
                 <span className="flex min-w-0 flex-col">
-                  <span className="text-sm font-semibold">{entry.label}</span>
-                  <span className="truncate text-xs text-muted-strong">
+                  <span className="text-[15px] font-semibold">{entry.label}</span>
+                  <span className="truncate text-xs text-muted">
                     {entry.kind === "country"
                       ? `כל המדינה — ${entry.cities.join(", ")}`
                       : "עיר בטיול"}
@@ -672,39 +598,25 @@ export function DiscoverDeck({
         </ul>
       </Dialog>
 
-      <Dialog open={searching} onClose={() => setSearching(false)} title="חיפוש מהיר">
+      <Dialog open={filtering} onClose={() => setFiltering(false)} title="חיפוש וסינון">
         <div className="flex flex-col gap-3">
-          <Input
-            autoFocus
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="שם של מקום, למשל פנתיאון"
-          />
-          <p className="text-xs text-muted-strong">
-            מסנן את הקלפים שבחפיסה לפי השם.
-          </p>
-          <div className="flex justify-end gap-2">
-            {query && (
-              <Button variant="outline" onClick={() => setQuery("")}>
-                ניקוי
-              </Button>
-            )}
-            <Button variant="brand" onClick={() => setSearching(false)}>
-              הצגה
-            </Button>
-          </div>
-        </div>
-      </Dialog>
-
-      <Dialog open={filtering} onClose={() => setFiltering(false)} title="סינון מתקדם">
-        <div className="flex flex-col gap-3">
+          <label className="flex h-12 items-center gap-2.5 rounded-full border border-border bg-surface px-4 focus-within:ring-2 focus-within:ring-ring">
+            <Search className="h-[18px] w-[18px] shrink-0 text-muted" aria-hidden="true" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="שם של מקום, למשל פנתיאון"
+              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-placeholder"
+            />
+          </label>
           <Toggle checked={onlyFree} onChange={setOnlyFree} label="רק כניסה חופשית" hint="לפי תג הכניסה ב-OpenStreetMap" />
           <Toggle checked={onlyKnown} onChange={setOnlyKnown} label="רק אתרי חובה" hint={`מקומות שיש עליהם ערך בוויקיפדיה ב-${MUST_SEE_LANGUAGES} שפות ומעלה`} />
-          <div className="flex justify-end gap-2">
-            {(onlyFree || onlyKnown) && (
+          <div className="flex gap-2 pt-1">
+            {filtered && (
               <Button
                 variant="outline"
                 onClick={() => {
+                  setQuery("");
                   setOnlyFree(false);
                   setOnlyKnown(false);
                 }}
@@ -712,7 +624,7 @@ export function DiscoverDeck({
                 ניקוי
               </Button>
             )}
-            <Button variant="brand" onClick={() => setFiltering(false)}>
+            <Button variant="brand" className="flex-1" onClick={() => setFiltering(false)}>
               הצגה
             </Button>
           </div>
@@ -725,104 +637,459 @@ export function DiscoverDeck({
         title={details?.name ?? ""}
       >
         {details && (
-          <div className="flex flex-col gap-3">
-            {details.image && (
-              // eslint-disable-next-line @next/next/no-img-element -- a Commons redirect, not an optimisable asset
-              <img
-                src={details.image}
-                alt=""
-                className="h-44 w-full rounded-xl object-cover"
-              />
-            )}
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-strong">
-              <span className="rounded-full bg-primary-tint px-2 py-0.5 font-semibold text-primary">
-                {details.kindLabel}
-              </span>
-              {details.localName && <span dir="auto">{details.localName}</span>}
-              <span>· {details.city}</span>
-            </div>
-            {details.summary && (
-              <p className="text-sm leading-6 text-foreground">{details.summary}</p>
-            )}
-            <dl className="flex flex-col gap-1 text-sm">
-              <Fact label="שעות פעילות">
-                {details.openingHours ? (
-                  <span dir="ltr">{details.openingHours}</span>
-                ) : (
-                  "לא ידוע — כדאי לבדוק לפני שיוצאים"
-                )}
-              </Fact>
-              <Fact label="זמן ביקור">{visitLabel(details.visit)}</Fact>
-              {feeLabel(details.fee) && <Fact label="כניסה">{feeLabel(details.fee)}</Fact>}
-            </dl>
-            <div className="flex flex-wrap gap-2">
-              <a
-                href={googleMapsUrl(details)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 rounded-full bg-surface-high px-3 py-1.5 text-xs font-medium text-primary"
-              >
-                <MapPin className="h-4 w-4" aria-hidden="true" />
-                גוגל מפות — דירוג וביקורות
-              </a>
-              {details.wikiUrl && (
-                <a
-                  href={details.wikiUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-full bg-surface-high px-3 py-1.5 text-xs font-medium text-primary"
-                >
-                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                  בוויקיפדיה
-                </a>
-              )}
-              {details.website && (
-                <a
-                  href={details.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-full bg-surface-high px-3 py-1.5 text-xs font-medium text-primary"
-                >
-                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                  אתר המקום
-                </a>
-              )}
-            </div>
-            <p className="text-[11px] text-muted">
-              מידע ותמונה: OpenStreetMap, ויקיפדיה ו-Wikimedia Commons. הדירוג והביקורות — בגוגל מפות.
-            </p>
-          </div>
+          <DetailsBody
+            card={details}
+            onSkip={() => {
+              setDetails(null);
+              if (top && details.id === top.id) void decide(top, false);
+            }}
+            onSave={() => {
+              setDetails(null);
+              if (top && details.id === top.id) void decide(top, true);
+            }}
+          />
         )}
       </Dialog>
     </div>
   );
 }
 
-function RoundButton({
-  label,
-  onClick,
+// ---- pieces ----------------------------------------------------------------
+
+const CATEGORY_ICON: Record<DiscoverCategory, LucideIcon> = {
+  all: Sparkles,
+  mustsee: Landmark,
+  food: Utensils,
+  nature: Trees,
+  shopping: ShoppingBag,
+  hidden: Gem,
+};
+
+// The card's colour when there is no photograph — and there usually is none
+// for a café or a fountain. Static class names, so Tailwind sees them.
+const CATEGORY_TONE: Record<DiscoverCategory, { field: string; ink: string; tag: string }> = {
+  all: { field: "bg-surface-sunken", ink: "text-muted", tag: "bg-foreground" },
+  mustsee: { field: "bg-cat-mustsee-tint", ink: "text-cat-mustsee-ink", tag: "bg-cat-mustsee-ink" },
+  food: { field: "bg-cat-food-tint", ink: "text-cat-food-ink", tag: "bg-cat-food-ink" },
+  nature: { field: "bg-cat-nature-tint", ink: "text-cat-nature-ink", tag: "bg-cat-nature-ink" },
+  shopping: { field: "bg-cat-shopping-tint", ink: "text-cat-shopping-ink", tag: "bg-cat-shopping-ink" },
+  hidden: { field: "bg-cat-hidden-tint", ink: "text-cat-hidden-ink", tag: "bg-cat-hidden-ink" },
+};
+
+function PlaceCard({
+  card,
+  offset,
+  dragging,
+  likeOpacity,
+  passOpacity,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onLater,
+  onDetails,
+}: {
+  card: DiscoverCard;
+  offset: number;
+  dragging: boolean;
+  likeOpacity: number;
+  passOpacity: number;
+  onPointerDown: (event: React.PointerEvent) => void;
+  onPointerMove: (event: React.PointerEvent) => void;
+  onPointerUp: () => void;
+  onLater: () => void;
+  onDetails: () => void;
+}) {
+  const Icon = CATEGORY_ICON[card.category];
+  const tone = CATEGORY_TONE[card.category];
+  const fee = feeLabel(card.fee);
+  return (
+    <div
+      className={cn(
+        "absolute inset-x-0 top-0 bottom-3 flex touch-pan-y flex-col overflow-hidden rounded-[28px] bg-surface shadow-lift",
+        dragging ? "cursor-grabbing" : "cursor-grab",
+      )}
+      style={{
+        transform: `translate(${offset}px, ${Math.abs(offset) * 0.08}px) rotate(${offset * 0.05}deg)`,
+        transition: dragging ? "none" : "transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+      }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+    >
+      {/* The visual: the photograph when Commons has one, otherwise the
+          category's own colour and icon — never an empty grey box. */}
+      <div
+        className={cn("relative flex h-[40%] max-h-[172px] min-h-[120px] shrink-0 flex-col p-4 bg-cover bg-center", tone.field)}
+        style={card.image ? { backgroundImage: `url("${card.image}")` } : undefined}
+        role="img"
+        aria-label={card.image ? card.name : card.kindLabel}
+      >
+        <div className="relative z-10 flex items-start justify-between gap-2">
+          <div className="flex flex-wrap gap-1.5">
+            {card.languages >= MUST_SEE_LANGUAGES && (
+              <span className={cn("rounded-full px-2.5 py-1.5 text-xs font-semibold text-white", tone.tag)}>
+                אתר חובה
+              </span>
+            )}
+            {card.languages >= POPULAR_LANGUAGES && (
+              <span className="rounded-full bg-surface/85 px-2.5 py-1.5 text-xs font-semibold text-foreground backdrop-blur-sm">
+                פופולרי
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={onLater}
+            aria-label="לחזור אליו אחר כך"
+            title="לחזור אליו אחר כך"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface/85 text-foreground backdrop-blur-sm transition-transform active:scale-90"
+          >
+            <Bookmark className="h-[18px] w-[18px]" aria-hidden="true" />
+          </button>
+        </div>
+        {!card.image && (
+          <span className="m-auto flex h-[84px] w-[84px] items-center justify-center rounded-full bg-surface shadow-lift">
+            <Icon className={cn("h-10 w-10", tone.ink)} aria-hidden="true" />
+          </span>
+        )}
+
+        {/* Stamps — the gesture explaining itself as the card moves. */}
+        <Stamp className="top-14 left-5 -rotate-[10deg] border-success text-success" opacity={likeOpacity}>
+          שמור
+          <Heart className="h-5 w-5" aria-hidden="true" />
+        </Stamp>
+        <Stamp className="top-14 right-5 rotate-[10deg] border-danger text-danger" opacity={passOpacity}>
+          דלג
+          <X className="h-5 w-5" aria-hidden="true" />
+        </Stamp>
+      </div>
+
+      <div className="flex min-h-0 flex-1 flex-col gap-2.5 px-5 pt-4 pb-3">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-[26px] leading-[1.15] font-bold text-foreground">{card.name}</h2>
+          <p className="flex min-w-0 items-center gap-1.5 text-sm text-outline">
+            <span className="shrink-0">{card.kindLabel}</span>
+            {card.localName && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span dir="auto" className="truncate">{card.localName}</span>
+              </>
+            )}
+          </p>
+        </div>
+        {card.summary && (
+          <p className="line-clamp-2 text-sm leading-[1.5] text-muted">{card.summary}</p>
+        )}
+        <div className="h-px w-full bg-border" />
+        <dl className="flex items-start justify-between gap-2">
+          <CardFact icon={Hourglass} label="זמן ביקור">{visitLabel(card.visit)}</CardFact>
+          {fee && <CardFact icon={Ticket} label="כניסה">{fee}</CardFact>}
+          <div className="flex flex-col gap-0.5">
+            <dt className="sr-only">דירוג</dt>
+            <dd>
+              {/* The rating slot. Google's stars are only served by the paid
+                  Places API, so the slot is the way to them. See googleMapsUrl.
+                  stopPropagation, or pressing it starts a drag. */}
+              <a
+                href={googleMapsUrl(card)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onPointerDown={(event) => event.stopPropagation()}
+                className="flex flex-col gap-0.5 rounded hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                  <Star className="h-[15px] w-[15px] text-primary" aria-hidden="true" />
+                  בגוגל
+                </span>
+                <span className="text-xs text-outline">ביקורות</span>
+              </a>
+            </dd>
+          </div>
+        </dl>
+        <button
+          type="button"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={onDetails}
+          className="mt-auto flex items-center justify-center gap-1 rounded-full py-1 text-xs text-outline transition-colors hover:text-foreground"
+        >
+          <ChevronUp className="h-4 w-4" aria-hidden="true" />
+          הקישו לפרטים מלאים
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Stamp({
+  className,
+  opacity,
   children,
 }: {
-  label: string;
-  onClick: () => void;
+  className: string;
+  opacity: number;
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className="relative flex h-10 w-10 items-center justify-center rounded-full bg-surface text-muted-strong shadow-sm transition-transform active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    <div
+      className={cn(
+        "pointer-events-none absolute z-20 flex items-center gap-1.5 rounded-xl border-[3px] bg-surface/90 px-3.5 py-1.5 text-[22px] leading-none font-bold",
+        className,
+      )}
+      style={{ opacity }}
+      aria-hidden="true"
     >
       {children}
+    </div>
+  );
+}
+
+function CardFact({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: LucideIcon;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <dd className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+        <Icon className="h-[15px] w-[15px] shrink-0 text-primary" aria-hidden="true" />
+        <span className="truncate">{children}</span>
+      </dd>
+      <dt className="text-xs text-outline">{label}</dt>
+    </div>
+  );
+}
+
+const ACTION_SIZE = {
+  sm: "h-12 w-12",
+  md: "h-16 w-16",
+  lg: "h-[72px] w-[72px]",
+} as const;
+
+function ActionButton({
+  label,
+  size,
+  onClick,
+  href,
+  disabled,
+  filled,
+  children,
+}: {
+  label: string;
+  size: keyof typeof ACTION_SIZE;
+  onClick?: () => void;
+  href?: string;
+  disabled?: boolean;
+  filled?: boolean;
+  children: React.ReactNode;
+}) {
+  const disc = cn(
+    "flex items-center justify-center rounded-full shadow-card transition-transform active:scale-90",
+    ACTION_SIZE[size],
+    filled ? "bg-success text-white" : "border border-border bg-surface",
+  );
+  const body = (
+    <>
+      <span className={disc}>{children}</span>
+      <span className="text-xs font-medium text-muted">{label}</span>
+    </>
+  );
+  const wrap = cn(
+    "flex flex-col items-center gap-1.5 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    disabled && "pointer-events-none opacity-40",
+  );
+  if (href && !disabled) {
+    return (
+      <Link href={href} className={wrap} aria-label={label}>
+        {body}
+      </Link>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} className={wrap}>
+      {body}
     </button>
   );
 }
 
-function DeckMessage({ children }: { children: React.ReactNode }) {
+function Kbd({ children }: { children: React.ReactNode }) {
   return (
-    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 rounded-3xl bg-surface p-6 text-center text-sm text-muted-strong shadow-xl">
+    <kbd className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-md border border-border bg-surface px-1.5 font-sans text-[11px] font-semibold text-muted">
       {children}
+    </kbd>
+  );
+}
+
+function SkeletonCard({ label }: { label: string }) {
+  return (
+    <div className="absolute inset-x-0 top-0 bottom-3 flex flex-col overflow-hidden rounded-[28px] bg-surface shadow-lift">
+      <div className="h-[172px] animate-pulse bg-surface-sunken" />
+      <div className="flex flex-col items-end gap-3 p-5">
+        <div className="h-[22px] w-44 animate-pulse rounded-md bg-surface-sunken" />
+        <div className="h-3 w-28 animate-pulse rounded-md bg-surface-sunken" />
+        <div className="h-3 w-full animate-pulse rounded-md bg-surface-sunken" />
+        <div className="h-3 w-4/5 animate-pulse rounded-md bg-surface-sunken" />
+      </div>
+      <div className="mt-auto flex items-center justify-center gap-2 pb-8 text-[13px] font-medium text-outline">
+        <LoaderCircle className="h-4 w-4 animate-spin text-primary" aria-hidden="true" />
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function DeckMessage({
+  tone,
+  icon,
+  title,
+  text,
+  children,
+}: {
+  tone: string;
+  icon: React.ReactNode;
+  title: string;
+  text: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 px-8 text-center">
+      <span className={cn("flex h-20 w-20 items-center justify-center rounded-full", tone)}>{icon}</span>
+      <h2 className="text-xl font-bold text-foreground">{title}</h2>
+      <p className="text-sm leading-[1.5] text-muted">{text}</p>
+      {children && <div className="mt-3 flex w-full justify-center">{children}</div>}
+    </div>
+  );
+}
+
+function DetailsBody({
+  card,
+  onSkip,
+  onSave,
+}: {
+  card: DiscoverCard;
+  onSkip: () => void;
+  onSave: () => void;
+}) {
+  const Icon = CATEGORY_ICON[card.category];
+  const tone = CATEGORY_TONE[card.category];
+  const fee = feeLabel(card.fee);
+  return (
+    <div className="flex flex-col gap-4">
+      {card.image ? (
+        // eslint-disable-next-line @next/next/no-img-element -- a Commons redirect, not an optimisable asset
+        <img src={card.image} alt="" className="h-44 w-full rounded-2xl object-cover" />
+      ) : null}
+      <div className="flex items-center gap-3">
+        <span className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px]", tone.field)}>
+          <Icon className={cn("h-[26px] w-[26px]", tone.ink)} aria-hidden="true" />
+        </span>
+        <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-[13px] text-outline">
+          <span>{card.kindLabel}</span>
+          <span aria-hidden="true">·</span>
+          <span>{card.city}</span>
+          {card.localName && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span dir="auto">{card.localName}</span>
+            </>
+          )}
+        </p>
+      </div>
+
+      <dl className="grid grid-cols-2 gap-2.5">
+        <DetailTile icon={Ticket} label="כניסה">{fee ?? "לא ידוע"}</DetailTile>
+        <DetailTile icon={DoorOpen} label="שעות פעילות">
+          {card.openingHours ? <span dir="ltr">{card.openingHours}</span> : "כדאי לבדוק"}
+        </DetailTile>
+        <DetailTile icon={Hourglass} label="זמן ביקור מומלץ">{visitLabel(card.visit)}</DetailTile>
+        <DetailTile icon={Star} label="דירוג וביקורות">
+          <a
+            href={googleMapsUrl(card)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            בגוגל מפות
+          </a>
+        </DetailTile>
+      </dl>
+
+      {card.summary && (
+        <div className="flex flex-col gap-1.5">
+          <h3 className="text-[15px] font-semibold">על המקום</h3>
+          <p className="text-sm leading-[1.55] text-muted">{card.summary}</p>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {card.wikiUrl && (
+          <a
+            href={card.wikiUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3 text-[13px] font-medium"
+          >
+            <ExternalLink className="h-[15px] w-[15px]" aria-hidden="true" />
+            בוויקיפדיה
+          </a>
+        )}
+        {card.website && (
+          <a
+            href={card.website}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3 text-[13px] font-medium"
+          >
+            <ExternalLink className="h-[15px] w-[15px]" aria-hidden="true" />
+            אתר המקום
+          </a>
+        )}
+      </div>
+
+      <div className="flex gap-2.5 pt-1">
+        <button
+          type="button"
+          onClick={onSkip}
+          className="inline-flex h-[52px] w-28 items-center justify-center gap-1.5 rounded-full border border-border text-[15px] font-medium text-muted"
+        >
+          דלג
+          <X className="h-[18px] w-[18px] text-danger" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          onClick={onSave}
+          className="inline-flex h-[52px] flex-1 items-center justify-center gap-2 rounded-full bg-success text-base font-semibold text-white"
+        >
+          שמירה לטיול
+          <Heart className="h-[18px] w-[18px]" aria-hidden="true" />
+        </button>
+      </div>
+      <p className="text-[11px] text-outline">
+        מידע ותמונה: OpenStreetMap, ויקיפדיה ו-Wikimedia Commons. הדירוג והביקורות — בגוגל מפות.
+      </p>
+    </div>
+  );
+}
+
+function DetailTile({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: LucideIcon;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5 rounded-2xl bg-surface-2 p-3.5">
+      <Icon className="h-[18px] w-[18px] text-primary" aria-hidden="true" />
+      <dd className="text-[15px] font-semibold wrap-anywhere">{children}</dd>
+      <dt className="text-xs text-outline">{label}</dt>
     </div>
   );
 }
@@ -839,7 +1106,7 @@ function Toggle({
   hint: string;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-surface-2 p-3">
+    <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-surface-2 p-3.5">
       <input
         type="checkbox"
         checked={checked}
@@ -848,17 +1115,8 @@ function Toggle({
       />
       <span className="flex flex-col">
         <span className="text-sm font-semibold">{label}</span>
-        <span className="text-xs text-muted-strong">{hint}</span>
+        <span className="text-xs text-muted">{hint}</span>
       </span>
     </label>
-  );
-}
-
-function Fact({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex gap-2">
-      <dt className="shrink-0 text-muted-strong">{label}:</dt>
-      <dd className="min-w-0 wrap-anywhere">{children}</dd>
-    </div>
   );
 }
