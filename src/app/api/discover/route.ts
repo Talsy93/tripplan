@@ -48,7 +48,10 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const { tripId, cities, category } = parsed.data;
+  // `category` is still accepted and no longer used: the deck is every chip's
+  // cards at once (see PER_CHIP in lib/discover.ts), and the chips filter it
+  // in the browser — a press on one is instant instead of a second deal.
+  const { tripId, cities } = parsed.data;
 
   // Reading the trip is also the permission check: RLS returns nothing for a
   // trip this user cannot see.
@@ -80,7 +83,7 @@ export async function POST(request: Request) {
     // The full deck, given eight seconds. From the cache it is instant; a
     // city's first deal is 10–20 seconds of Overpass, and nobody is made to
     // watch a spinner for that.
-    const full = discoverAround({ city, center, category });
+    const full = discoverAround({ city, center, category: "all" });
     const settled = await Promise.race([
       full,
       new Promise<null>((resolve) => setTimeout(() => resolve(null), 8_000)),
@@ -95,13 +98,11 @@ export async function POST(request: Request) {
     }
 
     // Not yet. It keeps dealing into the cache — `after` keeps the function
-    // alive for it once this response has gone — and "הכל" gets the quick
-    // deck meanwhile. The other chips have no quick form (it knows no
-    // categories), so they answer empty-and-partial and fill in on the ask
-    // after.
+    // alive for it once this response has gone — and the quick deck (landmarks
+    // near the centre) stands in meanwhile.
     partial = true;
     pending.push(full);
-    if (category === "all") cards.push(...(await quickAround({ city, center })));
+    cards.push(...(await quickAround({ city, center })));
   }
   if (pending.length > 0) after(() => Promise.allSettled(pending));
 
@@ -118,9 +119,7 @@ export async function POST(request: Request) {
     .sort((a, b) => {
       const photo = Number(Boolean(b.image)) - Number(Boolean(a.image));
       if (photo !== 0) return photo;
-      return category === "hidden"
-        ? a.languages - b.languages
-        : b.languages - a.languages;
+      return b.languages - a.languages;
     });
 
   return NextResponse.json({ cards: merged, partial });

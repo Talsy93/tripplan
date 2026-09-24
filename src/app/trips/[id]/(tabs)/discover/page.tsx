@@ -99,19 +99,10 @@ export default async function DiscoverPage({
       ])
     : undefined;
 
-  // Every other city and chip, after the page has gone out, so a press on
-  // "טבע ונוף" or on the next city is served from the cache and not from a
-  // cold public server.
-  after(() =>
-    warmDiscover(points, [
-      "all",
-      "mustsee",
-      "nature",
-      "hidden",
-      "food",
-      "shopping",
-    ]),
-  );
+  // Every other city, after the page has gone out, so a press on the next city
+  // is served from the cache and not from a cold public server. One deal per
+  // city: it holds every chip's cards (PER_CHIP in lib/discover.ts).
+  after(() => warmDiscover(points, ["all"]));
 
   return (
     <DiscoverDeck

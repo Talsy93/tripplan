@@ -9,8 +9,7 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
-  ChevronLeft,
-  ChevronUp,
+  Info,
   CloudOff,
   DoorOpen,
   ExternalLink,
@@ -141,7 +140,8 @@ export function DiscoverDeck({
         body: JSON.stringify({
           tripId,
           cities: destination.cities.slice(0, 4),
-          category,
+          // The deck is every chip's cards at once; the chips filter it here.
+          category: "all",
         }),
       });
 
@@ -199,20 +199,21 @@ export function DiscoverDeck({
       }
     }
     if (mine === generation.current) setFilling(false);
-  }, [destination, category, tripId]);
+  }, [destination, tripId]);
 
-  // Dealt on arrival and whenever the destination or the chip changes — keyed
+  // Dealt on arrival and whenever the destination changes — not the chip: a
+  // chip is a filter over the deck in hand, so pressing one is instant. Keyed
   // on what the deck is *for*, not on the effect having run. A "first run"
   // flag was the first version, and development's double-invoked effects
   // spent it on the first pass and fetched on the second, throwing away the
   // preview's pre-dealt deck.
-  const dealtFor = useRef(initialCards ? `${initialKey}|all` : null);
+  const dealtFor = useRef(initialCards ? initialKey : null);
   useEffect(() => {
-    const key = `${destKey}|${category}`;
+    const key = destKey;
     if (dealtFor.current === key) return;
     dealtFor.current = key;
     void load();
-  }, [load, destKey, category]);
+  }, [load, destKey]);
 
   const inTrip = useMemo(() => new Set(savedKeys), [savedKeys]);
   const deck = useMemo(() => {
@@ -222,18 +223,23 @@ export function DiscoverDeck({
       (card) =>
         !decidedIds.has(card.id) &&
         !inTrip.has(`${card.city}|${card.name}`) &&
+        (category === "all" || card.category === category) &&
         (!onlyFree || card.fee === false) &&
         (!onlyKnown || card.languages >= MUST_SEE_LANGUAGES) &&
         (!needle ||
           card.name.toLowerCase().includes(needle) ||
           (card.localName ?? "").toLowerCase().includes(needle)),
     );
+    // "פינות נסתרות" is the places fewer people have heard of: least known
+    // first, the one chip dealt the other way round.
+    if (category === "hidden") open.sort((a, b) => a.languages - b.languages);
     // Bookmarked cards go behind everything else, in the order they were sent.
     const back = later.flatMap((id) => open.filter((card) => card.id === id));
     return [...open.filter((card) => !later.includes(card.id)), ...back];
-  }, [cards, decided, later, inTrip, onlyFree, onlyKnown, query]);
+  }, [cards, decided, later, inTrip, onlyFree, onlyKnown, query, category]);
 
   const top = deck[0] ?? null;
+  const next = deck[1] ?? null;
 
   // ---- deciding ------------------------------------------------------------
 
@@ -362,6 +368,17 @@ export function DiscoverDeck({
           )}
           <ChevronDown className="ms-auto h-4 w-4 shrink-0 text-outline" aria-hidden="true" />
         </button>
+        {/* Saved so far — a small chip beside the filter, so the card can
+            have the height. Also the way to the list. */}
+        <Link
+          href={`/trips/${tripId}/explore`}
+          aria-label={saved === 1 ? "מקום אחד נשמר לטיול — לרשימה" : `${saved} מקומות נשמרו לטיול — לרשימה`}
+          title="נשמרו לטיול"
+          className="flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-primary-tint px-3.5 text-sm font-bold text-primary transition-colors hover:bg-surface-high focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <BookmarkCheck className="h-[18px] w-[18px]" aria-hidden="true" />
+          {saved}
+        </Link>
         <button
           type="button"
           onClick={() => setFiltering(true)}
@@ -404,14 +421,21 @@ export function DiscoverDeck({
         })}
       </div>
 
-      {/* The stack: the card in hand, and two edges behind it so it is plain
-          there is more. */}
-      <div className="relative mt-3 h-[clamp(360px,calc(100dvh-420px),452px)] w-full">
-        {top && (
-          <>
-            <div className="pointer-events-none absolute inset-x-6 top-6 bottom-0 rounded-[28px] bg-surface-sunken" />
-            <div className="pointer-events-none absolute inset-x-3 top-3 bottom-3 rounded-[28px] border border-border bg-surface" />
-          </>
+      {/* The stack, Tinder's way: the next card itself waits behind the one in
+          hand, a little smaller, and grows into place as the top one is dragged
+          off — so the hand always sees there is more, and what it is. */}
+      <div className="relative mt-3 h-[clamp(380px,calc(100dvh-380px),600px)] w-full">
+        {top && next && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0"
+            style={{
+              transform: `scale(${0.94 + 0.06 * Math.min(Math.abs(offset) / FLY, 1)})`,
+              transition: dragging ? "none" : "transform 0.35s ease-out",
+            }}
+          >
+            <PlaceFace card={next} />
+          </div>
         )}
 
         {state === "loading" || (!top && filling) ? (
@@ -433,7 +457,7 @@ export function DiscoverDeck({
             </button>
           </DeckMessage>
         ) : !top ? (
-          cards && cards.length > 0 && !filtered ? (
+          (cards ?? []).some((card) => category === "all" || card.category === category) && !filtered ? (
             <DeckMessage
               tone="bg-success-tint text-success"
               icon={<Check className="h-9 w-9" aria-hidden="true" />}
@@ -468,7 +492,7 @@ export function DiscoverDeck({
             <DeckMessage
               tone="bg-surface-sunken text-muted"
               icon={<Search className="h-9 w-9" aria-hidden="true" />}
-              title="לא נמצאו כאן מקומות"
+              title={category === "all" ? "לא נמצאו כאן מקומות" : `אין כאן מקומות ב״${DISCOVER_CATEGORIES[category].label}״`}
               text={filtered ? "נסו לנקות את הסינון או את החיפוש." : "נסו קטגוריה אחרת או יעד אחר."}
             />
           )
@@ -494,9 +518,9 @@ export function DiscoverDeck({
 
       {/* The four buttons, each on the side its gesture goes: skip left, save
           right. Save is the biggest because it is the one that does something. */}
-      <div className="mt-2 flex items-end justify-between px-3">
+      <div className="mt-4 flex items-center justify-center gap-4">
         <ActionButton label="ביטול" size="sm" onClick={() => void undo()} disabled={decided.length === 0}>
-          <Undo2 className="h-5 w-5 text-muted" aria-hidden="true" />
+          <Undo2 className="h-5 w-5 text-cta-bright" aria-hidden="true" />
         </ActionButton>
         <ActionButton
           label="דלג"
@@ -504,7 +528,7 @@ export function DiscoverDeck({
           onClick={() => top && void decide(top, false)}
           disabled={!top || Boolean(leaving)}
         >
-          <X className="h-7 w-7 text-danger" aria-hidden="true" />
+          <X className="h-8 w-8 text-danger" strokeWidth={2.5} aria-hidden="true" />
         </ActionButton>
         <ActionButton
           label="שמור"
@@ -513,7 +537,7 @@ export function DiscoverDeck({
           disabled={!top || Boolean(leaving)}
           filled
         >
-          <Heart className="h-[30px] w-[30px]" aria-hidden="true" />
+          <Heart className="h-[34px] w-[34px] fill-current text-success" aria-hidden="true" />
         </ActionButton>
         {top ? (
           <ActionButton
@@ -538,21 +562,6 @@ export function DiscoverDeck({
           <Kbd>←</Kbd> דלג
         </span>
       </p>
-
-      {/* Saved so far — always in sight, and the way to the list. */}
-      <Link
-        href={`/trips/${tripId}/explore`}
-        className="mt-3 flex h-12 items-center gap-2 rounded-full bg-primary-tint ps-4 pe-2 transition-colors hover:bg-surface-high"
-      >
-        <BookmarkCheck className="h-[18px] w-[18px] shrink-0 text-primary" aria-hidden="true" />
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-primary">
-          {saved === 1 ? "מקום אחד נשמר לטיול" : `${saved} מקומות נשמרו לטיול`}
-        </span>
-        <span className="inline-flex h-[34px] shrink-0 items-center gap-1 rounded-full bg-primary px-3 text-[13px] font-semibold text-primary-foreground">
-          לרשימה
-          <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-        </span>
-      </Link>
 
       {/* ---- dialogs ---- */}
 
@@ -699,17 +708,14 @@ function PlaceCard({
   onLater: () => void;
   onDetails: () => void;
 }) {
-  const Icon = CATEGORY_ICON[card.category];
-  const tone = CATEGORY_TONE[card.category];
-  const fee = feeLabel(card.fee);
   return (
     <div
       className={cn(
-        "absolute inset-x-0 top-0 bottom-3 flex touch-pan-y flex-col overflow-hidden rounded-[28px] bg-surface shadow-lift",
+        "absolute inset-0 touch-pan-y",
         dragging ? "cursor-grabbing" : "cursor-grab",
       )}
       style={{
-        transform: `translate(${offset}px, ${Math.abs(offset) * 0.08}px) rotate(${offset * 0.05}deg)`,
+        transform: `translate(${offset}px, ${Math.abs(offset) * 0.06}px) rotate(${offset * 0.05}deg)`,
         transition: dragging ? "none" : "transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
       }}
       onPointerDown={onPointerDown}
@@ -717,106 +723,152 @@ function PlaceCard({
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
-      {/* The visual: the photograph when Commons has one, otherwise the
-          category's own colour and icon — never an empty grey box. */}
-      <div
-        className={cn("relative flex h-[40%] max-h-[172px] min-h-[120px] shrink-0 flex-col p-4 bg-cover bg-center", tone.field)}
-        style={card.image ? { backgroundImage: `url("${card.image}")` } : undefined}
-        role="img"
-        aria-label={card.image ? card.name : card.kindLabel}
-      >
-        <div className="relative z-10 flex items-start justify-between gap-2">
-          <div className="flex flex-wrap gap-1.5">
-            {card.languages >= MUST_SEE_LANGUAGES && (
-              <span className={cn("rounded-full px-2.5 py-1.5 text-xs font-semibold text-white", tone.tag)}>
-                אתר חובה
-              </span>
-            )}
-            {card.languages >= POPULAR_LANGUAGES && (
-              <span className="rounded-full bg-surface/85 px-2.5 py-1.5 text-xs font-semibold text-foreground backdrop-blur-sm">
-                פופולרי
-              </span>
-            )}
-          </div>
+      <PlaceFace
+        card={card}
+        onLater={onLater}
+        onDetails={onDetails}
+        likeOpacity={likeOpacity}
+        passOpacity={passOpacity}
+      />
+    </div>
+  );
+}
+
+// The card's face — the one in hand, and the next one waiting behind it.
+//
+// Tinder's card: the picture is the whole card, edge to edge, and the words sit
+// on it at the bottom over a dark fade. A place with no Commons photograph gets
+// its category's deep colour and a big glyph instead of a grey box, so a café
+// or a fountain is still a card worth looking at.
+function PlaceFace({
+  card,
+  onLater,
+  onDetails,
+  likeOpacity = 0,
+  passOpacity = 0,
+}: {
+  card: DiscoverCard;
+  onLater?: () => void;
+  onDetails?: () => void;
+  likeOpacity?: number;
+  passOpacity?: number;
+}) {
+  const Icon = CATEGORY_ICON[card.category];
+  const tone = CATEGORY_TONE[card.category];
+  const fee = feeLabel(card.fee);
+  const interactive = Boolean(onDetails);
+  return (
+    <div
+      className={cn(
+        "relative h-full w-full overflow-hidden rounded-[24px] bg-cover bg-center shadow-lift",
+        !card.image && tone.tag,
+      )}
+      style={card.image ? { backgroundImage: `url("${card.image}")` } : undefined}
+      role="img"
+      aria-label={card.name}
+    >
+      {!card.image && (
+        <>
+          <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-black/25" />
+          <Icon
+            className="absolute top-[22%] left-1/2 h-28 w-28 -translate-x-1/2 text-white/85"
+            strokeWidth={1.5}
+            aria-hidden="true"
+          />
+        </>
+      )}
+
+      {/* The fade the words stand on. */}
+      <div className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/85 via-black/45 to-transparent" />
+
+      {/* Top: what kind of place, and "later". */}
+      <div className="absolute inset-x-4 top-4 flex items-start justify-between gap-2">
+        <div className="flex flex-wrap gap-1.5">
+          {card.languages >= MUST_SEE_LANGUAGES && (
+            <span className="flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1.5 text-xs font-bold text-foreground backdrop-blur-sm">
+              <Star className="h-3.5 w-3.5 fill-cta text-cta" aria-hidden="true" />
+              אתר חובה
+            </span>
+          )}
+          {card.languages >= POPULAR_LANGUAGES && (
+            <span className="rounded-full bg-black/35 px-2.5 py-1.5 text-xs font-semibold text-white backdrop-blur-sm">
+              פופולרי
+            </span>
+          )}
+        </div>
+        {onLater && (
           <button
             type="button"
             onPointerDown={(event) => event.stopPropagation()}
             onClick={onLater}
             aria-label="לחזור אליו אחר כך"
             title="לחזור אליו אחר כך"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface/85 text-foreground backdrop-blur-sm transition-transform active:scale-90"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm transition-transform active:scale-90"
           >
             <Bookmark className="h-[18px] w-[18px]" aria-hidden="true" />
           </button>
-        </div>
-        {!card.image && (
-          <span className="m-auto flex h-[84px] w-[84px] items-center justify-center rounded-full bg-surface shadow-lift">
-            <Icon className={cn("h-10 w-10", tone.ink)} aria-hidden="true" />
-          </span>
         )}
-
-        {/* Stamps — the gesture explaining itself as the card moves. */}
-        <Stamp className="top-14 left-5 -rotate-[10deg] border-success text-success" opacity={likeOpacity}>
-          שמור
-          <Heart className="h-5 w-5" aria-hidden="true" />
-        </Stamp>
-        <Stamp className="top-14 right-5 rotate-[10deg] border-danger text-danger" opacity={passOpacity}>
-          דלג
-          <X className="h-5 w-5" aria-hidden="true" />
-        </Stamp>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-2.5 px-5 pt-4 pb-3">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-[26px] leading-[1.15] font-bold text-foreground">{card.name}</h2>
-          <p className="flex min-w-0 items-center gap-1.5 text-sm text-outline">
-            <span className="shrink-0">{card.kindLabel}</span>
-            {card.localName && (
-              <>
-                <span aria-hidden="true">·</span>
-                <span dir="auto" className="truncate">{card.localName}</span>
-              </>
-            )}
-          </p>
+      {/* Stamps — the gesture explaining itself as the card moves. */}
+      <Stamp className="top-16 left-6 -rotate-[14deg] border-success text-success" opacity={likeOpacity}>
+        שמור
+      </Stamp>
+      <Stamp className="top-16 right-6 rotate-[14deg] border-danger text-danger" opacity={passOpacity}>
+        דלג
+      </Stamp>
+
+      {/* Bottom: the name large, then the one line that says why, then facts. */}
+      <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 p-5 text-white">
+        <div className="flex items-end gap-3">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[30px] leading-[1.1] font-bold [text-shadow:0_1px_12px_rgb(0_0_0/0.35)]">
+              {card.name}
+            </h2>
+            <p className="mt-1 flex min-w-0 items-center gap-1.5 text-sm text-white/80">
+              <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="shrink-0">{card.kindLabel}</span>
+              {card.localName && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span dir="auto" className="truncate">{card.localName}</span>
+                </>
+              )}
+            </p>
+          </div>
+          {interactive && (
+            <button
+              type="button"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={onDetails}
+              aria-label="פרטים מלאים"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-transform active:scale-90"
+            >
+              <Info className="h-5 w-5" aria-hidden="true" />
+            </button>
+          )}
         </div>
         {card.summary && (
-          <p className="line-clamp-2 text-sm leading-[1.5] text-muted">{card.summary}</p>
+          <p className="line-clamp-2 text-sm leading-[1.45] text-white/85">{card.summary}</p>
         )}
-        <div className="h-px w-full bg-border" />
-        <dl className="flex items-start justify-between gap-2">
-          <CardFact icon={Hourglass} label="זמן ביקור">{visitLabel(card.visit)}</CardFact>
-          {fee && <CardFact icon={Ticket} label="כניסה">{fee}</CardFact>}
-          <div className="flex flex-col gap-0.5">
-            <dt className="sr-only">דירוג</dt>
-            <dd>
-              {/* The rating slot. Google's stars are only served by the paid
-                  Places API, so the slot is the way to them. See googleMapsUrl.
-                  stopPropagation, or pressing it starts a drag. */}
-              <a
-                href={googleMapsUrl(card)}
-                target="_blank"
-                rel="noopener noreferrer"
-                onPointerDown={(event) => event.stopPropagation()}
-                className="flex flex-col gap-0.5 rounded hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                  <Star className="h-[15px] w-[15px] text-primary" aria-hidden="true" />
-                  בגוגל
-                </span>
-                <span className="text-xs text-outline">ביקורות</span>
-              </a>
-            </dd>
-          </div>
-        </dl>
-        <button
-          type="button"
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={onDetails}
-          className="mt-auto flex items-center justify-center gap-1 rounded-full py-1 text-xs text-outline transition-colors hover:text-foreground"
-        >
-          <ChevronUp className="h-4 w-4" aria-hidden="true" />
-          הקישו לפרטים מלאים
-        </button>
+        <div className="flex flex-wrap gap-1.5 pt-0.5">
+          <Fact icon={Hourglass}>{visitLabel(card.visit)}</Fact>
+          {fee && <Fact icon={Ticket}>{fee}</Fact>}
+          {interactive && (
+            // The rating slot: Google's stars are only served by the paid Places
+            // API, so the chip is the way to them (see googleMapsUrl).
+            <a
+              href={googleMapsUrl(card)}
+              target="_blank"
+              rel="noopener noreferrer"
+              onPointerDown={(event) => event.stopPropagation()}
+              className="flex h-8 items-center gap-1.5 rounded-full bg-white/15 px-3 text-xs font-semibold text-white backdrop-blur-sm hover:bg-white/25"
+            >
+              <Star className="h-3.5 w-3.5" aria-hidden="true" />
+              ביקורות בגוגל
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -834,7 +886,7 @@ function Stamp({
   return (
     <div
       className={cn(
-        "pointer-events-none absolute z-20 flex items-center gap-1.5 rounded-xl border-[3px] bg-surface/90 px-3.5 py-1.5 text-[22px] leading-none font-bold",
+        "pointer-events-none absolute z-20 rounded-xl border-4 bg-white/90 px-4 py-1.5 text-[30px] leading-none font-extrabold tracking-wide",
         className,
       )}
       style={{ opacity }}
@@ -845,23 +897,12 @@ function Stamp({
   );
 }
 
-function CardFact({
-  icon: Icon,
-  label,
-  children,
-}: {
-  icon: LucideIcon;
-  label: string;
-  children: React.ReactNode;
-}) {
+function Fact({ icon: Icon, children }: { icon: LucideIcon; children: React.ReactNode }) {
   return (
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <dd className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-        <Icon className="h-[15px] w-[15px] shrink-0 text-primary" aria-hidden="true" />
-        <span className="truncate">{children}</span>
-      </dd>
-      <dt className="text-xs text-outline">{label}</dt>
-    </div>
+    <span className="flex h-8 items-center gap-1.5 rounded-full bg-white/15 px-3 text-xs font-semibold text-white backdrop-blur-sm">
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      {children}
+    </span>
   );
 }
 
@@ -871,13 +912,14 @@ const ACTION_SIZE = {
   lg: "h-[72px] w-[72px]",
 } as const;
 
+// Tinder's row: round white buttons, the colour in the glyph, no words under
+// them — the label is for the screen reader and the tooltip.
 function ActionButton({
   label,
   size,
   onClick,
   href,
   disabled,
-  filled,
   children,
 }: {
   label: string;
@@ -889,30 +931,20 @@ function ActionButton({
   children: React.ReactNode;
 }) {
   const disc = cn(
-    "flex items-center justify-center rounded-full shadow-card transition-transform active:scale-90",
+    "flex items-center justify-center rounded-full bg-surface shadow-lift transition-transform hover:scale-105 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     ACTION_SIZE[size],
-    filled ? "bg-success text-white" : "border border-border bg-surface",
-  );
-  const body = (
-    <>
-      <span className={disc}>{children}</span>
-      <span className="text-xs font-medium text-muted">{label}</span>
-    </>
-  );
-  const wrap = cn(
-    "flex flex-col items-center gap-1.5 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
     disabled && "pointer-events-none opacity-40",
   );
   if (href && !disabled) {
     return (
-      <Link href={href} className={wrap} aria-label={label}>
-        {body}
+      <Link href={href} className={disc} aria-label={label} title={label}>
+        {children}
       </Link>
     );
   }
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className={wrap}>
-      {body}
+    <button type="button" onClick={onClick} disabled={disabled} className={disc} aria-label={label} title={label}>
+      {children}
     </button>
   );
 }

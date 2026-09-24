@@ -38,6 +38,13 @@ const RADIUS_M = 6_000;
 // Cards per city before merging. Enough for a long session of swiping, few
 // enough that the Wikidata and Wikipedia calls stay at one or two each.
 const PER_CITY = 40;
+// Under "הכל" the deck is every chip's deck at once: the best PER_CHIP of each
+// category, so a press on a chip is a filter in the browser and not a second
+// deal. Reported as "very slow, or not working at all, when I change
+// category" — each chip used to be its own Overpass + Wikidata + Wikipedia
+// pass, cold the first time, and answered empty-and-partial while it ran.
+const PER_CHIP = 20;
+const CHIPS = ["mustsee", "food", "nature", "shopping", "hidden"] as const;
 
 type Element = {
   type?: string;
@@ -116,7 +123,7 @@ const persistedDeck = unstable_cache(
     if (!result.ok) throw new Error("discover: unavailable");
     return result.cards;
   },
-  ["discover-deck-v1"],
+  ["discover-deck-v2"],
   { revalidate: 7 * 86_400 },
 );
 
@@ -363,13 +370,29 @@ async function deal({
   // ones the second pass rules out (people, concepts).
   const hidden = category === "hidden";
   const ranked = await wikidata([...byEntity.keys()], "sitelinks");
-  const shortlist = [...byEntity.keys()]
-    .filter((qid) => ranked.has(qid) && (!hidden || (ranked.get(qid)?.languages ?? 0) >= 2))
-    .sort((a, b) => {
-      const diff = (ranked.get(b)?.languages ?? 0) - (ranked.get(a)?.languages ?? 0);
-      return hidden ? -diff : diff;
-    })
-    .slice(0, PER_CITY + 20);
+  const rank = (qids: string[], least: boolean, count: number) =>
+    qids
+      .filter((qid) => ranked.has(qid) && (!least || (ranked.get(qid)?.languages ?? 0) >= 2))
+      .sort((a, b) => {
+        const diff = (ranked.get(b)?.languages ?? 0) - (ranked.get(a)?.languages ?? 0);
+        return least ? -diff : diff;
+      })
+      .slice(0, count);
+  const chipOf = (qid: string) => kindOf(byEntity.get(qid)!.tags)?.category;
+  const shortlist =
+    category === "all"
+      ? [
+          ...new Set(
+            CHIPS.flatMap((chip) =>
+              rank(
+                [...byEntity.keys()].filter((qid) => chipOf(qid) === chip),
+                chip === "hidden",
+                PER_CHIP + 6,
+              ),
+            ),
+          ),
+        ]
+      : rank([...byEntity.keys()], hidden, PER_CITY + 20);
   const detailed = await wikidata(shortlist, "labels|claims");
   const entities = new Map(
     shortlist.flatMap((qid) => {
@@ -436,7 +459,19 @@ async function deal({
       ? a.card.languages - b.card.languages
       : b.card.languages - a.card.languages;
   });
-  const chosen = drafts.slice(0, PER_CITY);
+  const chosen =
+    category === "all"
+      ? CHIPS.flatMap((chip) => {
+          const mine = drafts.filter((draft) => draft.card.category === chip);
+          if (chip === "hidden") {
+            mine.sort((a, b) => a.card.languages - b.card.languages);
+          }
+          return mine.slice(0, PER_CHIP);
+        }).sort((a, b) => {
+          const photo = Number(Boolean(b.card.image)) - Number(Boolean(a.card.image));
+          return photo !== 0 ? photo : b.card.languages - a.card.languages;
+        })
+      : drafts.slice(0, PER_CITY);
 
   const summaries = await extracts(
     chosen.flatMap(({ entity }): { lang: "he" | "en"; title: string }[] =>
@@ -712,9 +747,17 @@ async function extracts(
   pages: { lang: "he" | "en"; title: string }[],
 ): Promise<Map<string, string>> {
   const found = new Map<string, string>();
-  for (const lang of ["he", "en"] as const) {
+  // Every batch at once: a deck of every chip is up to a hundred cards, five
+  // batches, and one after another they were most of the deal's wait.
+  const batches = (["he", "en"] as const).flatMap((lang) => {
     const titles = pages.filter((page) => page.lang === lang).map((page) => page.title);
-    for (let start = 0; start < titles.length; start += 20) {
+    return Array.from({ length: Math.ceil(titles.length / 20) }, (_, index) => ({
+      lang,
+      titles: titles.slice(index * 20, index * 20 + 20),
+    }));
+  });
+  await Promise.all(
+    batches.map(async ({ lang, titles: batch }) => {
       const params = new URLSearchParams({
         action: "query",
         prop: "extracts",
@@ -722,7 +765,7 @@ async function extracts(
         explaintext: "1",
         exsentences: "2",
         exlimit: "20",
-        titles: titles.slice(start, start + 20).join("|"),
+        titles: batch.join("|"),
         format: "json",
       });
       try {
@@ -730,7 +773,7 @@ async function extracts(
           headers: HEADERS,
           ...DAY,
         });
-        if (!res.ok) continue;
+        if (!res.ok) return;
         const json = (await res.json()) as {
           query?: {
             normalized?: { from: string; to: string }[];
@@ -749,7 +792,7 @@ async function extracts(
       } catch {
         // A card without a summary still has its name, photo and facts.
       }
-    }
-  }
+    }),
+  );
   return found;
 }
