@@ -1,20 +1,26 @@
 import { Skeleton } from "@/components/ui";
 
+// The route screen's own shape, so nothing jumps when the real one arrives:
+// the strip of day pills, the map strip, the day's heading and a few cards
+// beside their time column.
 export default function Loading() {
   return (
-    <>
-      <Skeleton className="h-9 w-40 rounded-full" />
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
-        {/* The day index, which only exists from lg. */}
-        <div className="hidden w-44 shrink-0 flex-col gap-1 lg:flex">
-          <Skeleton className="h-9" />
-          <Skeleton className="h-9" />
-          <Skeleton className="h-9" />
-        </div>
-        {/* Roughly one screen of hour axis, so the page does not jump when the
-            real timeline arrives. */}
-        <Skeleton className="h-96 min-w-0 flex-1" />
+    <div className="mx-auto flex w-full max-w-main flex-col gap-6">
+      <div className="flex gap-2 overflow-hidden">
+        {Array.from({ length: 5 }, (_, index) => (
+          <Skeleton key={index} className="h-[78px] w-[60px] shrink-0 rounded-[18px]" />
+        ))}
       </div>
-    </>
+      <Skeleton className="h-32 rounded-[20px] sm:h-40" />
+      <div className="flex flex-col gap-3">
+        <Skeleton className="h-6 w-48 rounded-full" />
+        {Array.from({ length: 3 }, (_, index) => (
+          <div key={index} className="flex items-start gap-3">
+            <Skeleton className="mt-4 h-4 w-11 shrink-0 rounded-full" />
+            <Skeleton className="h-[4.5rem] flex-1 rounded-[18px]" />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

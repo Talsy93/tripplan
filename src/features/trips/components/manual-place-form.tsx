@@ -99,11 +99,20 @@ export function ManualPlaceForm({
           replace itself with a card four fields tall in the middle of the
           screen, pushing the list you were adding to below the fold. So the
           card is the export's and the press still opens a dialog. */}
-      <div className="flex flex-col gap-3 rounded-card bg-surface p-4 shadow-card">
-        <div className="flex min-w-0 items-center gap-2">
-          <PencilLine className="h-5 w-5 shrink-0 text-cta" aria-hidden="true" />
-          <h2 className="min-w-0 text-lg font-semibold leading-6 wrap-anywhere">
-            לא מצאתם בחיפוש? הוסיפו מקום ידנית ✍️
+      {/* Pencil card language: white, radius 20, a tinted icon tile beside
+          the heading. The pencil is teal, not terracotta — orange is the
+          sticky bar's, the screen's one call to action — and the emoji that
+          ended the heading is gone with the rest of them. */}
+      <div className="flex flex-col gap-3 rounded-[20px] bg-surface p-4 shadow-card">
+        <div className="flex min-w-0 items-center gap-3">
+          <span
+            aria-hidden="true"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-primary-tint text-primary"
+          >
+            <PencilLine className="h-5 w-5" />
+          </span>
+          <h2 className="min-w-0 text-base font-bold leading-6 wrap-anywhere">
+            לא מצאתם בחיפוש? הוסיפו מקום ידנית
           </h2>
         </div>
         <p className="min-w-0 max-w-measure text-caption text-muted">
@@ -113,9 +122,9 @@ export function ManualPlaceForm({
           type="button"
           onClick={() => setOpen(true)}
           className={cn(
-            "flex w-full items-center justify-center gap-2 rounded-card bg-surface-sunken py-2.5",
-            "text-sm font-medium text-primary transition-all active:scale-[0.98]",
-            "hover:bg-primary hover:text-white",
+            "flex h-11 w-full items-center justify-center gap-2 rounded-full border border-border-strong bg-surface",
+            "text-sm font-semibold text-foreground transition-all active:scale-[0.98]",
+            "hover:bg-surface-sunken",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           )}
         >

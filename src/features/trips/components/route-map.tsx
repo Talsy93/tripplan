@@ -4,18 +4,12 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ChevronRight, Crosshair, Globe, Map as MapIcon, Route } from "lucide-react";
-import {
-  Badge,
-  Banner,
-  EmptyState,
-  glassClasses,
-  ListRow,
-  SectionHeading,
-} from "@/components/ui";
+import { Banner, EmptyState, ListRow, SectionHeading } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { googleMapsRouteUrl } from "@/lib/maps";
 import { stopsByCountry } from "../domain/route";
 import { MapSheet } from "./map-sheet";
+import { stopInk } from "./category-tile";
 import { ResetLocationsButton } from "./reset-locations-button";
 import { UnlocatedCities } from "./unlocated-cities";
 import type { ItineraryDay } from "../domain/ai-suggestion";
@@ -151,7 +145,7 @@ export function RouteMap({
           <div
             dir="ltr"
             className={cn(
-              "overflow-hidden border-border lg:rounded-card lg:border lg:shadow-card",
+              "overflow-hidden lg:rounded-[20px] lg:shadow-card",
               // Marks this as the map that reaches the window edges, which is
               // the only one whose attribution lands underneath the floating
               // phone bar. globals.css lifts it clear; the small maps inside cards
@@ -167,16 +161,19 @@ export function RouteMap({
             />
           </div>
 
-          {/* Floating over the map rather than sitting above it, and that is the
-              point: the map is the content on this tab, so the controls belong
-              on top of it. Glass because there is a moving photographic surface
-              underneath — this is one of the three places in the app where
-              translucency does something an opaque fill cannot.
+          {/* The floating top overlay, as Pencil draws it: a round white back
+              button at the start and the city chips beside it, white pills with
+              the chosen one in dark ink. Opaque white rather than glass — the
+              design's chips are solid, and a solid pill reads the same over a
+              park, a river or a dense street grid.
 
               z-[500] no longer has to out-rank Leaflet: the canvas isolates its
               own stacking context (see route-map-canvas.tsx), so the whole map
-              is one z-auto box and anything positive above it wins. The number
-              stays because these chips also sit above the card's own shadow. */}
+              is one z-auto box and anything positive above it wins.
+
+              The design's third control, a round "locate me" button, is not
+              here: the app has no geolocation, and a button that looks like it
+              finds you and does something else is worse than none. */}
           {/* The way out, and it is deliberately not `position: fixed`.
               ---------------------------------------------------------------
               Reported as "once the map is full screen there is no way back",
@@ -196,35 +193,37 @@ export function RouteMap({
               So the map carries its own exit, `absolute` inside it. It travels
               with the page rather than with a viewport the reader can no longer
               see, and it is reachable at any zoom by panning to the map's top
-              edge.
+              edge. It goes back to מסלול, the screen whose map card opens this
+              one.
 
               Below lg only: from there the rail is on screen and never moves. */}
           <Link
-            href={`/trips/${tripId}/today`}
-            aria-label="חזרה למסך הטיול"
+            href={`/trips/${tripId}/days`}
+            aria-label="חזרה למסלול"
             className={cn(
-              glassClasses("light"),
-              "absolute start-2 top-2 z-[510] flex items-center gap-1 rounded-full px-3 py-1.5 text-caption font-bold lg:hidden",
+              "absolute start-4 top-4 z-[510] flex h-11 w-11 items-center justify-center rounded-full bg-surface text-foreground shadow-lift lg:hidden",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             )}
           >
             {/* RTL: "back" points the way the text runs. */}
-            <ChevronRight className="h-4 w-4 shrink-0" aria-hidden="true" />
-            חזרה
+            <ChevronRight className="h-5 w-5" aria-hidden="true" />
           </Link>
 
           {route.stops.length > 1 && (
-            // ps-24 below lg clears the exit above, which sits in the same
+            // ps-[4.5rem] below lg clears the exit, which sits in the same
             // corner. The chip row scrolls horizontally, so the exit cannot live
             // inside it — it would scroll away exactly when it is needed.
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] flex gap-1.5 overflow-x-auto p-2 ps-24 lg:ps-2">
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-[500] flex items-center gap-2 overflow-x-auto p-4 ps-[4.5rem] [scrollbar-width:none] lg:ps-4 [&::-webkit-scrollbar]:hidden">
               <button
                 type="button"
                 onClick={() => setFocusCity(null)}
+                aria-pressed={focusCity === null}
                 className={cn(
-                  glassClasses("light"),
-                  "pointer-events-auto shrink-0 rounded-full px-3.5 py-1.5 text-caption font-bold",
-                  focusCity === null && "bg-primary text-primary-foreground",
+                  "pointer-events-auto h-10 shrink-0 rounded-full px-4 text-sm font-semibold shadow-card transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  focusCity === null
+                    ? "bg-foreground text-background"
+                    : "bg-surface text-foreground hover:bg-surface-2",
                 )}
               >
                 כל המסלול
@@ -234,10 +233,13 @@ export function RouteMap({
                   key={stop.city}
                   type="button"
                   onClick={() => setFocusCity(stop.city)}
+                  aria-pressed={focusCity === stop.city}
                   className={cn(
-                    glassClasses("light"),
-                    "pointer-events-auto min-w-0 shrink-0 rounded-full px-3.5 py-1.5 text-caption font-bold",
-                    focusCity === stop.city && "bg-primary text-primary-foreground",
+                    "pointer-events-auto h-10 min-w-0 shrink-0 rounded-full px-4 text-sm font-semibold shadow-card transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    focusCity === stop.city
+                      ? "bg-foreground text-background"
+                      : "bg-surface text-foreground hover:bg-surface-2",
                   )}
                 >
                   <span className="block max-w-32 truncate">{stop.city}</span>
@@ -246,11 +248,18 @@ export function RouteMap({
             </div>
           )}
 
-          {/* The stops, on a sheet over the map — phone only. From lg they are
+          {/* The stops, on Pencil's bottom drawer — phone only. From lg they are
               the pane on the right, which is the same list and does not need a
-              second presentation on the same screen. */}
+              second presentation on the same screen. Each row's dot is the
+              pin's own colour and number (stopInk), so the two halves of the
+              screen are matched without a legend. */}
           <MapSheet
-            title={`התחנות של ${tripName ?? "הטיול"}`}
+            title={tripName ?? "המסלול"}
+            subtitle={
+              route.stops.length === 1
+                ? "תחנה אחת"
+                : `${route.stops.length} תחנות`
+            }
             action={
               walkingRouteUrl ? (
                 <a
@@ -267,37 +276,40 @@ export function RouteMap({
                 </a>
               ) : null
             }
-            items={route.stops.map((stop) => (
-              <div
-                key={stop.city}
-                className={cn(
-                  "flex min-w-0 items-center gap-2.5 py-2",
-                  cityToneClass(tones, stop.city),
-                )}
-              >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-tone-dot text-caption font-black tabular-nums text-white">
-                  {stopNumberByCity.get(stop.city)}
-                </span>
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="min-w-0 truncate text-sm font-bold">
+            items={route.stops.map((stop) => {
+              const number = stopNumberByCity.get(stop.city) ?? 1;
+              return (
+                <div
+                  key={stop.city}
+                  className="flex min-h-14 min-w-0 items-center gap-3 border-b border-border py-2 last:border-b-0"
+                >
+                  <span
+                    className={cn(
+                      "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-caption font-bold tabular-nums text-white",
+                      stopInk(number).bg,
+                    )}
+                  >
+                    {number}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[0.9375rem] font-bold">
                     {stop.city}
                   </span>
-                  <span className="min-w-0 truncate text-caption text-muted">
+                  <span className="shrink-0 text-caption tabular-nums text-muted">
                     {stop.days.length > 0
                       ? `ימים ${stop.days.join(", ")}${stop.nights > 0 ? ` · ${nightsLabel(stop.nights)}` : ""}`
                       : "עוד לא בלו״ז"}
                   </span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setFocusCity(stop.city)}
-                  aria-label={`הצג את ${stop.city} במפה`}
-                  className="shrink-0 rounded-control p-1 text-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <Crosshair className="h-4 w-4" aria-hidden="true" />
-                </button>
-              </div>
-            ))}
+                  <button
+                    type="button"
+                    onClick={() => setFocusCity(stop.city)}
+                    aria-label={`הצג את ${stop.city} במפה`}
+                    className="-me-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <Crosshair className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+              );
+            })}
           />
         </div>
 
@@ -354,13 +366,15 @@ export function RouteMap({
                     >
                       <ListRow
                         leading={
-                          <Badge
-                            tone="tone"
-                            variant="solid"
-                            className="h-6 w-6 justify-center p-0 tabular-nums"
+                          // The pin's own colour and number — see stopInk.
+                          <span
+                            className={cn(
+                              "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-caption font-bold tabular-nums text-white",
+                              stopInk(stopNumberByCity.get(stop.city) ?? 1).bg,
+                            )}
                           >
                             {stopNumberByCity.get(stop.city)}
-                          </Badge>
+                          </span>
                         }
                         title={stop.city}
                         subtitle={

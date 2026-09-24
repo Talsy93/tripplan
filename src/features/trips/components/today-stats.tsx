@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { HelpCircle } from "lucide-react";
 import { getExchangeRates } from "@/lib/currency";
+import { cn } from "@/lib/cn";
 import { getDailyForecast } from "@/lib/weather";
 import {
   destinationCurrency,
@@ -15,6 +16,7 @@ import type { NightLodging } from "../domain/trip-days";
 import { CurrencyTile } from "./currency-converter";
 import { DailyExpensesTile } from "./daily-expenses";
 import { DomainIcon } from "./domain-icon";
+import { toolTileClasses, ToolTileBody } from "./tool-tile";
 
 type Tile = {
   key: string;
@@ -106,7 +108,7 @@ export async function TodayStats({
   };
 
   return (
-    <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <li className="min-w-0">
         <StatTile
           tile={
@@ -128,6 +130,7 @@ export async function TodayStats({
           expenses={dayNumber === null ? [] : expensesForDay(expenses, dayNumber)}
           currency={currency ?? HOME_CURRENCY}
           rates={rates}
+          city={city}
         />
       </li>
       <li className="min-w-0">
@@ -140,32 +143,23 @@ export async function TodayStats({
   );
 }
 
+// The same tile as the toolbox's (Pencil, v7): an icon on a teal tile, the
+// value, and what it is — so the strip and the toolbox read as one set.
 function StatTile({ tile }: { tile: Tile }) {
   const body = (
-    <>
-      <span className="flex min-w-0 items-center justify-center gap-1 text-caption font-semibold text-muted">
-        <span className="shrink-0">{tile.icon}</span>
-        <span className="min-w-0 truncate">{tile.label}</span>
-      </span>
-      <span className="min-w-0 truncate text-sm font-black">{tile.value}</span>
-      {tile.hint && (
-        <span className="min-w-0 truncate text-caption text-muted">
-          {tile.hint}
-        </span>
-      )}
-    </>
+    <ToolTileBody
+      icon={tile.icon}
+      value={tile.value}
+      label={tile.hint ? `${tile.label} · ${tile.hint}` : tile.label}
+    />
   );
 
-  const className =
-    "flex h-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-card bg-surface shadow-card px-2 py-2.5 text-center";
-
-  if (!tile.href) return <div className={className}>{body}</div>;
+  if (!tile.href) {
+    return <div className={cn(toolTileClasses, "hover:shadow-card")}>{body}</div>;
+  }
 
   return (
-    <Link
-      href={tile.href}
-      className={`${className} transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
-    >
+    <Link href={tile.href} className={toolTileClasses}>
       {body}
     </Link>
   );

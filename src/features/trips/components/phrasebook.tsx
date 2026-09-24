@@ -1,17 +1,15 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Languages, Search, Volume2 } from "lucide-react";
+import { Languages, Search } from "lucide-react";
 import {
-  Badge,
   Banner,
   Button,
-  Card,
-  Disclosure,
   EmptyState,
   Input,
   SectionHeading,
 } from "@/components/ui";
+import { cn } from "@/lib/cn";
 import { aiErrorFromResponse } from "../domain/ai-errors";
 import { speechLangFor } from "../domain/phrasebook";
 import type { AiPhrase, AiPhrasebook } from "../domain/phrasebook";
@@ -38,6 +36,9 @@ export function Phrasebook({
   const [building, setBuilding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  // The chip that is selected, by section title. Null until one is pressed,
+  // which reads as "the first section".
+  const [active, setActive] = useState<string | null>(null);
 
   const searching = query.trim().length > 0;
 
@@ -85,11 +86,26 @@ export function Phrasebook({
     }
   }
 
+  // The section on screen when nothing is being searched. Held by title and
+  // resolved against the live list, so a rebuilt phrasebook whose sections
+  // are named differently falls back to its first one instead of to nothing.
+  const current =
+    phrasebook?.sections.find((section) => section.title === active) ??
+    phrasebook?.sections[0] ??
+    null;
+  const shown = searching ? sections : current ? [current] : [];
+
   return (
     <div className="flex flex-col gap-4">
       <SectionHeading
         level="page"
-        description={phrasebook?.language}
+        description={
+          phrasebook
+            ? speechLang
+              ? `${phrasebook.language} · לחצו להשמעה`
+              : phrasebook.language
+            : undefined
+        }
         actions={
           <Button
             type="button"
@@ -97,6 +113,7 @@ export function Phrasebook({
             loading={building}
             size="sm"
             variant={phrasebook ? "outline" : "primary"}
+            className="rounded-full"
           >
             {phrasebook ? "בנייה מחדש" : "בניית שיחון"}
           </Button>
@@ -108,17 +125,57 @@ export function Phrasebook({
       {phrasebook && (
         <div className="relative">
           <Search
-            className="pointer-events-none absolute inset-y-0 start-3 my-auto h-4 w-4 text-muted"
+            className="pointer-events-none absolute inset-y-0 start-4 my-auto h-[1.125rem] w-[1.125rem] text-muted"
             aria-hidden="true"
           />
           <Input
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="חיפוש ביטוי…"
+            placeholder="חיפוש ביטוי"
             aria-label="חיפוש בשיחון"
-            className="ps-9"
+            className="h-12 rounded-full border-border bg-surface ps-11"
           />
+        </div>
+      )}
+
+      {/* One section at a time, chosen from a row of chips — Pencil's version
+          of what was an accordion. A built phrasebook is six or seven sections
+          with six phrases each, forty cards in one scroll, where what you want
+          is "how do I ask for the bill". The chip names are enough to choose a
+          section by, and the first one is selected so the page never arrives
+          empty.
+
+          While a search is running the chips step aside: the cards on screen
+          are the matches from every section, each under its section's name,
+          and asking the reader to pick a chip to find out what matched would
+          make the search useless. */}
+      {phrasebook && !searching && phrasebook.sections.length > 1 && (
+        <div
+          role="group"
+          aria-label="נושאים בשיחון"
+          className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] md:-mx-6 md:px-6 [&::-webkit-scrollbar]:hidden"
+        >
+          {phrasebook.sections.map((section) => {
+            const on = section.title === current?.title;
+            return (
+              <button
+                key={section.title}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setActive(section.title)}
+                className={cn(
+                  "flex h-10 shrink-0 items-center whitespace-nowrap rounded-full px-4 text-sm font-semibold transition-colors",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  on
+                    ? "bg-foreground text-background"
+                    : "border border-border bg-surface text-foreground hover:border-border-strong",
+                )}
+              >
+                {section.title}
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -145,79 +202,69 @@ export function Phrasebook({
         />
       )}
 
-      {/* One section open at a time, not all of them.
-          A built phrasebook is six or seven headings with six phrases each —
-          forty cards in one scroll, where what you want is "how do I ask for
-          the bill". The heading and the count are enough to choose a section
-          by, and the first one is open so the page never arrives empty.
-
-          While a search is running they all open: the sections on screen are
-          the matches, and asking the reader to open each one to find out what
-          matched would make the search useless. The key changes with the search
-          state so React re-mounts the <details> rather than fighting whatever
-          the reader toggled by hand. */}
-      {sections.map((section, index) => (
-        <Disclosure
-          key={`${searching ? "q" : "all"}|${section.title}`}
-          title={section.title}
-          leading={<Languages className="h-4 w-4" />}
-          meta={<Badge tone="neutral">{section.phrases.length}</Badge>}
-          defaultOpen={searching || index === 0}
-        >
+      {shown.map((section) => (
+        <section key={section.title} className="flex flex-col gap-2">
+          {searching && (
+            <h3 className="px-1 text-sm font-semibold text-muted">
+              {section.title}
+            </h3>
+          )}
           {/* A phrase card is short, so a wide screen fits three of them and a
               two-week phrasebook stops being a single scrolling column. */}
-          <ul className="grid gap-2 @md:grid-cols-2 @3xl:grid-cols-3">
+          <ul className="grid gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
             {section.phrases.map((phrase) => (
               <li key={`${section.title}|${phrase.he}`} className="min-w-0">
                 {/* wrap-anywhere on every line here: a transliteration or a
                     local script is often one long token with nowhere to break,
                     and a single phrase used to hold the grid column open. */}
-                <Card padding="sm" className="flex h-full min-w-0 flex-col gap-1">
-                  <span className="text-sm font-semibold wrap-anywhere">
-                    {phrase.he}
-                  </span>
+                <div className="flex h-full min-w-0 items-center gap-3 rounded-[20px] bg-surface p-4 shadow-card">
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="text-[0.8125rem] text-muted wrap-anywhere">
+                      {phrase.he}
+                    </span>
 
-                  {/* The local script is set LTR-neutral with dir="auto" so a
-                      language written right-to-left renders correctly too. */}
-                  <span dir="auto" className="text-sm wrap-anywhere">
-                    {phrase.local}
-                  </span>
+                    {/* The local script is set LTR-neutral with dir="auto" so
+                        a language written right-to-left renders correctly
+                        too. */}
+                    <span
+                      dir="auto"
+                      className="text-[1.0625rem] leading-6 font-semibold text-foreground wrap-anywhere"
+                    >
+                      {phrase.local}
+                    </span>
 
-                  {/* The row that makes the feature usable: how to actually
-                      say it, in letters the reader knows — and, where the
-                      device has a voice for the language, a button that says
-                      it. The speaker glyph used to sit here as decoration in
-                      exactly this spot, which is why it was read as a play
-                      button; it now is one.
-
-                      Rendered only when the language resolves to a BCP-47
-                      tag. See speechLangFor. */}
-                  <span className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-primary-ink">
-                    {speechLang ? (
-                      <SpeakButton
-                        text={phrase.local}
-                        lang={speechLang}
-                        label={`השמעה של ${phrase.he}`}
-                      />
-                    ) : (
-                      <Volume2
-                        className="h-4 w-4 shrink-0"
-                        aria-hidden="true"
-                      />
-                    )}
-                    <span className="min-w-0 wrap-anywhere">
+                    {/* The row that makes the feature usable: how to actually
+                        say it, in letters the reader knows. */}
+                    <span className="text-sm text-primary wrap-anywhere">
                       {phrase.pronunciation}
                     </span>
-                  </span>
 
-                  <span dir="ltr" className="text-caption text-muted wrap-anywhere">
-                    {phrase.en}
-                  </span>
-                </Card>
+                    <span
+                      dir="ltr"
+                      className="text-end text-caption text-outline wrap-anywhere"
+                    >
+                      {phrase.en}
+                    </span>
+                  </div>
+
+                  {/* Where the device has a voice for the language, a button
+                      that says it. Rendered only when the language resolves to
+                      a BCP-47 tag — see speechLangFor. With none there is no
+                      speaker at all: a decorative one in this spot was read as
+                      a play button once already. */}
+                  {speechLang && (
+                    <SpeakButton
+                      text={phrase.local}
+                      lang={speechLang}
+                      label={`השמעה של ${phrase.he}`}
+                      size="lg"
+                    />
+                  )}
+                </div>
               </li>
             ))}
           </ul>
-        </Disclosure>
+        </section>
       ))}
     </div>
   );

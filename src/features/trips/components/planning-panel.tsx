@@ -32,14 +32,15 @@ type PlanningPanelProps = {
 // and the list readable.
 const MORE_COUNT = 5;
 
-// The export's four openers, word for word. They are written as whole briefs
-// rather than as one-word tags because that is what the field wants: pressing
-// one has to leave something you could send as it stands.
+// The openers. Written as whole briefs rather than one-word tags because that
+// is what the field wants: pressing one has to leave something you could send
+// as it stands. No emoji — Pencil draws these as plain text chips, and the
+// app's marks are lucide glyphs only (CLAUDE.md, 2026-08-31).
 const VIBES = [
-  "קולינרי ואיטי 🍷",
-  "אתרי חובה בקצב מהיר ⚡",
-  "פינות נסתרות 🌿",
-  "טיול צילום 📸",
+  "קולינרי ואיטי",
+  "אתרי חובה בקצב מהיר",
+  "פינות נסתרות",
+  "טיול צילום",
 ] as const;
 
 export function PlanningPanel({
@@ -142,77 +143,70 @@ export function PlanningPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* "עוזר הגילוי החכם" — the _4 export's smart-discovery panel.
-          A gradient card with a blurred glimmer behind it, an eyebrow in small
-          caps, the question, the sentence, four vibe chips that fill the field,
-          the field, and a full-width call at the foot. The chips are the part
-          that matters: the hardest thing about a free-text prompt is the empty
-          box, and four openers turn it into a choice. Pressing one writes it
-          into the field rather than sending it, so it is a starting point that
-          can still be edited — which is what the export's own script does. */}
-      <div className="relative overflow-hidden rounded-card bg-gradient-to-br from-surface-high via-surface-sunken to-primary-tint/40 p-4 shadow-card">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -end-10 -top-10 h-32 w-32 rounded-full bg-primary-tint opacity-60 blur-2xl"
-        />
-        <div className="relative z-10 flex min-w-0 flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface shadow-card">
-              <Sparkles className="h-5 w-5 text-primary" aria-hidden="true" />
-            </span>
-            <span className="text-caption font-bold uppercase tracking-wider text-primary">
-              עוזר הגילוי החכם
-            </span>
-          </div>
+      {/* Pencil's AI box: the teal tint rather than the gradient — the screen
+          has one lit element at most, and a tint says "the assistant is
+          offering something" without competing with the orange call in the
+          sticky bar. A sparkle and the question, the sentence, the opener chips
+          white on the tint, then the field and its button.
 
-          <h3 className="text-lg font-semibold leading-6">
-            לא בטוחים מאיפה להתחיל?
+          The chips are the part that matters: the hardest thing about a
+          free-text prompt is the empty box, and openers turn it into a choice.
+          Pressing one writes it into the field rather than sending it, so it is
+          a starting point that can still be edited. */}
+      <div className="flex min-w-0 flex-col gap-3 rounded-[20px] bg-primary-tint p-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <Sparkles className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+          <h3 className="min-w-0 text-base font-bold leading-6 text-primary-ink wrap-anywhere">
+            לא בטוחים מה מחפשים?
           </h3>
-          <p className="min-w-0 max-w-measure text-sm text-muted">
-            תארו בקצרה מה אתם אוהבים ואיזה קצב מתאים לכם, וקבלו הצעות מותאמות
-            אישית לנקודות פתיחה.
-          </p>
+        </div>
+        <p className="-mt-1 min-w-0 max-w-measure text-sm text-primary-ink/80">
+          בחרו סגנון והעוזר יציע מקומות שמתאימים לכם
+        </p>
 
-          <div className="flex flex-wrap gap-2">
-            {VIBES.map((vibe) => (
-              <button
-                key={vibe}
-                type="button"
-                onClick={() => setPrompt(vibe)}
-                className={cn(
-                  "rounded-full px-3 py-1 text-caption font-medium shadow-card transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  prompt === vibe
-                    ? "bg-primary text-white"
-                    : "bg-surface text-foreground hover:bg-primary-tint",
-                )}
-              >
-                {vibe}
-              </button>
-            ))}
-          </div>
-
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <input
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="למשל: סמטאות ציוריות עם גלידה טובה…"
-              aria-label="מה בא לכם לעשות בטיול?"
-              className="w-full rounded-card bg-surface/90 px-4 py-2.5 text-sm text-foreground shadow-card outline-none backdrop-blur placeholder:font-normal placeholder:text-placeholder"
-            />
-            <Button
-              type="submit"
-              variant="primary"
-              loading={loading}
-              disabled={prompt.trim().length < 3}
-              className="w-full"
+        <div className="flex flex-wrap gap-2">
+          {VIBES.map((vibe) => (
+            <button
+              key={vibe}
+              type="button"
+              onClick={() => setPrompt(vibe)}
+              aria-pressed={prompt === vibe}
+              className={cn(
+                "h-9 rounded-full px-3.5 text-caption font-semibold transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                prompt === vibe
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-surface text-primary-ink hover:bg-surface/80",
+              )}
             >
-              <Sparkles className="h-4 w-4" aria-hidden="true" />
-                {cities.length > 0
-                  ? "הצעות חדשות"
-                  : `הציעו לי מקומות מנצחים${city ? ` ב${city}` : ""} ✨`}
-              </Button>
-            </form>
+              {vibe}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+          <input
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="או כתבו בעצמכם: סמטאות ציוריות עם גלידה טובה…"
+            aria-label="מה בא לכם לעשות בטיול?"
+            className="h-11 w-full rounded-full bg-surface px-4 text-sm text-foreground outline-none placeholder:font-normal placeholder:text-placeholder focus-visible:ring-2 focus-visible:ring-ring"
+          />
+          {/* Teal, not the terracotta call: that colour belongs to the one
+              action the screen is for, which is the sticky bar's "שיבוץ לימים". */}
+          <Button
+            type="submit"
+            variant="brand"
+            loading={loading}
+            disabled={prompt.trim().length < 3}
+            className="w-full rounded-full"
+          >
+            <Sparkles className="h-4 w-4" aria-hidden="true" />
+            {cities.length > 0
+              ? "הצעות חדשות"
+              : `הציעו לי מקומות${city ? ` ב${city}` : ""}`}
+          </Button>
+        </form>
 
             {error && <Banner tone="danger">{error}</Banner>}
             {notice && <Banner tone="info">{notice}</Banner>}
@@ -229,7 +223,7 @@ export function PlanningPanel({
                 job of this list — but five of them arriving unasked is what the
                 fold is for. */}
             {cities.length > 0 && (
-              <div className="flex min-w-0 flex-col gap-3 border-t border-border/60 pt-3">
+              <div className="flex min-w-0 flex-col gap-3 border-t border-primary/15 pt-3">
                 <Disclosure
                   tone="suggest"
                   leading={<Sparkles className="h-4 w-4" />}
@@ -281,8 +275,7 @@ export function PlanningPanel({
                 )}
               </div>
             )}
-          </div>
-        </div>
+      </div>
     </div>
   );
 }

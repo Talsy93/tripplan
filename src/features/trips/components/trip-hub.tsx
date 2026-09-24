@@ -1,22 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  BookOpen,
   ChevronLeft,
   Compass,
   Copy,
-  Globe,
   Heart,
   HouseHeart,
   Languages,
-  LayoutGrid,
-  ListChecks,
+  Luggage,
   MessageSquareText,
-  PlaneTakeoff,
-  Share2,
-  Ticket,
+  Phone,
   UserPlus,
+  Users,
   Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -26,6 +24,7 @@ import type { PrepItem, PrepSuggestion } from "../domain/prep";
 import { memberLabel } from "../domain/membership";
 import type { Booking } from "../domain/booking";
 import type { EmergencyContact } from "../domain/emergency";
+import { costTotalsByCurrency, formatMoney } from "../domain/expenses";
 import type { GearItem } from "../domain/gear";
 import type { TripMember } from "../domain/membership";
 import { enableSharing } from "../application/share-actions";
@@ -37,45 +36,54 @@ import { ExpenseSummary } from "./expense-summary";
 import { HubBookings } from "./hub-bookings";
 import { PushToggle } from "./push-toggle";
 
-// The "מסמכים" tab — the Stitch export's third screen (design/stitch/…/_3),
-// copied block for block: the eyebrow and the trip's name with the add pill,
-// four filter pills, then "כרטיסי נסיעה ואישורים", "ציוד ורשימת הכנות",
-// "שותפים ועדכון משפחה" and "חירום וביטוח". Sizes, colours and spacing are the
-// export's own, in the export's Material names mapped onto this app's tokens.
+// The "מסמכים" tab, as the Pencil design draws it
+// (design/pencil/exports/documents-mobile.png): the title with the screen's
+// one terracotta pill, four filter chips, the tickets, a two-tile summary of
+// the packing list and the money, and a card of links to the rest.
 //
-// Every value on it is real. The fields the export printed that the app did
-// not hold — seat, gate, boarding, bag, stars, breakfast, paid, the emergency
-// numbers — arrived in migration 0026 so that the picture could be data. What
-// is still not the export, and why, is said where it happens: no Wallet pass
-// and no flight status (both paid), no "offline" stamp (nothing is cached), no
-// file upload (it needs a storage bucket; the header adds a booking instead).
+// Every value on it is real. What the design prints that the app cannot hold
+// is said where it happens: no Wallet pass and no flight status (both paid),
+// no file upload (it needs a storage bucket; the header adds a booking).
 //
-// Below the export's last card, and outside it: the screens that stay screens
-// (the guides, the phrasebook, the how-to) and the delete
-// row. The export has no room for them, and without them they are unreachable.
+// The two tiles are summaries, not the lists themselves: the checklist and the
+// expense breakdown open in place of the overview when a tile is pressed (the
+// "ציוד" chip opens the checklist too), and the emergency card opens from its
+// row. Nothing the screen held before is gone — it is one press further in.
 
-// Which sections a pill shows. The emergency card shows under every pill, as
-// the export's `data-category="all"` does.
-type Filter = "all" | "bookings" | "checklist" | "sharing";
+// Which sections are on screen. The first four are the chips; the last two
+// have no chip and are reached from a tile or a row.
+type View = "all" | "bookings" | "checklist" | "sharing" | "expenses" | "emergency";
 
-const FILTERS: { key: Filter; label: string; Icon: LucideIcon }[] = [
-  { key: "all", label: "הכל", Icon: LayoutGrid },
-  { key: "bookings", label: "טיסות ומלונות", Icon: PlaneTakeoff },
-  { key: "checklist", label: "ציוד ומשימות", Icon: ListChecks },
-  { key: "sharing", label: "שיתוף משפחתי", Icon: Share2 },
+const FILTERS: { key: View; label: string }[] = [
+  { key: "all", label: "הכל" },
+  { key: "bookings", label: "טיסות ומלונות" },
+  { key: "checklist", label: "ציוד" },
+  { key: "sharing", label: "שיתוף" },
 ];
 
-const ELSEWHERE = [
-  { segment: "guides", label: "מדריכי הערים", hint: "אזורי לינה, מסעדות, אטרקציות", Icon: Globe },
-  { segment: "phrases", label: "מילים שימושיות", hint: "שיחון בשפת היעד, עם תעתיק", Icon: Languages },
-  { segment: "guide", label: "איך זה עובד", hint: "שלבי העבודה, עם קישור לכל מסך", Icon: Compass },
-] as const satisfies readonly {
-  segment: string;
-  label: string;
-  hint: string;
-  Icon: LucideIcon;
-}[];
+// Anchors other screens link to — "הוצאות עד כה" on the prep page lands on
+// #expenses, the device-reminder suggestion on #device-reminders — mapped to
+// the view that holds them.
+const HASH_VIEWS: Record<string, View> = {
+  "#expenses": "expenses",
+  "#emergency": "emergency",
+  "#device-reminders": "all",
+};
 
+// The card of links under the summary. A row is either another screen or one
+// of the views above that has no chip.
+const ELSEWHERE: {
+  key: string;
+  label: string;
+  Icon: LucideIcon;
+  to: { segment: string } | { view: View };
+}[] = [
+  { key: "members", label: "מי בא איתנו", Icon: Users, to: { segment: "members" } },
+  { key: "guides", label: "מדריכי הערים", Icon: BookOpen, to: { segment: "guides" } },
+  { key: "phrases", label: "מילים שימושיות", Icon: Languages, to: { segment: "phrases" } },
+  { key: "emergency", label: "חירום וביטוח", Icon: Phone, to: { view: "emergency" } },
+  { key: "guide", label: "איך זה עובד", Icon: Compass, to: { segment: "guide" } },
+];
 
 // The avatars' colours, by position. The app has no profile photos, so a
 // person is an initial on a tinted disc — the tone tokens, not new colours.
@@ -122,207 +130,296 @@ export function TripHub({
   origin: string;
   now: string;
 }) {
-  const [filter, setFilter] = useState<Filter>("all");
-  const shows = (section: Filter) => filter === "all" || filter === section;
+  const [view, setView] = useState<View>("all");
+  const top = useRef<HTMLDivElement>(null);
 
-  const at = new Date(now);
-  // "פעילים": still ahead or under way. A flight that has landed is a record,
-  // not something to have ready at a desk.
-  const active = bookings.filter(
-    (booking) => new Date(booking.ends_at ?? booking.starts_at) >= at,
-  ).length;
+  // A link that arrives with an anchor opens the view that holds it, then
+  // scrolls to it — the browser's own jump happened before the view existed.
+  // Read after mount, never during render: the server has no hash, and a
+  // first render that disagreed with it would be a hydration mismatch.
+  useEffect(() => {
+    function follow() {
+      const target = HASH_VIEWS[window.location.hash];
+      if (!target) return;
+      setView(target);
+      requestAnimationFrame(() =>
+        document
+          .getElementById(window.location.hash.slice(1))
+          ?.scrollIntoView({ block: "start" }),
+      );
+    }
+    follow();
+    window.addEventListener("hashchange", follow);
+    return () => window.removeEventListener("hashchange", follow);
+  }, []);
+
+  // A tile or a row swaps what is below the chips; back to the top so the
+  // new view starts where the eye is, not wherever the tile was.
+  function open(next: View) {
+    setView(next);
+    top.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }
+
+  const shows = (section: View) => view === "all" || view === section;
+
+  // The gear tile: the packing list and the reminders counted as the one
+  // checklist ChecklistCard draws.
+  const checklistTotal = gear.length + prepItems.length;
+  const checklistDone =
+    gear.filter((item) => item.packed).length +
+    prepItems.filter((item) => item.done).length;
+
+  // The money tile: the first currency's total, and a count of the rest — a
+  // tile has room for one figure, the breakdown behind it has room for all.
+  const totals = costTotalsByCurrency(bookings);
 
   return (
-    <div className="flex w-full min-w-0 flex-col pb-8">
+    <div ref={top} className="flex w-full min-w-0 scroll-mt-20 flex-col gap-4 pb-8">
       {/* No top padding of its own: the layout's <main> already gives the
-          export's 16px under the header. */}
-      <div className="pb-1">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <span className="text-[10px] leading-[14px] font-semibold tracking-wide text-primary">
-              מרכז מסמכים ובקרה
-            </span>
-            <h1 className="text-xl leading-7 font-semibold text-foreground wrap-anywhere">
-              {tripName}
-            </h1>
-          </div>
-          <AddBookingButton tripId={tripId} cities={cities} pill />
-        </div>
+          space under the header. */}
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-[26px] leading-8 font-bold text-foreground">
+          מסמכים
+        </h1>
+        <AddBookingButton tripId={tripId} cities={cities} pill />
       </div>
 
-      {/* The pills scroll rather than wrap, as in the export. */}
-      <div className="-mx-4 w-auto overflow-x-auto px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex min-w-max items-center gap-1" role="group" aria-label="סינון">
-          {FILTERS.map(({ key, label, Icon }) => (
+      {/* The chips scroll rather than wrap. */}
+      <div className="-mx-4 w-auto overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex min-w-max items-center gap-2" role="group" aria-label="סינון">
+          {FILTERS.map(({ key, label }) => (
             <button
               key={key}
               type="button"
-              onClick={() => setFilter(key)}
-              aria-pressed={filter === key}
+              onClick={() => setView(key)}
+              aria-pressed={view === key}
               className={cn(
-                "flex items-center gap-0.5 rounded-full px-4 py-1 text-xs leading-4 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                filter === key
-                  ? "bg-primary text-white shadow-sm"
-                  : "bg-surface-high text-muted-strong",
+                "flex h-10 items-center rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                view === key
+                  ? "bg-foreground text-surface"
+                  : "border border-border bg-surface text-foreground hover:bg-surface-2",
               )}
             >
-              <Icon className="h-4 w-4" aria-hidden="true" />
-              <span>{label}</span>
+              {label}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="mt-2 flex flex-col gap-6">
-        {shows("bookings") && (
-          <section className="flex flex-col gap-4">
-            <SectionHead
-              Icon={Ticket}
-              tone="primary"
-              title="כרטיסי נסיעה ואישורים"
-              meta={
-                bookings.length > 0 && (
-                  <span className="shrink-0 rounded-full bg-success/10 px-2 py-0.5 text-[10px] leading-[14px] font-medium tracking-[0.02em] text-success-strong">
-                    {active} פעילים
-                  </span>
-                )
-              }
-            />
-            <HubBookings
-              tripId={tripId}
-              bookings={bookings}
-              cities={cities}
-              now={now}
-            />
-          </section>
-        )}
-
-        {/* The money, beside the tickets it is summed from. Moved here from
-            "פרטי הטיול" when that page went; `id` so "הוצאות עד כה" on the
-            prep page can land on it. */}
-        {shows("bookings") && bookings.length > 0 && (
-          <section id="expenses" className="flex scroll-mt-20 flex-col gap-4">
-            <SectionHead Icon={Wallet} tone="primary" title="הוצאות הטיול" />
-            <ExpenseSummary bookings={bookings} />
-          </section>
-        )}
-
-        {shows("checklist") && (
-          <ChecklistCard
+      {shows("bookings") && (
+        <section aria-label="כרטיסי נסיעה ואישורים" className="flex flex-col gap-3">
+          <HubBookings
             tripId={tripId}
-            gear={gear}
-            prepItems={prepItems}
-            suggestions={prepSuggestions}
-            today={today}
+            bookings={bookings}
+            cities={cities}
+            now={now}
           />
-        )}
+        </section>
+      )}
 
-        {shows("sharing") && (
-          <SharingSection
-            tripId={tripId}
-            members={members}
-            shareToken={shareToken}
-            origin={origin}
+      {view === "all" && (
+        <div className="grid grid-cols-2 gap-3">
+          <SummaryTile
+            Icon={Luggage}
+            value={
+              checklistTotal === 0
+                ? "רשימה ריקה"
+                : `${checklistDone} מתוך ${checklistTotal}`
+            }
+            label="ציוד והכנות"
+            progress={checklistTotal === 0 ? null : checklistDone / checklistTotal}
+            onOpen={() => open("checklist")}
           />
-        )}
+          <SummaryTile
+            Icon={Wallet}
+            value={
+              totals.length === 0
+                ? "—"
+                : formatMoney(totals[0].total, totals[0].currency)
+            }
+            valueDir="ltr"
+            label={
+              totals.length > 1
+                ? `הוצאות · ועוד ${totals.length - 1} מטבעות`
+                : totals.length === 1
+                  ? "הוצאות עד עכשיו"
+                  : "הוצאות"
+            }
+            onOpen={() => open("expenses")}
+          />
+        </div>
+      )}
 
-        {/* Per device, not per trip — a push subscription belongs to the
-            browser that made it — but this is where a traveller looks for
-            "remind me", next to the tickets the reminders are about. */}
-        {filter === "all" && (
-          // No section heading: the card carries its own title, and the
-          // same words twice in a row was the first version of this.
+      {/* The money, beside the tickets it is summed from, under "טיסות
+          ומלונות" — and on its own when the tile is pressed. `id` so
+          "הוצאות עד כה" on the prep page can land on it. */}
+      {(view === "expenses" || (view === "bookings" && bookings.length > 0)) && (
+        <section id="expenses" className="flex scroll-mt-20 flex-col gap-3">
+          <SectionHead title="הוצאות הטיול" />
+          <ExpenseSummary bookings={bookings} />
+        </section>
+      )}
+
+      {view === "checklist" && (
+        <ChecklistCard
+          tripId={tripId}
+          gear={gear}
+          prepItems={prepItems}
+          suggestions={prepSuggestions}
+          today={today}
+        />
+      )}
+
+      {view === "sharing" && (
+        <SharingSection
+          tripId={tripId}
+          members={members}
+          shareToken={shareToken}
+          origin={origin}
+        />
+      )}
+
+      {view === "emergency" && (
+        <section id="emergency" className="scroll-mt-20">
+          <EmergencyCard tripId={tripId} contacts={emergencyContacts} />
+        </section>
+      )}
+
+      {view === "all" && (
+        <>
+          <nav
+            aria-label="עוד בטיול"
+            className="overflow-hidden rounded-[18px] bg-surface shadow-card"
+          >
+            <ul className="flex flex-col px-4">
+              {ELSEWHERE.map(({ key, label, Icon, to }) => {
+                const row = (
+                  <>
+                    <Icon
+                      className="h-5 w-5 shrink-0 text-foreground"
+                      aria-hidden="true"
+                    />
+                    <span className="min-w-0 flex-1 truncate text-[15px] leading-6 font-medium text-foreground">
+                      {label}
+                    </span>
+                    <ChevronLeft
+                      className="h-4 w-4 shrink-0 text-muted transition-transform group-hover/row:-translate-x-0.5"
+                      aria-hidden="true"
+                    />
+                  </>
+                );
+                const rowClass =
+                  "group/row flex min-h-14 w-full min-w-0 items-center gap-3 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
+                return (
+                  <li key={key} className="border-b border-border last:border-b-0">
+                    {"segment" in to ? (
+                      <Link
+                        href={`/trips/${tripId}/more/${to.segment}`}
+                        className={rowClass}
+                      >
+                        {row}
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => open(to.view)}
+                        className={rowClass}
+                      >
+                        {row}
+                      </button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          {/* Per device, not per trip — a push subscription belongs to the
+              browser that made it — but this is where a traveller looks for
+              "remind me", next to the tickets the reminders are about. */}
           <section id="device-reminders" className="scroll-mt-20">
             <PushToggle />
           </section>
-        )}
 
-        <EmergencyCard tripId={tripId} contacts={emergencyContacts} />
-
-        {filter === "all" && (
-          <>
-            <nav
-              aria-label="עוד בטיול"
-              className="overflow-hidden rounded-xl bg-surface shadow-card"
-            >
-              <ul className="flex flex-col">
-                {ELSEWHERE.map(({ segment, label, hint, Icon }) => (
-                  <li
-                    key={segment}
-                    className="border-b border-surface-2 last:border-b-0"
-                  >
-                    <Link
-                      href={`/trips/${tripId}/more/${segment}`}
-                      className="group/row flex min-w-0 items-center gap-2 px-4 py-3 transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                    >
-                      <span
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-high text-primary"
-                        aria-hidden="true"
-                      >
-                        <Icon className="h-[18px] w-[18px]" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm leading-5 font-medium">
-                          {label}
-                        </span>
-                        <span className="block min-w-0 truncate text-xs leading-[18px] text-muted-strong">
-                          {hint}
-                        </span>
-                      </span>
-                      <ChevronLeft
-                        className="h-4 w-4 shrink-0 text-border-strong transition-transform group-hover/row:-translate-x-0.5"
-                        aria-hidden="true"
-                      />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-
-            {/* Apart from everything above it, which is law 05: a destructive
-                action does not sit at rest among the things you press every
-                day. */}
-            <div className="overflow-hidden rounded-xl bg-surface shadow-card">
-              <DeleteTripButton tripId={tripId} tripName={tripName} variant="row" />
-            </div>
-          </>
-        )}
-      </div>
+          {/* Apart from everything above it, which is law 05: a destructive
+              action does not sit at rest among the things you press every
+              day. */}
+          <div className="overflow-hidden rounded-[18px] bg-surface shadow-card">
+            <DeleteTripButton tripId={tripId} tripName={tripName} variant="row" />
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-// The export's section header: a 32px tinted disc, the title, and whatever sits
-// at the far end.
-function SectionHead({
+// One of the two summary tiles: an icon, one figure, what it counts, and —
+// for the checklist — how far along it is. The whole tile opens the list.
+function SummaryTile({
   Icon,
-  tone,
+  value,
+  valueDir,
+  label,
+  progress,
+  onOpen,
+}: {
+  Icon: LucideIcon;
+  value: string;
+  valueDir?: "ltr";
+  label: string;
+  // 0..1, or absent for a tile with no bar.
+  progress?: number | null;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex min-w-0 flex-col items-start gap-1 rounded-[18px] bg-surface p-4 text-start shadow-card transition-shadow hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <Icon className="mb-1 h-5 w-5 text-primary" aria-hidden="true" />
+      <span
+        dir={valueDir}
+        className="max-w-full truncate text-xl leading-7 font-bold text-foreground tabular-nums"
+      >
+        {value}
+      </span>
+      <span className="max-w-full truncate text-xs leading-4 text-muted">
+        {label}
+      </span>
+      {typeof progress === "number" && (
+        <span
+          className="mt-2 block h-1.5 w-full overflow-hidden rounded-full bg-surface-sunken"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress * 100)}
+          aria-label="התקדמות הרשימה"
+        >
+          <span
+            className="block h-full rounded-full bg-success"
+            style={{ width: `${Math.round(progress * 100)}%` }}
+          />
+        </span>
+      )}
+    </button>
+  );
+}
+
+// A section's heading in a filtered view: the title, and whatever sits at the
+// far end.
+function SectionHead({
   title,
   meta,
 }: {
-  Icon: LucideIcon;
-  tone: "primary" | "cta";
   title: string;
   meta?: React.ReactNode;
 }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <div className="flex min-w-0 items-center gap-1">
-        <div
-          className={cn(
-            "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-            tone === "primary"
-              ? "bg-primary-tint text-primary"
-              : "bg-cta-tint text-cta-strong",
-          )}
-          aria-hidden="true"
-        >
-          <Icon className="h-5 w-5" />
-        </div>
-        <h2 className="min-w-0 text-lg leading-6 font-semibold text-foreground">
-          {title}
-        </h2>
-      </div>
+      <h2 className="min-w-0 text-lg leading-6 font-semibold text-foreground">
+        {title}
+      </h2>
       {meta}
     </div>
   );
@@ -390,17 +487,15 @@ function SharingSection({
   return (
     <section className="flex flex-col gap-4">
       <SectionHead
-        Icon={UserPlus}
-        tone="primary"
         title="שותפים ועדכון משפחה"
         meta={
-          <span className="shrink-0 text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-primary">
+          <span className="shrink-0 text-xs font-semibold text-primary">
             {members.length === 1 ? "רק אתם" : `${members.length} שותפים פעילים`}
           </span>
         }
       />
 
-      <div className="flex flex-col gap-4 rounded-xl bg-surface p-4 shadow-card">
+      <div className="flex flex-col gap-4 rounded-[18px] bg-surface p-4 shadow-card">
         <div>
           <span className="mb-1 block text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-muted-strong">
             חברי הנסיעה
@@ -436,7 +531,7 @@ function SharingSection({
           </div>
         </div>
 
-        <div className="relative flex flex-col gap-2 overflow-hidden rounded-xl bg-surface-2 p-4">
+        <div className="relative flex flex-col gap-2 overflow-hidden rounded-2xl bg-surface-2 p-4">
           <div className="flex items-start gap-2">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cta-tint text-cta-strong">
               <HouseHeart className="h-[22px] w-[22px]" aria-hidden="true" />
@@ -464,7 +559,7 @@ function SharingSection({
               type="button"
               onClick={() => void copy()}
               disabled={working}
-              className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-surface px-2 py-2 text-xs leading-4 font-medium text-foreground shadow-sm transition-colors hover:bg-background active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex flex-1 items-center justify-center gap-1 min-h-11 rounded-[14px] bg-surface px-2 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-background active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Copy className="h-[18px] w-[18px] text-primary" aria-hidden="true" />
               העתקת לינק
@@ -473,7 +568,7 @@ function SharingSection({
               type="button"
               onClick={() => void whatsapp()}
               disabled={working}
-              className="flex flex-1 items-center justify-center gap-1 rounded-lg bg-success-strong px-2 py-2 text-xs leading-4 font-medium text-white shadow-sm transition-opacity hover:opacity-90 active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex flex-1 items-center justify-center gap-1 min-h-11 rounded-[14px] bg-success-strong px-2 py-2 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90 active:scale-95 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <MessageSquareText className="h-[18px] w-[18px]" aria-hidden="true" />
               שיתוף בוואטסאפ

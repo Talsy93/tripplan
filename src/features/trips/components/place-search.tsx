@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Compass,
   MapPin,
+  Plus,
   Search,
   Sparkles,
   X,
@@ -19,7 +20,6 @@ import {
   EmptyState,
   Input,
   ListRow,
-  SectionHeading,
   Surface,
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
@@ -36,7 +36,7 @@ import type { PlaceCategory } from "../domain/place";
 import type { Place } from "../domain/place";
 import type { AddedPlace } from "../infrastructure/place-service";
 import { PlaceDetails } from "./place-details";
-import { DomainIcon } from "./domain-icon";
+import { CategoryTile } from "./category-tile";
 
 // The six the search can offer. "אחר" exists as a category but has no tag
 // filters, so a tile for it would open a search that can only come back empty.
@@ -363,15 +363,22 @@ export function PlaceSearch({
                         {dayLabel(days)}
                       </Badge>
                     ) : (
-                      <Button
+                      // Pencil's round "+" — outlined at rest, the same control
+                      // the recommended list uses, so "add" looks like one
+                      // thing across the screen.
+                      <button
                         type="button"
-                        size="sm"
-                        variant="soft"
                         onClick={() => void add(place)}
-                        loading={adding === place.id}
+                        disabled={adding === place.id}
+                        aria-label={`הוספת ${place.name} לטיול`}
+                        className={cn(
+                          "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border-strong bg-surface text-foreground transition-colors hover:bg-surface-sunken active:scale-95",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                          adding === place.id && "opacity-60",
+                        )}
                       >
-                        הוספה
-                      </Button>
+                        <Plus className="h-5 w-5" aria-hidden="true" />
+                      </button>
                     )
                   }
                 />
@@ -409,53 +416,44 @@ export function PlaceSearch({
     return (
       <div className="flex flex-col gap-4">
         {/* Free text across every category, which is what the design puts
-            above the grid — and it needed no backend work at all: the API's
-            `category` was already optional and buildQuery already says "with no
-            category chosen, free text searches across every category at once".
-            The grid was simply a dead end, with no way to search without first
-            picking one. */}
-        {/* v6 (_4): one pill, with the field and the action inside it rather
-            than a boxed input beside a separate button. The export draws this
-            as a single rounded-full bar on the page's own surface, and it is
-            the first thing under the title. */}
+            above the grid — the API's `category` was already optional, so the
+            grid is not a dead end.
+
+            Pencil: one tall white pill with the magnifier at its start and the
+            city in the placeholder. The round submit button only appears once
+            there is something to submit — the export draws none, and Enter (the
+            keyboard's "search" key on a phone) already sends the form. */}
         <form
           onSubmit={(event) => {
             event.preventDefault();
             void search(null);
           }}
-          className="flex items-center gap-1 rounded-full bg-surface p-1.5 shadow-card"
+          className="flex h-14 items-center gap-2 rounded-full bg-surface pe-2 ps-5 shadow-card"
         >
-          <span
-            aria-hidden="true"
-            className="flex h-10 w-10 shrink-0 items-center justify-center text-primary"
-          >
-            <Search className="h-5 w-5" />
-          </span>
+          <Search className="h-5 w-5 shrink-0 text-muted" aria-hidden="true" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="חיפוש מקום, מסעדה, מוזיאון או אטרקציה…"
+            placeholder={`מקום, מסעדה או שכונה ב${city}`}
             aria-label={`חיפוש ב${city}`}
-            className="min-w-0 flex-1 bg-transparent px-1 text-sm text-foreground outline-none placeholder:font-normal placeholder:text-placeholder"
+            enterKeyHint="search"
+            className="h-full min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:font-normal placeholder:text-placeholder"
           />
-          {/* A round icon button at the end, which is what the export draws —
-              not a filled pill. Ours submits (the export's is a filter that
-              opens nothing), so it carries the arrow rather than the sliders:
-              a control that looks like a filter and runs a search is worse
-              than one that looks like what it does. */}
-          <button
-            type="submit"
-            aria-label={`חיפוש ב${city}`}
-            disabled={status.kind === "searching"}
-            className={cn(
-              "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
-              "bg-surface-sunken text-primary transition-colors hover:bg-primary-tint",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              status.kind === "searching" && "opacity-60",
-            )}
-          >
-            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-          </button>
+          {query.trim() && (
+            <button
+              type="submit"
+              aria-label={`חיפוש ב${city}`}
+              disabled={status.kind === "searching"}
+              className={cn(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
+                "bg-primary text-primary-foreground transition-colors hover:bg-primary-hover",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                status.kind === "searching" && "opacity-60",
+              )}
+            >
+              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+            </button>
+          )}
         </form>
         {/* Which destination, when there is more than one. The category view has
             its own copy of this in a sticky bar; here it is a plain row, because
@@ -477,19 +475,18 @@ export function PlaceSearch({
             ))}
           </div>
         )}
-        {/* v6 (_4): a chip carousel, not a grid of tiles.
-            The export replaces the six cards with one scrolling row of pills,
-            and that settles an argument this file has had twice. The grid was
-            folded once because it was heavy and unfolded again because it is
-            the tab's opening move; a chip row is both — it is visible the
-            moment the tab opens and it costs one line instead of two rows of
-            110px cards. The count of what is already in the trip rides on the
-            chip it belongs to.
+        {/* Pencil: a grid of tinted icon tiles with the label under each — back
+            from the v6 chip carousel, and without its emoji. The emoji were the
+            one place the 2026-08-31 "lucide only" rule had been reversed, and
+            the tiles are exactly the case that rule was about: a glyph that
+            takes its category's ink, beside other glyphs of the same weight.
 
-            stagger + animate-rise stay: the chips are the first thing on the
-            tab, and arriving in sequence reads as the screen assembling. Inert
-            under prefers-reduced-motion — globals.css. */}
-        <div className="stagger -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+            Three across on a phone (six categories make two even rows; the
+            export's eight make its four), all six in one row once the column is
+            wide enough. The count of what the trip already holds rides on the
+            tile's corner. stagger + animate-rise stay — inert under
+            prefers-reduced-motion, see globals.css. */}
+        <div className="stagger grid grid-cols-3 gap-x-2 gap-y-4 @xl:grid-cols-6">
           {CATEGORY_KEYS.map((key) => {
             const meta = PLACE_CATEGORIES[key];
             const count = savedCounts[key] ?? 0;
@@ -499,18 +496,25 @@ export function PlaceSearch({
                 type="button"
                 onClick={() => openCategory(key)}
                 className={cn(
-                  "animate-rise flex shrink-0 items-center gap-1.5 rounded-full bg-surface-sunken px-4 py-2",
-                  "text-caption font-medium text-foreground transition-colors hover:bg-surface-high",
+                  "animate-rise group/cat flex min-w-0 flex-col items-center gap-1.5 rounded-[18px] py-1",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 )}
               >
-                <span aria-hidden="true">{meta.emoji}</span>
-                <span className="whitespace-nowrap">{meta.label}</span>
-                {count > 0 && (
-                  <span className="shrink-0 rounded-full bg-primary-tint px-1.5 text-caption font-bold tabular-nums text-primary-ink">
-                    {count}
-                  </span>
-                )}
+                <span className="relative">
+                  <CategoryTile
+                    category={key}
+                    size="lg"
+                    className="transition-transform duration-press ease-snap group-hover/cat:scale-105 group-active/cat:scale-95"
+                  />
+                  {count > 0 && (
+                    <span className="absolute -end-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-surface px-1 text-[0.6875rem] font-bold tabular-nums text-foreground shadow-card">
+                      {count}
+                    </span>
+                  )}
+                </span>
+                <span className="max-w-full truncate text-caption font-medium text-foreground">
+                  {meta.label}
+                </span>
               </button>
             );
           })}
@@ -548,9 +552,12 @@ export function PlaceSearch({
         חזרה לקטגוריות
       </button>
 
-      <SectionHeading level="section" leading={<DomainIcon name={meta.icon} />}>
-        {meta.label}
-      </SectionHeading>
+      <div className="flex min-w-0 items-center gap-3">
+        <CategoryTile category={category} />
+        <h2 className="min-w-0 text-xl font-bold leading-7 wrap-anywhere">
+          {meta.label}
+        </h2>
+      </div>
 
       {/* The destination name used to scroll away with the first result, so a
           long list of "restaurants" gave no reminder of which city they were

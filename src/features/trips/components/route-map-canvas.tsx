@@ -19,6 +19,7 @@ import "leaflet/dist/leaflet.css";
 import { BaseTiles, MapAutosize } from "./map-base";
 import { routeBounds, type RoutePlace, type RouteStop } from "../domain/route";
 import { cityToneMap, toneByIndex, type Tone } from "../domain/tone";
+import { stopInk } from "./category-tile";
 
 // Numbered pins, one colour per city, matching the chips and the schedule.
 //
@@ -36,21 +37,26 @@ import { cityToneMap, toneByIndex, type Tone } from "../domain/tone";
 // beside the row in the panel — which is what lets a reader match the two
 // without a legend. `live` is the city the traveller is in right now: amber,
 // larger, with a soft halo.
+//
+// Pencil: 32px discs in a category ink with a 2.5px white ring, the number in
+// white bold. The ink is dealt by stop order (stopInk in category-tile.tsx),
+// and the drawer and the side pane colour their numbered dots from the same
+// function — so pin 3 and row 3 are visibly one thing.
 function numberedIcon(position: number, live = false) {
-  const size = live ? "2.25rem" : "1.875rem";
+  const size = live ? "2.25rem" : "2rem";
   return L.divIcon({
     className: "",
     html: `<div style="
       display:flex;align-items:center;justify-content:center;
       width:${size};height:${size};border-radius:9999px;
-      background:${live ? "var(--callout)" : "var(--primary)"};
-      color:${live ? "var(--foreground)" : "var(--primary-foreground)"};
-      border:2px solid var(--surface);
+      background:${live ? "var(--callout)" : `var(${stopInk(position).cssVar})`};
+      color:${live ? "var(--foreground)" : "var(--surface)"};
+      border:2.5px solid var(--surface);
       box-shadow:${live ? "0 0 0 8px rgba(245,158,11,0.25), " : ""}var(--elevation-lift);
       font-family:var(--font-rubik),sans-serif;font-weight:700;font-size:0.8125rem;
     ">${position}</div>`,
-    iconSize: live ? [36, 36] : [30, 30],
-    iconAnchor: live ? [18, 18] : [15, 15],
+    iconSize: live ? [36, 36] : [32, 32],
+    iconAnchor: live ? [18, 18] : [16, 16],
     popupAnchor: [0, -18],
   });
 }
@@ -163,11 +169,14 @@ export default function RouteMapCanvas({
       {line.length > 1 && (
         <Polyline
           positions={line}
+          // Pencil draws the route as one solid teal stroke, not the dashed
+          // line it was: the pins carry the colour, the line only joins them.
           pathOptions={{
             color: "var(--primary)",
-            weight: 3,
-            dashArray: "8 10",
-            opacity: 0.8,
+            weight: 4,
+            opacity: 0.9,
+            lineCap: "round",
+            lineJoin: "round",
           }}
         />
       )}

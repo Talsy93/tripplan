@@ -83,15 +83,13 @@ export function SegmentedControl({
               "rounded-full font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               "transition-[background-color,color,transform] duration-press ease-snap active:scale-[0.96]",
               segments[size],
-              // Ink, not a white pill on a grey track. The white-on-surface-2
-              // pair is 1.16:1 — enough to see a card edge, not enough to make
-              // a selected filter obvious at a glance, which is the one job
-              // this control has. It also matches the phone nav, so
-              // "selected" looks the same everywhere in the app; and ink
-              // says state where the action blue would say press me.
+              // v7 (Pencil): a white pill on the grey track, lifted by a shadow
+              // and carried by weight and ink colour. v6 filled it teal because
+              // white on a pale track alone is 1.16:1; the shadow and the
+              // semibold/ink vs medium/muted pair are what make it read now.
               active
-                ? "bg-primary text-primary-foreground shadow-soft"
-                : "text-muted hover:text-foreground",
+                ? "bg-surface text-foreground shadow-card"
+                : "font-medium text-muted hover:text-foreground",
             )}
           >
             {item.label}

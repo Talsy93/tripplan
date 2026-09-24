@@ -1,10 +1,8 @@
 import type { ReactNode } from "react";
-import { CalendarClock } from "lucide-react";
 import { TwoPane } from "@/components/layout";
-import { SectionHeading } from "@/components/ui";
 import { costTotalsByCurrency } from "../domain/expenses";
-import { daysUntil, formatShortDate } from "../domain/trip";
-import { duePrep } from "../domain/prep";
+import { daysUntil } from "../domain/trip";
+import { duePrep, prepProgress } from "../domain/prep";
 import type { Booking } from "../domain/booking";
 import type { OpenItem } from "../domain/open-items";
 import type { PrepItem } from "../domain/prep";
@@ -21,10 +19,11 @@ import { UpNext } from "./up-next";
 // page, and the app already had one at /more/gear. So the two are one page now,
 // and the "היום" tab is not drawn until there is a today to show.
 //
-// What it holds: a countdown, whatever the app itself still finds open (dates,
-// itinerary, lodging) and what is coming up. The reminders and the packing
-// list were here and moved to the documents tab as one checklist, as the Stitch
-// export draws them — the prep items are still read, for the countdown line.
+// What it holds (Pencil's "לפני היציאה", v7): a countdown card with a
+// readiness ring, whatever the app itself still finds open (dates, itinerary,
+// lodging), the forecast, and what is coming up. The reminders and the packing
+// list moved to the documents tab as one checklist — the prep items are still
+// read, for the ring and the countdown's lines.
 export function TodayPrep({
   tripId,
   tripName,
@@ -56,7 +55,17 @@ export function TodayPrep({
   const days = startDate ? daysUntil(startDate) : null;
   const hasSpend = costTotalsByCurrency(bookings).length > 0;
   const due = duePrep(prepItems, today);
-  const hasAside = Boolean(forecast) || hasSpend || bookings.length > 0;
+  const progress = prepProgress(prepItems);
+  const hasAside = hasSpend || bookings.length > 0;
+
+  const leaving = startDate
+    ? new Date(`${startDate}T00:00:00Z`).toLocaleDateString("he-IL", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        timeZone: "UTC",
+      })
+    : null;
 
   return (
     <TwoPane
@@ -65,19 +74,13 @@ export function TodayPrep({
           <>
             {bookings.length > 0 && (
               <section className="flex flex-col gap-3">
-                <SectionHeading level="section" tone="now">מה קרוב</SectionHeading>
+                <h2 className="text-base leading-6 font-bold text-foreground">מה קרוב</h2>
                 <UpNext bookings={bookings} now={now} cities={cities} />
-              </section>
-            )}
-            {forecast && (
-              <section className="flex flex-col gap-3">
-                <SectionHeading level="section">מזג האוויר</SectionHeading>
-                {forecast}
               </section>
             )}
             {hasSpend && (
               <section className="flex flex-col gap-3">
-                <SectionHeading level="section">הוצאות עד כה</SectionHeading>
+                <h2 className="text-base leading-6 font-bold text-foreground">הוצאות עד כה</h2>
                 <TripSpend tripId={tripId} bookings={bookings} />
               </section>
             )}
@@ -89,42 +92,81 @@ export function TodayPrep({
 
       <section
         aria-label="ספירה לאחור"
-        className="flex items-center gap-4 rounded-card bg-surface shadow-card p-4"
+        className="flex min-w-0 items-center justify-between gap-4 rounded-[1.5rem] bg-surface p-5 shadow-card"
       >
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-control bg-primary-tint text-primary-ink">
-          <CalendarClock className="h-6 w-6" aria-hidden="true" />
-        </span>
-        <div className="flex min-w-0 flex-1 flex-col">
-          {days !== null && days > 0 ? (
-            <span className="flex items-baseline gap-2">
-              <span className="font-display text-display font-bold leading-none text-primary">
-                {days}
-              </span>
-              <span className="text-sm font-semibold text-muted">
-                {days === 1 ? "יום ליציאה" : "ימים ליציאה"}
-                {startDate && ` · ${formatShortDate(startDate)}`}
-              </span>
-            </span>
-          ) : (
-            <span className="text-base font-semibold">
-              {startDate ? "יוצאים היום" : "עוד לא נקבע תאריך יציאה"}
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-[1.75rem] leading-9 font-bold text-foreground">
+            {days !== null && days > 0
+              ? days === 1
+                ? "מחר יוצאים"
+                : `עוד ${days} ימים`
+              : startDate
+                ? "יוצאים היום"
+                : "עוד אין תאריך"}
+          </span>
+          {leaving && days !== null && days > 0 && (
+            <span className="text-sm text-muted">יוצאים ב{leaving}</span>
+          )}
+          {!startDate && (
+            <span className="text-sm text-muted">קבעו תאריכים והספירה תתחיל.</span>
+          )}
+          {progress.total > 0 && (
+            <span className="text-sm font-semibold text-success">
+              {progress.done} מתוך {progress.total} הכנות סגורות
             </span>
           )}
-          <span className="text-caption text-muted">
+          <span className="text-xs text-muted">
             {due.length > 0
               ? due.length === 1
-                ? `דבר אחד ברשימה מגיע לתאריך היעד שלו`
+                ? "דבר אחד ברשימה מגיע לתאריך היעד שלו"
                 : `${due.length} דברים ברשימה מגיעים לתאריך היעד שלהם`
               : open.length > 0
                 ? `${open.length} ${open.length === 1 ? "דבר פתוח" : "דברים פתוחים"} בתכנון`
                 : "התכנון סגור. נשארה הרשימה."}
           </span>
         </div>
+        {progress.total > 0 && <ReadinessRing percent={progress.percent} />}
       </section>
 
       <OpenItems tripId={tripId} items={open} />
 
+      {/* Self-titled: WeatherForecast heads each city "תחזית ב…", and a
+          heading over it here said "weather" twice. */}
+      {forecast}
+
       {children}
     </TwoPane>
+  );
+}
+
+// How much of the prep list is done, as a ring with the percentage inside.
+// Green, because done is what it counts.
+function ReadinessRing({ percent }: { percent: number }) {
+  const radius = 38;
+  const circumference = 2 * Math.PI * radius;
+  return (
+    <div
+      role="img"
+      aria-label={`${percent}% מההכנות סגורות`}
+      className="relative h-[5.5rem] w-[5.5rem] shrink-0"
+    >
+      <svg viewBox="0 0 88 88" className="h-full w-full -rotate-90" aria-hidden="true">
+        <circle cx="44" cy="44" r={radius} fill="none" strokeWidth="8" className="stroke-surface-sunken" />
+        <circle
+          cx="44"
+          cy="44"
+          r={radius}
+          fill="none"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - percent / 100)}
+          className="stroke-success"
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-xl font-bold tabular-nums text-foreground">
+        {percent}%
+      </span>
+    </div>
   );
 }

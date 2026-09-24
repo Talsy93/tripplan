@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Check, Star } from "lucide-react";
+import { Plus, Check } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { setSelected } from "../application/guide-actions";
-import { categoryIcon } from "../domain/place";
 import { PlacePhoto } from "./place-photo";
-import { DomainIcon } from "./domain-icon";
+import { CategoryTile } from "./category-tile";
 import type { AiCategoryKey, CityGuideData } from "../domain/ai-suggestion";
 
 // "מומלצים ב<עיר>" — the section the _4 export opens its results with, and the
@@ -32,29 +31,15 @@ import type { AiCategoryKey, CityGuideData } from "../domain/ai-suggestion";
 // The source is the saved city guide — the same rows the city page reads, so
 // what is recommended here is what was already generated for that city, and
 // adding one from here marks the same row the guide marks.
-const BADGES: Record<AiCategoryKey, { label: string; className: string }> = {
-  attractions: {
-    label: "חובה ביקור",
-    className: "bg-cta-tint text-cta-ink",
-  },
-  restaurants: {
-    label: "חוויה קולינרית",
-    className: "bg-cta-tint text-cta-ink",
-  },
-  experiences: {
-    label: "חוויה מקומית",
-    className: "bg-success-bright text-success-ink",
-  },
-  areas: {
-    label: "אזור לינה",
-    className: "bg-primary-tint text-primary-ink",
-  },
-};
-
-const CATEGORY_LINE: Record<AiCategoryKey, string> = {
-  attractions: "אטרקציה או אתר",
-  restaurants: "מסעדה",
-  experiences: "חוויה",
+//
+// Pencil draws it as one white card of rows — a category tile, the name, a
+// "label • note" line, and a round "+" that turns into a filled green check.
+// The label is the editorial slot ("חובה ביקור"); ours says what kind of thing
+// the item is, which is the same slot filled by the data that exists.
+const LABELS: Record<AiCategoryKey, string> = {
+  attractions: "חובה ביקור",
+  restaurants: "חוויה קולינרית",
+  experiences: "חוויה מקומית",
   areas: "אזור לינה",
 };
 
@@ -130,99 +115,82 @@ export function RecommendedPlaces({
 
   return (
     <section className="flex min-w-0 flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="min-w-0 text-lg font-semibold leading-6 wrap-anywhere">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="min-w-0 text-lg font-bold leading-6 wrap-anywhere">
           מומלצים ב{city}
         </h2>
-        {/* The export's "לפי פופולריות". Ours says what the order actually is,
-            because saying "by popularity" about a list nobody scored would be
-            the rating problem again in one word. */}
-        <span className="shrink-0 text-caption font-semibold text-primary-ink">
-          מתוך המדריך של {city}
+        {/* The export's source note. It says where the order comes from, not
+            "by popularity" — nobody scored these. */}
+        <span className="shrink-0 text-caption text-muted">
+          מתוך מדריך העיר
         </span>
       </div>
 
-      {items.map((item) => {
-        const isAdded = added.includes(item.key);
-        const badge = BADGES[item.category];
-        return (
-          <article
-            key={item.key}
-            className="flex min-w-0 items-center gap-3 rounded-card bg-surface p-3 shadow-card"
-          >
-            {/* 80px square, exactly as the export draws it, and absent when
-                Wikipedia has nothing — see PlacePhoto. */}
-            <PlacePhoto
-              query={item.name}
-              near={city}
-              className="h-20 w-20 shrink-0 rounded-control"
-              // Asked for: a placeholder when there is no photo, so the list
-              // is one shape. Wikipedia has a page for some of these names and
-              // not others, and which is which tells the reader nothing.
-              fallback={
-                <DomainIcon
-                  name={categoryIcon(item.category)}
-                  className="h-7 w-7"
-                />
-              }
-            />
-
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <div className="flex min-w-0 items-center gap-2">
-                <span
-                  className={cn(
-                    "shrink-0 rounded-full px-2 py-0.5 text-caption font-semibold",
-                    badge.className,
-                  )}
-                >
-                  {badge.label}
-                </span>
-                {/* The export's star sits here with a score. Ours marks what is
-                    already in the trip, which is the fact this row can actually
-                    report. */}
-                {isAdded && (
-                  <span className="flex shrink-0 items-center gap-1 text-caption font-semibold text-success-ink">
-                    <Star className="h-3.5 w-3.5 fill-current" aria-hidden="true" />
-                    בטיול
-                  </span>
-                )}
-              </div>
-              <h3 className="min-w-0 truncate text-base font-medium">
-                {item.name}
-              </h3>
-              <p className="min-w-0 truncate text-caption text-muted">
-                {CATEGORY_LINE[item.category]} · {item.tip}
-              </p>
-            </div>
-
-            {/* The export's round add button, and its press state: pale tint at
-                rest, solid on hover, and a tick once it is in. */}
-            <button
-              type="button"
-              onClick={() => void toggle(item)}
-              disabled={busy === item.key}
-              aria-label={
-                isAdded ? `הסרה של ${item.name} מהטיול` : `הוספת ${item.name} לטיול`
-              }
-              aria-pressed={isAdded}
-              className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-card transition-all active:scale-95",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                isAdded
-                  ? "bg-success text-white"
-                  : "bg-primary-tint text-primary hover:bg-primary hover:text-white",
-                busy === item.key && "opacity-60",
-              )}
+      <ul className="overflow-hidden rounded-[20px] bg-surface shadow-card">
+        {items.map((item) => {
+          const isAdded = added.includes(item.key);
+          return (
+            <li
+              key={item.key}
+              className="flex min-w-0 items-center gap-3 border-b border-border px-4 py-3 last:border-b-0"
             >
-              {isAdded ? (
-                <Check className="h-5 w-5" aria-hidden="true" />
-              ) : (
-                <Plus className="h-5 w-5" aria-hidden="true" />
-              )}
-            </button>
-          </article>
-        );
-      })}
+              {/* The export's 44px category tile — and the photo over it when
+                  Wikipedia has one (PlacePhoto draws the tile underneath and
+                  fades the image in, so the row is one shape either way). */}
+              <PlacePhoto
+                query={item.name}
+                near={city}
+                className="h-11 w-11 shrink-0 rounded-[14px]"
+                fallback={
+                  <CategoryTile
+                    category={item.category}
+                    className="h-full w-full rounded-none"
+                  />
+                }
+              />
+
+              <div className="flex min-w-0 flex-1 flex-col">
+                <h3 className="min-w-0 truncate text-base font-bold">
+                  {item.name}
+                </h3>
+                <p className="min-w-0 truncate text-caption text-muted">
+                  {LABELS[item.category]}
+                  {item.tip ? ` · ${item.tip}` : ""}
+                </p>
+              </div>
+
+              {/* The export's round control: outlined "+" at rest, a filled
+                  green check once it is in. Pressing the check takes it out
+                  again — a toggle of one flag, not a deletion. */}
+              <button
+                type="button"
+                onClick={() => void toggle(item)}
+                disabled={busy === item.key}
+                aria-label={
+                  isAdded
+                    ? `הסרה של ${item.name} מהטיול`
+                    : `הוספת ${item.name} לטיול`
+                }
+                aria-pressed={isAdded}
+                className={cn(
+                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors active:scale-95",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  isAdded
+                    ? "bg-success text-white hover:bg-success-strong"
+                    : "border border-border-strong bg-surface text-foreground hover:bg-surface-sunken",
+                  busy === item.key && "opacity-60",
+                )}
+              >
+                {isAdded ? (
+                  <Check className="h-5 w-5 animate-stamp" aria-hidden="true" />
+                ) : (
+                  <Plus className="h-5 w-5" aria-hidden="true" />
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </section>
   );
 }

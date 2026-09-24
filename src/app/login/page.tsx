@@ -1,10 +1,19 @@
 import Link from "next/link";
-import { CredentialsForm, GoogleButton, login, safeNext } from "@/features/auth";
-import { Banner, Card } from "@/components/ui";
-import { PageEnter } from "@/components/layout";
+import {
+  AuthDivider,
+  AuthShell,
+  CredentialsForm,
+  GoogleButton,
+  login,
+  safeNext,
+} from "@/features/auth";
+import { Banner } from "@/components/ui";
 
 export const metadata = { title: "התחברות · MyTrip" };
 
+// Sign-in, as design/pencil/exports/login-mobile lays it out: the wordmark,
+// Google first as the outlined pill, "או במייל", the fields with "שכחתי
+// סיסמה" under the password, and the one terracotta button.
 export default async function LoginPage({
   searchParams,
 }: {
@@ -17,54 +26,36 @@ export default async function LoginPage({
   const carry = next === "/" ? null : next;
 
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4 py-10">
-      <Card padding="none" className="w-full max-w-sm">
-        <PageEnter className="gap-4 p-6 sm:p-8">
-          <CredentialsForm
-            action={login}
-            title="התחברות"
-            submitLabel="התחברות"
-            next={carry ?? undefined}
-          />
-
-          {error === "oauth" && (
-            <Banner tone="danger">
-              ההתחברות עם Google נכשלה. נסו שוב.
-            </Banner>
-          )}
-
-          <div className="flex items-center gap-3 text-caption text-muted">
-            <span className="h-px flex-1 bg-border" />
-            או
-            <span className="h-px flex-1 bg-border" />
-          </div>
-
-          <GoogleButton next={carry ?? undefined} />
-
-          {/* Below the sign-in options rather than beside the password field:
-              somebody who knows their password should not be offered a reset on
-              the way to typing it. Until phase K there was no recovery flow at
-              all, which meant a forgotten password locked the account for good. */}
+    <AuthShell
+      footer={
+        <>
+          אין לכם חשבון?{" "}
           <Link
-            href="/reset"
-            className="self-center rounded-control text-caption text-muted hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            שכחתם סיסמה?
-          </Link>
-        </PageEnter>
-
-        <p className="border-t border-border bg-surface-2 p-4 text-center text-sm text-muted">
-          אין עדיין חשבון?{" "}
-          <Link
-            href={
-              carry ? `/signup?next=${encodeURIComponent(carry)}` : "/signup"
-            }
-            className="font-semibold text-primary-ink hover:underline"
+            href={carry ? `/signup?next=${encodeURIComponent(carry)}` : "/signup"}
+            className="rounded-full font-bold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             הרשמה
           </Link>
-        </p>
-      </Card>
-    </main>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-5">
+        <GoogleButton next={carry ?? undefined} />
+
+        {error === "oauth" && (
+          <Banner tone="danger">ההתחברות עם Google נכשלה. נסו שוב.</Banner>
+        )}
+
+        <AuthDivider />
+
+        <CredentialsForm
+          action={login}
+          title="התחברות"
+          submitLabel="כניסה"
+          next={carry ?? undefined}
+          forgotHref="/reset"
+        />
+      </div>
+    </AuthShell>
   );
 }

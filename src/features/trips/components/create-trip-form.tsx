@@ -3,10 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import { useActionState } from "react";
 import type { ReactNode } from "react";
-import { Clock, Plus, Sparkles } from "lucide-react";
+import { ArrowLeft, Info, PencilLine, Plus } from "lucide-react";
+import { cn } from "@/lib/cn";
 import { Banner, Button, Dialog, Field, Input } from "@/components/ui";
 import { createTrip } from "../application/actions";
 import type { TripFormState } from "../domain/trip";
+
+// The Pencil field: white with a hairline, 52px, corners of 14. Layered on the
+// shared Input skin rather than changed in it — the shared skin is used by
+// every form in the app.
+const FIELD = "h-13 rounded-[14px] border-border bg-surface";
+const ICON =
+  "pointer-events-none absolute inset-y-0 start-3.5 my-auto h-5 w-5 text-outline";
 
 export function CreateTripForm({ onSuccess }: { onSuccess?: () => void }) {
   const [state, action, pending] = useActionState<TripFormState, FormData>(
@@ -32,16 +40,25 @@ export function CreateTripForm({ onSuccess }: { onSuccess?: () => void }) {
       onSubmit={() => {
         submitted.current = true;
       }}
-      className="flex flex-col gap-4"
+      className="flex flex-col gap-5"
     >
-      <Field label="איך נקרא לטיול?" error={state?.errors?.name?.join(" ")}>
-        <Input
-          name="name"
-          placeholder="למשל: איטליה בסתיו"
-          required
-          autoFocus
-          aria-invalid={state?.errors?.name ? true : undefined}
-        />
+      {/* The sheet of design/pencil/exports/sheet-new-trip: a subtitle under
+          the dialog's title, white fields with a hairline and an icon, and one
+          terracotta button across the bottom. */}
+      <p className="-mt-2 text-sm text-muted">אפשר לשנות הכל אחר כך</p>
+
+      <Field label="איך קוראים לטיול?" error={state?.errors?.name?.join(" ")}>
+        <span className="relative block">
+          <Input
+            name="name"
+            placeholder="למשל: איטליה — אביב 2027"
+            required
+            autoFocus
+            aria-invalid={state?.errors?.name ? true : undefined}
+            className={cn(FIELD, "ps-11")}
+          />
+          <PencilLine className={ICON} aria-hidden="true" />
+        </span>
       </Field>
 
       {/* Dates, at creation rather than three screens later.
@@ -54,56 +71,55 @@ export function CreateTripForm({ onSuccess }: { onSuccess?: () => void }) {
           Japan" is a real place to start, and a form that refuses to create a
           trip without a date turns a decision into a blocker. The schema
           normalises the empty string a blank date input submits. */}
-      <fieldset className="flex min-w-0 flex-col gap-2">
-        <legend className="pb-1 text-sm font-semibold">מתי?</legend>
-        <div className="flex min-w-0 gap-2">
-          <Field label="יציאה" className="min-w-0 flex-1">
+      <fieldset className="flex min-w-0 flex-col">
+        <legend className="sr-only">מתי?</legend>
+        <div className="grid min-w-0 grid-cols-2 gap-3">
+          <Field label="יציאה">
             {/* dir="ltr" like every other date input in the app. Without it
                 WebKit lays "dd/mm/yyyy" out in the document's RTL, which puts
                 the segments in the wrong order and, on iOS, starts the value
-                outside the box. These two were the only ones missing it. */}
+                outside the box. */}
             <Input
               type="date"
               name="start_date"
               dir="ltr"
               aria-invalid={state?.errors?.start_date ? true : undefined}
+              className={FIELD}
             />
           </Field>
-          <Field
-            label="חזרה"
-            className="min-w-0 flex-1"
-            error={state?.errors?.end_date?.join(" ")}
-          >
+          <Field label="חזרה" error={state?.errors?.end_date?.join(" ")}>
             <Input
               type="date"
               name="end_date"
               dir="ltr"
               aria-invalid={state?.errors?.end_date ? true : undefined}
+              className={FIELD}
             />
           </Field>
         </div>
-        <p className="flex items-center gap-1.5 text-caption text-muted">
-          <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-          אפשר לדלג ולהוסיף אחר כך — ואפשר לשנות בכל שלב.
-        </p>
       </fieldset>
-      {/* Said plainly rather than hidden behind a disclosure. This used to be a
-          <details> labelled "מה עושים אחרי זה?" — a question the person filling
-          in the form has not asked yet. They asked what the button does. */}
-      <div className="flex min-w-0 items-start gap-3 rounded-card bg-primary-tint p-4">
-        <span className="shrink-0 text-primary-ink" aria-hidden="true">
-          <Sparkles className="h-5 w-5" />
-        </span>
-        <p className="min-w-0 text-sm text-primary-ink">
-          <span className="block font-bold">רוצים שנציע יעדים?</span>
-          אחרי היצירה אפשר לתאר מה מעניין אתכם, ונרכיב מסלול ראשוני להתחיל ממנו.
+
+      {/* The design's draft hint, in its quiet box. The "we can suggest
+          destinations" note that used to sit here is folded into it: both
+          answer the same question — what happens after this button. */}
+      <div className="flex min-w-0 items-start gap-2.5 rounded-[14px] bg-surface-2 p-3.5 text-[13px] text-muted">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+        <p className="min-w-0">
+          עוד לא יודעים תאריכים? אפשר להשאיר ריק והטיול יישמר כטיוטה. אחרי
+          היצירה אפשר לתאר מה מעניין אתכם, ונציע יעדים להתחיל מהם.
         </p>
       </div>
 
       {state?.message && <Banner tone="danger">{state.message}</Banner>}
 
-      <Button type="submit" loading={pending} className="self-start">
+      <Button
+        type="submit"
+        loading={pending}
+        size="lg"
+        className="h-14 w-full rounded-full"
+      >
         יצירת הטיול
+        <ArrowLeft className="h-5 w-5" aria-hidden="true" />
       </Button>
     </form>
   );
@@ -121,7 +137,7 @@ export function NewTripButton({
   // Button for why that variant is white rather than the action blue.
   variant?: "primary" | "outline" | "onLight";
   className?: string;
-  // A trigger drawn by the caller — the home screen's terracotta banner. The
+  // A trigger drawn by the caller — the home screen's terracotta button. The
   // button is then a bare <button> carrying only `className`.
   children?: ReactNode;
 }) {

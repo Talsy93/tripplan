@@ -7,13 +7,12 @@ import {
   Bell,
   ChevronLeft,
   Clock,
-  Equal,
   Footprints,
   Lock,
   MoonStar,
   Plus,
 } from "lucide-react";
-import { Card, Surface } from "@/components/ui";
+import { Card } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { BOOKING_KINDS, bookingWhere } from "../domain/booking";
 import { DEFAULT_CURRENCY, formatMoney } from "../domain/expenses";
@@ -57,9 +56,9 @@ function itemStartMinutes(item: DayItem): number | null {
 // Two presentations, because the design draws two and they answer different
 // questions:
 //
-//   "full"    — the ימים tab. A card per item, led by its category tile, with
-//               the time as a caption over the title and a chevron saying the
-//               row opens. This is the editing view.
+//   "full"    — the ימים tab. A column of start times and a card per item
+//               beside it, led by a tile, the whole card opening the edit
+//               dialog. This is the editing view.
 //   "compact" — the היום tab, under the "now" card. One card, dividers, a
 //               coloured spine per row. It is a reference you glance at after
 //               the card above has already told you what to do, so it trades
@@ -195,59 +194,46 @@ export function DayTimeline({
     );
   });
 
-  // v6 (Stitch): the full list hangs off a spine on the start edge. Every
-  // item gets a round marker on it — the item's glyph, with its time under it —
-  // and a gap is a small dot on the line with its pill beside it. The compact
-  // list keeps its one card of divided rows.
-  // Stitch's node: a 28px disc in a 48px column, the time under it. The disc
-  // takes the colour of what the row is — a journey in the maritime fill, a
-  // bed in pale terracotta, a stop in the lavender well.
+  // Pencil (phase PN): the full list is a column of times on the start edge
+  // and a card beside each one — no spine, no nodes. The time is the one thing
+  // you scan a day by, so it gets a column of its own at reading size instead
+  // of a 10px caption under a disc; and a gap is a quiet line tucked under the
+  // card it follows ("15 דק׳ הליכה"), indented to the cards so it reads as the
+  // walk between them rather than as a row of its own. The compact list keeps
+  // its one card of divided rows.
   const railed = merged.map((item, index) => {
     const row = rows[index];
     if (item.kind === "gap") {
       return (
-        <div key={item.key} className="relative flex min-w-0 items-center gap-4 py-0.5">
-          <span className="flex w-12 shrink-0 justify-center" aria-hidden="true">
-            <span className="h-2 w-2 rounded-full bg-border-strong" />
-          </span>
-          <div className="min-w-0 flex-1">{row}</div>
+        <div key={item.key} className="min-w-0 ps-14">
+          {row}
         </div>
       );
     }
-    const kind =
-      item.kind === "booking" ? BOOKING_KINDS[item.booking.booking.kind] : null;
-    const marker =
+    const time =
       item.kind === "booking"
-        ? { icon: kind!.icon, time: item.booking.startMinutes }
+        ? item.booking.startMinutes
         : item.kind === "entry"
-          ? { icon: "attraction" as const, time: item.entry.startMinutes }
+          ? item.entry.startMinutes
           : null;
-    const disc = kind?.isTransport
-      ? "bg-brand-2 text-primary-foreground shadow-md"
-      : item.kind === "booking"
-        ? "bg-cta-tint text-cta-deep shadow-sm"
-        : "bg-surface-high text-primary shadow-sm";
+    const transport =
+      item.kind === "booking" &&
+      BOOKING_KINDS[item.booking.booking.kind].isTransport;
     return (
-      <div key={item.key} className="relative flex min-w-0 items-start gap-4">
-        <span className="relative z-10 flex w-12 shrink-0 flex-col items-center" aria-hidden="true">
-          {marker ? (
-            <>
-              <span className={cn("flex h-7 w-7 items-center justify-center rounded-full", disc)}>
-                <DomainIcon name={marker.icon} className="h-4 w-4" />
-              </span>
-              <span
-                className={cn(
-                  "mt-0.5 text-[0.625rem] leading-[0.875rem] font-bold tabular-nums",
-                  kind?.isTransport ? "text-primary" : "text-foreground",
-                )}
-              >
-                {formatMinutes(marker.time)}
-              </span>
-            </>
+      <div key={item.key} className="flex min-w-0 items-start gap-3">
+        <span
+          className={cn(
+            "flex w-11 shrink-0 justify-start pt-4 text-[0.8125rem] leading-5 font-semibold tabular-nums",
+            transport ? "text-primary" : "text-foreground",
+          )}
+          aria-hidden="true"
+        >
+          {time !== null ? (
+            formatMinutes(time)
           ) : (
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-callout-tint text-callout-ink shadow-sm">
-              <Bell className="h-4 w-4" />
-            </span>
+            // A reminder carries its own time in the row; the column marks
+            // what kind of row it is instead.
+            <Bell className="mt-0.5 h-4 w-4 text-callout-ink" />
           )}
         </span>
         <div className="min-w-0 flex-1">{row}</div>
@@ -265,24 +251,22 @@ export function DayTimeline({
           {rows}
         </Card>
       ) : (
-        <div className="relative flex min-w-0 flex-col gap-4 before:absolute before:bottom-8 before:start-6 before:top-4 before:w-0.5 before:bg-surface-variant">
-          {railed}
-        </div>
+        <div className="flex min-w-0 flex-col gap-2">{railed}</div>
       )}
 
       {timeline.unscheduled.length > 0 && (
-        <Surface tone="sunken" padding="sm" className="flex flex-col gap-1.5">
-          <p className="text-caption font-semibold text-muted">
+        <div className="flex flex-col gap-2 rounded-[18px] bg-surface-2 p-3">
+          <p className="px-1 text-caption font-semibold text-muted">
             בלי שעה מוגדרת
           </p>
-          <ul className="flex flex-col gap-1">
+          <ul className="flex flex-col gap-1.5">
             {timeline.unscheduled.map((entry) => (
               <li key={entry.id}>
                 <button
                   type="button"
                   disabled={!onEdit}
                   onClick={() => onEdit?.(entry.id)}
-                  className="flex w-full min-w-0 items-center justify-between gap-2 rounded-control bg-surface px-2 py-1.5 text-start text-sm enabled:hover:bg-surface-2 disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex min-h-11 w-full min-w-0 items-center justify-between gap-2 rounded-[12px] bg-surface px-3 py-2 text-start text-sm font-medium enabled:hover:bg-surface/70 disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <span className="min-w-0 truncate">{entry.title}</span>
                   {onEdit && (
@@ -295,7 +279,7 @@ export function DayTimeline({
               </li>
             ))}
           </ul>
-        </Surface>
+        </div>
       )}
 
       {/* The dashed row the mockup ends both day lists with. It is the one place
@@ -342,14 +326,14 @@ function GapRow({
     <div
       className={cn(
         "flex min-w-0 items-center gap-2",
-        compact ? "bg-surface-2 px-4 py-1.5" : "py-0.5",
+        compact ? "bg-surface-2 px-4 py-1.5" : "px-3",
       )}
     >
       {compact && <span className="h-px flex-1 bg-border-strong" />}
       <span
         className={cn(
-          "flex min-w-0 shrink items-center gap-1.5 text-caption text-muted",
-          !compact && "rounded-full bg-surface-sunken px-3 py-1",
+          "flex min-w-0 shrink items-center gap-1.5",
+          compact ? "text-caption text-muted" : "text-xs text-outline",
         )}
       >
         {night ? (
@@ -386,7 +370,7 @@ function Tile({
   return (
     <span
       className={cn(
-        "flex h-10 w-10 shrink-0 items-center justify-center rounded-control",
+        "flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px]",
         onTint ? "bg-surface text-primary-ink" : "bg-tone text-tone-ink",
       )}
     >
@@ -496,8 +480,8 @@ function BookingRow({
     <Card
       padding="none"
       className={cn(
-        "p-3.5 transition-colors",
-        transport && "bg-primary-tint hover:bg-primary-tint/70",
+        "cursor-pointer rounded-[18px] p-3.5 transition-[background-color,box-shadow] hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        transport && "bg-primary-tint shadow-none hover:bg-primary-tint/70",
       )}
       // The whole card opens the details. A row of a schedule is a thing you
       // point at rather than a control you aim for, so the target is the row —
@@ -517,11 +501,11 @@ function BookingRow({
       <div className="flex min-w-0 items-start gap-3">
         <Tile name={kind.icon} onTint={transport} />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="min-w-0 text-caption font-bold tabular-nums text-muted">
-            {timeRange(startMinutes, endMinutes, overnight)}
-          </span>
-          <span className="min-w-0 text-sm font-bold wrap-anywhere">
+          <span className="min-w-0 text-[0.9375rem] leading-5 font-semibold wrap-anywhere">
             {booking.title}
+          </span>
+          <span className="min-w-0 text-xs tabular-nums text-muted">
+            {kind.label} · {timeRange(startMinutes, endMinutes, overnight)}
           </span>
           {!ticket && where && (
             <span className="min-w-0 text-caption text-muted wrap-anywhere">
@@ -635,75 +619,66 @@ function EntryRow({
   }
 
   const minutes = endMinutes > startMinutes ? endMinutes - startMinutes : 0;
+  // The meta line under the name: how long, then the note's first line. The
+  // start time is in the column beside the card; the end is folded into the
+  // duration, which is the number you plan around.
+  const meta = [
+    minutes > 0 ? durationLabel(minutes) : null,
+    entry.note?.split("\n")[0]?.trim() || null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
-  // v6 (Stitch): chip, title, one line of description, a drag handle at the
-  // far end, and a photo under it all. The chip is what the item is — here,
-  // how long it takes, since an entry carries no category; the start time is
-  // on the node beside the card.
+  // Pencil (phase PN): a white card with 18px corners, a 44px tile at the
+  // start, the name at 15px over one grey line, and a lock when the hour is
+  // pinned. The tile is the place's photo when one resolves and the city's
+  // tinted glyph when it does not — the design is photo-free, but photos are a
+  // working feature, and a square that is either reads the same at a glance.
   const body = (
-    <div className="flex min-w-0 flex-1 flex-col">
-      <div className="flex min-w-0 items-start justify-between gap-1">
-        <div className="min-w-0 flex-1">
-          <div className="mb-0.5 flex min-w-0 flex-wrap items-center gap-1">
-            <span className="inline-flex items-center gap-0.5 rounded-[0.25rem] bg-surface-high px-1 py-0.5 text-[0.625rem] leading-[0.875rem] font-semibold text-primary tabular-nums">
-              {timeRange(startMinutes, endMinutes)}
-            </span>
-            {minutes > 0 && (
-              <>
-                <span className="text-[0.625rem] text-outline">•</span>
-                <span className="text-[0.625rem] leading-[0.875rem] font-semibold text-muted">
-                  {durationLabel(minutes)}
-                </span>
-              </>
-            )}
-            {anchored && (
-              <span className="inline-flex items-center gap-0.5 rounded-[0.25rem] bg-success-bright px-1 py-0.5 text-[0.625rem] leading-[0.875rem] font-semibold text-success-ink">
-                <Lock className="h-3 w-3" aria-hidden="true" />
-                מעוגן
-              </span>
-            )}
-          </div>
-          <h3 className="min-w-0 truncate text-base leading-[1.375rem] font-semibold text-foreground">
-            {entry.title}
-          </h3>
-          {/* One line here, all of it on a press: the note can be a
-              stage-by-stage list, and this row is one of seven. A clamp rather
-              than a <details>, because the whole row is a button. */}
-          {entry.note && (
-            <p className="mt-0.5 line-clamp-2 min-w-0 text-xs leading-[1.125rem] text-muted wrap-anywhere">
-              {entry.note}
-            </p>
-          )}
-          {(entry.travelNote || entry.travelMinutes !== null) && (
-            <p className="mt-0.5 flex min-w-0 items-center gap-1 text-xs text-primary-ink">
-              <Clock className="h-3 w-3 shrink-0" aria-hidden="true" />
-              {entry.travelMinutes !== null && (
-                <span className="shrink-0 font-semibold tabular-nums">
-                  {entry.travelMinutes} דק׳
-                </span>
-              )}
-              {entry.travelNote && (
-                <span className="min-w-0 wrap-anywhere">{entry.travelNote}</span>
-              )}
-            </p>
-          )}
-        </div>
-        {onEdit && (
-          <Equal className="h-[1.125rem] w-[1.125rem] shrink-0 text-outline" aria-hidden="true" />
-        )}
-      </div>
-
+    <div className="flex min-w-0 flex-1 items-center gap-3">
       <PlacePhoto
         query={entry.title}
         near={entry.city}
-        className="mt-2 h-28 rounded-lg"
+        className="h-11 w-11 shrink-0 rounded-[14px] bg-tone"
+        fallback={
+          <DomainIcon name="attraction" className="h-5 w-5 text-tone-ink" />
+        }
       />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <h3 className="min-w-0 truncate text-[0.9375rem] leading-5 font-semibold text-foreground">
+          {entry.title}
+        </h3>
+        {meta && (
+          <p className="min-w-0 truncate text-xs text-muted">{meta}</p>
+        )}
+        {(entry.travelNote || entry.travelMinutes !== null) && (
+          <p className="flex min-w-0 items-center gap-1 text-xs text-primary">
+            <Clock className="h-3 w-3 shrink-0" aria-hidden="true" />
+            {entry.travelMinutes !== null && (
+              <span className="shrink-0 font-semibold tabular-nums">
+                {entry.travelMinutes} דק׳
+              </span>
+            )}
+            {entry.travelNote && (
+              <span className="min-w-0 truncate">{entry.travelNote}</span>
+            )}
+          </p>
+        )}
+      </div>
+      {anchored && (
+        <Lock
+          className="h-4 w-4 shrink-0 text-outline"
+          aria-label="שעה מעוגנת"
+        />
+      )}
     </div>
   );
 
+  const card = "flex min-w-0 rounded-[18px] p-3.5";
+
   if (!onEdit) {
     return (
-      <Card padding="none" className="flex min-w-0 p-4">
+      <Card padding="none" className={card}>
         {body}
       </Card>
     );
@@ -714,12 +689,12 @@ function EntryRow({
       type="button"
       onClick={() => onEdit(entry.id)}
       aria-label={`עריכת ${entry.title}`}
-      className="block w-full rounded-card text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="block w-full rounded-[18px] text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       <Card
         variant="interactive"
         padding="none"
-        className="flex min-w-0 p-4 hover:translate-y-0"
+        className={cn(card, "hover:translate-y-0")}
       >
         {body}
       </Card>

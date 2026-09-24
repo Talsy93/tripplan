@@ -41,9 +41,12 @@ import { getDailyForecast } from "@/lib/weather";
 
 export const metadata = { title: "הטיולים שלי · MyTrip" };
 
-// "הטיולים שלי", in the Stitch home export (design/stitch/…/home, 2026-09-24):
-// greeting and new-trip banner, the featured trip as a photo card, the map of
-// every trip, the rest as cards, the concierge, and a five-tab footer.
+// "הטיולים שלי", from the Pencil home (design/pencil/exports/home-mobile and
+// home-desktop, phase PN): greeting, the featured trip on the teal card, one
+// "new trip", every trip under a filter with the map, the idea card, and the
+// five-tab footer. On a phone the design has no app bar — the bell and the
+// avatar sit in the greeting row — so the top bar starts at md and the same
+// two controls are handed to HomeScreen for that row.
 //
 // Everything is read here, on the server; HomeScreen is a client shell only
 // for the map's filter and selection.
@@ -76,6 +79,7 @@ export default async function ProfilePage() {
       // The saved cities are in the order they were chosen; the located points
       // are in no order at all.
       city: citiesByTrip.get(id)?.[0] ?? points[0]?.city ?? null,
+      cities: citiesByTrip.get(id) ?? [],
       dayCount: dayCounts.get(id) ?? 0,
       placeCount: placeCounts.get(id) ?? 0,
     };
@@ -161,50 +165,63 @@ export default async function ProfilePage() {
     tab("ai", "עוזר AI", <Bot className={icon} />),
   ];
 
+  // Round 44px discs, as the export draws them: a white bell with a hairline,
+  // and the avatar in teal.
+  const bell = (
+    <HeaderDialogButton
+      label="התראות"
+      title="התראות"
+      className="h-11 w-11 border border-border bg-surface text-foreground hover:text-primary"
+      trigger={<Bell className="h-5 w-5" aria-hidden="true" />}
+    >
+      <PushToggle />
+    </HeaderDialogButton>
+  );
+  const account = (
+    <HeaderDialogButton
+      label="החשבון שלי"
+      title="החשבון שלי"
+      trigger={
+        avatar ? (
+          // The provider's own avatar, on a host next/image does not know.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatar}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="h-11 w-11 rounded-full object-cover"
+          />
+        ) : (
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-base font-bold text-primary-foreground">
+            {initial}
+          </span>
+        )
+      }
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="min-w-0 truncate text-sm text-muted-strong" dir="ltr">
+          {user?.email}
+        </span>
+        <LogoutButton />
+      </div>
+    </HeaderDialogButton>
+  );
+
   return (
     <div className="flex min-h-dvh flex-col">
-      <BrandHeader
-        subtitle="My Trips"
-        trailing={
-          <>
-            <HeaderDialogButton
-              label="התראות"
-              title="התראות"
-              className="h-11 w-11 text-muted-strong hover:text-primary"
-              trigger={<Bell className="h-6 w-6" aria-hidden="true" />}
-            >
-              <PushToggle />
-            </HeaderDialogButton>
-            <HeaderDialogButton
-              label="החשבון שלי"
-              title="החשבון שלי"
-              trigger={
-                avatar ? (
-                  // The provider's own avatar, on a host next/image does not know.
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={avatar}
-                    alt=""
-                    referrerPolicy="no-referrer"
-                    className="h-8 w-8 rounded-full object-cover ring-2 ring-primary-tint"
-                  />
-                ) : (
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-bright text-sm font-bold text-white ring-2 ring-primary-tint">
-                    {initial}
-                  </span>
-                )
-              }
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className="min-w-0 truncate text-sm text-muted-strong" dir="ltr">
-                  {user?.email}
-                </span>
-                <LogoutButton />
-              </div>
-            </HeaderDialogButton>
-          </>
-        }
-      />
+      {/* `contents` from md, so the sticky bar sticks against the page rather
+          than against a wrapper exactly its own height. */}
+      <div className="hidden md:contents">
+        <BrandHeader
+          subtitle="My Trips"
+          trailing={
+            <>
+              {bell}
+              {account}
+            </>
+          }
+        />
+      </div>
 
       <HomeScreen
         firstName={firstName}
@@ -214,6 +231,8 @@ export default async function ProfilePage() {
         mapped={mapped}
         destinationCount={destinationCount}
         now={now.toISOString()}
+        bell={bell}
+        account={account}
       />
 
       <BottomNav items={nav} accent="cta" />
@@ -258,10 +277,10 @@ async function featuredDetails(
     phase.kind === "during" && length > 0
       ? {
           percent: Math.min(100, Math.round((phase.dayNumber / length) * 100)),
-          label: "הושלם",
+          label: "התקדמות בטיול",
         }
       : packed.total > 0
-        ? { percent: packed.percent, label: "ארוז" }
+        ? { percent: packed.percent, label: "מוכנות לטיול" }
         : null;
 
   // Today's weather where the trip is — the city of today's schedule while it

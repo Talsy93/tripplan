@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Banner, Button } from "@/components/ui";
 import { redeemInvite } from "../application/membership-actions";
 
@@ -39,17 +39,23 @@ export function AcceptInvite({ token }: { token: string }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <Button onClick={() => void accept()} loading={working} className="self-start">
-        <Check className="h-4 w-4" aria-hidden="true" />
-        הצטרפות לטיול
-      </Button>
-
       {failed && (
         <Banner tone="danger">
           ההצטרפות לא הצליחה. ייתכן שההזמנה כבר נוצלה או בוטלה — בקשו ממי שהזמין
           אתכם לשלוח הזמנה חדשה.
         </Banner>
       )}
+
+      {/* The Pencil invite's foot: one terracotta pill across the width. */}
+      <Button
+        onClick={() => void accept()}
+        loading={working}
+        size="lg"
+        className="h-14 w-full rounded-full text-base"
+      >
+        הצטרפות לטיול
+        <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+      </Button>
     </div>
   );
 }

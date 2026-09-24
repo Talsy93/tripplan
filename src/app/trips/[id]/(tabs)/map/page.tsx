@@ -20,7 +20,19 @@ export default async function MapPage({
 
   return (
     <>
-      <MoreBackLink tripId={id} href={`/trips/${id}/days`} label="למסלול" />
+      {/* From lg only. Below it the map reaches the app bar and carries its
+          own round back button in its top corner (Pencil's overlay) — a pill
+          above it pushed the full-bleed map down by its own height, past the
+          bottom of the window. */}
+      <div className="hidden lg:block">
+        {/* From lg only. Below it the map reaches the app bar and carries its
+          own round back button in its top corner (Pencil's overlay) — a pill
+          above it pushed the full-bleed map down by its own height, past the
+          bottom of the window. */}
+      <div className="hidden lg:block">
+        <MoreBackLink tripId={id} href={`/trips/${id}/days`} label="למסלול" />
+      </div>
+      </div>
       <Suspense fallback={<Skeleton className="h-[70dvh] rounded-card" />}>
         <RouteMapPanel tripId={id} tripName={trip.name} />
       </Suspense>

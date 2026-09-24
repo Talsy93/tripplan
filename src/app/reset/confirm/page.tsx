@@ -1,7 +1,10 @@
 import Link from "next/link";
-import { Banner, Card, buttonClasses } from "@/components/ui";
-import { PageEnter } from "@/components/layout";
+import { Link2Off } from "lucide-react";
+import { Banner, buttonClasses } from "@/components/ui";
 import {
+  AuthNotice,
+  AuthShell,
+  authSubmit,
   NewPasswordForm,
   exchangeCodeForSession,
   getCurrentUser,
@@ -44,29 +47,24 @@ export default async function ResetConfirmPage({
   const user = await getCurrentUser();
 
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4 py-10">
-      <Card padding="none" className="w-full max-w-sm">
-        <PageEnter className="gap-4 p-6 sm:p-8">
-          {user ? (
-            <NewPasswordForm />
-          ) : (
-            <>
-              <h1 className="text-heading font-bold">הקישור לא תקף</h1>
-              <Banner tone="danger">
-                {error_description
-                  ? error_description
-                  : "הקישור פג, כבר נעשה בו שימוש, או שנפתח בדפדפן אחר מזה שביקש אותו. בקשו קישור חדש."}
-              </Banner>
-              <Link
-                href="/reset"
-                className={buttonClasses("primary", "md", "self-start")}
-              >
-                בקשת קישור חדש
-              </Link>
-            </>
-          )}
-        </PageEnter>
-      </Card>
-    </main>
+    <AuthShell>
+      {user ? (
+        <NewPasswordForm />
+      ) : (
+        <AuthNotice icon={<Link2Off />} title="הקישור לא תקף">
+          <Banner tone="danger" className="text-start">
+            {error_description
+              ? error_description
+              : "הקישור פג, כבר נעשה בו שימוש, או שנפתח בדפדפן אחר מזה שביקש אותו. בקשו קישור חדש."}
+          </Banner>
+          <Link
+            href="/reset"
+            className={buttonClasses("primary", "lg", `${authSubmit} mt-2`)}
+          >
+            בקשת קישור חדש
+          </Link>
+        </AuthNotice>
+      )}
+    </AuthShell>
   );
 }

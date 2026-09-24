@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { AppHeader, AppShell } from "@/components/layout";
+import { AppShell } from "@/components/layout";
 import { getCurrentUser } from "@/features/auth";
 import {
   assignTripAuras,
@@ -81,9 +81,10 @@ export default async function CityPage({
 
   return (
     <AppShell
-      // No `brand`: the rail carries the wordmark now, the same as everywhere
-      // else in the app.
-      header={<AppHeader title={trip.name} />}
+      // No app bar. Pencil opens this screen with the city band itself — the
+      // back chevron, the city and the stay on terracotta from the very top —
+      // and a light bar naming the trip above it was a second heading over the
+      // first. The rail still names the trip from lg.
       // Every other screen inside a trip opens with the trip's light. This one
       // opened with a plain text back link and a black heading on grey, which is
       // what T7's sweep flagged as the last screen still opening differently.

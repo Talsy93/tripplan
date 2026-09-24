@@ -25,11 +25,14 @@ type Position = "peek" | "open";
 
 export function MapSheet({
   title,
+  subtitle,
   action,
   items,
   peekCount = 2,
 }: {
   title: string;
+  // Pencil's quiet line beside the title — "4 תחנות · 6.2 ק״מ".
+  subtitle?: string;
   // The one link the header offers.
   action?: ReactNode;
   // Rendered rows, not a single node, and that is what makes the collapsed
@@ -78,7 +81,10 @@ export function MapSheet({
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[600] px-2 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:hidden">
       <section
         aria-label={title}
-        className="pointer-events-auto flex max-h-[60dvh] flex-col overflow-hidden rounded-tile bg-surface shadow-modal"
+        // Pencil's drawer: white, radius 28, a short grey handle. Inset and
+        // rounded on all four corners rather than flush to the bottom edge as
+        // the frame draws it, because the floating tab bar lives under it.
+        className="pointer-events-auto flex max-h-[60dvh] flex-col overflow-hidden rounded-[28px] bg-surface shadow-modal"
       >
         {/* The whole header is the control, not just the 38px bar inside it —
             a grab handle that only works when you hit the handle is a worse
@@ -98,14 +104,21 @@ export function MapSheet({
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
           aria-expanded={position === "open"}
-          className="flex shrink-0 touch-none flex-col items-stretch gap-2.5 px-4 pb-2 pt-2.5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+          className="flex shrink-0 touch-none flex-col items-stretch gap-3 px-5 pb-1 pt-2.5 text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
           <span
             aria-hidden="true"
-            className="mx-auto h-1 w-9 shrink-0 rounded-full bg-border-strong"
+            className="mx-auto h-1 w-10 shrink-0 rounded-full bg-border-strong"
           />
           <span className="flex min-w-0 items-baseline justify-between gap-3">
-            <span className="min-w-0 truncate text-sm font-black">{title}</span>
+            <span className="flex min-w-0 items-baseline gap-2">
+              <span className="min-w-0 truncate text-lg font-bold">{title}</span>
+              {subtitle && (
+                <span className="shrink-0 text-caption tabular-nums text-muted">
+                  {subtitle}
+                </span>
+              )}
+            </span>
             {action}
           </span>
         </button>
@@ -116,8 +129,8 @@ export function MapSheet({
         <div
           className={
             position === "open"
-              ? "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4"
-              : "shrink-0 px-4 pb-3"
+              ? "min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4"
+              : "shrink-0 px-5 pb-3"
           }
         >
           {position === "open" ? items : items.slice(0, peekCount)}

@@ -3,16 +3,21 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { Compass, MapPinPlus, Route, Sparkles } from "lucide-react";
-import { TwoPane } from "@/components/layout";
 import {
-  Badge,
-  Banner,
-  Button,
-  Disclosure,
-  EmptyState,
-} from "@/components/ui";
+  BedDouble,
+  CalendarPlus,
+  CalendarX2,
+  ChevronLeft,
+  Compass,
+  Plus,
+  Route,
+  Sparkles,
+  WandSparkles,
+} from "lucide-react";
+import { TwoPane } from "@/components/layout";
+import { Badge, Banner, Button, Disclosure } from "@/components/ui";
 import { cn } from "@/lib/cn";
+import { BookingDetails } from "./booking-details";
 import { deleteItineraryEntry } from "../application/itinerary-actions";
 import { aiErrorFromResponse } from "../domain/ai-errors";
 import { BuildingItinerary } from "./building-itinerary";
@@ -38,19 +43,18 @@ import { EditEntryDialog } from "./edit-entry-dialog";
 import { EmptyDays, RouteCities } from "./route-cities";
 import { TripCalendar } from "./trip-calendar";
 import { withEmptyDays } from "../domain/itinerary-plan";
-import { cityToneMap } from "../domain/tone";
+import { cityToneClass, cityToneMap } from "../domain/tone";
 import {
   clampDay,
   dateOfDay,
   itineraryOverrun,
-  weekdayAfterDayNumber,
+  nightStayLabel,
 } from "../domain/trip-days";
 import type { Booking } from "../domain/booking";
 import type { CityDayPlan } from "../domain/city-days";
 import type { NightLodging } from "../domain/trip-days";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 import type { RouteCity } from "./route-cities";
-import { CalendarDays } from "lucide-react";
 
 type ItineraryProps = {
   tripId: string;
@@ -189,6 +193,9 @@ export function Itinerary({
   const emptyDayNumbers = days
     .filter((day) => day.items.length === 0)
     .map((day) => day.day);
+  // The first of them the AI can suggest for — it needs a city to suggest in.
+  const firstSuggestableDay =
+    emptyDayNumbers.find((dayNumber) => cityOfDay.has(dayNumber)) ?? null;
 
   // The route, grouped from cityOfDay. Consecutive days in the same city are one
   // stop; a city revisited later in the trip gets a second one, which is the
@@ -289,29 +296,55 @@ export function Itinerary({
         <div
           inert={building}
           className={cn(
-            "flex min-w-0 flex-col gap-4",
+            "flex min-w-0 flex-col gap-6",
             building && "opacity-45 transition-opacity duration-settle",
           )}
         >
           {error && <Banner tone="danger">{error}</Banner>}
 
-          {/* Above the build, because it is the input the build uses. */}
+          {/* Pencil's "before a schedule" screen: one teal disc, one line of
+              invitation, the nights per city, and the build as the screen's
+              single terracotta action. The question comes first because the
+              numbers under it are the input the build uses. */}
+          <div className="flex flex-col items-center gap-2 pt-4 text-center">
+            <span
+              className="mb-2 flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full bg-primary-tint text-primary"
+              aria-hidden="true"
+            >
+              <CalendarPlus className="h-8 w-8" />
+            </span>
+            <h2 className="text-[1.375rem] leading-7 font-bold">
+              בואו נבנה את הלו״ז
+            </h2>
+            <p className="max-w-measure text-sm text-muted">
+              {cityDays.length > 0
+                ? "כמה ימים בכל עיר? המקומות ששמרתם יתחלקו לימים לפי זה."
+                : "אחרי שהוספתם פריטים לטיול, בנו לוח זמנים יומי בלחיצה אחת."}
+            </p>
+          </div>
+
           <CityDaysEditor
             tripId={tripId}
             plan={cityDays}
             tripDayCount={tripDayCount}
           />
 
-          <EmptyState
-            icon={<CalendarDays />}
-            title='עוד אין לו"ז'
-            description="אחרי שהוספתם פריטים לטיול, בנו לוח זמנים יומי בלחיצה אחת."
-            action={
-              <Button type="button" onClick={build} loading={building}>
-                בניית לוח זמנים
-              </Button>
-            }
-          />
+          {/* Sticky above the tab bar, where the design parks it: the one
+              thing to do here should not scroll away under a long city list. */}
+          <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 pt-2 lg:bottom-4">
+            <Button
+              type="button"
+              size="lg"
+              onClick={build}
+              loading={building}
+              className="h-[3.25rem] w-full rounded-full text-base shadow-lift"
+            >
+              {!building && (
+                <WandSparkles className="h-5 w-5" aria-hidden="true" />
+              )}
+              בניית לוח זמנים
+            </Button>
+          </div>
         </div>
 
         {/* The same cover on the first build as on a rebuild. There is no old
@@ -358,83 +391,91 @@ export function Itinerary({
             />
           </div>
 
-          {/* One section, not two. "In the route tab, merge the display of
-              the cities in the route and the whole schedule so they open
-              together after one press."
+          {/* The route, open. Pencil draws "המסלול כולו" as a plain section of
+              the pane — a heading with "בנייה מחדש" beside it and the nights
+              per city under it — rather than a fold, and with the steppers the
+              editor is now one row per city instead of a form, so it earns the
+              room. The list, the numbers and the rebuild are still one subject
+              in one place, which is what merging them was for.
 
-              They were two blocks with two headings, and they are one subject:
-              the route. Which cities, for how many days each, and the build
-              that turns that into a schedule — you open them to answer one
-              question, and answering it used to mean opening one and scrolling
-              past the other. The list reads the plan and the editor writes it,
-              so they belong in the same body in that order.
+              The day-by-day stop list stays folded under it: it answers "when
+              are we where" and selects days, which the calendar above and the
+              strip already do — the second way in, not the first. */}
+          <section className="flex flex-col gap-3" aria-labelledby="route-heading">
+            <div className="flex items-center justify-between gap-2">
+              <h2 id="route-heading" className="text-base font-bold">
+                המסלול כולו
+              </h2>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={build}
+                loading={building}
+                className="h-8 px-2 text-xs"
+              >
+                בנייה מחדש
+              </Button>
+            </div>
 
-              Still closed. The reason the city list was folded in the first
-              place has not changed — it is the tallest block in the pane, one
-              row per city — and now the summary is the route itself: the city
-              names and how many. */}
-          <Disclosure
-            leading={<Route className="h-4 w-4" />}
-            title="המסלול כולו"
-            // The count and nothing else. The names were in here and they
-            // defeated the fold: six cities joined by dots is the list again,
-            // wrapped to three lines, sitting under a heading whose whole job
-            // is to stand in for it. "A closed section does not need the whole
-            // list of cities, just a heading with the count."
-            detail="כמה ימים בכל עיר, ובנייה מחדש של הלו״ז"
-            meta={
-              stops.length > 0 ? (
-                <Badge tone="neutral">{stops.length}</Badge>
-              ) : undefined
-            }
-          >
-            {stops.length > 0 && (
-              <RouteCities
-                stops={stops}
-                startDate={startDate}
-                tones={tones}
-                activeDay={active.day}
-                currentDay={currentDay}
-                onSelect={setChosenDay}
-              />
-            )}
-
-            {/* How many days each city gets, and the build that consumes it.
-                Under the list rather than above it, because the list is what
-                you check before deciding to change anything. */}
             <CityDaysEditor
               tripId={tripId}
               plan={cityDays}
               tripDayCount={tripDayCount}
             />
-            <Button
-              type="button"
-              onClick={build}
-              loading={building}
-              variant="outline"
-              size="sm"
-              className="self-start"
-            >
-              בנייה מחדש
-            </Button>
-          </Disclosure>
 
-          {/* Behind a press, like everything else in this pane. The count is
-              the part that matters — "3 days still empty" is the whole message,
-              and the dates you would jump to are what you open it for. */}
+            {stops.length > 0 && (
+              <Disclosure
+                leading={<Route className="h-4 w-4" />}
+                title="התחנות לפי תאריך"
+                meta={<Badge tone="neutral">{stops.length}</Badge>}
+              >
+                <RouteCities
+                  stops={stops}
+                  startDate={startDate}
+                  tones={tones}
+                  activeDay={active.day}
+                  currentDay={currentDay}
+                  onSelect={setChosenDay}
+                />
+              </Disclosure>
+            )}
+          </section>
+
+          {/* The empty days, as a card you act on — Pencil's "2 ימים עדיין
+              ריקים". The dates jump to their day; the suggestion button opens
+              the same AI dialog the day itself offers, on the first empty day
+              that has a city to suggest for. */}
           {emptyDayNumbers.length > 0 && (
-            <Disclosure
-              leading={<CalendarDays className="h-4 w-4" />}
-              title="ימים ריקים"
-              meta={<Badge tone="neutral">{emptyDayNumbers.length}</Badge>}
-            >
+            <div className="flex flex-col gap-3 rounded-[20px] bg-surface p-4 shadow-card">
+              <p className="flex items-center gap-2 text-sm font-bold">
+                <CalendarX2 className="h-5 w-5 shrink-0 text-cta" aria-hidden="true" />
+                {emptyDayNumbers.length === 1
+                  ? "יום אחד עדיין ריק"
+                  : `${emptyDayNumbers.length} ימים עדיין ריקים`}
+              </p>
               <EmptyDays
                 dayNumbers={emptyDayNumbers}
                 startDate={startDate}
                 onSelect={setChosenDay}
                 bare
               />
-            </Disclosure>
+              {firstSuggestableDay !== null && (
+                <Button
+                  type="button"
+                  variant="soft"
+                  size="sm"
+                  className="self-start rounded-full"
+                  onClick={() => {
+                    setChosenDay(firstSuggestableDay);
+                    setSuggestingDay(firstSuggestableDay);
+                  }}
+                >
+                  <Sparkles className="h-4 w-4" aria-hidden="true" />
+                  רעיונות ליום ריק
+                </Button>
+              )}
+            </div>
           )}
         </>
       }
@@ -491,163 +532,188 @@ export function Itinerary({
 
       {map}
 
-      {/* The day's name lives on its card in the selector above, which is
-          where Stitch puts it; the screen carries no second heading for it. */}
-      <h2 className="sr-only">
-        יום {active.day}
-        {activeCity && ` · ${activeCity}`}
-        {activeDate && ` · ${weekdayAfterDayNumber(activeDate)}`}
-      </h2>
+      {/* The day itself: its name, then everything that happens in it. One
+          section so the heading, the day's controls and the schedule sit a
+          row apart rather than a section apart. */}
+      <section className="flex min-w-0 flex-col gap-4" aria-labelledby="day-heading">
+        {/* Pencil's section head: the day written out, and a count beside it.
+            The strip above names the day in 10px; this is where it is read. */}
+        <div className="flex min-w-0 items-baseline justify-between gap-3">
+          <h2 id="day-heading" className="min-w-0 truncate text-[1.0625rem] leading-6 font-bold">
+            {longDayLabel(activeDate) ?? `יום ${active.day}`}
+          </h2>
+          <span className="shrink-0 text-xs text-muted">
+            {[
+              active.items.length === 0
+                ? "יום פנוי"
+                : active.items.length === 1
+                  ? "מקום אחד"
+                  : `${active.items.length} מקומות`,
+              activeCity,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+        </div>
 
-      {/* What is true of the whole day, above everything that happens in it.
-          A holiday changes what the rest of the day should hold, so it is read
-          first. */}
-      <DayNotes
-        tripId={tripId}
-        notes={notesForDay(dayNotes, active.day)}
-        dayCount={dayCount}
-      />
+        {/* What is true of the whole day, above everything that happens in it.
+            A holiday changes what the rest of the day should hold, so it is
+            read first. */}
+        <DayNotes
+          tripId={tripId}
+          notes={notesForDay(dayNotes, active.day)}
+          dayCount={dayCount}
+        />
 
-      {/* Pin an hour, lock the booked ones — the same two controls the היום
-          tab has, so a day is shaped the same wherever it is looked at. */}
-      {/* Stitch's "פעולות מהירות" bar: a lavender strip with the day's controls. */}
-      <div className="flex flex-wrap items-center gap-2 rounded-card bg-surface-2 p-2 [&>button]:h-7 [&>button]:rounded-lg [&>button]:bg-surface [&>button]:px-2 [&>button]:text-xs [&>button]:font-medium [&>button]:text-primary [&>button]:shadow-none">
-        <span className="text-xs font-medium text-muted">פעולות מהירות:</span>
-        {/* Only on a day that lands. It is the one day whose first hours are a
-            problem to be solved rather than a choice to be made. */}
-        {arrival && (
-          <AirportTransferButton
-            tripId={tripId}
-            dayNumber={active.day}
-            dayCount={dayCount}
-            airport={arrival.place}
-            landingMinutes={arrival.minutes}
-            // Offered as choices, not as one pre-filled string — the default
-            // has to be something you can *press*.
-            //
-            // Both nights, because a late landing moves the transfer to the
-            // next day and the hotel you reach may be that day's, not this
-            // one's. Usually the same booking, in which case the dedupe below
-            // leaves one chip.
-            suggestions={transferDestinations([
-              stay?.booking,
-              lodgingByDay[active.day + 1]?.booking,
-            ])}
-            city={activeCity}
+        {/* The day's own controls — mark it, remind yourself, pin its hours,
+            and on a landing day plan the ride in. Not in the Pencil screen,
+            which has no room for them; kept as a row of quiet outlined pills
+            that scrolls sideways rather than wrapping into a block, so they
+            read as tools on the day and not as a second toolbar. */}
+        <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden">
+          <div className="flex min-w-max items-center gap-2 [&>button]:h-9 [&>button]:rounded-full [&>button]:border [&>button]:border-border [&>button]:bg-surface [&>button]:px-3.5 [&>button]:text-xs [&>button]:font-medium [&>button]:text-foreground [&>button]:shadow-none [&>button:hover]:bg-surface-2 [&_svg]:text-primary">
+            {/* Only on a day that lands. It is the one day whose first hours
+                are a problem to be solved rather than a choice to be made. */}
+            {arrival && (
+              <AirportTransferButton
+                tripId={tripId}
+                dayNumber={active.day}
+                dayCount={dayCount}
+                airport={arrival.place}
+                landingMinutes={arrival.minutes}
+                // Offered as choices, not as one pre-filled string — the
+                // default has to be something you can *press*.
+                //
+                // Both nights, because a late landing moves the transfer to
+                // the next day and the hotel you reach may be that day's, not
+                // this one's. Usually the same booking, in which case the
+                // dedupe leaves one chip.
+                suggestions={transferDestinations([
+                  stay?.booking,
+                  lodgingByDay[active.day + 1]?.booking,
+                ])}
+                city={activeCity}
+              />
+            )}
+            <AddDayNoteButton
+              tripId={tripId}
+              dayNumber={active.day}
+              dayCount={dayCount}
+            />
+            <AddReminderButton
+              tripId={tripId}
+              dayNumber={active.day}
+              dayCount={dayCount}
+            />
+            <AnchorsButton tripId={tripId} day={active} />
+          </div>
+        </div>
+
+        {/* An entirely free day gets the offer to fill it, right here — the
+            point of showing empty days at all. Asking the AI is one press, and
+            it opens beside the day rather than sending the user off to another
+            tab and back. Needs a city: with nowhere to be there is nothing to
+            suggest, so that day falls through to the link below. */}
+        {isEmpty && activeCity && (
+          <DayHint
+            title="היום הזה פנוי"
+            action={
+              <Button
+                type="button"
+                variant="soft"
+                size="sm"
+                className="rounded-full"
+                onClick={() => setSuggestingDay(active.day)}
+              >
+                <Sparkles className="h-4 w-4" aria-hidden="true" />
+                מה אפשר לעשות ב{activeCity}?
+              </Button>
+            }
           />
         )}
-        <AddDayNoteButton
-          tripId={tripId}
-          dayNumber={active.day}
-          dayCount={dayCount}
-        />
-        <AddReminderButton
-          tripId={tripId}
-          dayNumber={active.day}
-          dayCount={dayCount}
-        />
-        <AnchorsButton tripId={tripId} day={active} />
-      </div>
 
-      {/* An entirely free day gets the offer to fill it, right here — the point
-          of showing empty days at all. Asking the AI is one click, and it opens
-          beside the day rather than sending the user off to another tab and
-          back. Needs a city: with nowhere to be there is nothing to suggest, so
-          that day falls through to the link below. */}
-      {isEmpty && activeCity && (
-        <Banner tone="info">
-          <span className="flex flex-wrap items-center gap-x-2">
-            היום הזה פנוי.
-            <button
-              type="button"
-              onClick={() => setSuggestingDay(active.day)}
-              className="flex items-center gap-1 rounded font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-              מה אפשר לעשות ב{activeCity}?
-            </button>
-          </span>
-        </Banner>
-      )}
+        {/* Marked, and pointed somewhere — not filled in automatically. A day
+            the AI could only put one thing on usually means the city has more
+            days than it has chosen places, and the fix is to go and choose
+            more. */}
+        {active.items.length < 2 && !(isEmpty && activeCity) && (
+          <DayHint
+            title={isEmpty ? "היום הזה פנוי" : "היום הזה כמעט ריק"}
+            action={
+              <Link
+                href={`/trips/${tripId}/explore`}
+                className={cn(
+                  "inline-flex h-9 items-center gap-2 rounded-full bg-primary-tint px-3 text-sm font-semibold text-primary-ink transition-colors hover:bg-primary-tint/70",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                )}
+              >
+                <Compass className="h-4 w-4" aria-hidden="true" />
+                הוספת פעילויות{activeCity ? ` ב${activeCity}` : ""}
+              </Link>
+            }
+          />
+        )}
 
-      {/* Marked, and pointed somewhere — not filled in automatically. A day the
-          AI could only put one thing on usually means the city has more days
-          than it has chosen places, and the fix is to go and choose more. */}
-      {active.items.length < 2 && !(isEmpty && activeCity) && (
-        <Banner tone="info">
-          <span className="flex flex-wrap items-center gap-x-2">
-            {isEmpty ? "היום הזה פנוי." : "היום הזה כמעט ריק."}
-            <Link
-              href={`/trips/${tripId}/explore`}
-              className="flex items-center gap-1 font-semibold underline"
-            >
-              <Compass className="h-3.5 w-3.5" aria-hidden="true" />
-              הוספת פעילויות{activeCity ? ` ב${activeCity}` : ""}
-            </Link>
-          </span>
-        </Banner>
-      )}
+        {/* The wide presentation: a time column and a card per item. The
+            compact one belongs to the היום tab — one screen, one presentation.
+            Removal lives in the edit dialog the card opens, never as an icon at
+            rest in a row. The wrapper carries the day's city tone, which the
+            card tiles read for their tint. */}
+        <div className={cityToneClass(tones, activeCity)}>
+          <DayTimeline
+            day={active}
+            tripId={tripId}
+            reminders={remindersForDay(reminders, active.day)}
+            dayCount={dayCount}
+            onEdit={setEditingId}
+            bookings={bookingsByDay[active.day] ?? []}
+            date={activeDate}
+          />
+        </div>
+      </section>
 
-      {/* The wide presentation: a card per item, led by its category tile, with
-          the time as a caption over the title and a chevron saying the row
-          opens. The compact one belongs to the היום tab — one screen, one
-          presentation, which is why the ציר שעות / רשימה toggle is gone.
-          The list it toggled to was also the last place in the app with a
-          delete icon sitting at rest in a row, which the design forbids;
-          removal lives in the edit dialog the chevron opens. */}
-      <DayTimeline
-        day={active}
-        tripId={tripId}
-        reminders={remindersForDay(reminders, active.day)}
-        dayCount={dayCount}
-        onEdit={setEditingId}
-        bookings={bookingsByDay[active.day] ?? []}
-        date={activeDate}
-        // The dashed row the mockup ends the day with. It goes to the tab where
-        // things are chosen, because that is where a day gains an item —
-        // scheduling happens on the build.
-      />
+      {/* Where you sleep tonight — Pencil's teal-tinted card under the day. */}
+      {stay && <TonightCard stay={stay} />}
 
-      {/* The bed and the to-do list, as two tiles rather than two full-width
-          blocks. See DayTiles. */}
+      {/* The day's to-do count. DayTiles also draws the bed, but the card above
+          says that now, so it is handed no stay and shows the reminders alone. */}
       <DayTiles
         tripId={tripId}
-        stay={stay}
+        stay={null}
         reminders={remindersForDay(reminders, active.day)}
         dayNumber={active.day}
         dayCount={dayCount}
       />
 
-      {/* Stitch's floating foot: who edits this with you, and the one
-          terracotta action — add a destination. Sticky, so it rides above the
-          tab bar while the day scrolls under it. */}
-      <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 flex items-center justify-between gap-2 pt-2 lg:bottom-4">
-        {collaborators.length > 1 ? (
-          <span className="flex items-center gap-1 rounded-full bg-surface/90 px-2 py-1 shadow-md backdrop-blur-xl">
-            <span className="flex -space-x-1.5 space-x-reverse">
-              {collaborators.slice(0, 3).map((initial, index) => (
-                <span
-                  key={index}
-                  className={cn(
-                    "flex h-6 w-6 items-center justify-center rounded-full text-[0.625rem] font-bold ring-2 ring-surface",
-                    ["bg-primary-tint text-primary-ink", "bg-cta-tint text-cta-deep", "bg-success-bright text-success-ink"][index],
-                  )}
-                >
-                  {initial}
-                </span>
-              ))}
-            </span>
-            <span className="text-[0.625rem] font-medium text-muted">עריכה משותפת</span>
+      {/* Pencil's foot: who plans this with you, and the screen's one
+          terracotta action. Sticky, so it rides above the tab bar while the
+          day scrolls under it. */}
+      <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 flex items-center gap-3 pt-2 lg:bottom-4">
+        {collaborators.length > 1 && (
+          <span
+            className="flex shrink-0 -space-x-2 space-x-reverse"
+            aria-label={`${collaborators.length} מטיילים`}
+          >
+            {collaborators.slice(0, 3).map((initial, index) => (
+              <span
+                key={index}
+                aria-hidden="true"
+                className={cn(
+                  "flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-primary-foreground ring-2 ring-background",
+                  ["bg-primary", "bg-success", "bg-cat-hidden-ink"][index],
+                )}
+              >
+                {initial}
+              </span>
+            ))}
           </span>
-        ) : (
-          <span />
         )}
         <Link
           href={`/trips/${tripId}/explore`}
-          className="inline-flex items-center gap-1 rounded-full bg-cta-bright px-6 py-2 text-base font-semibold text-cta-foreground shadow-lg shadow-cta/30 transition-transform hover:bg-cta active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="inline-flex h-[3.25rem] min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-cta px-6 text-base font-semibold text-cta-foreground shadow-lift transition-[background-color,transform] duration-press ease-snap hover:bg-cta-hover active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:ms-auto lg:flex-none"
         >
-          <MapPinPlus className="h-5 w-5" aria-hidden="true" />
-          הוסף יעד
+          <Plus className="h-5 w-5" aria-hidden="true" />
+          הוספת יעד
         </Link>
       </div>
         </div>
@@ -687,5 +753,88 @@ export function Itinerary({
         />
       )}
     </TwoPane>
+  );
+}
+
+// "יום שלישי, 13 באפריל" — the day written out for the section head. Null
+// without dates, and the caller falls back to the day number. UTC on both ends,
+// because the date is a calendar date and not an instant: formatted in the
+// browser's zone, a trip day could print as the day before.
+function longDayLabel(date: string | null): string | null {
+  if (!date) return null;
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("he-IL", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  });
+}
+
+// A day with little or nothing on it, and the one thing to do about it. A
+// white card with a quiet icon rather than an info banner: it is an offer, not
+// a warning, and the banner's tint made a free day look like a problem.
+function DayHint({ title, action }: { title: string; action: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] bg-surface p-3.5 shadow-card">
+      <span className="flex items-center gap-2.5 text-sm font-semibold">
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-2 text-muted"
+          aria-hidden="true"
+        >
+          <CalendarX2 className="h-4 w-4" />
+        </span>
+        {title}
+      </span>
+      {action}
+    </div>
+  );
+}
+
+// Where you sleep tonight, as Pencil draws it under the day: a teal-tinted
+// card, a bed on a white tile, the hotel's name and what tonight is for it
+// (check-in, the last night). The whole card opens the booking.
+function TonightCard({ stay }: { stay: NightLodging }) {
+  const [open, setOpen] = useState(false);
+  const where = stay.booking.address ?? stay.booking.city;
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={`פרטי הלינה ${stay.booking.title}`}
+        className="flex w-full min-w-0 items-center gap-3 rounded-[20px] bg-primary-tint p-4 text-start transition-colors hover:bg-primary-tint/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        <span
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-surface text-primary"
+          aria-hidden="true"
+        >
+          <BedDouble className="h-5 w-5" />
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="min-w-0 truncate text-[0.9375rem] font-bold text-primary-ink">
+            {stay.booking.title}
+          </span>
+          <span className="min-w-0 truncate text-xs text-primary-ink/80">
+            {[
+              stay.isCheckIn || stay.isLastNight
+                ? nightStayLabel(stay)
+                : "לינה הלילה",
+              where,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </span>
+        </span>
+        <ChevronLeft className="h-5 w-5 shrink-0 text-primary-ink" aria-hidden="true" />
+      </button>
+      {open && (
+        <BookingDetails
+          booking={stay.booking}
+          open
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
   );
 }

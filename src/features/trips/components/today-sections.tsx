@@ -1,18 +1,8 @@
 import { cache } from "react";
 import Link from "next/link";
-import {
-  BedDouble,
-  FileText,
-  MapPin,
-  Moon,
-  Share2,
-  Sun,
-  Sunrise,
-  Sunset,
-  Users,
-  Wrench,
-} from "lucide-react";
+import { BedDouble, ChevronLeft, MapPin, Share2 } from "lucide-react";
 import { getExchangeRates } from "@/lib/currency";
+import { instantToWallClock } from "@/lib/datetime";
 import { googleMapsSearchUrl } from "@/lib/maps";
 import { getDailyForecast } from "@/lib/weather";
 import {
@@ -24,38 +14,39 @@ import { expensesForDay } from "../domain/expenses";
 import type { DailyExpense } from "../domain/expenses";
 import type { TripMember } from "../domain/membership";
 import type { NightLodging } from "../domain/trip-days";
-import { describeWeather } from "../domain/weather";
+import { APP_TIME_ZONE, describeWeather } from "../domain/weather";
 import { getPhrasebook } from "../infrastructure/phrasebook-service";
 import { getTripRoute } from "../infrastructure/route-service";
-import { CurrencyCard } from "./currency-converter";
-import { DailyExpensesCard } from "./daily-expenses";
+import { CurrencyTile } from "./currency-converter";
+import { DailyExpensesTile } from "./daily-expenses";
+import { weatherToneClass } from "./day-weather-card";
 import { DomainIcon } from "./domain-icon";
-import { PhraseCard } from "./phrase-card";
+import { PhraseTile } from "./phrase-card";
 
-// The היום tab in the Stitch design's order (v6): a greeting with the weather,
-// then — after the now/next cards — where you sleep, a toolbox of the three
-// things a day on the road asks for, and who is on the trip with you.
+// The היום tab in the Pencil design's order (v7): a greeting with the weather
+// chip beside it, then — after the "now" card — where you sleep, a toolbox of
+// the three things a day on the road asks for, and who is on the trip with you.
 
 // One route per request, whichever section asks first. Resolving it is the
 // most expensive read on this screen, and two sections need it.
 const routeOnce = cache(getTripRoute);
 
 function greetingFor(hour: number) {
-  if (hour >= 5 && hour < 12) return { text: "בוקר טוב", Icon: Sunrise };
-  if (hour >= 12 && hour < 17) return { text: "צהריים טובים", Icon: Sun };
-  if (hour >= 17 && hour < 21) return { text: "ערב טוב", Icon: Sunset };
-  return { text: "לילה טוב", Icon: Moon };
+  if (hour >= 5 && hour < 12) return "בוקר טוב";
+  if (hour >= 12 && hour < 17) return "צהריים טובים";
+  if (hour >= 17 && hour < 21) return "ערב טוב";
+  return "לילה טוב";
 }
 
-// "בוקר טוב, עומר!", the weather as a terracotta line above it, the date as a
-// pill, and how many stops the day holds.
+// "יום שלישי · יום 3 ברומא" over "בוקר טוב, טל", and a white chip at the other
+// end with the day's high, the chance of rain and the sky as an icon.
 export async function TodayGreeting({
   tripId,
   tripName,
   date,
   city,
   firstName,
-  stopCount,
+  dayNumber = null,
   hour,
 }: {
   tripId: string;
@@ -63,7 +54,11 @@ export async function TodayGreeting({
   date: string | null;
   city: string | null;
   firstName: string | null;
-  stopCount: number;
+  // Which day of the trip this is, for "יום 3 ברומא".
+  dayNumber?: number | null;
+  // How many stops the day holds. The Pencil greeting does not say it — the
+  // day's schedule at the foot of the screen does — so it is not drawn.
+  stopCount?: number;
   // The wall-clock hour where the trip is, from the server's "now".
   hour: number;
 }) {
@@ -82,54 +77,59 @@ export async function TodayGreeting({
         }).then((days) => days?.find((day) => day.date === date) ?? null)
       : null;
   const described = weather ? describeWeather(weather.code) : null;
-  const greeting = greetingFor(hour);
 
-  const dateLabel = date
+  const weekday = date
     ? new Date(`${date}T00:00:00Z`).toLocaleDateString("he-IL", {
         weekday: "long",
-        day: "numeric",
-        month: "long",
         timeZone: "UTC",
       })
     : null;
+  const where = [
+    dayNumber !== null ? `יום ${dayNumber}` : null,
+    city ? `${dayNumber !== null ? "ב" : ""}${city}` : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const dateLine = [weekday, where].filter(Boolean).join(" · ");
 
   return (
-    <section className="flex min-w-0 flex-col gap-1 pb-2">
-      <div className="flex min-w-0 items-center justify-between gap-2">
-        {weather && described ? (
-          <span className="flex min-w-0 items-center gap-1">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cta-bright text-cta-deep" aria-hidden="true">
-              <DomainIcon name={described.icon} className="h-[0.9375rem] w-[0.9375rem]" />
-            </span>
-            <span className="truncate text-xs font-semibold text-cta-strong">
-              {Math.round(weather.maxC)}°C {described.label}
-            </span>
-          </span>
-        ) : (
-          <span />
-        )}
-        {dateLabel && (
-          <span className="shrink-0 rounded-full bg-surface-high px-2 py-0.5 text-[0.625rem] leading-[0.875rem] font-semibold text-muted">
-            {dateLabel}
-          </span>
-        )}
+    <section className="flex min-w-0 items-start justify-between gap-3">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        {dateLine && <p className="truncate text-sm text-muted">{dateLine}</p>}
+        <h2 className="text-[1.75rem] leading-9 font-bold text-foreground wrap-anywhere">
+          {greetingFor(hour)}
+          {firstName ? `, ${firstName}` : ""}
+        </h2>
       </div>
-      <h2 className="flex items-center gap-2 text-[1.75rem] leading-9 font-bold tracking-[-0.01em] text-foreground">
-        {greeting.text}
-        {firstName ? `, ${firstName}!` : "!"}
-        <greeting.Icon className="h-7 w-7 text-cta-bright" aria-hidden="true" />
-      </h2>
-      <p className="text-sm text-muted">
-        {stopCount === 0
-          ? `היום פנוי${city ? ` ב${city}` : ""}.`
-          : `היום מחכים לך ${stopCount === 1 ? "יעד אחד מתוכנן" : `${stopCount} יעדים מתוכננים`}${city ? ` ב${city}` : ""}.`}
-      </p>
+
+      {weather && described && (
+        <div
+          className="flex shrink-0 items-center gap-2.5 rounded-2xl bg-surface px-3.5 py-2.5 shadow-card"
+          title={described.label}
+        >
+          <span className={weatherToneClass(described.icon)} aria-hidden="true">
+            <DomainIcon name={described.icon} className="h-7 w-7" />
+          </span>
+          <span className="flex flex-col items-center">
+            <span className="text-xl leading-6 font-bold tabular-nums text-foreground">
+              {Math.round(weather.maxC)}°
+            </span>
+            <span className="text-[0.6875rem] leading-4 text-muted">
+              {weather.rainChance !== null
+                ? `גשם ${weather.rainChance}%`
+                : described.label}
+            </span>
+          </span>
+        </div>
+      )}
     </section>
   );
 }
 
-// "איפה ישנים הלילה?" — the night's lodging: the status line, the name, the
-// address, the booking code in its own box, and two actions.
+// The night's lodging as one teal-tint row (Pencil, v7): a bed on a white
+// tile, the hotel's name, the night's status with the check-in hour, and a
+// chevron — the whole row goes to the booking's details. The map is its own
+// round button, and the confirmation code rides on the second line.
 export function TonightCard({
   tripId,
   stay,
@@ -141,66 +141,69 @@ export function TonightCard({
   const { booking } = stay;
   const place = booking.address ?? [booking.title, booking.city].filter(Boolean).join(" ");
 
+  const checkIn = stay.isCheckIn
+    ? instantToWallClock(booking.starts_at, APP_TIME_ZONE).slice(11, 16)
+    : null;
+  const status = stay.isCheckIn
+    ? `לינה הלילה · צ׳ק-אין ${checkIn}`
+    : stay.isLastNight
+      ? "הלילה האחרון"
+      : "לינה הלילה";
+
   return (
-    <section aria-label="איפה ישנים הלילה" className="flex min-w-0 flex-col gap-1">
-      <h3 className="flex items-center gap-1 text-lg leading-6 font-semibold text-foreground">
-        <BedDouble className="h-5 w-5 text-primary" aria-hidden="true" />
-        איפה ישנים הלילה?
-      </h3>
-      <div className="flex min-w-0 flex-col gap-2 rounded-card bg-surface p-4 shadow-card">
-        <div className="flex min-w-0 items-start justify-between gap-2">
-          <div className="flex min-w-0 flex-col">
-            <span className="flex items-center gap-1 text-[0.625rem] leading-[0.875rem] font-semibold text-cta-strong">
-              <DomainIcon name="lodging" className="h-4 w-4" />
-              {stay.isCheckIn ? "צ׳ק-אין היום" : stay.isLastNight ? "הלילה האחרון" : "הלינה של הלילה"}
-            </span>
-            <h4 className="mt-0.5 text-base leading-[1.375rem] font-bold text-foreground wrap-anywhere">
-              {booking.title}
-            </h4>
-            {(booking.address || booking.city) && (
-              <p className="mt-0.5 flex items-center gap-0.5 text-xs text-muted">
-                <MapPin className="h-[0.9375rem] w-[0.9375rem] shrink-0" aria-hidden="true" />
-                <span className="min-w-0 wrap-anywhere">{booking.address ?? booking.city}</span>
-              </p>
+    <section
+      aria-label="איפה ישנים הלילה"
+      className="relative flex min-w-0 items-center gap-3 rounded-[1.25rem] bg-primary-tint p-4"
+    >
+      <span
+        aria-hidden="true"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface text-primary"
+      >
+        <BedDouble className="h-5 w-5" />
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* The stretched link: its ::after covers the row, so the whole row
+            is the tap target without wrapping the map button inside a link. */}
+        <Link
+          href={`/trips/${tripId}/more`}
+          className="truncate text-base leading-6 font-bold text-foreground after:absolute after:inset-0 after:rounded-[1.25rem] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
+        >
+          {booking.title}
+        </Link>
+        <span className="truncate text-xs text-muted">{status}</span>
+        {(booking.address || booking.confirmation) && (
+          <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted">
+            {booking.address && <span className="min-w-0 truncate">{booking.address}</span>}
+            {booking.address && booking.confirmation && <span aria-hidden="true">·</span>}
+            {booking.confirmation && (
+              <span className="shrink-0">
+                קוד{" "}
+                <span dir="ltr" className="font-mono font-semibold text-primary">
+                  {booking.confirmation}
+                </span>
+              </span>
             )}
-          </div>
-          {booking.confirmation && (
-            <div className="shrink-0 rounded-lg bg-surface-high px-2 py-1 text-center">
-              <span className="block text-[0.625rem] leading-[0.875rem] font-semibold text-muted">
-                קוד הזמנה
-              </span>
-              <span className="font-mono text-xs font-bold text-primary" dir="ltr">
-                {booking.confirmation}
-              </span>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2 pt-1">
-          <Link
-            href={`/trips/${tripId}/more`}
-            className="flex min-h-[2.625rem] flex-1 items-center justify-center gap-1 rounded-lg bg-surface-sunken text-xs font-semibold text-primary transition-colors hover:bg-surface-high"
-          >
-            <FileText className="h-[1.125rem] w-[1.125rem]" aria-hidden="true" />
-            פרטי ההזמנה
-          </Link>
-          <a
-            href={googleMapsSearchUrl(place)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex min-h-[2.625rem] flex-1 items-center justify-center gap-1 rounded-lg bg-surface-sunken text-xs font-semibold text-primary transition-colors hover:bg-surface-high"
-          >
-            <MapPin className="h-[1.125rem] w-[1.125rem]" aria-hidden="true" />
-            פתח במפה
-          </a>
-        </div>
+          </span>
+        )}
       </div>
+      <a
+        href={googleMapsSearchUrl(place)}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`${booking.title} במפה`}
+        className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface text-primary transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <MapPin className="h-5 w-5" aria-hidden="true" />
+      </a>
+      <ChevronLeft className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
     </section>
   );
 }
 
-// "ארגז כלים מהירים לדרך": the currency converter, the phrasebook and today's
-// spending. Rates are cached for the day by lib/currency, the phrasebook is
-// already stored — nothing here calls the AI.
+// "ארגז כלים": three equal tiles — the exchange rate, a phrase in the local
+// language, and today's spending — each opening its own sheet. Rates are
+// cached for the day by lib/currency, the phrasebook is already stored —
+// nothing here calls the AI.
 export async function TodayToolbox({
   tripId,
   tripName,
@@ -228,17 +231,14 @@ export async function TodayToolbox({
   ]);
 
   return (
-    <section aria-label="ארגז כלים" className="flex min-w-0 flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-1 text-lg leading-6 font-semibold text-foreground">
-          <Wrench className="h-5 w-5 text-cta-strong" aria-hidden="true" />
-          ארגז כלים מהירים לדרך
-        </h3>
-      </div>
-      <div className="flex min-w-0 flex-col gap-4">
-        <CurrencyCard rates={rates} initialQuote={currency} />
-        <PhraseCard tripId={tripId} phrasebook={phrasebook} />
-        <DailyExpensesCard
+    <section aria-labelledby="today-toolbox" className="flex min-w-0 flex-col gap-3">
+      <h3 id="today-toolbox" className="text-lg leading-6 font-bold text-foreground">
+        ארגז כלים
+      </h3>
+      <div className="grid min-w-0 grid-cols-3 gap-3">
+        <CurrencyTile rates={rates} initialQuote={currency} />
+        <PhraseTile tripId={tripId} phrasebook={phrasebook} />
+        <DailyExpensesTile
           tripId={tripId}
           dayNumber={dayNumber}
           expenses={expensesForDay(expenses, dayNumber)}
@@ -258,7 +258,8 @@ const AVATAR_TONES = [
 ];
 
 // "שותפים למסע": who is on the trip, as initials in overlapping discs, their
-// names, and a round share button.
+// names, and a round share button — one white card, the same as the rest of
+// the screen.
 export function PartnersCard({
   tripId,
   members,
@@ -273,22 +274,19 @@ export function PartnersCard({
   return (
     <section
       aria-label="שותפים למסע"
-      className="flex min-w-0 flex-col gap-4 rounded-card bg-surface-sunken p-4"
+      className="flex min-w-0 flex-col gap-3 rounded-[1.25rem] bg-surface p-4 shadow-card"
     >
       <div className="flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-1 text-lg leading-6 font-semibold text-foreground">
-          <Users className="h-5 w-5 text-primary" aria-hidden="true" />
-          שותפים למסע
-        </h3>
+        <h3 className="text-base leading-6 font-bold text-foreground">שותפים למסע</h3>
         {members.length > 1 && (
-          <span className="flex items-center gap-1 text-[0.625rem] leading-[0.875rem] font-semibold text-primary">
+          <span className="flex items-center gap-1.5 text-xs font-semibold text-success-ink">
             <span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" />
             משותף עם {members.length - 1}
           </span>
         )}
       </div>
-      <div className="flex min-w-0 items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <div className="flex -space-x-2 space-x-reverse">
             {names.slice(0, 3).map((name, index) => (
               <span
@@ -301,10 +299,10 @@ export function PartnersCard({
             ))}
           </div>
           <div className="flex min-w-0 flex-col">
-            <span className="truncate text-xs font-semibold text-foreground">
+            <span className="truncate text-sm font-semibold text-foreground">
               {names.join(", ")}
             </span>
-            <span className="text-[0.625rem] leading-[0.875rem] text-muted">
+            <span className="text-xs text-muted">
               {members.length > 1 ? "כולם רואים את אותו לו״ז" : "הזמינו מישהו להצטרף"}
             </span>
           </div>
@@ -312,7 +310,7 @@ export function PartnersCard({
         <Link
           href={`/trips/${tripId}/more/share`}
           aria-label="שיתוף הטיול"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface text-primary shadow-sm transition-colors hover:bg-surface-high"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2 text-primary transition-colors hover:bg-primary-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Share2 className="h-5 w-5" aria-hidden="true" />
         </Link>

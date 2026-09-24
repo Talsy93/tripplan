@@ -28,59 +28,52 @@ export type PlaceCategory = z.infer<typeof placeCategorySchema>;
 // one-line change here.
 //
 // Tag reference: https://wiki.openstreetmap.org/wiki/Map_features
-// `emoji` is for the _4 export's category chips and nothing else.
-//
-// It reverses, in one place, the 2026-08-31 decision to drop emoji for domain
-// identity — and the reason that decision was right still holds everywhere it
-// was made: an emoji renders differently on every OS, cannot take the city's
-// colour, and beside a 2px lucide glyph reads as a sticker. None of that
-// applies to a chip carousel, where the emoji is the only mark on a pill of
-// text and there is no glyph beside it to clash with. The export draws these
-// chips with an emoji each; this is that, kept to that.
+// No emoji: the v7 (Pencil) chips carry a lucide glyph each (category-tile.tsx),
+// which ends the one exception the _4 export had made to the 2026-08-31 rule.
 export const PLACE_CATEGORIES: Record<
   PlaceCategory,
-  { label: string; icon: DomainIconName; emoji: string; filters: string[] }
+  { label: string; icon: DomainIconName; filters: string[] }
 > = {
   restaurants: {
     label: "מסעדות",
     icon: "restaurant",
-    emoji: "🍝",
+   
     filters: ["amenity=restaurant", "amenity=fast_food"],
   },
   cafes: {
     label: "בתי קפה",
     icon: "cafe",
-    emoji: "☕",
+   
     filters: ["amenity=cafe"],
   },
   bakeries: {
     label: "מאפיות",
     icon: "bakery",
-    emoji: "🥐",
+   
     filters: ["shop=bakery", "shop=pastry"],
   },
   shopping: {
     label: "שופינג",
     icon: "shopping",
-    emoji: "🛍️",
+   
     filters: ["shop=mall", "shop=department_store", "shop=clothes"],
   },
   temples: {
     label: "מקדשים",
     icon: "temple",
-    emoji: "🏛️",
+   
     filters: ["amenity=place_of_worship", "historic=shrine"],
   },
   attractions: {
     label: "אטרקציות",
     icon: "attraction",
-    emoji: "📸",
+   
     filters: ["tourism=attraction", "tourism=museum", "tourism=viewpoint"],
   },
   // No filters, on purpose rather than for want of tags. "אחר" is the
   // category for a place OpenStreetMap has no single answer for; giving it a
   // guess at one would make the tile return arbitrary results.
-  other: { label: "אחר", icon: "other", emoji: "📍", filters: [] },
+  other: { label: "אחר", icon: "other", filters: [] },
 };
 
 // The categories the attractions search can actually offer, derived rather

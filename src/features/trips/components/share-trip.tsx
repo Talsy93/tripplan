@@ -78,7 +78,7 @@ export function ShareTrip({
   }
 
   return (
-    <Card className="flex flex-col gap-3">
+    <Card className="flex flex-col gap-3 rounded-[20px] p-4">
       {!token ? (
         <>
           <p className="text-sm text-muted">
@@ -89,7 +89,7 @@ export function ShareTrip({
             type="button"
             onClick={() => void enable()}
             loading={working}
-            className="self-start"
+            className="min-h-11 self-start rounded-full"
           >
             <Globe className="h-4 w-4" aria-hidden="true" />
             יצירת קישור שיתוף
@@ -97,20 +97,22 @@ export function ShareTrip({
         </>
       ) : (
         <>
-          <div className="flex flex-col gap-2 sm:flex-row">
+          {/* Pencil's copy press is the teal pill beside the link — on this
+              screen copying is the job, so it gets the fill. */}
+          <div className="flex items-center gap-2">
             <Input
               readOnly
               value={url ?? ""}
               dir="ltr"
               onFocus={(event) => event.currentTarget.select()}
-              className="min-w-0 flex-1"
+              className="h-12 min-w-0 flex-1 rounded-[14px]"
               aria-label="קישור השיתוף"
             />
             <Button
               type="button"
-              variant="outline"
+              variant="brand"
               onClick={() => void copy()}
-              className="shrink-0"
+              className="min-h-11 shrink-0 rounded-full"
             >
               {copied ? (
                 <Check className="h-4 w-4" aria-hidden="true" />
@@ -134,7 +136,7 @@ export function ShareTrip({
             size="sm"
             onClick={() => void disable()}
             loading={working}
-            className="self-start"
+            className="min-h-11 self-start rounded-full"
           >
             <Link2Off className="h-4 w-4" aria-hidden="true" />
             ביטול הקישור

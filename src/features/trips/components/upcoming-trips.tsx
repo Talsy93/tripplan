@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CalendarDays, MapPin } from "lucide-react";
-import { AuraField, Card } from "@/components/ui";
+import { AuraField } from "@/components/ui";
 import { formatShortDate } from "../domain/trip";
 import { standingLabel } from "../domain/trip-order";
 import type { StandingTrip } from "../domain/trip-order";
@@ -55,12 +55,13 @@ export function UpcomingTrips({
 
         return (
           <li key={trip.id} className="min-w-0 animate-rise">
-            <Card
-              variant="interactive"
+            {/* The Pencil trip row; the trip being lived is ringed in teal
+                rather than bordered, since the rows have no border to tint. */}
+            <div
               className={
                 active
-                  ? "relative flex min-w-0 items-center gap-4 border-primary/40"
-                  : "relative flex min-w-0 items-center gap-4"
+                  ? "relative flex min-w-0 items-center gap-4 rounded-[18px] bg-surface p-3.5 shadow-card ring-2 ring-primary/40"
+                  : "relative flex min-w-0 items-center gap-4 rounded-[18px] bg-surface p-3.5 shadow-card"
               }
             >
               {/* 64px, between the hero's field and the grid's 44px chip — the
@@ -74,7 +75,7 @@ export function UpcomingTrips({
                   out from the rows under it. */}
               <span
                 aria-hidden="true"
-                className="relative h-16 w-16 shrink-0 overflow-hidden rounded-tile"
+                className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[14px]"
               >
                 <AuraField
                   hues={auraByTrip?.get(trip.id) ?? []}
@@ -87,7 +88,7 @@ export function UpcomingTrips({
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <Link
                   href={`/trips/${trip.id}`}
-                  className="min-w-0 truncate text-base font-bold after:absolute after:inset-0 after:rounded-card focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-offset-2 focus-visible:after:ring-offset-background"
+                  className="min-w-0 truncate text-base font-bold after:absolute after:inset-0 after:rounded-[18px] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-offset-2 focus-visible:after:ring-offset-background"
                 >
                   {trip.name}
                 </Link>
@@ -130,7 +131,7 @@ export function UpcomingTrips({
                   )}
                 </span>
               </div>
-            </Card>
+            </div>
           </li>
         );
       })}

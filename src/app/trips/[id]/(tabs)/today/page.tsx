@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
-import { SectionHeading, Skeleton } from "@/components/ui";
+import { Skeleton } from "@/components/ui";
 import { getCurrentUser } from "@/features/auth";
 import { instantToWallClock } from "@/lib/datetime";
 import {
@@ -21,7 +21,6 @@ import {
   listExpenses,
   listMembers,
   lodgingByDay,
-  NextStopCard,
   NowCard,
   OpenItems,
   PartnersCard,
@@ -164,21 +163,22 @@ export default async function TodayPage({
     ? live.day.items.length + (live.bookings?.length ?? 0)
     : 0;
 
-  // v6 (Stitch): the screen in the design's order — greeting, the featured
-  // card, the next stop, tonight's bed, the toolbox, the people. The day's full
-  // schedule follows at the foot, which is where "הבא בתור" points.
+  // v7 (Pencil): the screen in the design's order — greeting, the "now" card,
+  // the location nudge, tonight's bed, the toolbox, the people. The day's full
+  // schedule follows at the foot, which is where the card's "הבא" points.
   return (
-    <div className="enter-children mx-auto flex w-full min-w-0 max-w-main flex-col gap-6">
+    <div className="enter-children mx-auto flex w-full min-w-0 max-w-main flex-col gap-5">
       <h1 className="sr-only">{trip.name}</h1>
 
       {live && (
-        <Suspense fallback={<Skeleton className="h-24 rounded-card" />}>
+        <Suspense fallback={<Skeleton className="h-16 rounded-2xl" />}>
           <TodayGreeting
             tripId={trip.id}
             tripName={trip.name}
             date={live.date}
             city={liveCity}
             firstName={firstName}
+            dayNumber={currentDay}
             stopCount={stopCount}
             hour={Number.isFinite(hour) ? hour : 9}
           />
@@ -197,29 +197,19 @@ export default async function TodayPage({
       {live && <ArrivalWatcher tripId={trip.id} day={live.day} />}
 
       {urgent.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <SectionHeading level="section" tone="now">
-            דורש תשומת לב
-          </SectionHeading>
-          <OpenItems tripId={trip.id} items={urgent} />
-        </section>
+        <OpenItems tripId={trip.id} items={urgent} title="דורש תשומת לב" />
       )}
 
-      {live && (
-        <NextStopCard
-          day={live.day}
-          bookings={live.bookings}
-          date={live.date}
-          now={nowIso}
-        />
-      )}
+      {/* "התחנה הבאה" was its own card here. The Pencil design folds it into
+          the "now" card's foot ("הבא: …, 11:30 · 15 דק׳ הליכה"), which says the
+          same thing without a second card repeating it underneath. */}
 
       {live && currentDay !== null && (
         <TonightCard tripId={trip.id} stay={lodging[currentDay] ?? null} />
       )}
 
       {live && currentDay !== null && (
-        <Suspense fallback={<Skeleton className="h-72 rounded-card" />}>
+        <Suspense fallback={<Skeleton className="h-40 rounded-[1.25rem]" />}>
           <TodayToolbox
             tripId={trip.id}
             tripName={trip.name}
@@ -234,7 +224,7 @@ export default async function TodayPage({
 
       {showDay ? (
         <section className="flex flex-col gap-3">
-          <SectionHeading level="section">הלו״ז של היום</SectionHeading>
+          <h2 className="text-lg leading-6 font-bold text-foreground">הלו״ז של היום</h2>
           <DayPanel
             tripId={trip.id}
             days={itinerary}

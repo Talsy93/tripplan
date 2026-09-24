@@ -1,4 +1,4 @@
-import { Badge, Banner, EmptyState, Glyph, ListRow } from "@/components/ui";
+import { Badge, Banner, EmptyState } from "@/components/ui";
 import {
   BOOKING_KINDS,
   bookingAlert,
@@ -94,49 +94,58 @@ export function UpNext({
           first. They are two groups — what to do, and what is coming — and
           chaining them would make the last deadline land after the flight
           underneath it. */}
-      <ul className="stagger flex flex-col gap-2" style={baseStyle}>
-        {upcoming.map((booking) => {
-          const kind = BOOKING_KINDS[booking.kind];
-          const alert = bookingAlert(booking, at);
-          const where = bookingWhere(booking);
+      {/* One white card of rows (Pencil, v7), each with its kind on a tile in
+          the city's tone. A card per booking was three boxes saying one list. */}
+      {upcoming.length > 0 && (
+        <ul
+          className="stagger overflow-hidden rounded-[1.25rem] bg-surface px-4 shadow-card"
+          style={baseStyle}
+        >
+          {upcoming.map((booking) => {
+            const kind = BOOKING_KINDS[booking.kind];
+            const alert = bookingAlert(booking, at);
+            const where = bookingWhere(booking);
 
-          return (
-            <li
-              key={booking.id}
-              className={cn("animate-rise", cityToneClass(tones, booking.city))}
-            >
-              <ListRow
-                // No accent dot any more. The tile below carries the city
-                // colour, and a dot beside it said the same thing twice — two
-                // marks for one fact, which is how a row starts to look busy
-                // without saying more.
-                leading={
-                  <Glyph tone>
-                    <DomainIcon name={kind.icon} />
-                  </Glyph>
-                }
-                title={booking.title}
-                subtitle={where ?? undefined}
-              >
-                {/* Under the title, not beside it. As `trailing` the badge was
-                    shrink-0 and the title was not, so "צ׳ק-אין היום, בעוד 6
-                    שעות" — 26 characters — took its full width at 375px and
-                    truncated the hotel name to nine. The name is the thing being
-                    identified; the timing is what is said about it. */}
-                {alert && (
-                  <Badge
-                    tone={alert.urgency === "now" ? "warning" : "neutral"}
-                    className="self-start"
-                    suppressHydrationWarning
-                  >
-                    {alert.message}
-                  </Badge>
+            return (
+              <li
+                key={booking.id}
+                className={cn(
+                  "animate-rise flex min-h-16 min-w-0 items-center gap-3 border-b border-border py-3 last:border-b-0",
+                  cityToneClass(tones, booking.city),
                 )}
-              </ListRow>
-            </li>
-          );
-        })}
-      </ul>
+              >
+                {/* The tile carries the city colour; no dot beside it saying
+                    the same thing twice. */}
+                <span
+                  aria-hidden="true"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-tone text-tone-ink"
+                >
+                  <DomainIcon name={kind.icon} className="h-5 w-5" />
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="truncate text-base leading-6 font-semibold text-foreground">
+                    {booking.title}
+                  </span>
+                  {where && <span className="truncate text-xs text-muted">{where}</span>}
+                  {/* Under the title, not beside it. As a trailing badge it
+                      was shrink-0 and the title was not, so "צ׳ק-אין היום,
+                      בעוד 6 שעות" took its full width at 375px and truncated
+                      the hotel name to nine characters. */}
+                  {alert && (
+                    <Badge
+                      tone={alert.urgency === "now" ? "warning" : "neutral"}
+                      className="self-start"
+                      suppressHydrationWarning
+                    >
+                      {alert.message}
+                    </Badge>
+                  )}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </>
   );
 }

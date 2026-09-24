@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { SectionHeading } from "@/components/ui";
 import type { Booking } from "../domain/booking";
 import type { OpenItem } from "../domain/open-items";
 import { OpenItems } from "./open-items";
@@ -49,10 +48,7 @@ export function TodayDuringAside({
       {forecast}
 
       {urgent.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <SectionHeading level="section" tone="now">דורש תשומת לב</SectionHeading>
-          <OpenItems tripId={tripId} items={urgent} />
-        </section>
+        <OpenItems tripId={tripId} items={urgent} title="דורש תשומת לב" />
       )}
 
       {/* "What is coming" is the thing you glance at and then go straight back
@@ -60,12 +56,12 @@ export function TodayDuringAside({
           narrower than xl it falls back to where it has always been: below the
           day. */}
       <section className="flex flex-col gap-3">
-        <SectionHeading level="section" tone="now">מה קרוב</SectionHeading>
+        <h2 className="text-base leading-6 font-bold text-foreground">מה קרוב</h2>
         <UpNext bookings={bookings} now={now} cities={cities} />
       </section>
 
       <section className="flex flex-col gap-3">
-        <SectionHeading level="section">הוצאות עד כה</SectionHeading>
+        <h2 className="text-base leading-6 font-bold text-foreground">הוצאות עד כה</h2>
         <TripSpend tripId={tripId} bookings={bookings} />
       </section>
     </>

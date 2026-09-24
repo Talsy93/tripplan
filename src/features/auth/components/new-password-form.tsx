@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Lock } from "lucide-react";
 import { Banner, Button, Field, Input, buttonClasses } from "@/components/ui";
 import { setNewPassword } from "../application/actions";
 import type { NewPasswordState } from "../domain/schemas";
+import { AuthNotice, authField, authFieldIcon, authSubmit } from "./auth-shell";
 
 // Setting a new password, at the end of the emailed recovery link.
 //
@@ -23,66 +24,66 @@ export function NewPasswordForm() {
 
   if (state?.done) {
     return (
-      <div className="flex flex-col gap-3">
-        <Banner tone="success">
-          <span className="flex items-start gap-2">
-            <CheckCircle2
-              className="mt-0.5 h-4 w-4 shrink-0"
-              aria-hidden="true"
-            />
-            הסיסמה עודכנה. אפשר להיכנס איתה מעכשיו.
-          </span>
-        </Banner>
+      <AuthNotice icon={<CheckCircle2 />} title="הסיסמה עודכנה" tone="success">
+        <p>אפשר להיכנס איתה מעכשיו.</p>
         <Link
           href="/profile"
-          className={buttonClasses("primary", "md", "self-start")}
+          className={buttonClasses("primary", "lg", `${authSubmit} mt-2`)}
         >
           להמשיך לאפליקציה
         </Link>
-      </div>
+      </AuthNotice>
     );
   }
 
   return (
     <form action={action} className="flex w-full flex-col gap-4">
-      <h1 className="text-heading font-bold">סיסמה חדשה</h1>
-      <p className="text-sm text-muted">
-        בחרו סיסמה חדשה. הקישור שהגעתם דרכו תקף לשימוש אחד.
-      </p>
+      <div className="flex flex-col gap-1 text-center">
+        <h1 className="text-[22px] font-bold leading-tight">סיסמה חדשה</h1>
+        <p className="text-sm text-muted">
+          בחרו סיסמה חדשה. הקישור שהגעתם דרכו תקף לשימוש אחד.
+        </p>
+      </div>
 
       <Field
         label="סיסמה"
         hint="לפחות 8 תווים."
         error={state?.errors?.password?.join(" ")}
       >
-        <Input
-          name="password"
-          type="password"
-          // "new-password" and not "current-password": it tells a password
-          // manager to offer a generated one rather than autofilling the old.
-          autoComplete="new-password"
-          required
-          dir="ltr"
-          className="text-left"
-          aria-invalid={state?.errors?.password ? true : undefined}
-        />
+        <span className="relative block">
+          <Input
+            name="password"
+            type="password"
+            // "new-password" and not "current-password": it tells a password
+            // manager to offer a generated one rather than autofilling the old.
+            autoComplete="new-password"
+            required
+            dir="ltr"
+            className={`${authField(true)} text-left`}
+            aria-invalid={state?.errors?.password ? true : undefined}
+          />
+          <Lock className={authFieldIcon} aria-hidden="true" />
+        </span>
       </Field>
 
       <Field label="שוב, לאימות" error={state?.errors?.confirm?.join(" ")}>
-        <Input
-          name="confirm"
-          type="password"
-          autoComplete="new-password"
-          required
-          dir="ltr"
-          className="text-left"
-          aria-invalid={state?.errors?.confirm ? true : undefined}
-        />
+        <span className="relative block">
+          <Input
+            name="confirm"
+            type="password"
+            autoComplete="new-password"
+            required
+            dir="ltr"
+            className={`${authField(true)} text-left`}
+            aria-invalid={state?.errors?.confirm ? true : undefined}
+          />
+          <Lock className={authFieldIcon} aria-hidden="true" />
+        </span>
       </Field>
 
       {state?.message && <Banner tone="danger">{state.message}</Banner>}
 
-      <Button type="submit" loading={pending} size="lg" className="w-full">
+      <Button type="submit" loading={pending} size="lg" className={`${authSubmit} mt-1`}>
         עדכון הסיסמה
       </Button>
     </form>

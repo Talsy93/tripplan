@@ -1,5 +1,4 @@
 import { Map as MapIcon } from "lucide-react";
-import { Glyph, iconButtonClasses, ListRow } from "@/components/ui";
 import { googleMapsSearchUrl } from "@/lib/maps";
 import { BOOKING_KINDS } from "../domain/booking";
 import { nightStayLabel } from "../domain/trip-days";
@@ -10,6 +9,10 @@ import { DomainIcon } from "./domain-icon";
 //
 // A server component: it renders text and a link and holds no state, so it
 // works unchanged inside the day pager (a client component) and the itinerary.
+//
+// Drawn as the Pencil design's tonight row (v7): a teal-tint strip with the
+// bed on a white tile, the hotel's name, the night's status and address, and
+// a round map button.
 //
 // Renders nothing when the night has no lodging. That is the honest outcome for
 // a day nobody has booked yet, and for the final morning of a stay — nagging on
@@ -22,39 +25,36 @@ export function NightStay({ stay }: { stay: NightLodging | null }) {
   const where = booking.address ?? booking.city;
 
   return (
-    <ListRow
-      accent="action"
-      leading={
-        <Glyph>
-          <DomainIcon name={BOOKING_KINDS.lodging.icon} />
-        </Glyph>
-      }
-      title={
-        <>
-          <span className="font-normal text-muted">
-            {nightStayLabel(stay)} ·{" "}
-          </span>
+    <div className="flex min-w-0 items-center gap-3 rounded-[1.25rem] bg-primary-tint p-3.5">
+      <span
+        aria-hidden="true"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-primary"
+      >
+        <DomainIcon name={BOOKING_KINDS.lodging.icon} className="h-5 w-5" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-base leading-6 font-bold text-foreground">
           {booking.title}
-        </>
-      }
-      subtitle={where ?? undefined}
-      trailing={
-        <a
-          href={googleMapsSearchUrl(
-            [booking.title, booking.address, booking.city]
-              .filter(Boolean)
-              .join(" "),
-          )}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`פתח את ${booking.title} ב-Google Maps`}
-          title="Google Maps"
-          className={iconButtonClasses("ghost", "sm")}
-        >
-          <MapIcon className="h-4 w-4" aria-hidden="true" />
-        </a>
-      }
-      className="bg-surface-2"
-    />
+        </span>
+        <span className="truncate text-xs text-muted">
+          {nightStayLabel(stay)}
+          {where && ` · ${where}`}
+        </span>
+      </span>
+      <a
+        href={googleMapsSearchUrl(
+          [booking.title, booking.address, booking.city]
+            .filter(Boolean)
+            .join(" "),
+        )}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`פתח את ${booking.title} ב-Google Maps`}
+        title="Google Maps"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface text-primary transition-colors hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <MapIcon className="h-5 w-5" aria-hidden="true" />
+      </a>
+    </div>
   );
 }

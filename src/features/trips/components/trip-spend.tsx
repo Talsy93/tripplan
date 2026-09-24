@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Wallet } from "lucide-react";
-import { Card, Glyph } from "@/components/ui";
+import { ChevronLeft, Wallet } from "lucide-react";
 import { costTotalsByCurrency, formatMoney } from "../domain/expenses";
 import type { Booking } from "../domain/booking";
 
@@ -26,28 +25,30 @@ export function TripSpend({
   if (!biggest) return null;
 
   return (
-    <Card variant="interactive" padding="none" className="overflow-hidden">
-      <Link
-        href={`/trips/${tripId}/more#expenses`}
-        className="flex items-center gap-3 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+    <Link
+      href={`/trips/${tripId}/more#expenses`}
+      className="flex min-w-0 items-center gap-3 rounded-[1.25rem] bg-surface p-4 shadow-card transition-shadow hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <span
+        aria-hidden="true"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-tint text-primary"
       >
-        <Glyph>
-          <Wallet className="h-5 w-5" aria-hidden="true" />
-        </Glyph>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-title font-black tabular-nums">
-            {formatMoney(biggest.total, biggest.currency)}
-          </span>
-          <span className="block text-caption text-muted">
-            {totals.length > 1
-              ? `ועוד ${totals.length - 1} ${totals.length - 1 === 1 ? "מטבע" : "מטבעות"}`
-              : "טיסות, רכבות ולינה"}
-          </span>
+        <Wallet className="h-5 w-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-lg leading-6 font-bold tabular-nums text-foreground">
+          <span dir="ltr">{formatMoney(biggest.total, biggest.currency)}</span>
         </span>
-        <span className="shrink-0 text-sm font-semibold text-primary-ink">
-          פירוט
+        <span className="block text-xs text-muted">
+          {totals.length > 1
+            ? `ועוד ${totals.length - 1} ${totals.length - 1 === 1 ? "מטבע" : "מטבעות"}`
+            : "טיסות, רכבות ולינה"}
         </span>
-      </Link>
-    </Card>
+      </span>
+      <span className="flex shrink-0 items-center gap-0.5 text-sm font-semibold text-primary">
+        פירוט
+        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+      </span>
+    </Link>
   );
 }

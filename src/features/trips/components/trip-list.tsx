@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { AuraField, Card, EmptyState } from "@/components/ui";
+import { AuraField, EmptyState } from "@/components/ui";
 import { NewTripButton } from "./create-trip-form";
 import { formatShortDate } from "../domain/trip";
 import { tripPhase } from "../domain/trip-days";
 import { standingLabel } from "../domain/trip-order";
 import type { Trip } from "../domain/trip";
-import { Luggage } from "lucide-react";
+import { ChevronLeft, Luggage } from "lucide-react";
 
 // `today` is passed in rather than read from the clock, so the label cannot
 // differ between the server render and hydration.
@@ -82,10 +82,9 @@ export function TripList({
                 forced it is gone: the whole card should be clickable, and an
                 after: pseudo-element on the title link is still the way to do
                 that without wrapping a card's worth of markup in an <a>. */}
-            <Card
-              variant="interactive"
-              className="relative flex h-full min-w-0 items-center gap-3"
-            >
+            {/* The Pencil trip row: a white card on the canvas, no border, the
+                card shadow, corners of 18. */}
+            <div className="relative flex h-full min-w-0 items-center gap-3 rounded-[18px] bg-surface p-3.5 shadow-card transition-transform active:scale-[0.99]">
               {/* The trip's light, at 44px — the same hues as its own hero, so a
                   trip is recognisable here by colour before its name is read. No
                   cities means no light: the bare deep base, which is what a trip
@@ -98,7 +97,7 @@ export function TripList({
                   sized for a hero and erases a bloom this small. */}
               <span
                 aria-hidden="true"
-                className="relative h-11 w-11 shrink-0 overflow-hidden rounded-tile"
+                className="relative h-12 w-12 shrink-0 overflow-hidden rounded-[14px]"
               >
                 <AuraField
                   hues={auraByTrip?.get(trip.id) ?? []}
@@ -111,7 +110,7 @@ export function TripList({
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <Link
                   href={`/trips/${trip.id}`}
-                  className="min-w-0 truncate text-base font-bold after:absolute after:inset-0 after:rounded-card focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-offset-2 focus-visible:after:ring-offset-background"
+                  className="min-w-0 truncate text-base font-bold after:absolute after:inset-0 after:rounded-[18px] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-offset-2 focus-visible:after:ring-offset-background"
                 >
                   {trip.name}
                 </Link>
@@ -138,11 +137,14 @@ export function TripList({
               {/* Departure, as a quiet chip rather than a coloured badge: in a
                   list of trips the date is what distinguishes one row from the
                   next, and the phase now reads as words above it. */}
-              <span className="shrink-0 rounded-control bg-surface-2 px-2 py-1 text-caption font-bold text-foreground">
+              <span className="shrink-0 rounded-full bg-surface-2 px-2.5 py-1 text-caption font-semibold text-foreground">
                 {trip.start_date ? formatShortDate(trip.start_date) : "—"}
               </span>
-
-            </Card>
+              <ChevronLeft
+                className="h-5 w-5 shrink-0 text-outline"
+                aria-hidden="true"
+              />
+            </div>
           </li>
         );
       })}

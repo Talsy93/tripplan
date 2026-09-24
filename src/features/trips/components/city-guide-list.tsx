@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { ChevronLeft, Globe } from "lucide-react";
-import { Card, EmptyState, ToneDot } from "@/components/ui";
+import { ChevronLeft, Globe, MapPin } from "lucide-react";
+import { EmptyState } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { cityToneClass, cityToneMap } from "../domain/tone";
 
@@ -41,7 +41,8 @@ export function CityGuideList({
   const tones = cityToneMap(entries.map((entry) => entry.city));
 
   return (
-    <Card padding="none" className="w-full max-w-2xl overflow-hidden">
+    // Pencil list card: white, radius 20, hairlines between rows.
+    <div className="w-full max-w-2xl overflow-hidden rounded-[20px] bg-surface shadow-card">
       <ul>
         {entries.map((entry) => (
           <li
@@ -54,11 +55,19 @@ export function CityGuideList({
             <Link
               href={`/trips/${tripId}/city/${encodeURIComponent(entry.city)}`}
               className={cn(
-                "flex min-w-0 items-center gap-3 px-4 py-3.5 transition-colors hover:bg-surface-2",
+                "flex min-h-16 min-w-0 items-center gap-3 px-4 py-3 transition-colors hover:bg-surface-2",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
               )}
             >
-              <ToneDot className="h-2.5 w-2.5" />
+              {/* The city tile: a pin in the city's own tone, the same colour
+                  the chips and the map give it — the list's version of
+                  Pencil's category tile. */}
+              <span
+                aria-hidden="true"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-tone text-tone-ink"
+              >
+                <MapPin className="h-5 w-5" />
+              </span>
               <span className="min-w-0 flex-1">
                 {/* Wrapped to a second line, not truncated. A city name is
                     whatever the user or the AI typed, and `truncate` in RTL
@@ -67,7 +76,7 @@ export function CityGuideList({
                     word beginning in the middle of itself. Two lines is what the
                     design allows destination names; wrap-anywhere is what
                     actually breaks a token with no break opportunity in it. */}
-                <span className="line-clamp-2 min-w-0 text-base font-semibold wrap-anywhere">
+                <span className="line-clamp-2 min-w-0 text-base font-bold wrap-anywhere">
                   {entry.city}
                 </span>
                 {/* The count first when there is one: "how much of this city
@@ -88,6 +97,6 @@ export function CityGuideList({
           </li>
         ))}
       </ul>
-    </Card>
+    </div>
   );
 }

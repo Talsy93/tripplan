@@ -29,3 +29,11 @@ export type {
 export { hasPasswordIdentity } from "./infrastructure/auth-service";
 export { ResetRequestForm } from "./components/reset-request-form";
 export { NewPasswordForm } from "./components/new-password-form";
+export {
+  AuthDivider,
+  AuthNotice,
+  AuthShell,
+  authField,
+  authFieldIcon,
+  authSubmit,
+} from "./components/auth-shell";

@@ -24,7 +24,6 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { BaseTiles, MapAutosize } from "./map-base";
-import { flagImageUrl, isFlagCode } from "./country-flag";
 
 export type MappedTrip = {
   id: string;
@@ -43,56 +42,55 @@ export type MappedTrip = {
   // to avoid — two trips both starting at "1".
   position: number;
   points: { city: string; latitude: number; longitude: number }[];
-  // The Stitch home (2026-09-24) plants one round disc per trip with the
-  // country's flag in it instead of a flag per city. `standing` turns it on;
-  // the disc's fill says the standing, so `hue` then only colours the line.
+  // The home plants one named pill per trip instead of a flag per city (see
+  // tripPill). `standing` turns it on; the pill's dot says the standing, so
+  // `hue` then only colours the line and the other cities' dots.
   standing?: PinStanding;
+  // No longer drawn — the Pencil pins carry no flags — but kept on the type so
+  // callers that pass it keep compiling.
   countryCode?: string | null;
 };
 
 export type PinStanding = "live" | "next" | "draft" | "past";
 
-// The four discs of the home export, by size, fill and ring: the trip being
-// lived is the big terracotta one with a green live dot, the next one out is
-// maritime blue, an idea is lavender, and a trip already taken is grey.
-const DISC: Record<
-  PinStanding,
-  { size: number; fill: string; ring: number; shadow: string; font: number }
-> = {
-  live: { size: 40, fill: "#fd651e", ring: 4, shadow: "0 10px 15px -3px rgb(0 0 0/.2)", font: 14 },
-  next: { size: 36, fill: "var(--primary)", ring: 2, shadow: "0 4px 6px -1px rgb(0 0 0/.2)", font: 12 },
-  draft: { size: 32, fill: "var(--surface-variant)", ring: 2, shadow: "0 4px 6px -1px rgb(0 0 0/.2)", font: 12 },
-  past: { size: 32, fill: "var(--border-strong)", ring: 2, shadow: "0 4px 6px -1px rgb(0 0 0/.2)", font: 12 },
+// The home pins of the Pencil design (design/pencil/exports/home-desktop): a
+// white pill per trip with a dot and the trip name. The dot says the standing
+// — terracotta for the trip being lived or the next one out, green for one
+// already taken, grey for an idea — so the pill reads without a legend. The
+// Stitch discs carried a flag image here; the design has no flags.
+const PILL_DOT: Record<PinStanding, string> = {
+  live: "var(--cta)",
+  next: "var(--cta)",
+  draft: "var(--outline)",
+  past: "var(--success)",
 };
 
-function tripDisc(
-  countryCode: string | null | undefined,
+function escapeHtml(text: string): string {
+  return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+function tripPill(
+  name: string,
   standing: PinStanding,
   { selected, dimmed }: { selected: boolean; dimmed: boolean },
 ): L.DivIcon {
-  const disc = DISC[standing];
-  const scale = selected ? 1.15 : 1;
-  const size = Math.round(disc.size * scale);
-  const outer = size + disc.ring * 2 + (selected ? 6 : 0);
-  const halo = selected
-    ? `box-shadow:0 0 0 3px var(--primary),${disc.shadow};`
-    : `box-shadow:${disc.shadow};`;
-  const liveDot =
+  const ring = selected
+    ? "box-shadow:0 0 0 2px var(--primary),var(--elevation-lift);"
+    : "box-shadow:var(--elevation-card);";
+  const live =
     standing === "live"
-      ? `<span style="position:absolute;top:${selected ? 2 : -1}px;right:${selected ? 2 : -1}px;width:14px;height:14px;border-radius:9999px;background:#68dba9;box-shadow:0 0 0 2px #fff"></span>`
+      ? `<span style="position:absolute;inset:0;border-radius:9999px;background:${PILL_DOT.live};opacity:.35;animation:ping 1.4s cubic-bezier(0,0,.2,1) infinite"></span>`
       : "";
+  // A zero-size icon with the pill centred on it by transform: the pill is as
+  // wide as the name, which Leaflet cannot know in advance.
   return L.divIcon({
     className: "",
-    html: `<div style="position:relative;width:${outer}px;height:${outer}px;display:flex;align-items:center;justify-content:center;transition:transform .15s;${dimmed ? "opacity:.4;" : standing === "past" ? "opacity:.9;" : ""}">
-      <span style="width:${size}px;height:${size}px;border-radius:9999px;background:${disc.fill};border:${disc.ring}px solid #fff;${halo}display:flex;align-items:center;justify-content:center;box-sizing:content-box">${
-        isFlagCode(countryCode ?? null)
-          ? `<img src="${flagImageUrl(countryCode as string)}" alt="" style="width:${Math.round(disc.font * 1.5 * scale)}px;height:auto;border-radius:2px;display:block">`
-          : `<span style="width:8px;height:8px;border-radius:9999px;background:#fff"></span>`
-      }</span>
-      ${liveDot}
+    html: `<div dir="rtl" style="position:absolute;left:0;top:0;transform:translate(-50%,-50%)${selected ? " scale(1.08)" : ""};display:flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:9999px;background:var(--surface);${ring}white-space:nowrap;font:600 13px/1 var(--font-sans),system-ui;color:var(--foreground);transition:transform .15s;${dimmed ? "opacity:.45;" : ""}">
+      <span style="position:relative;width:9px;height:9px;flex:none;border-radius:9999px;background:${PILL_DOT[standing]}">${live}</span>
+      <span style="max-width:120px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(name)}</span>
     </div>`,
-    iconSize: [outer, outer],
-    iconAnchor: [outer / 2, outer / 2],
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
   });
 }
 
@@ -378,7 +376,7 @@ export default function TripsMapCanvas({
                 icon={
                   trip.standing
                     ? index === 0
-                      ? tripDisc(trip.countryCode, trip.standing, { selected, dimmed })
+                      ? tripPill(trip.name, trip.standing, { selected, dimmed })
                       : cityDot(hue, dimmed)
                     : tripFlag(hue, {
                         selected,

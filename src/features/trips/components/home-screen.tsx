@@ -1,34 +1,24 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
-  BadgeCheck,
-  Bookmark,
-  Bot,
-  BrainCircuit,
   Calendar,
-  CalendarCog,
-  CalendarDays,
+  Check,
   ChevronLeft,
-  CircleCheck,
-  Compass,
   Dices,
   EllipsisVertical,
   Globe,
-  Heart,
   Map as MapIcon,
   MapPin,
-  MapPinPlus,
-  MessageSquareText,
-  PlaneTakeoff,
-  ScrollText,
+  PencilLine,
+  Plus,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { AppIntro } from "./app-intro";
-import { CountryFlag } from "./country-flag";
 import { NewTripButton } from "./create-trip-form";
 import { DomainIcon } from "./domain-icon";
 import { HomeMap } from "./home-map";
@@ -44,25 +34,32 @@ import type { DomainIconName } from "../domain/icons";
 import type { StandingTrip } from "../domain/trip-order";
 import { tripTabHref } from "../domain/trip-tabs";
 
-// The home screen, block for block from design/stitch/…/home (2026-09-24):
-// a greeting with the terracotta "new trip" banner, the trip being lived (or
-// the next one) as a photo card with its vitals, the map of every trip with a
-// filter and a card for the pin in focus, the other trips as cards by kind —
-// upcoming, an idea, a trip already taken — and the concierge card.
+// The home screen, from the Pencil design (design/pencil/exports/home-mobile,
+// home-desktop, home-empty — phase PN, 2026-09-24): a greeting, the trip being
+// lived (or the next one) on the teal card, the one terracotta "new trip",
+// every trip under a segmented filter, and the idea card.
 //
-// Client for one reason: the map and its preview card share a selection and a
-// filter. Everything else is fetched on the server and handed down.
+// The design has no map on a phone. The map of every trip stays anyway — it is
+// the one place the trips are seen side by side — and sits between the filter
+// and the rows, so the filter visibly drives both. From lg it is the left
+// column, as the desktop export draws it.
+//
+// Client for one reason: the map, its preview card and the rows share a
+// selection and a filter. Everything else is fetched on the server.
 
 // One trip, as the cards and the map need it.
 export type HomeTrip = {
   entry: StandingTrip;
-  // The ISO code of the trip's country, for its flag; null when no city has a
-  // country yet.
+  // The ISO code of the trip's country; null when no city has a country yet.
+  // No longer drawn (the design carries no flags), still passed for the map.
   countryCode: string | null;
   // The city the photo is of — the first one on the route.
   city: string | null;
+  // Every saved city, in the order chosen — the "רומא • פירנצה" line. Optional
+  // so a caller that only has the first city still renders.
+  cities?: string[];
   dayCount: number;
-  // Saved places ("8 מקומות ברשימה").
+  // Saved places ("8 מקומות שמורים").
   placeCount: number;
 };
 
@@ -86,6 +83,8 @@ export function HomeScreen({
   mapped,
   destinationCount,
   now,
+  bell,
+  account,
 }: {
   firstName: string | null;
   // Every trip, nearest first.
@@ -93,106 +92,106 @@ export function HomeScreen({
   featuredId: string | null;
   details: FeaturedDetails | null;
   mapped: MappedTrip[];
-  // Distinct cities across every trip — the "4 יעדים" badge.
+  // Distinct cities across every trip — "4 יעדים" beside the greeting.
   destinationCount: number;
   // The server's clock, so "נוצר לפני יומיים" reads the same on both sides.
   now: string;
+  // The design's phone header has no app bar: the bell and the avatar sit in
+  // the greeting row. The page passes the same two controls its top bar holds
+  // from md up; without them (the preview harness) the row is text only.
+  bell?: ReactNode;
+  account?: ReactNode;
 }) {
   const featured = trips.find((trip) => trip.entry.trip.id === featuredId) ?? null;
   const others = trips.filter((trip) => trip.entry.trip.id !== featuredId);
-  // The trip the AI card and the footer tabs open: the featured one, or else
-  // the nearest there is.
+  // The trip the idea card opens: the featured one, or else the nearest.
   const target = featured ?? trips[0] ?? null;
+  const empty = trips.length === 0;
 
   return (
-    <main className="mx-auto flex w-full max-w-[66rem] flex-1 flex-col gap-6 px-4 pb-28 pt-4 md:px-6 md:pb-12 lg:grid lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start lg:gap-x-8 lg:px-8 lg:pt-8">
-      <div className="order-1 flex min-w-0 flex-col gap-6 lg:col-start-1 lg:row-start-1">
-        <Greeting firstName={firstName} destinationCount={destinationCount} />
+    <main
+      className={cn(
+        "mx-auto flex w-full flex-1 flex-col gap-6 px-4 pb-32 pt-4 md:px-6 md:pb-12 lg:px-8 lg:pt-8",
+        // No trips: one centred column, like the empty export — a grid would
+        // leave the whole left half of a desktop blank.
+        empty
+          ? "max-w-lg"
+          : "max-w-[66rem] lg:grid lg:grid-cols-[24rem_minmax(0,1fr)] lg:items-start lg:gap-x-10",
+      )}
+    >
+      {/* First column in the DOM is the right-hand one in RTL: the greeting,
+          the featured trip and the one call to action, as in the export. */}
+      <div className="flex min-w-0 flex-col gap-5 lg:col-start-1 lg:row-start-1">
+        <Greeting
+          firstName={firstName}
+          destinationCount={destinationCount}
+          bell={bell}
+          account={account}
+        />
         {featured && details && <FeaturedCard trip={featured} details={details} />}
-        {trips.length === 0 && <AppIntro />}
+        {empty ? (
+          <AppIntro />
+        ) : (
+          <NewTripButton className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-cta text-base font-semibold text-cta-foreground shadow-card transition-[background-color,transform] duration-150 hover:bg-cta-hover active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+            <Plus className="h-5 w-5" aria-hidden="true" />
+            <span>תכנון טיול חדש</span>
+          </NewTripButton>
+        )}
       </div>
 
-      {/* One column on a phone, in the export's order — the map comes between
-          the featured trip and the list. From lg the map and the concierge
-          stand beside the list, so this wrapper is `contents` below it and
-          lets its two children take their own places in the column. */}
-      {trips.length > 0 && (
-        <div className="contents lg:sticky lg:top-24 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:flex lg:flex-col lg:gap-6">
-          <MapSection trips={trips} mapped={mapped} featuredId={featuredId} />
-          {target && (
-            <div className="order-4 lg:order-none">
-              <ConciergeCard tripId={target.entry.trip.id} />
-            </div>
-          )}
+      {!empty && (
+        <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+          <TripsSection
+            trips={trips}
+            others={others}
+            mapped={mapped}
+            featuredId={featuredId}
+            now={now}
+          />
         </div>
       )}
 
-      {others.length > 0 && (
-        <div className="order-3 min-w-0 lg:col-start-1 lg:row-start-2">
-          <TripCards trips={others} now={now} />
+      {target && (
+        <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+          <IdeaCard tripId={target.entry.trip.id} />
         </div>
       )}
     </main>
   );
 }
 
-// ---- 1 · greeting and the new-trip banner ----------------------------------
+// ---- 1 · greeting ----------------------------------------------------------
 
 function Greeting({
   firstName,
   destinationCount,
+  bell,
+  account,
 }: {
   firstName: string | null;
   destinationCount: number;
+  bell?: ReactNode;
+  account?: ReactNode;
 }) {
+  const hello = firstName ? `שלום, ${firstName}` : "שלום";
   return (
-    <section className="flex flex-col gap-4 pt-1">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex flex-col">
-          <div className="inline-flex items-center gap-0.5 text-[12px] font-medium leading-4 tracking-[0.01em] text-cta-strong">
-            <Compass className="h-4 w-4" aria-hidden="true" />
-            <span>הרפתקה חדשה ממתינה</span>
-          </div>
-          <h1 className="text-[24px] font-bold leading-8 tracking-tight text-foreground">
-            {firstName ? `שלום, ${firstName}!` : "שלום!"}{" "}
-            <span className="inline-block animate-pulse" aria-hidden="true">
-              ✈️
-            </span>
-          </h1>
-          <p className="text-sm leading-5 text-muted-strong">
-            לאן נטייל ונצבור חוויות הפעם?
-          </p>
-        </div>
-        {destinationCount > 0 && (
-          <div className="flex shrink-0 items-center gap-0.5 rounded-full bg-surface-high px-2 py-1 text-primary shadow-sm">
-            <BadgeCheck className="h-[18px] w-[18px]" aria-hidden="true" />
-            <span className="text-[12px] font-semibold leading-4 text-foreground">
+    <section className="flex items-center gap-3 pt-1">
+      {account && <div className="shrink-0 md:hidden">{account}</div>}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <p className="text-sm text-muted">
+          {hello}
+          {destinationCount > 0 && (
+            <span className="text-outline">
+              {" · "}
               {destinationCount === 1 ? "יעד אחד" : `${destinationCount} יעדים`}
             </span>
-          </div>
-        )}
+          )}
+        </p>
+        <h1 className="text-[26px] font-bold leading-tight tracking-tight text-foreground lg:text-[32px]">
+          לאן נטייל הפעם?
+        </h1>
       </div>
-
-      <NewTripButton className="group relative flex w-full items-center justify-between overflow-hidden rounded-2xl bg-cta-bright p-4 text-white shadow-[0_8px_20px_-4px_rgba(253,101,30,0.35)] transition-transform duration-150 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-        <span className="z-10 flex items-center gap-2">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 shadow-inner backdrop-blur-md">
-            <MapPinPlus className="h-6 w-6" aria-hidden="true" />
-          </span>
-          <span className="flex flex-col text-right">
-            <span className="text-[18px] font-bold leading-tight">תכנון טיול חדש</span>
-            <span className="text-[10px] font-semibold leading-[14px] tracking-[0.02em] text-white/85">
-              בניית מסלול אישי עם בינה מלאכותית
-            </span>
-          </span>
-        </span>
-        <span className="z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/25">
-          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-        </span>
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-6 -left-6 h-32 w-32 rounded-full bg-cta-tint/30 blur-2xl"
-        />
-      </NewTripButton>
+      {bell && <div className="shrink-0 md:hidden">{bell}</div>}
     </section>
   );
 }
@@ -212,164 +211,162 @@ function FeaturedCard({
 
   const pill = during
     ? home.dayCount > 0
-      ? `מתקיים כרגע • יום ${phase.dayNumber} מתוך ${home.dayCount}`
-      : `מתקיים כרגע • יום ${phase.dayNumber}`
+      ? `מתקיים עכשיו · יום ${phase.dayNumber} מתוך ${home.dayCount}`
+      : `מתקיים עכשיו · יום ${phase.dayNumber}`
     : phase.kind === "before"
       ? phase.daysUntilStart === 1
         ? "יוצאים מחר"
         : `יוצאים בעוד ${phase.daysUntilStart} ימים`
       : "בתכנון";
 
-  const members = details.members.length;
+  const cities = home.cities?.length ? home.cities : home.city ? [home.city] : [];
+  const meta = [
+    ...cities.slice(0, 3),
+    cities.length > 3 ? `+${cities.length - 3}` : null,
+    home.dayCount > 0 ? `${home.dayCount} ימים` : null,
+    details.scheduledCount > 0 ? `${details.scheduledCount} מקומות בלו״ז` : null,
+  ].filter(Boolean);
 
   return (
-    <section className="flex flex-col gap-1">
-      <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-0.5">
-          <PlaneTakeoff className="h-5 w-5 text-cta-strong" aria-hidden="true" />
-          <h2 className="text-[18px] font-bold leading-6 text-foreground">
-            {during ? "הטיול הפעיל שלך" : "הטיול הקרוב שלך"}
-          </h2>
-        </div>
-        <span className="rounded-full bg-primary-tint/60 px-1 py-0.5 text-[10px] font-semibold leading-[14px] tracking-[0.02em] text-primary">
-          {during ? "בשידור חי" : "הבא בתור"}
-        </span>
-      </div>
+    <section
+      aria-label={during ? "הטיול הפעיל" : "הטיול הקרוב"}
+      className="relative isolate flex flex-col gap-5 overflow-hidden rounded-3xl bg-primary p-5 text-white shadow-lift"
+    >
+      {/* The photo stays — it was on this card before the redesign — but under
+          the teal, so the card reads as the design's gradient first and the
+          place second. Without a photo the gradient alone is the card. */}
+      <PlacePhoto query={home.city ?? ""} className="absolute inset-0 -z-10 h-full w-full" />
+      <span
+        aria-hidden="true"
+        className="absolute inset-0 -z-10 bg-[image:var(--hero-gradient)] opacity-[0.92]"
+      />
 
-      <div className="relative flex w-full flex-col overflow-hidden rounded-3xl bg-surface shadow-[0_12px_32px_-6px_rgba(2,132,199,0.15)]">
-        <Link
-          href={href}
-          className="relative block h-52 w-full overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
-        >
-          <PlacePhoto
-            query={home.city ?? ""}
-            className="absolute inset-0 h-full w-full"
-            fallback={
-              <span className="absolute inset-0 bg-[image:var(--hero-gradient)]" />
-            }
-          />
-          <span className="absolute inset-0 bg-gradient-to-t from-foreground/90 via-foreground/30 to-transparent" />
-
-          <span className="absolute right-4 top-4 flex items-center gap-0.5 rounded-full bg-surface/90 px-2 py-1 shadow-md backdrop-blur-md">
-            {during ? (
-              <>
-                <span className="h-2.5 w-2.5 animate-ping rounded-full bg-success-strong" />
-                <span className="-mr-3.5 h-2 w-2 rounded-full bg-success-strong" />
-              </>
-            ) : (
-              <span className="h-2 w-2 rounded-full bg-primary" />
-            )}
-            <span className="text-[10px] font-bold leading-[14px] tracking-[0.02em] text-foreground">
-              {pill}
-            </span>
-          </span>
-
-          {details.weather && (
-            <span className="absolute left-4 top-4 flex items-center gap-0.5 rounded-full bg-foreground/40 px-2 py-1 text-white backdrop-blur-md">
-              <span className="text-cta-tint">
-                <DomainIcon name={details.weather.icon} className="h-4 w-4" />
-              </span>
-              <span className="text-[10px] font-medium leading-[14px] tracking-[0.02em]">
-                {details.weather.city} {Math.round(details.weather.tempC)}°C
-              </span>
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex min-w-0 items-center gap-1.5 truncate rounded-full bg-white/15 px-3 py-1 text-[13px] font-semibold">
+          {during && (
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="absolute inset-0 animate-ping rounded-full bg-success-bright" />
+              <span className="relative h-2 w-2 rounded-full bg-success-bright" />
             </span>
           )}
-
-          <span className="absolute bottom-4 left-4 right-4 text-right text-white">
-            <span className="mb-0.5 flex items-center gap-1">
-              <span className="rounded-md bg-cta-strong px-1 py-0.5 text-[10px] font-medium leading-[14px] tracking-[0.02em] text-white">
-                יעד מרכזי
-              </span>
-              <span className="text-[10px] font-semibold leading-[14px] tracking-[0.02em] text-surface-variant/90">
-                {dateRangeLabel(trip.start_date, trip.end_date)}
-              </span>
+          <span className="truncate">{pill}</span>
+        </span>
+        {details.weather && (
+          <span
+            className="flex shrink-0 items-center gap-1.5 text-base font-semibold"
+            title={details.weather.city}
+            aria-label={`${details.weather.city}, ${Math.round(details.weather.tempC)} מעלות`}
+          >
+            <span className="text-cta-tint" aria-hidden="true">
+              <DomainIcon name={details.weather.icon} className="h-5 w-5" />
             </span>
-            <span className="block text-[24px] font-bold leading-tight drop-shadow-sm wrap-anywhere">
-              {trip.name}
-              {" "}
-              <CountryFlag code={home.countryCode} />
+            <span dir="ltr" aria-hidden="true">
+              {Math.round(details.weather.tempC)}°
             </span>
           </span>
-        </Link>
+        )}
+      </div>
 
-        <div className="flex flex-col gap-4 bg-surface p-4">
-          <div className="grid grid-cols-3 gap-1 rounded-2xl bg-surface-2 p-2 text-center">
-            <div className="flex flex-col items-center justify-center">
-              <div className="mb-0.5 flex -space-x-1.5 space-x-reverse">
-                {details.members.slice(0, 3).map((initial, index) => (
-                  <span
-                    key={index}
-                    className={cn(
-                      "flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white",
-                      MEMBER_FILLS[index % MEMBER_FILLS.length],
-                    )}
-                  >
-                    {initial}
-                  </span>
-                ))}
-              </div>
-              <span className="text-[10px] font-medium leading-[14px] tracking-[0.02em] text-muted-strong">
-                {members <= 1 ? "טיול סולו" : `${members} שותפים`}
-              </span>
-            </div>
-            <div className="flex flex-col items-center justify-center">
-              <div className="flex items-center gap-0.5 font-bold text-primary">
-                <MapPin className="h-[18px] w-[18px]" aria-hidden="true" />
-                <span className="text-[12px] leading-4">{details.scheduledCount}</span>
-              </div>
-              <span className="text-[10px] font-medium leading-[14px] tracking-[0.02em] text-muted-strong">
-                מקומות בלו״ז
-              </span>
-            </div>
-            <div className="flex flex-col items-center justify-center">
-              <div className="flex items-center gap-0.5 font-bold text-success-strong">
-                <CircleCheck className="h-[18px] w-[18px]" aria-hidden="true" />
-                <span className="text-[12px] leading-4">
-                  {details.progress ? `${details.progress.percent}%` : home.dayCount}
-                </span>
-              </div>
-              <span className="text-[10px] font-medium leading-[14px] tracking-[0.02em] text-muted-strong">
-                {details.progress?.label ?? "ימים בלו״ז"}
-              </span>
-            </div>
-          </div>
+      <div className="flex min-w-0 flex-col gap-1">
+        <h2 className="text-[26px] font-bold leading-tight wrap-anywhere">
+          <Link
+            href={href}
+            className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            {trip.name}
+          </Link>
+        </h2>
+        {meta.length > 0 && (
+          <p className="text-sm text-white/80">{meta.join(" • ")}</p>
+        )}
+      </div>
 
-          <div className="flex items-center gap-1">
-            <Link
-              href={href}
-              className="flex h-12 flex-1 items-center justify-center gap-1 rounded-xl bg-primary text-sm font-semibold leading-5 text-white shadow-md transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              <span>כניסה לטיול והמשך חקירה</span>
-              <ArrowLeft className="h-[18px] w-[18px]" aria-hidden="true" />
-            </Link>
-            <Link
-              // "היום" exists only while the trip is on; before it, the
-              // schedule is the calendar.
-              href={tripTabHref(trip.id, during ? "today" : "days")}
-              aria-label={during ? "היום בטיול" : "הלו״ז של הטיול"}
-              className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-sunken text-primary transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <Calendar className="h-[22px] w-[22px]" aria-hidden="true" />
-            </Link>
-            <Link
-              href={`/trips/${trip.id}/map`}
-              aria-label="מסלול ומפה"
-              className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-sunken text-primary transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <MapIcon className="h-[22px] w-[22px]" aria-hidden="true" />
-            </Link>
+      {details.progress && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between text-[13px]">
+            <span className="text-white/80">{details.progress.label}</span>
+            <span className="font-semibold tabular-nums">{details.progress.percent}%</span>
           </div>
+          <div
+            role="progressbar"
+            aria-valuenow={details.progress.percent}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={details.progress.label}
+            className="h-1.5 overflow-hidden rounded-full bg-white/25"
+          >
+            <div
+              className="h-full rounded-full bg-white"
+              style={{ width: `${details.progress.percent}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center">
+          <span className="sr-only">{members(details.members.length)}</span>
+          <div className="flex -space-x-2 space-x-reverse">
+            {details.members.slice(0, 3).map((initial, index) => (
+              <span
+                key={index}
+                aria-hidden="true"
+                className={cn(
+                  "flex h-8 w-8 items-center justify-center rounded-full text-[13px] font-bold text-white ring-2 ring-primary",
+                  MEMBER_FILLS[index % MEMBER_FILLS.length],
+                )}
+              >
+                {initial}
+              </span>
+            ))}
+          </div>
+          {details.members.length > 3 && (
+            <span className="ms-2 text-[13px] text-white/80">
+              +{details.members.length - 3}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {/* The two shortcuts the card had before the redesign, kept as quiet
+              glass discs beside the one white pill. */}
+          <Link
+            // "היום" exists only while the trip is on; before it, the
+            // schedule is the calendar.
+            href={tripTabHref(trip.id, during ? "today" : "days")}
+            aria-label={during ? "היום בטיול" : "הלו״ז של הטיול"}
+            className="flex h-11 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <Calendar className="h-5 w-5" aria-hidden="true" />
+          </Link>
+          <Link
+            href={`/trips/${trip.id}/map`}
+            aria-label="מסלול ומפה"
+            className="flex h-11 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <MapIcon className="h-5 w-5" aria-hidden="true" />
+          </Link>
+          <Link
+            href={href}
+            className="flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-surface px-4 text-sm font-semibold text-primary transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
+          >
+            <span>כניסה לטיול</span>
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          </Link>
         </div>
       </div>
     </section>
   );
 }
 
-// The three avatar fills of the export: primary-container, secondary-container,
-// tertiary-container.
-const MEMBER_FILLS = ["bg-primary-bright", "bg-cta-bright", "bg-success"];
+function members(count: number): string {
+  return count <= 1 ? "טיול סולו" : `${count} מטיילים`;
+}
 
-// ---- 3 · the map of every trip ---------------------------------------------
+// The export's three avatars: terracotta, green, violet.
+const MEMBER_FILLS = ["bg-cta", "bg-success", "bg-cat-hidden-ink"];
+
+// ---- 3 · every trip: filter, map, rows --------------------------------------
 
 function inFilter(entry: StandingTrip, filter: Filter): boolean {
   if (filter === "all") return true;
@@ -377,28 +374,38 @@ function inFilter(entry: StandingTrip, filter: Filter): boolean {
   return entry.phase.kind === "during" || entry.phase.kind === "before";
 }
 
-function MapSection({
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "הכל" },
+  { key: "active", label: "קרובים" },
+  { key: "past", label: "עבר" },
+];
+
+// Past four rows the list folds.
+const FOLD = 4;
+
+function TripsSection({
   trips,
+  others,
   mapped,
   featuredId,
+  now,
 }: {
   trips: HomeTrip[];
+  // Every trip but the featured one — the rows. The featured trip has its own
+  // card above, as in the export.
+  others: HomeTrip[];
   mapped: MappedTrip[];
   featuredId: string | null;
+  now: string;
 }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  // "עולם אישי": every trip in view, until a pin or a filter asks otherwise.
+  // "Whole world": every trip in view, until a pin or a filter asks otherwise.
   const [world, setWorld] = useState(false);
+  const [unfolded, setUnfolded] = useState(false);
   const select = (id: string | null) => {
     setSelectedId(id);
     setWorld(false);
-  };
-
-  const counts = {
-    all: trips.length,
-    active: trips.filter((trip) => inFilter(trip.entry, "active")).length,
-    past: trips.filter((trip) => inFilter(trip.entry, "past")).length,
   };
 
   const shown = useMemo(
@@ -413,15 +420,24 @@ function MapSection({
     () => mapped.filter((trip) => shownIds.has(trip.id)),
     [mapped, shownIds],
   );
+  const rows = others.filter((trip) => shownIds.has(trip.entry.trip.id));
 
-  // The card under the map always names a trip, as in the export: the one
-  // pressed, or else the featured one, or else the first the filter keeps.
+  // The card over the map always names a trip: the one pressed, or else the
+  // featured one, or else the first the filter keeps.
   const selected = selectedId && shownIds.has(selectedId) ? selectedId : null;
   const focus =
     shown.find((trip) => trip.entry.trip.id === selected) ??
     shown.find((trip) => trip.entry.trip.id === featuredId) ??
     shown[0] ??
     null;
+
+  // A pressed pin whose trip is folded away unfolds the list, so the row the
+  // map is pointing at is always on screen to be highlighted.
+  const selectedIndex = selected
+    ? rows.findIndex((trip) => trip.entry.trip.id === selected)
+    : -1;
+  const open = unfolded || selectedIndex >= FOLD;
+  const visible = open ? rows : rows.slice(0, FOLD);
 
   // Escape is the desktop way back to the whole world.
   useEffect(() => {
@@ -433,101 +449,126 @@ function MapSection({
     return () => window.removeEventListener("keydown", onKey);
   }, [selected]);
 
-  const chips: { key: Filter; label: string }[] = [
-    { key: "all", label: `הכל (${counts.all})` },
-    { key: "active", label: `פעילים וקרובים (${counts.active})` },
-    { key: "past", label: `טיולי עבר (${counts.past})` },
-  ];
-
   return (
-    <section aria-label="מפת הטיולים" className="order-2 flex min-w-0 flex-col gap-2 lg:order-none">
-      <div className="flex items-center justify-between px-1">
-        <div className="flex flex-col">
-          <h2 className="text-[18px] font-bold leading-6 text-foreground">
-            מפת המסעות והיעדים שלי
-          </h2>
-          <span className="text-[10px] font-semibold leading-[14px] tracking-[0.02em] text-muted-strong">
-            הסיכות האישיות ברחבי הגלובוס
-          </span>
+    <section aria-labelledby="home-trips-heading" className="flex min-w-0 flex-col gap-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="home-trips-heading" className="text-xl font-bold text-foreground">
+          {/* One heading, two names: on a phone the filter heads the list, on
+              the desktop export it heads the map. */}
+          <span className="lg:hidden">כל הטיולים</span>
+          <span className="hidden lg:inline">מפת המסעות שלי</span>
+        </h2>
+        <div
+          role="group"
+          aria-label="סינון הטיולים"
+          className="flex shrink-0 items-center gap-0.5 rounded-full bg-surface-sunken p-1"
+        >
+          {FILTERS.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              aria-pressed={filter === chip.key}
+              onClick={() => {
+                setFilter(chip.key);
+                select(null);
+              }}
+              className={cn(
+                "h-8 rounded-full px-3.5 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                filter === chip.key
+                  ? "bg-surface text-foreground shadow-card"
+                  : "text-muted hover:text-foreground",
+              )}
+            >
+              {chip.label}
+            </button>
+          ))}
         </div>
-        {/* Back to the whole world — the map is still, so there is no
-            zooming out by hand. */}
+      </div>
+
+      <div className="relative h-56 w-full overflow-hidden rounded-3xl bg-surface-2 shadow-card lg:h-80 [&_.leaflet-bottom]:bottom-auto [&_.leaflet-bottom]:top-0">
+        <HomeMap
+          trips={pins}
+          selectedId={selected}
+          focusId={world ? null : (focus?.entry.trip.id ?? null)}
+          onSelect={select}
+          insetBottomShare={focus ? 0.36 : 0}
+        />
+
+        {/* Back to the whole world — the map is still, so there is no zooming
+            out by hand. */}
         <button
           type="button"
           onClick={() => {
             setSelectedId(null);
             setWorld(true);
           }}
-          className="flex items-center gap-0.5 rounded-full text-[12px] font-medium leading-4 tracking-[0.01em] text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label="כל הטיולים על המפה"
+          className="absolute end-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-surface text-primary shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <Globe className="h-4 w-4" aria-hidden="true" />
-          <span>עולם אישי</span>
+          <Globe className="h-5 w-5" aria-hidden="true" />
         </button>
-      </div>
-
-      <div
-        role="group"
-        aria-label="סינון הטיולים במפה"
-        className="flex items-center gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none]"
-      >
-        {chips.map((chip) => (
-          <button
-            key={chip.key}
-            type="button"
-            aria-pressed={filter === chip.key}
-            onClick={() => {
-              setFilter(chip.key);
-              select(null);
-            }}
-            className={cn(
-              "whitespace-nowrap rounded-full px-4 py-1 text-[12px] font-medium leading-4 tracking-[0.01em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              filter === chip.key
-                ? "bg-primary text-white shadow-sm"
-                : "bg-surface-high text-muted-strong",
-            )}
-          >
-            {chip.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="relative h-64 w-full overflow-hidden rounded-3xl shadow-[0_4px_20px_-4px_rgba(0,97,148,0.12)] lg:h-80 [&_.leaflet-bottom]:bottom-auto [&_.leaflet-bottom]:top-0">
-        <HomeMap
-          trips={pins}
-          selectedId={selected}
-          focusId={world ? null : (focus?.entry.trip.id ?? null)}
-          onSelect={select}
-          insetBottomShare={focus ? 0.32 : 0}
-        />
 
         {focus && (
-          <div className="absolute bottom-2 left-2 right-2 z-10 flex items-center justify-between gap-2 rounded-2xl bg-surface/95 p-2 shadow-lg backdrop-blur-md">
-            <div className="flex min-w-0 items-center gap-2">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-tint text-primary">
-                <MapPin className="h-6 w-6" aria-hidden="true" />
-              </div>
-              <div className="flex min-w-0 flex-col">
-                <div className="flex min-w-0 items-center gap-1">
-                  <span className="truncate text-[18px] font-bold leading-6 text-foreground">
-                    {focus.entry.trip.name}
-                  </span>
-                  <PreviewBadge trip={focus} />
-                </div>
-                <span className="truncate text-[10px] font-semibold leading-[14px] tracking-[0.02em] text-muted-strong">
-                  {previewMeta(focus)}
+          <div className="absolute inset-x-3 bottom-3 z-10 flex items-center gap-3 rounded-[18px] bg-surface p-3 shadow-lift">
+            <TripTile trip={focus} />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="truncate text-base font-bold text-foreground">
+                  {focus.entry.trip.name}
                 </span>
+                <PreviewBadge trip={focus} />
               </div>
+              <span className="truncate text-[13px] text-muted">
+                {previewMeta(focus)}
+              </span>
             </div>
             <Link
               href={`/trips/${focus.entry.trip.id}`}
-              className="flex h-9 shrink-0 items-center gap-0.5 rounded-xl bg-primary px-4 text-[12px] font-semibold leading-4 text-white shadow-sm transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              aria-label={`פתיחת ${focus.entry.trip.name}`}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              <span>חקור יעד</span>
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
             </Link>
           </div>
         )}
       </div>
+
+      <h3 className="hidden pt-2 text-xl font-bold text-foreground lg:block">
+        כל הטיולים
+      </h3>
+
+      {rows.length === 0 ? (
+        others.length > 0 && (
+          <p className="rounded-[18px] bg-surface-2 px-4 py-5 text-center text-sm text-muted">
+            אין טיולים נוספים בסינון הזה
+          </p>
+        )
+      ) : (
+        <div className="@container">
+          <ul className="grid gap-3 @lg:grid-cols-2">
+            {visible.map((trip) => (
+              <li key={trip.entry.trip.id} className="min-w-0">
+                <TripRow
+                  trip={trip}
+                  now={now}
+                  selected={trip.entry.trip.id === selected}
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {rows.length > FOLD && (
+        <button
+          type="button"
+          onClick={() => setUnfolded((value) => !value)}
+          aria-expanded={open}
+          className="flex h-11 items-center justify-center gap-1 self-center rounded-full px-4 text-sm font-semibold text-primary hover:bg-primary-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {open ? "פחות טיולים" : `עוד ${rows.length - FOLD} טיולים`}
+        </button>
+      )}
     </section>
   );
 }
@@ -536,19 +577,16 @@ function PreviewBadge({ trip }: { trip: HomeTrip }) {
   const { phase } = trip.entry;
   const [label, tone] =
     phase.kind === "during"
-      ? ["פעיל עכשיו", "bg-cta-strong/15 text-cta-strong"]
+      ? ["עכשיו", "bg-cta-tint text-cta-ink"]
       : phase.kind === "before"
-        ? [`בעוד ${phase.daysUntilStart} ימים`, "bg-primary-tint text-primary"]
+        ? [`בעוד ${phase.daysUntilStart} ימים`, "bg-primary-tint text-primary-ink"]
         : phase.kind === "undated"
-          ? ["רעיון בטיוטה", "bg-surface-variant text-muted-strong"]
-          : [
-              `טיול עבר (${shortMonthYearLabel(trip.entry.trip.start_date)})`,
-              "bg-border-strong/30 text-muted-strong",
-            ];
+          ? ["טיוטה", "bg-surface-sunken text-muted"]
+          : [shortMonthYearLabel(trip.entry.trip.start_date), "bg-success-tint text-success-ink"];
   return (
     <span
       className={cn(
-        "shrink-0 rounded-md px-1 py-px text-[10px] font-semibold leading-[14px] tracking-[0.02em]",
+        "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold",
         tone,
       )}
     >
@@ -560,291 +598,163 @@ function PreviewBadge({ trip }: { trip: HomeTrip }) {
 function previewMeta(trip: HomeTrip): string {
   const { phase } = trip.entry;
   const days = trip.dayCount > 0 ? `${trip.dayCount} ימים` : "עוד אין לו״ז";
+  const places =
+    trip.placeCount === 1 ? "מקום אחד שמור" : `${trip.placeCount} מקומות שמורים`;
   switch (phase.kind) {
     case "during":
       return trip.dayCount > 0
-        ? `${days} • יום ${phase.dayNumber} מתוך ${trip.dayCount} • ${trip.placeCount} אתרים מתוכננים`
-        : `יום ${phase.dayNumber} • ${trip.placeCount} אתרים מתוכננים`;
+        ? `יום ${phase.dayNumber} מתוך ${trip.dayCount} • ${places}`
+        : `יום ${phase.dayNumber} • ${places}`;
     case "before":
-      return `${days} • ${trip.placeCount} מקומות ברשימת המשאלות`;
+      return `${days} • ${places}`;
     case "undated":
-      return `${days} • תכנון עם AI מוכן להפעלה`;
+      return `בלי תאריכים • ${days}`;
     case "after":
       return `הסתיים • ${days}`;
   }
 }
 
-// ---- 4 · the other trips ---------------------------------------------------
-
-// Past four cards the list folds, and "כל הטיולים" opens the rest.
-const FOLD = 4;
-
-function TripCards({ trips, now }: { trips: HomeTrip[]; now: string }) {
-  const [all, setAll] = useState(false);
-  const shown = all ? trips : trips.slice(0, FOLD);
-
+// The row's icon tile. The design draws status in it — a pencil for a draft, a
+// check for a trip already taken. An upcoming trip had a photo before the
+// redesign, and keeps it in the tile, over a pin while it loads or if none.
+function TripTile({ trip }: { trip: HomeTrip }) {
+  const kind = trip.entry.phase.kind;
+  const tile = "h-12 w-12 shrink-0 rounded-[14px]";
+  if (kind === "after") {
+    return (
+      <span
+        aria-hidden="true"
+        className={cn(tile, "flex items-center justify-center bg-success-tint text-success")}
+      >
+        <Check className="h-5 w-5" />
+      </span>
+    );
+  }
+  if (kind === "undated") {
+    return (
+      <span
+        aria-hidden="true"
+        className={cn(tile, "flex items-center justify-center bg-surface-sunken text-muted")}
+      >
+        <PencilLine className="h-5 w-5" />
+      </span>
+    );
+  }
   return (
-    <section className="flex flex-col gap-4">
-      <div className="flex items-center justify-between px-1">
-        <div>
-          <h2 className="text-[18px] font-bold leading-6 text-foreground">
-            הטיולים הבאים והשמורים
-          </h2>
-          <p className="text-[12px] leading-[18px] text-muted-strong">
-            בחרו טיול לתכנון, שיתוף או צפייה בזיכרונות
-          </p>
-        </div>
-        {trips.length > FOLD && (
-          <button
-            type="button"
-            onClick={() => setAll((value) => !value)}
-            aria-expanded={all}
-            className="flex shrink-0 items-center gap-0.5 rounded-full text-[12px] font-semibold leading-4 tracking-[0.01em] text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <span>{all ? "פחות טיולים" : "כל הטיולים"}</span>
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          </button>
-        )}
-      </div>
-
-      {shown.map((trip) =>
-        trip.entry.phase.kind === "after" ? (
-          <PastRow key={trip.entry.trip.id} trip={trip} />
-        ) : trip.entry.phase.kind === "undated" ? (
-          <DraftCard key={trip.entry.trip.id} trip={trip} now={now} />
-        ) : (
-          <UpcomingCard key={trip.entry.trip.id} trip={trip} />
-        ),
-      )}
-    </section>
-  );
-}
-
-const CARD =
-  "flex w-full flex-col gap-2 rounded-2xl bg-surface p-4 shadow-[0_4px_16px_-2px_rgba(2,132,199,0.06)] transition-transform active:scale-[0.99]";
-
-function Thumb({ trip }: { trip: HomeTrip }) {
-  return (
-    <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-surface-sunken">
+    <span aria-hidden="true" className={cn(tile, "overflow-hidden bg-primary-tint")}>
       <PlacePhoto
         query={trip.city ?? ""}
-        className="h-full w-full"
-        fallback={<MapPin className="h-7 w-7" aria-hidden="true" />}
+        className="h-full w-full bg-primary-tint"
+        fallback={<MapPin className="h-5 w-5 text-primary" />}
       />
-      <CountryFlag
-        code={trip.countryCode}
-        className="absolute bottom-1 right-1 h-2.5"
-      />
-    </div>
+    </span>
   );
 }
 
-function UpcomingCard({ trip: home }: { trip: HomeTrip }) {
+function rowMeta(trip: HomeTrip, now: string): string {
+  const { trip: t, phase } = trip.entry;
+  const cities = (trip.cities?.length ? trip.cities : trip.city ? [trip.city] : []).slice(0, 2);
+  const days = trip.dayCount > 0 ? `${trip.dayCount} ימים` : null;
+  switch (phase.kind) {
+    case "undated":
+      return [
+        "טיוטה",
+        trip.dayCount > 0 ? `${trip.dayCount} ימים מתוכננים` : "עוד אין תאריכים",
+        `נוצר ${agoLabel(t.created_at, new Date(now))}`,
+      ].join(" • ");
+    case "after":
+      return [
+        ...(cities.length ? cities : [monthYearLabel(t.start_date)]),
+        days,
+        trip.placeCount > 0 ? `${trip.placeCount} מקומות` : null,
+      ]
+        .filter(Boolean)
+        .join(" • ");
+    case "during":
+      return [`יום ${phase.dayNumber} בטיול`, ...cities, days].filter(Boolean).join(" • ");
+    case "before":
+      return [
+        phase.daysUntilStart === 1 ? "מחר" : `בעוד ${phase.daysUntilStart} ימים`,
+        dateRangeLabel(t.start_date, t.end_date),
+        trip.placeCount > 0 ? `${trip.placeCount} מקומות שמורים` : null,
+      ]
+        .filter(Boolean)
+        .join(" • ");
+  }
+}
+
+function TripRow({
+  trip: home,
+  now,
+  selected,
+}: {
+  trip: HomeTrip;
+  now: string;
+  // The trip the map's pin is pointing at — ringed, so a press on the map
+  // finds its row.
+  selected: boolean;
+}) {
   const { trip, phase } = home.entry;
-  const href = `/trips/${trip.id}`;
-  const badge =
-    phase.kind === "before"
-      ? phase.daysUntilStart === 1
-        ? "מחר"
-        : `בעוד ${phase.daysUntilStart} ימים`
-      : phase.kind === "during"
-        ? `יום ${phase.dayNumber} בטיול`
-        : "";
-
   return (
-    <article className={CARD}>
-      <Link
-        href={href}
-        className="flex items-center gap-4 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <Thumb trip={home} />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="mb-0.5 flex items-center justify-between">
-            <span className="rounded-full bg-primary-tint px-1 py-0.5 text-[10px] font-bold leading-[14px] tracking-[0.02em] text-primary-deep">
-              {badge}
-            </span>
-            <Bookmark className="h-5 w-5 text-border-strong" aria-hidden="true" />
-          </div>
-          <h3 className="truncate text-[18px] font-bold leading-6 text-foreground">
-            {trip.name}
-          </h3>
-          <span className="text-[12px] leading-[18px] text-muted-strong">
-            {dateRangeLabel(trip.start_date, trip.end_date)}
-          </span>
-          <div className="mt-0.5 flex items-center gap-1 text-muted-strong">
-            <Heart className="h-4 w-4 shrink-0 text-cta-strong" aria-hidden="true" />
-            <span className="text-[10px] font-semibold leading-[14px] tracking-[0.02em]">
-              {home.placeCount === 1
-                ? "מקום אחד ברשימת החלומות"
-                : `${home.placeCount} מקומות ברשימת החלומות`}{" "}
-              <bdi dir="ltr" className="whitespace-nowrap">(Bucket List)</bdi>
-            </span>
-          </div>
-        </div>
-      </Link>
-
-      <div className="flex items-center justify-between pt-1">
-        <div className="flex items-center gap-1 text-[10px] font-semibold leading-[14px] tracking-[0.02em] text-muted-strong">
-          <CalendarDays className="h-4 w-4" aria-hidden="true" />
-          <span>
-            {home.dayCount > 0 ? `${home.dayCount} ימים בלו״ז` : "עוד אין לו״ז"}
-          </span>
-        </div>
-        <Link
-          href={href}
-          className="flex items-center gap-0.5 rounded-xl bg-surface-high px-4 py-1 text-[12px] font-semibold leading-4 text-primary transition-colors hover:bg-primary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <span>חקור טיול זה</span>
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-        </Link>
-      </div>
-    </article>
-  );
-}
-
-function DraftCard({ trip: home, now }: { trip: HomeTrip; now: string }) {
-  const { trip } = home.entry;
-  const href = `/trips/${trip.id}`;
-
-  return (
-    <article className={CARD}>
-      <div className="flex items-center gap-4">
-        <Link
-          href={href}
-          tabIndex={-1}
-          aria-hidden="true"
-          className="shrink-0 rounded-xl"
-        >
-          <Thumb trip={home} />
-        </Link>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="mb-0.5 flex items-center justify-between">
-            <span className="rounded-full bg-surface-variant px-1 py-0.5 text-[10px] font-medium leading-[14px] tracking-[0.02em] text-muted-strong">
-              רעיון בטיוטה 💡
-            </span>
-            <Link
-              href={`/trips/${trip.id}/more/trip`}
-              aria-label={`הגדרות הטיול ${trip.name}`}
-              className="rounded-full text-border-strong hover:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <EllipsisVertical className="h-5 w-5" aria-hidden="true" />
-            </Link>
-          </div>
-          <Link
-            href={href}
-            className="truncate rounded text-[18px] font-bold leading-6 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {trip.name}
-          </Link>
-          <span className="text-[12px] leading-[18px] text-muted-strong">
-            בלי תאריכים •{" "}
-            {home.dayCount > 0 ? `${home.dayCount} ימים מתוכננים` : "עוד אין לו״ז"}
-          </span>
-          <div className="mt-0.5 flex items-center gap-1 text-success-strong">
-            <Bot className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span className="truncate text-[10px] font-medium leading-[14px] tracking-[0.02em]">
-              עוזר ה-AI ממתין לתאריכים סופיים
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between pt-1">
-        <span className="text-[10px] font-semibold leading-[14px] tracking-[0.02em] text-muted-strong">
-          נוצר {agoLabel(trip.created_at, new Date(now))}
-        </span>
-        <Link
-          href={href}
-          className="flex items-center gap-0.5 rounded-xl bg-cta-tint px-4 py-1 text-[12px] font-semibold leading-4 text-cta-deep transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <span>המשך תכנון</span>
-          <CalendarCog className="h-4 w-4" aria-hidden="true" />
-        </Link>
-      </div>
-    </article>
-  );
-}
-
-function PastRow({ trip: home }: { trip: HomeTrip }) {
-  const { trip } = home.entry;
-  const facts = [
-    monthYearLabel(trip.start_date),
-    home.dayCount > 0 ? `${home.dayCount} ימים בלו״ז` : null,
-    home.placeCount > 0 ? `${home.placeCount} מקומות` : null,
-  ].filter(Boolean);
-
-  return (
-    <Link
-      href={`/trips/${trip.id}`}
-      className="flex w-full items-center justify-between gap-4 rounded-2xl bg-surface-2/70 p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    <article
+      aria-current={selected ? "true" : undefined}
+      className={cn(
+        "relative flex min-w-0 items-center gap-3 rounded-[18px] bg-surface p-3.5 shadow-card transition-shadow",
+        selected && "ring-2 ring-primary",
+      )}
     >
-      <div className="flex min-w-0 items-center gap-2">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-surface-variant text-muted-strong">
-          <ScrollText className="h-6 w-6" aria-hidden="true" />
-        </div>
-        <div className="flex min-w-0 flex-col">
-          <h4 className="truncate text-base font-bold leading-[22px] text-foreground">
-            {trip.name}
-            {" "}
-            <CountryFlag code={home.countryCode} />
-          </h4>
-          <span className="truncate text-[12px] leading-[18px] text-muted-strong">
-            {facts.join(" • ")}
-          </span>
-        </div>
+      <TripTile trip={home} />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <Link
+          href={`/trips/${trip.id}`}
+          className="truncate text-base font-bold text-foreground after:absolute after:inset-0 after:rounded-[18px] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
+        >
+          {trip.name}
+        </Link>
+        <span className="truncate text-[13px] text-muted">{rowMeta(home, now)}</span>
       </div>
-      <span className="shrink-0 rounded-xl bg-surface p-1 text-primary shadow-sm">
-        <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-      </span>
-    </Link>
+      {/* A draft's settings shortcut, from before the redesign. Above the
+          stretched link, so it is its own target. */}
+      {phase.kind === "undated" && (
+        <Link
+          href={`/trips/${trip.id}/more/trip`}
+          aria-label={`הגדרות הטיול ${trip.name}`}
+          className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-outline hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <EllipsisVertical className="h-5 w-5" aria-hidden="true" />
+        </Link>
+      )}
+      <ChevronLeft className="h-5 w-5 shrink-0 text-outline" aria-hidden="true" />
+    </article>
   );
 }
 
-// ---- 5 · the concierge ------------------------------------------------------
+// ---- 4 · the idea card ------------------------------------------------------
 
-const CONCIERGE_QUESTION = "לאן כדאי לטוס בחודש הבא?";
+const IDEA_QUESTION = "לאן כדאי לטוס בחודש הבא?";
 
-function ConciergeCard({ tripId }: { tripId: string }) {
+function IdeaCard({ tripId }: { tripId: string }) {
   return (
-    <section className="relative flex w-full flex-col gap-2 overflow-hidden rounded-3xl bg-gradient-to-br from-primary-tint to-surface-variant p-6 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-md">
-            <BrainCircuit className="h-[26px] w-[26px]" aria-hidden="true" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold leading-[14px] tracking-[0.02em] text-primary">
-              MyTrip Concierge AI
-            </span>
-            <h3 className="text-[18px] font-bold leading-6 text-foreground">
-              צריכים רעיון ליעד הבא?
-            </h3>
-          </div>
-        </div>
-        <Sparkles className="h-8 w-8 text-primary/40" aria-hidden="true" />
-      </div>
-      <p className="text-sm leading-relaxed text-muted-strong">
-        ספרו לנו מה הסגנון שלכם (חופשת בטן-גב, טרקים הרריים, או קולינריה
-        עירונית) וה-AI ייצר עבורכם הצעת מסלול מקיפה תוך 10 שניות.
-      </p>
-      <div className="mt-0.5 flex items-center gap-1">
+    <section className="relative flex items-center gap-3 rounded-[20px] border border-border p-4">
+      <Sparkles className="h-6 w-6 shrink-0 text-primary" aria-hidden="true" />
+      <div className="flex min-w-0 flex-1 flex-col">
         {/* The question is written into the chat, not sent — asking the model
             stays the traveller's press (see TripChat's initialDraft). */}
         <Link
-          href={`${tripTabHref(tripId, "ai")}?q=${encodeURIComponent(CONCIERGE_QUESTION)}`}
-          className="flex min-w-0 flex-1 items-center justify-center gap-0.5 rounded-xl bg-primary px-4 py-2 text-[12px] font-semibold leading-4 text-white shadow-md transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          href={`${tripTabHref(tripId, "ai")}?q=${encodeURIComponent(IDEA_QUESTION)}`}
+          className="text-base font-bold text-foreground after:absolute after:inset-0 after:rounded-[20px] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
         >
-          <MessageSquareText className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
-          <span className="truncate">שאלו: ״{CONCIERGE_QUESTION}״</span>
+          צריכים רעיון ליעד הבא?
         </Link>
-        <Link
-          href={tripTabHref(tripId, "discover")}
-          aria-label="רולטת יעדים — גילוי מקומות"
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-surface/80 text-muted-strong transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <Dices className="h-5 w-5" aria-hidden="true" />
-        </Link>
+        <span className="text-[13px] text-muted">שאלו את העוזר, או הגרילו יעד</span>
       </div>
+      <Link
+        href={tripTabHref(tripId, "discover")}
+        aria-label="הגרלת יעד — גילוי מקומות"
+        className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Dices className="h-5 w-5" aria-hidden="true" />
+      </Link>
     </section>
   );
 }

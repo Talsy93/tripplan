@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bot, Mic, Route, Sparkles, Trash2 } from "lucide-react";
+import { Mic, RotateCcw, Route, Send, Sparkles, Wand2 } from "lucide-react";
 import { Banner, Button, SegmentedControl } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { applyPlan, resetChat } from "../application/chat-actions";
@@ -49,7 +49,7 @@ function recognitionCtor(): (new () => Recognition) | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
-// Stitch's quick prompts under the concierge's name. Each one sends, exactly
+// Quick prompts, in the chip row over the composer. Each one sends, exactly
 // as typing it would — the traveller pressing it is the request.
 const OPENERS = [
   "אוכל מקומי מעולה",
@@ -58,22 +58,12 @@ const OPENERS = [
   "עזור לי לחלק את הימים בין הערים",
 ];
 
-function BotAvatar() {
-  return (
-    <span
-      aria-hidden="true"
-      className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary shadow-sm"
-    >
-      <Bot className="h-[1.125rem] w-[1.125rem]" />
-    </span>
-  );
-}
-
-// The "עוזר AI" tab (v6), drawn as the Stitch design's chat screen: the
-// concierge banner with quick prompts, the thread — a time pill, the
-// traveller's bubbles in maritime on the start side, the assistant's on
-// lavender beside a robot avatar — the plan card when one is built, and a
-// floating pill composer with a microphone and a sparkle send button.
+// The "עוזר AI" tab, drawn to the Pencil export (ai-mobile): a head row with
+// a teal badge and a clear button, a full-width switch between the
+// conversation and the plan, the traveller's teal bubbles on the left and the
+// assistant's white ones on the right, and a composer with the quick prompts
+// and the plan press in a chip row over a pill input with a microphone and a
+// round send button.
 export function TripChat({
   tripId,
   initialMessages,
@@ -308,66 +298,46 @@ export function TripChat({
     setApplied(true);
   }
 
+
   const where = cities.slice(0, 2).join(" ו");
   const firstAt = clock(turns[0]?.at);
+  // Stitch put the plan-from-chat press under the thread; Pencil moves it
+  // into the composer's chip row, beside the quick prompts, so it sits where
+  // the thumb already is. Same press, same rule: only once there is a
+  // conversation to build from and no plan already on the table.
+  const canBuild = turns.length > 0 && !plan;
 
   return (
-    <div className="flex min-h-[calc(100dvh-10rem)] flex-col gap-6">
-      <section
-        aria-label="העוזר החכם"
-        className="relative overflow-hidden rounded-card bg-gradient-to-l from-brand-2 via-primary to-primary-ink p-4 text-white shadow-sm"
-      >
+    <div className="flex min-h-[calc(100dvh-10rem)] flex-col gap-4">
+      {/* Pencil's head row: a solid teal badge, who this is, and a quiet
+          round button to start over. The gradient banner it replaces was a
+          second lit surface on a screen whose job is the conversation. */}
+      <section aria-label="העוזר החכם" className="flex items-center gap-3">
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute -bottom-6 -left-6 h-28 w-28 rounded-full bg-white/10 blur-xl"
-        />
-        <div className="relative z-10 flex items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 shadow-inner backdrop-blur-md"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-primary text-primary-foreground shadow-soft"
+        >
+          <Sparkles className="h-5 w-5" />
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <h1 className="truncate text-lg leading-6 font-semibold text-foreground">
+            {where ? `החבר המקומי שלך ב${where}` : "המתכנן האישי של הטיול"}
+          </h1>
+          <p className="truncate text-xs text-muted">
+            שואלים, מקבלים הצעות, בונים מסלול
+          </p>
+        </div>
+        {turns.length > 0 && (
+          <button
+            type="button"
+            onClick={() => void reset()}
+            aria-label="ניקוי שיחה"
+            title="ניקוי שיחה"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-muted transition-colors hover:border-border-strong hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Sparkles className="h-6 w-6" />
-          </span>
-          <div className="flex min-w-0 flex-col">
-            <span className="flex items-center gap-1">
-              <h1 className="text-lg leading-6 font-semibold tracking-tight">
-                MyTrip AI Concierge
-              </h1>
-              <span
-                aria-hidden="true"
-                className="inline-block h-2 w-2 rounded-full bg-success-bright shadow-[0_0_8px_var(--success-bright)]"
-              />
-            </span>
-            <p className="text-xs text-primary-tint opacity-95">
-              {where ? `החבר המקומי שלך ב${where}` : "המתכנן האישי של הטיול"} •
-              זמין 24/7
-            </p>
-          </div>
-          {turns.length > 0 && (
-            <button
-              type="button"
-              onClick={() => void reset()}
-              aria-label="ניקוי שיחה"
-              title="ניקוי שיחה"
-              className="ms-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-            >
-              <Trash2 className="h-4 w-4" aria-hidden="true" />
-            </button>
-          )}
-        </div>
-        <div className="relative z-10 mt-4 flex items-center gap-1 overflow-x-auto pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {OPENERS.map((opener) => (
-            <button
-              key={opener}
-              type="button"
-              disabled={sending}
-              onClick={() => void send(opener)}
-              className="flex shrink-0 items-center gap-0.5 whitespace-nowrap rounded-full bg-white/15 px-2 py-0.5 text-xs font-medium backdrop-blur-sm transition-all hover:bg-white/25 active:scale-95 disabled:opacity-60"
-            >
-              {opener}
-            </button>
-          ))}
-        </div>
+            <RotateCcw className="h-[1.125rem] w-[1.125rem]" aria-hidden="true" />
+          </button>
+        )}
       </section>
 
       {/* Two halves of one assistant.
@@ -382,11 +352,11 @@ export function TripChat({
           questions: "talk it through" and "what would this add to my trip". The
           count on the second tab is the point of it — it says there is
           something to look at without opening it. */}
-      {/* Floats under the header once the page scrolls past it, centred —
-          a long conversation otherwise leaves the way to the plan a scroll
-          back up (asked for 2026-09-24). The sentinel is what tells it has
-          stuck: a sticky element cannot see that for itself. */}
-      <div ref={switchSentinel} aria-hidden="true" className="-mb-6 h-0" />
+      {/* Floats under the header once the page scrolls past it — a long
+          conversation otherwise leaves the way to the plan a scroll back up
+          (asked for 2026-09-24). The sentinel is what tells it has stuck: a
+          sticky element cannot see that for itself. */}
+      <div ref={switchSentinel} aria-hidden="true" className="-mb-4 h-0" />
       <div
         className={cn(
           "sticky top-[calc(4.5rem+env(safe-area-inset-top))] z-20 flex",
@@ -398,8 +368,14 @@ export function TripChat({
           value={view}
           onChange={(next: string) => setView(next === "plan" ? "plan" : "chat")}
           className={cn(
-            "transition-shadow duration-settle",
-            switchStuck && "bg-surface-sunken/90 shadow-lift backdrop-blur-md",
+            // Pencil draws this one full width with the selected half as a
+            // white pill on the grey track, not the ink fill the shared
+            // control uses for filters. Restyled from here through child
+            // selectors, because the control has no variant for it yet.
+            "w-full self-stretch bg-surface-sunken transition-shadow duration-settle",
+            "[&>button]:min-h-10 [&>button]:flex-1",
+            "[&>button[aria-pressed=true]]:bg-surface [&>button[aria-pressed=true]]:text-foreground [&>button[aria-pressed=true]]:shadow-card",
+            switchStuck && "shadow-lift",
           )}
           items={[
             { id: "chat", label: "שיחה חופשית" },
@@ -455,11 +431,11 @@ export function TripChat({
               tweaking={tweaking}
             />
           ) : (
-            <div className="flex flex-col items-start gap-3 rounded-card bg-surface p-4 shadow-card">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col items-start gap-3 rounded-[20px] bg-surface p-5 shadow-card">
+              <div className="flex items-center gap-3">
                 <span
                   aria-hidden="true"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-primary-tint text-primary"
                 >
                   <Route className="h-5 w-5" />
                 </span>
@@ -477,6 +453,7 @@ export function TripChat({
                 onClick={() => void buildPlan()}
                 loading={planning}
                 disabled={turns.length === 0 || sending}
+                className="rounded-full"
               >
                 <Route className="h-4 w-4" aria-hidden="true" />
                 בנו מסלול מהשיחה
@@ -489,94 +466,75 @@ export function TripChat({
 
       <div
         className={cn(
-          "flex-1 flex-col gap-6",
+          "flex-1 flex-col gap-3",
           view === "chat" ? "flex" : "hidden",
         )}
         aria-live="polite"
       >
         {turns.length > 0 && (
           <div className="flex justify-center">
-            <span className="rounded-full bg-surface-high px-2 py-0.5 text-[0.625rem] leading-[0.875rem] font-semibold text-muted">
+            <span className="rounded-full bg-surface-2 px-2.5 py-0.5 text-[0.6875rem] leading-4 font-medium text-muted">
               {firstAt ? `היום, ${firstAt}` : "היום"}
-              {where && ` • תכנון הטיול ב${where}`}
+              {where && ` · תכנון הטיול ב${where}`}
             </span>
           </div>
         )}
 
         {turns.length === 0 && (
-          <div className="flex items-start gap-2">
-            <BotAvatar />
-            <div className="rounded-2xl rounded-se-[0.25rem] bg-surface-2 p-4 text-sm leading-relaxed text-foreground shadow-sm">
-              ספרו מה אתם מחפשים, ונחדד יחד את המסלול. אני מכיר את היעדים
-              והפריטים שכבר בחרתם.
-            </div>
+          <div className="max-w-[88%] self-start rounded-[18px] rounded-es-md bg-surface px-4 py-3 text-sm leading-relaxed text-foreground shadow-card">
+            ספרו מה אתם מחפשים, ונחדד יחד את המסלול. אני מכיר את היעדים
+            והפריטים שכבר בחרתם.
           </div>
         )}
 
+        {/* Pencil's sides: the traveller on the left in teal, the assistant
+            on the right in white — in RTL that is end and start. The cut
+            corner points at the edge each one speaks from. */}
         {turns.map((turn) =>
           turn.role === "user" ? (
             <div
               key={turn.id}
-              className="flex max-w-[88%] flex-col items-start self-start"
+              className="flex max-w-[85%] flex-col items-end self-end"
             >
-              <div className="whitespace-pre-wrap rounded-2xl rounded-es-[0.25rem] bg-primary p-4 text-sm leading-relaxed text-primary-foreground shadow-md">
+              <div className="whitespace-pre-wrap rounded-[18px] rounded-ee-md bg-primary px-4 py-3 text-sm leading-relaxed text-primary-foreground">
                 {turn.content}
               </div>
               {clock(turn.at) && (
                 <span
-                  className="me-1 mt-0.5 text-[0.625rem] leading-[0.875rem] font-semibold text-outline"
+                  className="mx-1 mt-1 text-[0.6875rem] leading-4 text-outline"
                   suppressHydrationWarning
                 >
-                  {clock(turn.at)} • נמסר
+                  {clock(turn.at)} · נמסר
                 </span>
               )}
             </div>
           ) : (
-            <div key={turn.id} className="flex w-full items-start gap-2 self-end">
-              <BotAvatar />
-              <div className="min-w-0 flex-1 whitespace-pre-wrap rounded-2xl rounded-se-[0.25rem] bg-surface-2 p-4 text-sm leading-relaxed text-foreground shadow-sm">
-                {turn.content}
-              </div>
+            <div
+              key={turn.id}
+              className="max-w-[92%] self-start whitespace-pre-wrap rounded-[18px] rounded-es-md bg-surface px-4 py-3 text-sm leading-relaxed text-foreground shadow-card"
+            >
+              {turn.content}
             </div>
           ),
         )}
 
         {sending && (
-          <div className="flex items-center gap-2">
-            <BotAvatar />
-            <span
-              className="flex gap-1 rounded-2xl bg-surface-2 px-4 py-3"
-              role="status"
-              aria-label="העוזר כותב"
-            >
-              {[0, 1, 2].map((dot) => (
-                <span
-                  key={dot}
-                  className="h-2 w-2 animate-pulse rounded-full bg-outline"
-                  style={{ animationDelay: `${dot * 150}ms` }}
-                />
-              ))}
-            </span>
-          </div>
+          <span
+            className="flex gap-1 self-start rounded-full bg-surface px-3.5 py-2.5 shadow-card"
+            role="status"
+            aria-label="העוזר כותב"
+          >
+            {[0, 1, 2].map((dot) => (
+              <span
+                key={dot}
+                className="h-1.5 w-1.5 animate-pulse rounded-full bg-outline"
+                style={{ animationDelay: `${dot * 150}ms` }}
+              />
+            ))}
+          </span>
         )}
 
         {error && view === "chat" && <Banner tone="danger">{error}</Banner>}
-
-        {/* Turning the conversation into a plan asks the model again, so it is
-            its own press — the tuning row Stitch draws under a plan card. */}
-        {turns.length > 0 && !plan && (
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => void buildPlan()}
-              disabled={planning || sending}
-              className="flex flex-1 items-center justify-center gap-0.5 rounded-lg bg-surface-high px-1 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-surface-sunken disabled:opacity-60"
-            >
-              <Route className="h-[0.9375rem] w-[0.9375rem]" aria-hidden="true" />
-              {planning ? "בונה מסלול…" : "בנה לי מסלול מהשיחה"}
-            </button>
-          </div>
-        )}
         <div ref={endRef} />
       </div>
 
@@ -586,9 +544,49 @@ export function TripChat({
           event.preventDefault();
           void send(draft);
         }}
-        className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] -mx-4 bg-background/90 px-4 pb-2 pt-1 backdrop-blur-md md:-mx-6 md:px-6 lg:bottom-0"
+        className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] -mx-4 flex flex-col gap-2 bg-background/90 px-4 pb-2 pt-2 backdrop-blur-md md:-mx-6 md:px-6 lg:bottom-0"
       >
-        <div className="flex items-center gap-1 rounded-full bg-surface p-1.5 shadow-[0_4px_20px_rgba(0,97,148,0.12)]">
+        {/* The plan press in teal tint — the one chip that does something
+            other than ask — then the quick prompts. Pencil draws the plan chip
+            last, but its prompts are two words each; ours are sentences, and
+            at the end of the row the chip scrolled out of sight on a phone. So
+            it leads. Turning the conversation into a plan asks the model
+            again, so it is its own press. Each prompt sends, exactly as typing
+            it would: the traveller pressing it is the request. */}
+        <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {canBuild && (
+            <button
+              type="button"
+              onClick={() => void buildPlan()}
+              disabled={planning || sending}
+              className="flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-primary-tint px-3.5 text-xs font-semibold text-primary-ink transition-colors hover:bg-primary-soft active:scale-95 disabled:opacity-60"
+            >
+              <Wand2 className="h-3.5 w-3.5" aria-hidden="true" />
+              {planning ? "בונה מסלול…" : "בנה מסלול"}
+            </button>
+          )}
+          {OPENERS.map((opener) => (
+            <button
+              key={opener}
+              type="button"
+              disabled={sending}
+              onClick={() => void send(opener)}
+              className="flex h-9 shrink-0 items-center whitespace-nowrap rounded-full border border-border bg-surface px-3.5 text-xs font-medium text-foreground transition-colors hover:border-border-strong active:scale-95 disabled:opacity-60"
+            >
+              {opener}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1 rounded-full border border-border bg-surface py-1.5 pe-1.5 ps-4 shadow-soft focus-within:border-border-strong">
+          <input
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder={where ? `שאלו כל דבר על ${where}...` : "שאלו את העוזר כל דבר על הטיול..."}
+            maxLength={2000}
+            aria-label="הודעה לעוזר"
+            className="min-w-0 flex-1 bg-transparent py-1 text-sm text-foreground placeholder:font-normal placeholder:text-placeholder focus:outline-none pointer-coarse:text-base"
+          />
           {canListen && (
             <button
               type="button"
@@ -598,28 +596,22 @@ export function TripChat({
               className={cn(
                 "flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-all active:scale-90",
                 listening
-                  ? "bg-cta-bright text-white"
-                  : "bg-surface-2 text-muted hover:bg-surface-sunken",
+                  ? "bg-cta text-cta-foreground"
+                  : "text-muted hover:bg-surface-2 hover:text-foreground",
               )}
             >
-              <Mic className="h-[1.375rem] w-[1.375rem]" aria-hidden="true" />
+              <Mic className="h-5 w-5" aria-hidden="true" />
             </button>
           )}
-          <input
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            placeholder="שאל את העוזר כל דבר על הטיול..."
-            maxLength={2000}
-            aria-label="הודעה לעוזר"
-            className="min-w-0 flex-1 bg-transparent px-1 py-0.5 text-sm text-foreground placeholder:font-normal placeholder:text-placeholder focus:outline-none pointer-coarse:text-base"
-          />
           <button
             type="submit"
             disabled={!draft.trim() || sending}
             aria-label="שלח שאלה"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-all hover:bg-brand-2 active:scale-95 disabled:opacity-50"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all hover:bg-primary-hover active:scale-95 disabled:opacity-50"
           >
-            <Sparkles className="h-5 w-5" aria-hidden="true" />
+            {/* Mirrored: lucide's plane points right, and in RTL "send"
+                travels to the left. */}
+            <Send className="h-[1.125rem] w-[1.125rem] -scale-x-100" aria-hidden="true" />
           </button>
         </div>
       </form>

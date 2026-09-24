@@ -1,22 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Check,
-  ChevronDown,
-  Compass,
-  Lightbulb,
-  Map as MapIcon,
-} from "lucide-react";
-import {
-  Banner,
-  Button,
-  Card,
-  ReadMore,
-  SectionHeading,
-  Skeleton,
-  Surface,
-} from "@/components/ui";
+import { Check, Compass, Lightbulb, Map as MapIcon, Plus } from "lucide-react";
+import { Banner, Button, ReadMore, Skeleton } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { googleMapsSearchUrl } from "@/lib/maps";
 import { aiErrorFromResponse } from "../domain/ai-errors";
@@ -34,29 +20,49 @@ import type {
   GuideItem,
   SavedCityGuide,
 } from "../domain/ai-suggestion";
-import {
-  Building2,
-  MapPin,
-  Sparkles,
-  Utensils,
-  type LucideIcon,
-} from "lucide-react";
+import { CategoryTile } from "./category-tile";
 
-// The icon is the component, not a rendered element: a section header and a
-// chip want it at different sizes, and a stored element would fix the size at
-// the point of declaration.
-const SECTIONS: { key: AiCategoryKey; label: string; Icon: LucideIcon }[] = [
-  { key: "areas", label: "אזורי לינה", Icon: Building2 },
-  { key: "restaurants", label: "מסעדות", Icon: Utensils },
-  { key: "attractions", label: "אטרקציות ואתרים", Icon: MapPin },
-  { key: "experiences", label: "חוויות ודברים לעשות", Icon: Sparkles },
+// Pencil gives each section three names: a one-word pill ("מסעדות"), a
+// question for the heading over its cards ("איפה אוכלים ברומא"), and the kind
+// of thing one card is, for the line under its name. The icon is the category
+// tile now (category-tile.tsx), so no lucide component is carried here.
+const SECTIONS: {
+  key: AiCategoryKey;
+  tab: string;
+  heading: (city: string) => string;
+  kind: string;
+}[] = [
+  {
+    key: "areas",
+    tab: "לינה",
+    heading: (city) => `איפה לנים ב${city}`,
+    kind: "אזור לינה",
+  },
+  {
+    key: "restaurants",
+    tab: "מסעדות",
+    heading: (city) => `איפה אוכלים ב${city}`,
+    kind: "מסעדה",
+  },
+  {
+    key: "attractions",
+    tab: "אטרקציות",
+    heading: (city) => `מה רואים ב${city}`,
+    kind: "אטרקציה או אתר",
+  },
+  {
+    key: "experiences",
+    tab: "חוויות",
+    heading: (city) => `מה עושים ב${city}`,
+    kind: "חוויה",
+  },
 ];
 
 // The pill row, "סקירה" first. Derived from SECTIONS rather than written out
 // again, so a new category appears in both or in neither.
 const TABS: { key: "overview" | AiCategoryKey; label: string }[] = [
   { key: "overview", label: "סקירה" },
-  ...SECTIONS.map((section) => ({ key: section.key, label: section.label })),
+  ...SECTIONS.map((section) => ({ key: section.key, label: section.tab })),
 ];
 
 function withSelected(items: AiRecommendation[]): GuideItem[] {
@@ -77,74 +83,96 @@ function toGuideData(guide: AiCityGuide): CityGuideData {
   };
 }
 
-// One recommendation: a name, a way to add it, and the rest on request.
+// One recommendation, as Pencil draws it: a white card with the category
+// tile, the name and what kind of place it is, the add pill at the far end,
+// the description under them, and the tip as a small grey tag at the foot.
 //
-// This was a card carrying the name, a description, a tip and a Maps link, all
-// open — times however many the model returned, in a grid. A category with ten
-// of them was ten paragraphs to read past, and the question a reader is
-// actually asking here is "is this on my list yet", which the name and the
-// button answer on their own.
-//
-// The add button stays outside the fold, because it is the one thing you might
-// want without reading anything. It cannot sit inside the <summary> — a button
-// inside the control that opens a section makes two press targets fight over
-// the same place — so the row is the summary and the button sits beside it.
+// This used to fold the description, the tip and the Maps link behind the
+// name, because a category of ten was ten paragraphs to read past. The design
+// puts the description on the card — it is one or two sentences, and it is
+// what tells two restaurants apart — so it is open again, capped at three
+// lines. The Maps link survives as an icon button beside the tip.
 function GuideCard({
   item,
   city,
+  category,
+  kind,
   onToggle,
 }: {
   item: GuideItem;
   city: string;
+  category: AiCategoryKey;
+  kind: string;
   onToggle: () => void;
 }) {
   return (
-    <Card padding="none" className="flex h-full min-w-0 flex-col overflow-hidden">
-      <div className="flex min-w-0 items-start gap-2 p-3">
-        <details className="group/guide min-w-0 flex-1">
-          <summary className="flex min-w-0 cursor-pointer list-none items-center gap-1.5 rounded-control text-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
-            <span className="min-w-0 text-base font-semibold wrap-anywhere">
-              {item.name}
-            </span>
-            <ChevronDown
-              className="h-4 w-4 shrink-0 text-muted transition-transform group-open/guide:rotate-180"
+    <article className="flex h-full min-w-0 flex-col gap-3 rounded-[20px] bg-surface p-4 shadow-card">
+      <div className="flex min-w-0 items-center gap-3">
+        <CategoryTile category={category} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <h3 className="min-w-0 text-base font-bold leading-6 wrap-anywhere">
+            {item.name}
+          </h3>
+          <p className="min-w-0 truncate text-caption text-muted">{kind}</p>
+        </div>
+        {/* Pencil's pill: "הוספה +" outlined at rest, "נוסף ✓" filled green
+            once it is in. Pressing it again takes the item out. */}
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-pressed={item.selected}
+          aria-label={
+            item.selected
+              ? `הסרה של ${item.name} מהטיול`
+              : `הוספת ${item.name} לטיול`
+          }
+          className={cn(
+            "flex h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition-colors active:scale-95",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            item.selected
+              ? "bg-success text-white hover:bg-success-strong"
+              : "border border-border-strong bg-surface text-foreground hover:bg-surface-sunken",
+          )}
+        >
+          {item.selected ? (
+            <Check className="h-4 w-4 animate-stamp" aria-hidden="true" />
+          ) : (
+            <Plus className="h-4 w-4" aria-hidden="true" />
+          )}
+          {item.selected ? "נוסף" : "הוספה"}
+        </button>
+      </div>
+
+      {item.description && (
+        <p className="line-clamp-3 min-w-0 text-sm leading-6 text-foreground/80">
+          {item.description}
+        </p>
+      )}
+
+      <div className="mt-auto flex min-w-0 items-end justify-between gap-2">
+        {item.tip ? (
+          <p className="flex min-w-0 items-start gap-1.5 rounded-xl bg-surface-sunken px-2.5 py-1.5 text-caption text-muted">
+            <Lightbulb
+              className="mt-0.5 h-3.5 w-3.5 shrink-0"
               aria-hidden="true"
             />
-          </summary>
-
-          <div className="flex flex-col gap-2 pt-2">
-            <p className="text-sm text-muted">{item.description}</p>
-            <p className="flex items-start gap-1.5 text-caption text-muted">
-              <Lightbulb
-                className="mt-0.5 h-3.5 w-3.5 shrink-0"
-                aria-hidden="true"
-              />
-              {item.tip}
-            </p>
-            <a
-              href={googleMapsSearchUrl(`${item.name} ${city}`)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 self-start text-caption font-semibold text-primary-ink hover:underline"
-            >
-              <MapIcon className="h-3.5 w-3.5" aria-hidden="true" />
-              פתיחה ב-Google Maps
-            </a>
-          </div>
-        </details>
-
-        <Button
-          type="button"
-          variant={item.selected ? "primary" : "outline"}
-          size="sm"
-          onClick={onToggle}
-          className="shrink-0"
+            <span className="min-w-0">{item.tip}</span>
+          </p>
+        ) : (
+          <span />
+        )}
+        <a
+          href={googleMapsSearchUrl(`${item.name} ${city}`)}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`${item.name} ב-Google Maps`}
+          title="פתיחה ב-Google Maps"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-sunken hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          {item.selected && <Check className="h-4 w-4" aria-hidden="true" />}
-          {item.selected ? "נוסף" : "הוספה"}
-        </Button>
+          <MapIcon className="h-4 w-4" aria-hidden="true" />
+        </a>
       </div>
-    </Card>
+    </article>
   );
 }
 
@@ -306,21 +334,16 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
     // gap-4, not gap-8: the pill row and the section it selects are one thing,
     // and eight units of air between them read as two.
     <div className="flex flex-col gap-4">
-      {error && <Banner tone="danger">{error}</Banner>}
+      {/* The pill row, inside the terracotta band — Pencil draws the tabs as
+          the band's last line. The band itself is CityBand, the page's banner;
+          this strip continues it with the same fill, full-bleed by the same
+          negative margins, and -mt-6 closes the gap PageEnter puts between the
+          banner and the content. It has to be this component's first child for
+          that to hold, which is why the banners below come after it.
 
-      {keptNotice !== null && keptNotice > 0 && (
-        <Banner tone="info">
-          {keptNotice === 1
-            ? "פריט אחד שהוספתם לטיול נשמר"
-            : `${keptNotice} פריטים שהוספתם לטיול נשמרו`}{" "}
-          — רענון מחליף רק את ההצעות, לא את מה שבחרתם.
-        </Banner>
-      )}
-
-      {/* The pill row. Ink for the selected one, not the action blue: a chosen
-          filter is a state, and blue in this app means "press this" — the same
-          call the day strip and the phone tab bar already make. */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1">
+          The selected pill is white with the band's ink, the rest are white on
+          a 12% veil — a chosen filter is a state, not a call to action. */}
+      <div className="-mx-4 -mt-6 flex gap-2 overflow-x-auto bg-cat-mustsee-ink px-4 pb-4 [scrollbar-width:none] md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden">
         {TABS.map((option) => {
           const active = option.key === tab;
           const count =
@@ -335,21 +358,32 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
               onClick={() => setTab(option.key)}
               aria-current={active ? "true" : undefined}
               className={cn(
-                "flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "flex h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white",
                 active
-                  ? "bg-primary text-primary-foreground"
-                  : "border border-border bg-surface text-muted hover:text-foreground",
+                  ? "bg-white text-cat-mustsee-ink"
+                  : "bg-white/12 text-white hover:bg-white/20",
               )}
             >
               {option.label}
               {count !== null && (
-                <span className="tabular-nums opacity-70">{count}</span>
+                <span className="tabular-nums opacity-60">{count}</span>
               )}
             </button>
           );
         })}
       </div>
+
+      {error && <Banner tone="danger">{error}</Banner>}
+
+      {keptNotice !== null && keptNotice > 0 && (
+        <Banner tone="info">
+          {keptNotice === 1
+            ? "פריט אחד שהוספתם לטיול נשמר"
+            : `${keptNotice} פריטים שהוספתם לטיול נשמרו`}{" "}
+          — רענון מחליף רק את ההצעות, לא את מה שבחרתם.
+        </Banner>
+      )}
 
       {/* "סקירה" — what the mockup calls "מה כדאי לדעת": the prose, the
           getting-there line, and the whole-guide refresh. It is the tab that is
@@ -358,7 +392,7 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
       {tab === "overview" && (
         <div className="flex flex-col gap-4">
           {(guide.intro || guide.gettingThere) && (
-            <Surface tone="quiet" padding="lg" className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 rounded-[20px] bg-surface p-5 shadow-card">
               {/* The model writes three or four sentences here and they open
                   the tab. The first two say which city this is and what shape
                   it has, which is what the reader came for; the rest is worth
@@ -375,7 +409,7 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
                   <span>{guide.gettingThere}</span>
                 </p>
               )}
-            </Surface>
+            </div>
           )}
 
           {/* The caption that used to sit beside this button said "refresh
@@ -390,7 +424,7 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
               size="sm"
               onClick={handleRefresh}
               loading={refreshing}
-              className="ms-auto shrink-0"
+              className="ms-auto shrink-0 rounded-full"
             >
               רענון הצעות
             </Button>
@@ -399,19 +433,23 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
       )}
       {tab !== "overview" &&
         SECTIONS.filter((section) => section.key === tab).map(
-          ({ key, label, Icon }) => {
+          ({ key, heading, kind }) => {
             const items = guide.sections[key] ?? [];
             const isLoadingMore = loadingMore.includes(key);
             return (
               <section key={key} className="flex flex-col gap-3">
-                <SectionHeading
-                  level="section"
-                  leading={
-                    <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-                  }
-                >
-                  {label}
-                </SectionHeading>
+                {/* Pencil: the section's question, and the count at the far
+                    end. */}
+                <div className="flex min-w-0 items-baseline justify-between gap-2">
+                  <h2 className="min-w-0 text-lg font-bold leading-6 wrap-anywhere">
+                    {heading(city)}
+                  </h2>
+                  <span className="shrink-0 text-caption tabular-nums text-muted">
+                    {items.length === 1
+                      ? "המלצה אחת"
+                      : `${items.length} המלצות`}
+                  </span>
+                </div>
                 {/* A guide card is a paragraph and a button, so three across is
                     comfortable on a desktop. It was one column at every width. */}
                 <div className="grid gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
@@ -420,6 +458,8 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
                       key={`${item.name}-${index}`}
                       item={item}
                       city={city}
+                      category={key}
+                      kind={kind}
                       onToggle={() => toggle(key, item)}
                     />
                   ))}
@@ -430,7 +470,7 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
                   size="sm"
                   onClick={() => loadMore(key)}
                   loading={isLoadingMore}
-                  className="self-start"
+                  className="self-start rounded-full"
                 >
                   עוד תוצאות
                 </Button>

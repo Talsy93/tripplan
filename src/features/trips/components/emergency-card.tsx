@@ -25,7 +25,7 @@ export function EmergencyCard({
   const [editing, setEditing] = useState<EmergencyContact | "new" | null>(null);
 
   return (
-    <section className="flex flex-col gap-2 rounded-xl bg-surface p-4 shadow-card">
+    <section className="flex flex-col gap-2 rounded-[20px] bg-surface p-4 shadow-card">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1">
           <Asterisk
@@ -37,7 +37,7 @@ export function EmergencyCard({
             חירום וביטוח
           </h4>
         </div>
-        <span className="shrink-0 rounded bg-success-bright px-1 py-0.5 text-[10px] leading-[14px] font-bold tracking-[0.02em] text-success-deep">
+        <span className="shrink-0 rounded-full bg-success-tint px-2.5 py-1 text-[11px] leading-[14px] font-semibold text-success-ink">
           חיוג בלחיצה
         </span>
       </div>
@@ -46,7 +46,7 @@ export function EmergencyCard({
         {contacts.map((contact) => (
           <div
             key={contact.id}
-            className="relative flex min-w-0 flex-col rounded-lg bg-surface-2 p-2"
+            className="relative flex min-w-0 flex-col rounded-[14px] bg-surface-2 p-3"
           >
             {/* The whole tile edits; the number inside it dials. Two targets in
                 one tile, so the number is the larger and the one that is a
@@ -86,7 +86,7 @@ export function EmergencyCard({
           <button
             type="button"
             onClick={() => setEditing("new")}
-            className="flex min-h-[76px] flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border-strong/60 p-2 text-xs leading-4 font-medium text-primary hover:bg-surface-2"
+            className="flex min-h-[76px] flex-col items-center justify-center gap-1 rounded-[14px] border-2 border-dashed border-border-strong/60 p-2 text-xs leading-4 font-medium text-primary hover:bg-surface-2"
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
             {contacts.length === 0 ? "ביטוח, שגרירות, רופא" : "מספר נוסף"}
@@ -97,7 +97,7 @@ export function EmergencyCard({
         <button
           type="button"
           onClick={() => setEditing("new")}
-          className="flex items-center gap-1 self-start pt-1 text-xs leading-4 font-medium text-primary hover:underline"
+          className="flex min-h-11 items-center gap-1 self-start text-xs leading-4 font-medium text-primary hover:underline"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           מספר נוסף

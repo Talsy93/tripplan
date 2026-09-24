@@ -1,15 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  CircleCheck,
-  Coffee,
-  FileText,
-  Plane,
-  QrCode,
-  Ticket,
-  X,
-} from "lucide-react";
+import { Plane, Star, X } from "lucide-react";
 import { Button, Dialog, SwipeAction } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { code128 } from "@/lib/code128";
@@ -33,20 +25,20 @@ import { BookingDetails } from "./booking-details";
 import { BookingForm } from "./booking-form";
 import { DomainIcon } from "./domain-icon";
 
-// The bookings on the documents screen, drawn card for card from the Stitch
-// export (design/stitch/…/_3): a flight is a boarding pass with a torn edge, a
-// hotel is a confirmation card, a train is a single row.
+// The bookings on the documents screen, drawn from the Pencil design
+// (design/pencil/exports/documents-mobile.png): a flight is a white boarding
+// pass with a perforation, a hotel and a train are one row each.
 //
 // Every figure on them is the booking's own. Where the export prints something
 // no booking holds — a live "on time" status, an Apple Wallet pass — the slot
-// carries the nearest true thing instead: the booking's alert, and the button
-// that opens the ticket. A pass needs a paid Apple developer account to sign,
+// carries the nearest true thing instead: the booking's alert, and the card
+// itself opens the ticket. A pass needs a paid Apple developer account to sign,
 // and a flight status needs a paid API; the rule here is free or nothing.
 //
-// The cards carry no edit or delete buttons, because the export draws none.
-// Each card's own action — "פרטי הכרטיס", "כל הפרטים", the round QR button —
-// opens the ticket, and the ticket's footer is where it is corrected or
-// removed. A swipe (or a hold) removes, as it does on every list in the app.
+// The cards carry no edit or delete buttons, because the design draws none.
+// Each card is itself the button that opens the ticket, and the ticket's
+// footer is where it is corrected or removed. A swipe (or a hold) removes, as
+// it does on every list in the app.
 export function HubBookings({
   tripId,
   bookings: initial,
@@ -78,7 +70,7 @@ export function HubBookings({
 
   if (bookings.length === 0) {
     return (
-      <div className="rounded-xl bg-surface p-4 text-sm leading-5 text-muted-strong shadow-card">
+      <div className="rounded-[18px] bg-surface p-4 text-sm leading-5 text-muted shadow-card">
         עדיין אין כרטיסים. טיסות, רכבות ומלונות שתוסיפו בכפתור ״הוספת כרטיס״
         יופיעו כאן — ובמסך ״היום״ ביום שלהם.
       </div>
@@ -88,18 +80,23 @@ export function HubBookings({
   return (
     <>
       {bookings.map((booking) => {
-        // What the pill on a card says, when anything: the most pressing of
-        // the booking's own alerts, or its status. The export's "בזמן להמראה"
-        // is a live flight status, which this app has no free source for.
-        const pill =
+        // What the pill on a card says: the most pressing of the booking's
+        // own alerts, else what state it is in. A live "on time" is a flight
+        // status, which this app has no free source for.
+        const alert =
           bookingAlert(booking, at)?.message ??
           cancellationAlert(booking, at)?.message ??
           bookingTodoAlert(booking, at)?.message ??
           (isStandby(booking)
             ? "סטנד-ביי"
             : !booking.booked
-              ? "עוד לא הוזמן"
+              ? "לא הוזמן"
               : null);
+        const status: Status = alert
+          ? { label: alert, tone: "callout" }
+          : bookingDetails(booking).paid
+            ? { label: "שולם", tone: "success" }
+            : { label: "הוזמן", tone: "success" };
         const open = () => setOpened(booking);
 
         return (
@@ -109,11 +106,11 @@ export function HubBookings({
             onAction={() => setConfirming(booking)}
           >
             {booking.kind === "flight" ? (
-              <BoardingPass booking={booking} pill={pill} onOpen={open} />
+              <BoardingPass booking={booking} status={status} onOpen={open} />
             ) : booking.kind === "lodging" ? (
-              <HotelCard booking={booking} pill={pill} onOpen={open} />
+              <HotelCard booking={booking} status={status} onOpen={open} />
             ) : (
-              <TrainCard booking={booking} onOpen={open} />
+              <TrainCard booking={booking} status={status} onOpen={open} />
             )}
           </SwipeAction>
         );
@@ -186,15 +183,42 @@ export function HubBookings({
   );
 }
 
+// ---- the status pill ----------------------------------------------------------
+
+// What the pill on a card says, and in which colour. Green is a settled fact
+// ("הוזמן", "שולם"); the orange callout tint is something still to do or to
+// watch — a deadline, a standby, a ticket not yet bought.
+type Status = { label: string; tone: "success" | "callout" };
+
+function StatusPill({ status }: { status: Status }) {
+  return (
+    <span
+      className={cn(
+        "max-w-36 shrink-0 truncate rounded-full px-2.5 py-1 text-xs leading-4 font-semibold",
+        status.tone === "success"
+          ? "bg-success-tint text-success-ink"
+          : "bg-callout-tint text-callout-ink",
+      )}
+      suppressHydrationWarning
+    >
+      {status.label}
+    </span>
+  );
+}
+
 // ---- the flight: a boarding pass --------------------------------------------
 
+// A white card now, not the teal gradient band: the Pencil design keeps colour
+// for the status pill and lets the two airport codes carry the card. The whole
+// card is the button that opens the ticket, so there is no separate "פרטי
+// הכרטיס" control to find.
 function BoardingPass({
   booking,
-  pill,
+  status,
   onOpen,
 }: {
   booking: Booking;
-  pill: string | null;
+  status: Status;
   onOpen: () => void;
 }) {
   const details = bookingDetails(booking);
@@ -206,118 +230,114 @@ function BoardingPass({
     details.seat || details.gate || details.boarding || details.baggage,
   );
   const bars = booking.confirmation ? code128(booking.confirmation) : null;
+  // The arrival's date only when it is not the departure's — an overnight
+  // flight lands on another day, and that is worth the extra characters.
+  const arrivesOtherDay =
+    booking.ends_at !== null &&
+    dayMonth(booking.ends_at) !== dayMonth(booking.starts_at);
 
   return (
-    <div className="relative overflow-hidden rounded-xl bg-surface shadow-card">
-      {/* The header band. `bg-gradient-to-l`, physical, as the export has it:
-          the light end sits on the left in both directions. */}
-      <div className="bg-gradient-to-l from-primary to-primary-bright p-4 text-white">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-1">
-            <Ticket className="h-5 w-5 shrink-0" aria-hidden="true" />
-            <span className="min-w-0 truncate text-base leading-[22px] font-semibold">
-              {airline ? `${airline} · ` : ""}
-              <span dir="ltr">{booking.title}</span>
-            </span>
-          </div>
-          {pill && (
-            <span
-              className="shrink-0 rounded-full bg-surface px-2 py-0.5 text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-success-strong shadow-xs"
-              suppressHydrationWarning
-            >
-              {pill}
-            </span>
-          )}
-        </div>
-
-        <div className="mt-4 flex items-center justify-between">
-          <PassEnd place={booking.origin} at={booking.starts_at} />
-          <div className="flex flex-1 flex-col items-center px-2">
-            {typeof booking.duration_minutes === "number" && (
-              <span className="mb-0.5 text-[10px] leading-[14px] font-semibold tracking-[0.02em] whitespace-nowrap text-white/80">
-                {durationMinutesLabel(booking.duration_minutes)}
-              </span>
-            )}
-            <div className="flex w-full items-center gap-0.5">
-              <div className="h-0.5 flex-1 bg-white/30" />
-              <Plane
-                className="h-[22px] w-[22px] shrink-0 rotate-[135deg] text-white"
-                aria-hidden="true"
-              />
-              <div className="h-0.5 flex-1 bg-white/30" />
-            </div>
-            <span className="mt-0.5 text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-white/90">
-              {stops > 0 ? stopsLabel(stops) : "ישירה"}
-            </span>
-          </div>
-          <PassEnd place={booking.destination} at={booking.ends_at} end />
-        </div>
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`פרטי הטיסה ${booking.title}`}
+      className="block w-full rounded-[18px] bg-surface p-4 text-start shadow-card transition-shadow hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="min-w-0 truncate text-xs leading-4 text-muted">
+          {airline && <>{airline} · </>}
+          <span dir="ltr">{booking.title}</span>
+          <span suppressHydrationWarning> · {shortDay(booking.starts_at)}</span>
+        </span>
+        <StatusPill status={status} />
       </div>
 
-      {/* The tear. Two half-discs in the page colour bite into the card's
-          edges, with a dashed rule between them. Physical margins and corners,
-          as in the export: the notches belong to the edges, not to a reading
-          direction. */}
-      <div className="relative flex h-6 items-center justify-between bg-surface px-1">
-        <div className="-mr-2 h-6 w-4 rounded-l-full bg-background" />
-        <div className="mx-2 flex-1 border-b-2 border-dashed border-border-strong/50" />
-        <div className="-ml-2 h-6 w-4 rounded-r-full bg-background" />
+      {/* Origin on the start edge (the right, in Hebrew) and destination on
+          the end, with the plane flying the way the line reads. */}
+      <div className="mt-3 flex items-center gap-2">
+        <PassEnd place={booking.origin} time={clock(booking.starts_at)} />
+        <div className="flex min-w-16 flex-1 flex-col items-center">
+          {typeof booking.duration_minutes === "number" && (
+            <span className="text-[11px] leading-4 whitespace-nowrap text-muted">
+              {durationMinutesLabel(booking.duration_minutes)}
+            </span>
+          )}
+          <div className="flex w-full items-center gap-1">
+            <div className="h-px flex-1 bg-border" />
+            <Plane
+              className="h-4 w-4 shrink-0 -rotate-[135deg] text-primary"
+              aria-hidden="true"
+            />
+            <div className="h-px flex-1 bg-border" />
+          </div>
+          <span className="text-[11px] leading-4 whitespace-nowrap text-muted">
+            {stops > 0 ? stopsLabel(stops) : "ישירה"}
+          </span>
+        </div>
+        <PassEnd
+          place={booking.destination}
+          time={
+            booking.ends_at
+              ? arrivesOtherDay
+                ? `${dayMonth(booking.ends_at)} · ${clock(booking.ends_at)}`
+                : clock(booking.ends_at)
+              : null
+          }
+          end
+        />
       </div>
 
-      <div className="bg-surface p-4 pt-0">
-        {hasGrid && (
-          <div className="mb-4 grid grid-cols-4 gap-1 rounded-lg bg-surface-2 py-2 text-center">
-            <PassFact label="מושב" value={details.seat} />
-            <PassFact label="שער" value={details.gate} accent />
-            <PassFact label="עליה" value={details.boarding} />
-            <PassFact label="מזוודה" value={details.baggage} />
-          </div>
-        )}
+      {(hasGrid || bars || booking.confirmation) && (
+        // The perforation.
+        <div className="my-3 border-t-2 border-dashed border-border" />
+      )}
 
-        <div className="flex items-center justify-between gap-4">
-          {bars ? (
-            <div className="flex min-w-0 flex-col items-start">
-              <div className="flex h-9 items-center rounded bg-surface-high px-2 py-1">
-                <Barcode bars={bars} label={booking.confirmation ?? ""} />
-              </div>
-              <span
-                dir="ltr"
-                className="mt-1 text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-muted-strong"
-              >
-                {booking.confirmation}
-              </span>
-            </div>
-          ) : booking.confirmation ? (
-            <span
-              dir="ltr"
-              className="min-w-0 text-xs font-semibold text-muted-strong wrap-anywhere"
-            >
-              {booking.confirmation}
-            </span>
-          ) : (
-            <span />
+      {hasGrid && (
+        <div className="grid grid-cols-4 gap-2">
+          <PassFact label="מושב" value={details.seat} />
+          <PassFact label="שער" value={details.gate} />
+          <PassFact label="עלייה" value={details.boarding} />
+          <PassFact label="מזוודה" value={details.baggage} />
+        </div>
+      )}
+
+      {bars ? (
+        <div
+          className={cn(
+            "flex items-center justify-between gap-3",
+            hasGrid && "mt-3",
           )}
-          <button
-            type="button"
-            onClick={onOpen}
-            className="flex shrink-0 items-center gap-1 rounded-xl bg-surface-high px-4 py-2 text-xs leading-4 font-medium text-foreground transition-colors hover:bg-surface-variant focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <span
+            dir="ltr"
+            className="min-w-0 truncate text-xs font-semibold text-muted"
           >
-            <Ticket className="h-[18px] w-[18px] text-primary" aria-hidden="true" />
-            פרטי הכרטיס
-          </button>
+            {booking.confirmation}
+          </span>
+          <Barcode bars={bars} label={booking.confirmation ?? ""} />
         </div>
-      </div>
-    </div>
+      ) : booking.confirmation ? (
+        <span
+          dir="ltr"
+          className={cn(
+            "block text-xs font-semibold text-muted wrap-anywhere",
+            hasGrid && "mt-3",
+          )}
+        >
+          {booking.confirmation}
+        </span>
+      ) : null}
+    </button>
   );
 }
 
 function PassEnd({
   place,
-  at,
+  time,
   end = false,
 }: {
   place: string | null;
-  at: string | null;
+  time: string | null;
   end?: boolean;
 }) {
   return (
@@ -329,25 +349,17 @@ function PassEnd({
     >
       <span
         dir="auto"
-        className="max-w-full text-[28px] leading-9 font-bold tracking-tight wrap-anywhere"
+        className="max-w-full text-[28px] leading-9 font-bold tracking-tight text-foreground wrap-anywhere"
       >
         {place ?? "—"}
       </span>
-      {at && (
-        <>
-          <span
-            className="text-xs leading-[18px] text-white/80"
-            suppressHydrationWarning
-          >
-            {dayMonth(at)}
-          </span>
-          <span
-            className="mt-0.5 text-xs leading-4 font-semibold tabular-nums"
-            suppressHydrationWarning
-          >
-            {clock(at)}
-          </span>
-        </>
+      {time && (
+        <span
+          className="text-xs leading-4 text-muted tabular-nums"
+          suppressHydrationWarning
+        >
+          {time}
+        </span>
       )}
     </div>
   );
@@ -356,23 +368,16 @@ function PassEnd({
 function PassFact({
   label,
   value,
-  accent = false,
 }: {
   label: string;
   value: string | undefined;
-  accent?: boolean;
 }) {
   return (
     <div className="min-w-0">
-      <span className="block text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-muted-strong">
-        {label}
-      </span>
+      <span className="block text-[11px] leading-4 text-muted">{label}</span>
       <span
         dir="auto"
-        className={cn(
-          "block truncate text-base leading-[22px] font-bold",
-          accent && value ? "text-cta-strong" : "text-foreground",
-        )}
+        className="block truncate text-base leading-6 font-bold text-foreground"
       >
         {value ?? "—"}
       </span>
@@ -382,7 +387,7 @@ function PassFact({
 
 // A real Code 128 of the confirmation code — it scans. Squeezed to a fixed
 // width rather than drawn at one pixel a module, so a long code does not push
-// the button off the card; uniform scaling keeps the ratios a scanner reads.
+// the row off the card; uniform scaling keeps the ratios a scanner reads.
 function Barcode({ bars, label }: { bars: number[]; label: string }) {
   // Each bar's x is the sum of every width before it.
   const starts = bars.map((_, index) =>
@@ -393,7 +398,7 @@ function Barcode({ bars, label }: { bars: number[]; label: string }) {
     <svg
       viewBox={`0 0 ${total} 28`}
       preserveAspectRatio="none"
-      className="h-7 w-[104px] text-foreground"
+      className="h-7 w-[104px] shrink-0 text-foreground"
       role="img"
       aria-label={`ברקוד של ${label}`}
     >
@@ -413,163 +418,142 @@ function Barcode({ bars, label }: { bars: number[]; label: string }) {
   );
 }
 
-// ---- the hotel --------------------------------------------------------------
+// ---- the hotel and the train: one row each -----------------------------------
 
-function HotelCard({
+// The Pencil row: a teal-tinted icon tile on the start edge, the name and one
+// line of facts, and the status pill on the end. The whole row opens the
+// ticket, as the boarding pass does.
+function BookingRow({
   booking,
-  pill,
+  title,
+  meta,
+  status,
   onOpen,
 }: {
   booking: Booking;
-  pill: string | null;
+  title: React.ReactNode;
+  meta: string;
+  status: Status;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex w-full min-w-0 items-center gap-3 rounded-[18px] bg-surface p-4 text-start shadow-card transition-shadow hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <span
+        className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[14px] bg-primary-tint text-primary"
+        aria-hidden="true"
+      >
+        <DomainIcon name={BOOKING_KINDS[booking.kind].icon} className="h-5 w-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-base leading-6 font-semibold text-foreground wrap-anywhere">
+          {title}
+        </span>
+        {meta && (
+          <span
+            className="block truncate text-xs leading-[18px] text-muted"
+            suppressHydrationWarning
+          >
+            {meta}
+          </span>
+        )}
+      </span>
+      <StatusPill status={status} />
+    </button>
+  );
+}
+
+function HotelCard({
+  booking,
+  status,
+  onOpen,
+}: {
+  booking: Booking;
+  status: Status;
   onOpen: () => void;
 }) {
   const details = bookingDetails(booking);
   const nights = bookingNights(booking);
+  // The dates, the nights, breakfast and the confirmation code, on one line —
+  // the address is a detail and lives in the full ticket.
+  const meta = [
+    stayRange(booking.starts_at, booking.ends_at),
+    nights === null ? null : nights === 1 ? "לילה אחד" : `${nights} לילות`,
+    details.breakfast ? "ארוחת בוקר" : null,
+    booking.confirmation ? `#${booking.confirmation}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-surface p-4 shadow-card">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-cta-tint text-cta-strong">
-            <DomainIcon name={BOOKING_KINDS.lodging.icon} className="h-6 w-6" />
-          </div>
-          {/* No `dir="auto"` on the name: a Latin hotel name in an RTL card
-              still sits on the start edge, as the export draws it. The address
-              is not on the card at all — it is a detail, and it lives in the
-              full ticket ("צפייה בכל הפרטים"), not on the list. */}
-          <div className="min-w-0">
-            <div className="flex items-center gap-0.5">
-              <h4 className="min-w-0 text-base leading-[22px] font-semibold wrap-anywhere">
-                {booking.title}
-              </h4>
-              {details.stars && (
-                <span
-                  className="flex shrink-0 text-[14px] text-cta-strong"
-                  aria-label={`${details.stars} כוכבים`}
-                >
-                  {"★".repeat(details.stars)}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        {booking.confirmation && (
-          <span
-            dir="ltr"
-            className="shrink-0 rounded bg-surface-high px-1 py-0.5 font-mono text-[10px] leading-[14px] font-medium tracking-[0.02em] text-muted-strong"
-          >
-            #{booking.confirmation}
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between gap-2 rounded-lg bg-surface-2 p-2 text-xs leading-[18px] text-foreground">
-        <div className="flex min-w-0 flex-col">
-          <span className="text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-muted-strong">
-            תאריכים
-          </span>
-          <span className="text-xs leading-4 font-semibold" suppressHydrationWarning>
-            {stayRange(booking.starts_at, booking.ends_at, nights)}
-          </span>
-        </div>
-        {details.breakfast && (
-          <div className="flex shrink-0 items-center gap-1 text-success-strong">
-            <Coffee className="h-4 w-4" aria-hidden="true" />
-            <span className="text-[10px] leading-[14px] font-semibold tracking-[0.02em]">
-              ארוחת בוקר כלולה
+    <BookingRow
+      booking={booking}
+      status={status}
+      onOpen={onOpen}
+      meta={meta}
+      title={
+        // No `dir="auto"` on the name: a Latin hotel name in an RTL card
+        // still sits on the start edge, as the design draws it.
+        <span className="inline-flex max-w-full flex-wrap items-center gap-1">
+          <span className="min-w-0">{booking.title}</span>
+          {details.stars && (
+            <span
+              className="inline-flex shrink-0 text-callout"
+              aria-label={`${details.stars} כוכבים`}
+            >
+              {Array.from({ length: details.stars }, (_, index) => (
+                <Star
+                  key={index}
+                  className="h-3 w-3 fill-current"
+                  aria-hidden="true"
+                />
+              ))}
             </span>
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between gap-2 pt-1">
-        <div className="flex min-w-0 items-center gap-1 text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-muted-strong">
-          {details.paid ? (
-            <>
-              <CircleCheck
-                className="h-[18px] w-[18px] shrink-0 text-success-strong"
-                aria-hidden="true"
-              />
-              <span>שולם במלואו</span>
-            </>
-          ) : (
-            pill && <span suppressHydrationWarning>{pill}</span>
           )}
-        </div>
-        <button
-          type="button"
-          onClick={onOpen}
-          className="flex shrink-0 items-center gap-0.5 rounded-control text-xs leading-4 font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <FileText className="h-[18px] w-[18px]" aria-hidden="true" />
-          צפייה בכל הפרטים
-        </button>
-      </div>
-    </div>
+        </span>
+      }
+    />
   );
 }
 
-// ---- the train --------------------------------------------------------------
-
 function TrainCard({
   booking,
+  status,
   onOpen,
 }: {
   booking: Booking;
+  status: Status;
   onOpen: () => void;
 }) {
   const details = bookingDetails(booking);
-  const headline = booking.destination
-    ? `רכבת ל${booking.destination}`
-    : booking.title;
-  const place = [details.carriage && `קרון ${details.carriage}`, details.seat && `מושב ${details.seat}`]
-    .filter(Boolean)
-    .join(", ");
-  const route =
+  // "רכבת רומא ← פירנצה": the journey is the name; the train's number is a
+  // fact on the line under it. The arrow points the way Hebrew reads.
+  const headline =
     booking.origin && booking.destination
-      ? `${booking.origin} ➔ ${booking.destination}`
-      : null;
-  const line = [route, place].filter(Boolean).join(" · ");
+      ? `רכבת ${booking.origin} ← ${booking.destination}`
+      : booking.destination
+        ? `רכבת ל${booking.destination}`
+        : booking.title;
+  const meta = [
+    `${shortDay(booking.starts_at)} ${clock(booking.starts_at)}`,
+    headline !== booking.title ? booking.title : null,
+    details.carriage ? `קרון ${details.carriage}` : null,
+    details.seat ? `מושב ${details.seat}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <div className="flex items-center justify-between gap-2 rounded-xl bg-surface p-4 shadow-card">
-      <div className="flex min-w-0 items-center gap-2">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-success-bright text-success-strong">
-          <DomainIcon name={BOOKING_KINDS.train.icon} className="h-6 w-6" />
-        </div>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-1">
-            <span
-              className="min-w-0 text-base leading-[22px] font-semibold text-foreground wrap-anywhere"
-            >
-              {headline}
-            </span>
-            {booking.destination && (
-              <span
-                dir="ltr"
-                className="rounded bg-surface-sunken px-1 py-0.5 text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-primary"
-              >
-                {booking.title}
-              </span>
-            )}
-          </div>
-          {line && (
-            <p className="mt-0.5 text-xs leading-[18px] text-muted-strong wrap-anywhere">
-              {line}
-            </p>
-          )}
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={onOpen}
-        aria-label="פרטי כרטיס רכבת"
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-high text-primary transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        <QrCode className="h-5 w-5" aria-hidden="true" />
-      </button>
-    </div>
+    <BookingRow
+      booking={booking}
+      status={status}
+      onOpen={onOpen}
+      meta={meta}
+      title={headline}
+    />
   );
 }
 
@@ -584,31 +568,35 @@ function clock(iso: string): string {
   });
 }
 
+// "11.4": day and month, unpadded, joined with a dot whatever the locale's
+// own separator is.
 function dayMonth(iso: string): string {
-  return new Date(iso).toLocaleDateString("he-IL", {
+  const parts = new Intl.DateTimeFormat("he-IL", {
     timeZone: APP_TIME_ZONE,
-    day: "2-digit",
-    month: "2-digit",
-  });
+    day: "numeric",
+    month: "numeric",
+  }).formatToParts(new Date(iso));
+  const part = (type: "day" | "month") =>
+    parts.find((entry) => entry.type === type)?.value ?? "";
+  return `${part("day")}.${part("month")}`;
 }
 
-// "14 עד 18 במאי (4 לילות)", or across a month boundary "30 באפריל עד 2 במאי".
-function stayRange(
-  start: string,
-  end: string | null,
-  nights: number | null,
-): string {
-  const part = (iso: string, option: "day" | "month") =>
-    new Date(iso).toLocaleDateString("he-IL", {
-      timeZone: APP_TIME_ZONE,
-      [option]: option === "day" ? "numeric" : "long",
-    });
-  const count =
-    nights === null ? "" : nights === 1 ? " (לילה אחד)" : ` (${nights} לילות)`;
+// "14–18.5", or across a month boundary "30.4–2.5" — the row's one line of
+// facts has room for figures, not for month names. The nights follow it as
+// their own fact.
+function stayRange(start: string, end: string | null): string {
+  if (!end) return `מ-${dayMonth(start)}`;
+  const [startDay, startMonth] = dayMonth(start).split(".");
+  const [endDay, endMonth] = dayMonth(end).split(".");
+  return startMonth === endMonth
+    ? `${startDay}–${endDay}.${endMonth}`
+    : `${startDay}.${startMonth}–${endDay}.${endMonth}`;
+}
 
-  if (!end) return `מ-${part(start, "day")} ב${part(start, "month")}`;
-  const sameMonth = part(start, "month") === part(end, "month");
-  return sameMonth
-    ? `${part(start, "day")} עד ${part(end, "day")} ב${part(end, "month")}${count}`
-    : `${part(start, "day")} ב${part(start, "month")} עד ${part(end, "day")} ב${part(end, "month")}${count}`;
+// "א׳ 11.4" — the weekday letter and the date, as the design's cards print it.
+function shortDay(iso: string): string {
+  const weekday = new Date(iso)
+    .toLocaleDateString("he-IL", { timeZone: APP_TIME_ZONE, weekday: "short" })
+    .replace("יום ", "");
+  return `${weekday} ${dayMonth(iso)}`;
 }

@@ -5,8 +5,8 @@ import {
   Check,
   Copy,
   MessageCircle,
-  Send,
-  Smartphone,
+  Mail,
+  MessageSquare,
   UserPlus,
 } from "lucide-react";
 import {
@@ -31,6 +31,14 @@ import {
   type TripRole,
 } from "../domain/membership";
 import { inviteToTrip } from "../application/membership-actions";
+
+// The role picker's words, short enough for the narrow box Pencil puts beside
+// the email field. The caption under the row spells out what each one allows,
+// from TRIP_ROLES — the same short words the member list's pills use.
+const ROLE_SHORT: Record<TripRole, string> = {
+  viewer: "צפייה",
+  editor: "עריכה",
+};
 
 // Inviting a person to a trip, and then getting the link to them.
 //
@@ -71,7 +79,16 @@ export function InviteForm({
   const token = state?.token ?? null;
 
   return (
-    <Card className="flex flex-col gap-4">
+    <Card className="flex flex-col gap-4 rounded-[20px] p-4">
+      {/* Pencil's invite card carries its own title, so the screen does not
+          need a section heading over it. */}
+      <div className="flex flex-col gap-0.5">
+        <h3 className="text-base font-semibold text-foreground">הזמנת מטייל</h3>
+        <p className="text-xs text-muted">
+          חשבון מוזמן רואה את הטיול כמו שהבעלים רואה אותו — בלי צנזור, מהמכשיר
+          שלו ועם החשבון שלו.
+        </p>
+      </div>
       {/* Keyed by the token so a successful invite remounts the form and clears
           the email field.
           This replaces a useEffect that called setState when the token changed —
@@ -81,10 +98,11 @@ export function InviteForm({
       <form key={token ?? "new"} action={action} className="flex flex-col gap-3">
         <input type="hidden" name="tripId" value={tripId} />
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        {/* Email and role side by side even on a phone, as Pencil draws
+            them: the role is two short words and does not need a row. */}
+        <div className="flex items-start gap-2">
           <Field
-            label="אימייל של מי שמצטרף"
-            hint="זו הזהות — רק חשבון עם האימייל הזה יוכל לפתוח את ההזמנה."
+            label={<span className="sr-only">אימייל של מי שמצטרף</span>}
             error={state?.errors?.email?.join(" ")}
             className="min-w-0 flex-1"
           >
@@ -92,35 +110,48 @@ export function InviteForm({
               name="email"
               type="email"
               dir="ltr"
-              placeholder="name@example.com"
+              placeholder="כתובת מייל"
               required
               aria-invalid={state?.errors?.email ? true : undefined}
+              className="h-12 rounded-[14px] border-border bg-surface placeholder:text-right"
             />
           </Field>
 
-          <Field label="הרשאה" className="min-w-0 sm:w-48">
+          <Field
+            label={<span className="sr-only">הרשאה</span>}
+            className="w-28 shrink-0"
+          >
             <Select
               name="role"
               value={role}
               onChange={(event) =>
                 setRole(event.currentTarget.value as TripRole)
               }
+              className="h-12 rounded-[14px] border-border bg-surface text-sm font-semibold"
             >
               {TRIP_ROLE_ORDER.map((value) => (
                 <option key={value} value={value}>
-                  {TRIP_ROLES[value].label}
+                  {ROLE_SHORT[value]}
                 </option>
               ))}
             </Select>
           </Field>
-
-          <Button type="submit" loading={pending} className="shrink-0">
-            <UserPlus className="h-4 w-4" aria-hidden="true" />
-            יצירת הזמנה
-          </Button>
         </div>
 
-        <p className="text-caption text-muted">{TRIP_ROLES[role].hint}</p>
+        {/* The identity rule and what the chosen role allows, in one quiet
+            caption rather than two hints under two fields. */}
+        <p className="text-caption text-muted">
+          רק חשבון עם האימייל הזה יוכל לפתוח את ההזמנה. {TRIP_ROLES[role].hint}
+        </p>
+
+        <Button
+          type="submit"
+          loading={pending}
+          className="min-h-11 self-stretch rounded-full sm:self-start"
+        >
+          <UserPlus className="h-4 w-4" aria-hidden="true" />
+          יצירת הזמנה
+        </Button>
 
         {state?.message && <Banner tone="danger">{state.message}</Banner>}
       </form>
@@ -192,14 +223,14 @@ function DeliverInvite({
           value={url}
           dir="ltr"
           onFocus={(event) => event.currentTarget.select()}
-          className="min-w-0 flex-1"
+          className="min-w-0 flex-1 rounded-[14px]"
           aria-label="קישור ההזמנה"
         />
         <Button
           type="button"
           variant="outline"
           onClick={() => void copy()}
-          className="shrink-0"
+          className="min-h-11 shrink-0 rounded-full"
         >
           {copied ? (
             <Check className="h-4 w-4" aria-hidden="true" />
@@ -235,17 +266,17 @@ function DeliverInvite({
         </p>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-3 gap-2">
         {/* Anchors and not buttons: these hand the visitor off to another
             application, which is what a link does. */}
         <Channel href={wa} external label="וואטסאפ" Icon={MessageCircle} />
-        <Channel href={sms} label="SMS" Icon={Smartphone} />
+        <Channel href={sms} label="SMS" Icon={MessageSquare} />
         <Channel
           href={`mailto:?subject=${encodeURIComponent(
             `הזמנה לטיול ${tripName}`,
           )}&body=${encodeURIComponent(message)}`}
-          label="אימייל"
-          Icon={Send}
+          label="מייל"
+          Icon={Mail}
         />
       </div>
 
@@ -268,7 +299,7 @@ function Channel({
 }: {
   href: string | null;
   label: string;
-  Icon: typeof Send;
+  Icon: typeof Mail;
   external?: boolean;
 }) {
   const enabled = href !== null;
@@ -286,7 +317,7 @@ function Channel({
         if (!enabled) event.preventDefault();
       }}
       className={cn(
-        "flex items-center gap-1.5 rounded-control border border-border bg-surface px-3 py-2 text-sm font-semibold",
+        "flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-full border border-border bg-surface px-2 text-sm font-semibold text-foreground",
         enabled
           ? "transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           : "cursor-not-allowed opacity-50",

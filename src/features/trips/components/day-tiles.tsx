@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Bed, Bell, Map as MapIcon } from "lucide-react";
-import { Badge, Card } from "@/components/ui";
+import { Badge } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { googleMapsSearchUrl } from "@/lib/maps";
 import { isOverdue, reminderProgress } from "../domain/day-reminders";
@@ -104,13 +104,13 @@ export function DayTiles({
       </div>
 
       {open === "stay" && stay && (
-        <Card className="animate-rise flex min-w-0 items-start justify-between gap-3">
+        <div className="animate-rise flex min-w-0 items-center justify-between gap-3 rounded-[1.25rem] bg-surface p-4 shadow-card">
           <span className="flex min-w-0 flex-col">
-            <span className="min-w-0 text-sm font-bold wrap-anywhere">
+            <span className="min-w-0 text-base font-bold text-foreground wrap-anywhere">
               {stay.booking.title}
             </span>
             {where && (
-              <span className="min-w-0 text-caption text-muted wrap-anywhere">
+              <span className="min-w-0 text-xs text-muted wrap-anywhere">
                 {where}
               </span>
             )}
@@ -123,16 +123,16 @@ export function DayTiles({
             )}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex shrink-0 items-center gap-1 rounded-control text-caption font-semibold text-primary-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-surface-2 px-4 text-sm font-semibold text-primary transition-colors hover:bg-primary-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <MapIcon className="h-3.5 w-3.5" aria-hidden="true" />
+            <MapIcon className="h-4 w-4" aria-hidden="true" />
             במפה
           </a>
-        </Card>
+        </div>
       )}
 
       {open === "reminders" && progress.total > 0 && (
-        <Card padding="none" className="animate-rise flex min-w-0 flex-col">
+        <div className="animate-rise flex min-w-0 flex-col overflow-hidden rounded-[1.25rem] bg-surface shadow-card">
           <div className="flex flex-col divide-y divide-border">
             {reminders.map((reminder) => (
               <ReminderRow
@@ -147,23 +147,23 @@ export function DayTiles({
           </div>
           {/* A checklist you are working through is exactly when the next thing
               to remember occurs to you. */}
-          <div className="border-t border-border px-3 py-2">
+          <div className="border-t border-border px-4 py-2">
             <AddReminderButton
               tripId={tripId}
               dayNumber={dayNumber}
               dayCount={dayCount}
             />
           </div>
-        </Card>
+        </div>
       )}
     </div>
   );
 }
 
 const TONES = {
-  action: "bg-action-tint text-action-ink",
+  action: "bg-primary-tint text-primary",
   callout: "bg-callout-tint text-callout-ink",
-  neutral: "bg-surface-2 text-muted",
+  neutral: "bg-surface-2 text-muted-strong",
 } as const;
 
 function Tile({
@@ -191,7 +191,7 @@ function Tile({
       onClick={onClick}
       aria-expanded={active}
       className={cn(
-        "flex min-w-0 flex-col items-start gap-1.5 rounded-card bg-surface p-3 text-start",
+        "flex min-w-0 flex-col items-start gap-1 rounded-[1.25rem] bg-surface p-3.5 text-start",
         "transition-[box-shadow,transform] duration-press ease-snap",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         active
@@ -202,17 +202,17 @@ function Tile({
       <span
         aria-hidden="true"
         className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-control",
+          "mb-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
           TONES[tone],
           swing && "animate-swing",
         )}
       >
         {icon}
       </span>
-      <span className="min-w-0 text-caption font-semibold text-muted">
+      <span className="min-w-0 text-xs text-muted">
         {label}
       </span>
-      <span className="min-w-0 w-full truncate text-sm font-bold">{value}</span>
+      <span className="min-w-0 w-full truncate text-base leading-6 font-bold text-foreground">{value}</span>
       {badge}
     </button>
   );

@@ -75,10 +75,14 @@ export function SpeakButton({
   // A BCP-47 tag — see speechLangFor() in domain/phrasebook.ts.
   lang,
   label,
+  size = "sm",
 }: {
   text: string;
   lang: string;
   label: string;
+  // "lg" is the phrasebook card's round play button (Pencil draws it at
+  // 48px beside the phrase); "sm" is the inline one on the היום tab.
+  size?: "sm" | "lg";
 }) {
   const langs = useSyncExternalStore(
     subscribeVoices,
@@ -152,10 +156,11 @@ export function SpeakButton({
             : label
       }
       className={cn(
-        "flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors duration-press",
+        "flex shrink-0 items-center justify-center rounded-full transition-colors duration-press",
+        size === "lg" ? "h-12 w-12" : "h-7 w-7",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         unavailable
-          ? "cursor-not-allowed text-border-strong"
+          ? cn("cursor-not-allowed text-border-strong", size === "lg" && "bg-surface-2")
           : speaking
             ? // Lit while it is talking, so a row of cards makes it obvious
               // which one you are hearing.
@@ -164,10 +169,10 @@ export function SpeakButton({
       )}
     >
       {unavailable ? (
-        <VolumeX className="h-4 w-4" aria-hidden="true" />
+        <VolumeX className={size === "lg" ? "h-5 w-5" : "h-4 w-4"} aria-hidden="true" />
       ) : (
         <Volume2
-          className={cn("h-4 w-4", speaking && "animate-pulse")}
+          className={cn(size === "lg" ? "h-5 w-5" : "h-4 w-4", speaking && "animate-pulse")}
           aria-hidden="true"
         />
       )}

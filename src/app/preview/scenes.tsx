@@ -1291,7 +1291,6 @@ export const SCENES: Scene[] = [
     bleed: true,
     render: () => (
       <AppShell
-        header={<AppHeader title="יפן בסתיו" />}
         banner={
           <CityBand
             tripId={f.TRIP_ID}

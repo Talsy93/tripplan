@@ -2,8 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { ExternalLink, Map as MapIcon, MapPinOff, Route } from "lucide-react";
-import { Card } from "@/components/ui";
+import { Map as MapIcon, MapPinOff } from "lucide-react";
 import type { RoutePlace, RouteStop } from "../domain/route";
 
 // Leaflet has no server rendering — it needs a real DOM. Loading the canvas only
@@ -47,9 +46,9 @@ export function RouteMapCard({
 }) {
   if (stops.length === 0) {
     return (
-      <Card className="flex flex-col items-center gap-2 py-8 text-center">
+      <div className="flex flex-col items-center gap-2 rounded-[20px] bg-surface px-6 py-8 text-center shadow-card">
         <span
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-2 text-muted"
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-primary-tint text-primary"
           aria-hidden="true"
         >
           <MapIcon className="h-5 w-5" />
@@ -58,56 +57,47 @@ export function RouteMapCard({
         <p className="max-w-measure text-caption text-muted">
           כל מקום שתוסיפו כאן יופיע כסיכה, לפי סדר התחנות.
         </p>
-      </Card>
+      </div>
     );
   }
 
-  // Stitch's map card, to its measurements: 176px of map under a dark foot
-  // gradient, a frosted chip in the top corner, and a ribbon at the foot — the
-  // stop count, the cities, and "פתח מפה" as a translucent maritime pill.
+  // The Pencil map card (phase PN): a short strip of map with 20px corners and
+  // two white pills floating on it — the stop count at the start, "פתח מפה"
+  // at the end. No gradient over the tiles any more: white pills hold against
+  // the map on their own, and a dark foot turned a glance at the route into a
+  // photo caption.
   return (
-    <Card padding="none" className="relative overflow-hidden">
+    <div className="relative overflow-hidden rounded-[20px] bg-surface-2 shadow-card">
       {/* Leaflet's controls are laid out LTR; a map is a viewport rather than
           text, so it opts out of the app's direction. */}
-      <div dir="ltr" className="h-44 w-full [&_.leaflet-control-zoom]:hidden">
+      <div dir="ltr" className="h-32 w-full sm:h-40 [&_.leaflet-control-zoom]:hidden">
         <RouteMapCanvas stops={stops} places={places} />
       </div>
 
-      <div className="pointer-events-none absolute inset-0 z-[500] bg-gradient-to-t from-[rgba(40,48,68,0.8)] via-transparent to-black/20" />
-
-      <span className="pointer-events-none absolute start-2 top-2 z-[500] flex max-w-[calc(100%-1rem)] items-center gap-1 rounded-full bg-surface/90 px-2 py-0.5 shadow-sm backdrop-blur-md">
-        <Route className="h-4 w-4 text-success" aria-hidden="true" />
-        <span className="min-w-0 truncate text-[0.625rem] leading-[0.875rem] font-medium text-foreground">
-          {stops.map((stop) => stop.city).slice(0, 3).join(" · ")}
-        </span>
-      </span>
-
-      <div className="absolute inset-x-2 bottom-2 z-[500] flex min-w-0 items-center justify-between gap-2 text-white/95">
-        <span className="flex min-w-0 items-center gap-1 truncate">
-          <MapIcon className="h-[1.125rem] w-[1.125rem] shrink-0 text-cta-tint" aria-hidden="true" />
-          <span className="text-xs font-semibold">
-            {stops.length === 1 ? "עצירה אחת במסלול" : `${stops.length} עצירות במסלול`}
+      <div className="pointer-events-none absolute inset-x-3 top-3 z-[500] flex min-w-0 items-start justify-between gap-2">
+        <span className="flex min-w-0 flex-col items-start gap-1.5">
+          <span className="rounded-full bg-surface px-3 py-1.5 text-xs font-semibold text-primary shadow-card">
+            {stops.length === 1 ? "תחנה אחת" : `${stops.length} תחנות`}
           </span>
+          {/* Cities the geocoder could not place, as a count rather than a
+              repair form — the form lives on the מפה tab, one press away. */}
           {unlocatedCount > 0 && (
-            <>
-              <span className="text-[0.625rem] text-border-strong">•</span>
-              <span className="inline-flex items-center gap-1 text-[0.625rem] opacity-90">
-                <MapPinOff className="h-3 w-3 shrink-0" aria-hidden="true" />
-                {unlocatedCount === 1
-                  ? "עיר אחת בלי מיקום"
-                  : `${unlocatedCount} ערים בלי מיקום`}
-              </span>
-            </>
+            <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-surface/90 px-2.5 py-1 text-[0.6875rem] font-medium text-muted shadow-card">
+              <MapPinOff className="h-3 w-3 shrink-0" aria-hidden="true" />
+              {unlocatedCount === 1
+                ? "עיר אחת בלי מיקום"
+                : `${unlocatedCount} ערים בלי מיקום`}
+            </span>
           )}
         </span>
         <Link
           href={`/trips/${tripId}/map`}
-          className="flex shrink-0 items-center gap-0.5 rounded-full bg-primary/80 px-2 py-0.5 text-[0.625rem] leading-[0.875rem] font-semibold text-primary-foreground backdrop-blur-sm transition-colors hover:bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          className="pointer-events-auto flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-surface px-3.5 text-xs font-semibold text-foreground shadow-card transition-shadow hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
+          <MapIcon className="h-4 w-4" aria-hidden="true" />
           פתח מפה
-          <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
         </Link>
       </div>
-    </Card>
+    </div>
   );
 }

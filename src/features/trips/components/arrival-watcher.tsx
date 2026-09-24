@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { LocateFixed, LocateOff } from "lucide-react";
-import { Banner, Button } from "@/components/ui";
 import { instantToWallClock } from "@/lib/datetime";
 import { APP_TIME_ZONE } from "../domain/weather";
 import { detectArrival, reflowFromArrival } from "../domain/reflow";
+import { durationLabel } from "../domain/timeline";
 import type { ItineraryDay, ItineraryEntry } from "../domain/ai-suggestion";
 import { RescheduleDialog } from "./reschedule-dialog";
 
@@ -77,6 +77,9 @@ export function ArrivalWatcher({
     () => true,
   );
   const [arrived, setArrived] = useState<ItineraryEntry | null>(null);
+  // When it was noticed, in minutes since midnight where the trip is — for
+  // "20 דק׳ לפני הזמן".
+  const [arrivedAt, setArrivedAt] = useState<number | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   // Places already asked about this session, so a "no" is not re-asked every
@@ -104,6 +107,7 @@ export function ArrivalWatcher({
 
         asked.current.add(entry.id);
         setArrived(entry);
+        setArrivedAt(nowMinutes);
         notify(entry.title);
       },
       () => setUnavailable(true),
@@ -129,42 +133,64 @@ export function ArrivalWatcher({
 
   return (
     <>
+      {/* The nudge (Pencil, v7): a green-tint card that says what it noticed
+          and asks, with "not now" and a green "update" — green because saying
+          yes keeps the day on track, and the orange is spent elsewhere. */}
       {arrived && !dialogOpen && (
-        <Banner tone="callout" icon={<LocateFixed className="h-4 w-4" />}>
-          <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-            <span className="min-w-0 flex-1">
-              זיהינו שהגעתם ל<b>{arrived.title}</b> — מתוכנן ל-{arrived.startLabel}.
-              לעדכן את שעות הלו״ז?
+        <section
+          role="status"
+          aria-label="הגעתם למקום"
+          className="flex min-w-0 flex-col gap-3 rounded-[1.25rem] bg-success-tint p-4"
+        >
+          <p className="flex min-w-0 items-start gap-2.5 text-base leading-6 font-semibold text-foreground">
+            <LocateFixed className="mt-0.5 h-5 w-5 shrink-0 text-success" aria-hidden="true" />
+            <span className="min-w-0">
+              {arrivalSentence(arrived, arrivedAt)} לעדכן את שעות שאר היום?
             </span>
-            <span className="flex shrink-0 gap-2">
-              <Button size="sm" onClick={() => setDialogOpen(true)}>
-                כן, עדכנו
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setArrived(null)}>
-                לא עכשיו
-              </Button>
-            </span>
-          </span>
-        </Banner>
+          </p>
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setArrived(null)}
+              className="flex min-h-11 items-center rounded-full px-4 text-sm font-semibold text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              לא עכשיו
+            </button>
+            <button
+              type="button"
+              onClick={() => setDialogOpen(true)}
+              className="flex min-h-11 items-center rounded-full bg-success px-5 text-sm font-bold text-white shadow-card transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              עדכון הלו״ז
+            </button>
+          </div>
+        </section>
       )}
 
       {!watching ? (
         <button
           type="button"
           onClick={enable}
-          className="flex w-full items-center gap-3 rounded-card border border-dashed border-border-strong px-4 py-3 text-start text-sm transition-colors hover:border-primary hover:bg-primary-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex w-full min-w-0 items-center gap-3 rounded-[1.25rem] bg-surface p-4 text-start shadow-card transition-shadow hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <LocateFixed className="h-5 w-5 shrink-0 text-primary-ink" aria-hidden="true" />
+          <span
+            aria-hidden="true"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-success-tint text-success"
+          >
+            <LocateFixed className="h-5 w-5" />
+          </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-semibold">לעדכן את הלו״ז לפי המיקום</span>
-            <span className="block text-caption text-muted">
+            <span className="block text-base leading-6 font-semibold text-foreground">
+              לעדכן את הלו״ז לפי המיקום
+            </span>
+            <span className="block text-xs text-muted">
               כשתגיעו למקום מוקדם או מאוחר, נשאל אם להזיז את השעות. המיקום נשאר
               בטלפון.
             </span>
           </span>
         </button>
       ) : (
-        <div className="flex items-center justify-between gap-3 text-caption text-muted">
+        <div className="flex min-w-0 items-center justify-between gap-3 px-1 text-xs text-muted">
           <span className="flex min-w-0 items-center gap-1.5">
             {unavailable || !supported ? (
               <>
@@ -173,7 +199,7 @@ export function ArrivalWatcher({
               </>
             ) : (
               <>
-                <LocateFixed className="h-3.5 w-3.5 shrink-0 text-primary-ink" aria-hidden="true" />
+                <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-success" aria-hidden="true" />
                 עוקבים אחרי המיקום כדי לעדכן את הלו״ז
               </>
             )}
@@ -181,7 +207,7 @@ export function ArrivalWatcher({
           <button
             type="button"
             onClick={disable}
-            className="shrink-0 font-semibold text-muted underline-offset-2 hover:text-foreground hover:underline"
+            className="flex min-h-11 shrink-0 items-center font-semibold text-muted underline-offset-2 hover:text-foreground hover:underline"
           >
             הפסיקו
           </button>
@@ -203,6 +229,20 @@ export function ArrivalWatcher({
       )}
     </>
   );
+}
+
+// "הגעתם לקולוסיאום 20 דק׳ לפני הזמן." — how far off the plan you are, when the
+// planned hour can be read; otherwise just where you are and when it was due.
+function arrivalSentence(entry: ItineraryEntry, arrivedAt: number | null): string {
+  const match = /^(\d{1,2}):(\d{2})/.exec(entry.startLabel ?? "");
+  const planned = match ? Number(match[1]) * 60 + Number(match[2]) : null;
+  if (planned === null || arrivedAt === null) {
+    return `הגעתם ל${entry.title}, שמתוכנן ל-${entry.startLabel}.`;
+  }
+  const diff = planned - arrivedAt;
+  if (diff > 0) return `הגעתם ל${entry.title} ${durationLabel(diff)} לפני הזמן.`;
+  if (diff < 0) return `הגעתם ל${entry.title} באיחור של ${durationLabel(-diff)}.`;
+  return `הגעתם ל${entry.title} בדיוק בזמן.`;
 }
 
 function notify(title: string) {

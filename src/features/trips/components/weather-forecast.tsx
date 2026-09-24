@@ -1,11 +1,16 @@
-import { Banner, Card, SectionHeading, Surface, ToneDot } from "@/components/ui";
-import { describeWeather, weekdayLabel } from "../domain/weather";
-import { cityToneClass, cityToneMap } from "../domain/tone";
-import type { CityWeather, ForecastWindow } from "../domain/weather";
-import { DomainIcon } from "./domain-icon";
 import { Droplet } from "lucide-react";
+import { Banner, Surface } from "@/components/ui";
+import { describeWeather, weekdayLabel } from "../domain/weather";
+import type { CityWeather, ForecastWindow } from "../domain/weather";
+import { weatherToneClass } from "./day-weather-card";
+import { DomainIcon } from "./domain-icon";
 
 // Presentational: the panel resolves the window and the data, this draws it.
+//
+// Pencil's forecast row (v7): "תחזית ב…" and one white card per city with the
+// days as columns — weekday, the sky in its colour, the high. No box per day;
+// the card is the box. A long trip scrolls sideways inside it rather than
+// wrapping, so a two-week forecast stays one row per city.
 export function WeatherForecast({
   window,
   cities,
@@ -21,7 +26,7 @@ export function WeatherForecast({
   // when it will is more useful than an empty panel.
   if (window.kind === "too-far") {
     return (
-      <Surface tone="quiet" className="flex flex-col gap-1">
+      <Surface tone="quiet" className="flex flex-col gap-1 rounded-[1.25rem]">
         <p className="text-base font-semibold">התחזית עוד לא קיימת</p>
         <p className="text-sm text-muted">
           תחזית זמינה עד 16 ימים קדימה. נתחיל להציג אותה בעוד{" "}
@@ -34,10 +39,6 @@ export function WeatherForecast({
     );
   }
 
-  // Tones come from the full city list, not the filtered one, so a city whose
-  // forecast failed doesn't shift the colours of the ones after it.
-  const tones = cityToneMap(cities.map((city) => city.city));
-
   const withData = cities.filter((city) => city.days.length > 0);
   if (withData.length === 0) {
     return (
@@ -48,51 +49,50 @@ export function WeatherForecast({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-5">
       {withData.map((city) => (
-        <div
-          key={city.city}
-          className={`flex flex-col gap-2 ${cityToneClass(tones, city.city)}`}
-        >
-          <SectionHeading level="sub" leading={<ToneDot />}>
-            {city.city}
-          </SectionHeading>
-          {/* Days scroll sideways rather than wrapping, so a two-week trip
-              stays one row per city instead of a grid that hides the shape. */}
-          <ul className="flex gap-2 overflow-x-auto pb-1">
-            {city.days.map((day) => {
-              const { icon, label } = describeWeather(day.code);
-              return (
-                <li key={day.date} className="shrink-0">
-                  <Card
-                    padding="sm"
-                    className="flex w-24 flex-col items-center gap-1 text-center"
+        <section key={city.city} className="flex min-w-0 flex-col gap-3">
+          <h2 className="min-w-0 text-base leading-6 font-bold text-foreground wrap-anywhere">
+            תחזית ב{city.city}
+          </h2>
+          <div className="min-w-0 rounded-[1.25rem] bg-surface px-2 py-4 shadow-card">
+            <ul className="flex overflow-x-auto">
+              {city.days.map((day) => {
+                const { icon, label } = describeWeather(day.code);
+                return (
+                  <li
+                    key={day.date}
+                    className="flex min-w-[3.75rem] flex-1 shrink-0 flex-col items-center gap-1.5 text-center"
                   >
-                    <span className="text-caption text-muted">
-                      {weekdayLabel(day.date)}
+                    <span className="text-xs text-muted" title={weekdayLabel(day.date)}>
+                      {weekdayLabel(day.date).split(",")[0]}
                     </span>
                     <span
-                      className="text-title"
+                      className={weatherToneClass(icon)}
                       title={label}
                       aria-label={label}
                     >
                       <DomainIcon name={icon} className="h-6 w-6" />
                     </span>
-                    <span className="text-sm font-semibold tabular-nums">
-                      {Math.round(day.maxC)}° / {Math.round(day.minC)}°
+                    <span className="text-base font-bold tabular-nums text-foreground">
+                      {Math.round(day.maxC)}°
                     </span>
-                    {day.rainChance !== null && day.rainChance > 0 && (
-                      <span className="text-caption tabular-nums text-muted">
-                        <Droplet className="inline h-3 w-3 align-[-1px]" aria-hidden="true" />{" "}
-                        {day.rainChance}%
-                      </span>
-                    )}
-                  </Card>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+                    <span className="text-xs tabular-nums text-muted">
+                      {day.rainChance !== null && day.rainChance > 0 ? (
+                        <>
+                          <Droplet className="inline h-3 w-3 align-[-1px]" aria-hidden="true" />{" "}
+                          {day.rainChance}%
+                        </>
+                      ) : (
+                        `${Math.round(day.minC)}°`
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
       ))}
     </div>
   );

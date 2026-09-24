@@ -14,16 +14,18 @@ export default function Loading() {
       <div className="sticky top-0 hidden h-dvh w-rail shrink-0 border-e border-border bg-surface lg:block" />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="h-14 border-b border-border bg-surface" />
-        <div className="mx-auto flex w-full max-w-content flex-col gap-6 px-4 pb-12 pt-5 md:px-6 lg:px-8">
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-9 w-48" />
-          <Skeleton className="h-24 w-full" />
+        <div className="mx-auto flex w-full max-w-content flex-col gap-6 px-4 pb-12 md:px-6 lg:px-8">
+          {/* The terracotta band and its pill row, as one block: no app bar
+              above it any more, and a pale shimmer where a solid band is about
+              to land is a worse guess than the band. */}
+          <div className="-mx-4 h-36 bg-cat-mustsee-ink md:-mx-6 lg:-mx-8" />
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-36 w-full rounded-[20px]" />
           <Skeleton className="h-6 w-32" />
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <Skeleton className="h-36" />
-            <Skeleton className="h-36" />
-            <Skeleton className="h-36" />
+            <Skeleton className="h-36 rounded-[20px]" />
+            <Skeleton className="h-36 rounded-[20px]" />
+            <Skeleton className="h-36 rounded-[20px]" />
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Plane } from "lucide-react";
-import { Banner, Card } from "@/components/ui";
+import { Compass } from "lucide-react";
+import { Banner } from "@/components/ui";
 import { PageEnter } from "@/components/layout";
 
 export const metadata = {
@@ -106,19 +106,24 @@ const SECTIONS: Section[] = [
 export default function PrivacyPage() {
   return (
     <main className="flex min-h-dvh flex-col">
-      <header className="flex h-14 items-center gap-3 border-b border-border bg-surface px-4 md:px-6 lg:px-8">
+      {/* The Pencil signed-out frame: the wordmark on the canvas itself, no
+          bar — the same header the shared-trip page opens with. */}
+      <PageEnter className="mx-auto max-w-3xl flex-1 gap-5 px-4 pb-10 pt-6 md:px-6">
         <Link
           href="/"
-          className="flex items-center gap-1.5 font-bold text-brand"
+          className="flex items-center gap-2 self-start rounded-full text-sm font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <Plane className="h-5 w-5" aria-hidden="true" />
+          <span
+            aria-hidden="true"
+            className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-[image:var(--hero-gradient)] text-white"
+          >
+            <Compass className="h-4 w-4" />
+          </span>
           MyTrip
         </Link>
-      </header>
 
-      <PageEnter className="mx-auto max-w-3xl flex-1 px-4 py-8 md:px-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-display font-bold">מדיניות פרטיות</h1>
+        <div className="flex flex-col gap-1">
+          <h1 className="text-[28px] font-bold leading-tight">מדיניות פרטיות</h1>
           <p className="text-sm text-muted">עודכן ב-{UPDATED}</p>
         </div>
 
@@ -128,8 +133,11 @@ export default function PrivacyPage() {
         </Banner>
 
         {SECTIONS.map((section) => (
-          <Card key={section.title} className="flex flex-col gap-3">
-            <h2 className="text-title font-bold">{section.title}</h2>
+          <section
+            key={section.title}
+            className="flex flex-col gap-3 rounded-[20px] bg-surface p-5 shadow-card"
+          >
+            <h2 className="text-lg font-bold">{section.title}</h2>
             {section.body.map((paragraph) => (
               <p key={paragraph} className="text-sm">
                 {paragraph}
@@ -142,13 +150,13 @@ export default function PrivacyPage() {
                     key={item}
                     className="flex gap-2 text-sm wrap-anywhere"
                   >
-                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-tone-dot" aria-hidden="true" />
-                    <span className="min-w-0">{item}</span>
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                    <span className="min-w-0 text-muted-strong">{item}</span>
                   </li>
                 ))}
               </ul>
             )}
-          </Card>
+          </section>
         ))}
 
         <p className="text-caption text-muted">
@@ -158,7 +166,7 @@ export default function PrivacyPage() {
 
         <Link
           href="/signup"
-          className="self-start rounded-control text-sm font-semibold text-primary-ink hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="self-start rounded-full text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           חזרה להרשמה
         </Link>

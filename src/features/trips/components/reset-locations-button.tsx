@@ -34,7 +34,7 @@ export function ResetLocationsButton({ tripId }: { tripId: string }) {
       size="sm"
       onClick={() => void reset()}
       loading={resetting}
-      className="self-start"
+      className="self-start rounded-full"
     >
       <RefreshCw className="h-4 w-4" aria-hidden="true" />
       סיכה במקום הלא נכון? רענון המיקומים

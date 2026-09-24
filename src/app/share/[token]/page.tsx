@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { CalendarDays, MapPin, Plane } from "lucide-react";
-import { Badge, Card, SectionHeading } from "@/components/ui";
+import { CalendarDays, Compass, Eye, Lock } from "lucide-react";
 import { PageEnter } from "@/components/layout";
+import { cn } from "@/lib/cn";
 import { formatInZone } from "@/lib/datetime";
 import {
   APP_TIME_ZONE,
@@ -51,21 +51,35 @@ export default async function SharedTripPage({
   const countryGroups = stopsByCountry(trip.stops);
   const showCountries = countryGroups.length > 1;
 
+  // Laid out as design/pencil/exports/public-share-mobile: the "view only"
+  // pill, the title and dates, a tile per city with its nights, the bookings
+  // as rows in one card, and a card per day. The export's travellers line is
+  // not drawn — the shared view carries no names, on purpose.
   return (
     <main className="flex min-h-dvh flex-col">
-      <header className="flex h-14 items-center gap-3 border-b border-border bg-surface px-4 md:px-6 lg:px-8">
-        <span className="flex items-center gap-1.5 font-bold text-brand">
-          <Plane className="h-5 w-5" aria-hidden="true" />
-          MyTrip
-        </span>
-        <Badge tone="neutral" className="ms-auto">
-          לצפייה בלבד
-        </Badge>
-      </header>
-
-      <PageEnter className="mx-auto max-w-3xl flex-1 gap-8 px-4 py-8 md:px-6">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-display font-bold">{trip.name}</h1>
+      <PageEnter className="mx-auto max-w-3xl flex-1 gap-6 px-4 pb-10 pt-6 md:px-6">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href="/"
+              className="flex items-center gap-2 rounded-full text-sm font-bold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span
+                aria-hidden="true"
+                className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-[image:var(--hero-gradient)] text-white"
+              >
+                <Compass className="h-4 w-4" />
+              </span>
+              MyTrip
+            </Link>
+            <span className="flex items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1 text-caption font-semibold text-muted">
+              <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+              לצפייה בלבד
+            </span>
+          </div>
+          <h1 className="text-[28px] font-bold leading-tight wrap-anywhere">
+            {trip.name}
+          </h1>
           {trip.startDate && (
             <p className="flex items-center gap-1.5 text-sm text-muted">
               <CalendarDays className="h-4 w-4" aria-hidden="true" />
@@ -76,47 +90,51 @@ export default async function SharedTripPage({
         </div>
 
         {trip.stops.length > 0 && (
-          <section className="flex flex-col gap-3">
-            <SectionHeading level="section">התחנות</SectionHeading>
-            <div className="flex flex-col gap-3">
-              {countryGroups.map((group, index) => (
-                <div
-                  key={`${group.country ?? "unknown"}-${index}`}
-                  className="flex flex-col gap-2"
-                >
-                  {showCountries && (
-                    <h3 className="text-caption font-bold text-muted">
-                      {group.country ?? "יעדים נוספים"}
-                    </h3>
-                  )}
-                  <ul className="flex flex-wrap gap-2">
-                    {group.stops.map((stop) => (
-                      <li key={stop.city}>
-                        <Badge tone="action">
-                          <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-                          {stop.city}
-                          {stop.nights > 0 && (
-                            <span className="font-normal">
-                              {" · "}
-                              {stop.nights === 1
-                                ? "לילה"
-                                : `${stop.nights} לילות`}
-                            </span>
-                          )}
-                        </Badge>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
+          <section aria-label="התחנות" className="flex flex-col gap-3">
+            {countryGroups.map((group, groupIndex) => (
+              <div
+                key={`${group.country ?? "unknown"}-${groupIndex}`}
+                className="flex flex-col gap-2"
+              >
+                {showCountries && (
+                  <h2 className="text-caption font-bold text-muted">
+                    {group.country ?? "יעדים נוספים"}
+                  </h2>
+                )}
+                <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                  {group.stops.map((stop, index) => (
+                    <li
+                      key={stop.city}
+                      className={cn(
+                        "flex min-w-0 flex-col gap-1 rounded-[18px] bg-surface p-3.5 shadow-card",
+                        TONES[index % TONES.length],
+                      )}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="h-2.5 w-2.5 rounded-full bg-tone-dot"
+                      />
+                      <span className="truncate text-base font-bold">
+                        {stop.city}
+                      </span>
+                      <span className="text-caption text-muted">
+                        {stop.nights === 0
+                          ? "בלי לינה"
+                          : stop.nights === 1
+                            ? "לילה אחד"
+                            : `${stop.nights} לילות`}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </section>
         )}
 
         {trip.bookings.length > 0 && (
-          <section className="flex flex-col gap-3">
-            <SectionHeading level="section">טיסות ולינה</SectionHeading>
-            <ul className="flex flex-col gap-2">
+          <section aria-label="טיסות ולינה">
+            <ul className="flex flex-col divide-y divide-border rounded-[20px] bg-surface px-4 shadow-card">
               {trip.bookings.map((booking) => {
                 const kind = BOOKING_KINDS[booking.kind];
                 const where = kind.isTransport
@@ -126,18 +144,26 @@ export default async function SharedTripPage({
                   : booking.city;
 
                 return (
-                  <li key={booking.id}>
-                    <Card className="flex flex-col gap-1">
-                      <span className="flex items-center gap-2 text-sm font-semibold">
-                        <DomainIcon name={kind.icon} />
+                  <li
+                    key={booking.id}
+                    className="flex min-w-0 items-start gap-3 py-3.5"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-primary-tint text-primary"
+                    >
+                      <DomainIcon name={kind.icon} className="h-5 w-5" />
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="text-sm font-bold wrap-anywhere">
                         {booking.title}
                       </span>
                       {where && (
-                        <span className="text-sm text-muted">{where}</span>
+                        <span className="text-caption text-muted">{where}</span>
                       )}
                       <span
                         dir="ltr"
-                        className="text-caption tabular-nums text-muted"
+                        className="self-end text-caption tabular-nums text-muted"
                       >
                         {formatMoment(booking.starts_at)}
                         {booking.ends_at &&
@@ -148,7 +174,7 @@ export default async function SharedTripPage({
                           {booking.note}
                         </span>
                       )}
-                    </Card>
+                    </span>
                   </li>
                 );
               })}
@@ -157,51 +183,74 @@ export default async function SharedTripPage({
         )}
 
         {trip.itinerary.length > 0 && (
-          <section className="flex flex-col gap-4">
-            <SectionHeading level="section">לוח הזמנים</SectionHeading>
+          <section className="flex flex-col gap-3">
+            <h2 className="text-lg font-bold">לוח הזמנים</h2>
             {trip.itinerary.map((day) => {
               const city = [...day.items].reverse().find((it) => it.city)?.city;
               return (
-                <div key={day.day} className="flex flex-col gap-2">
-                  <h3 className="text-sm font-bold">
+                <article
+                  key={day.day}
+                  className="flex flex-col gap-2 rounded-[18px] bg-surface p-4 shadow-card"
+                >
+                  <h3 className="text-base font-bold">
                     {dayLabel(day.day, dateOfDay(trip.startDate, day.day))}
-                    {city && (
-                      <span className="font-normal text-muted"> · {city}</span>
-                    )}
+                    {city && <span> · {city}</span>}
                   </h3>
-                  <ul className="flex flex-col gap-2 border-s border-border ps-3">
+                  <ul className="flex flex-col gap-1.5">
                     {day.items.map((item) => (
                       <li key={item.id} className="flex flex-col gap-0.5">
                         <span className="flex items-baseline gap-2 text-sm">
-                          <span className="shrink-0 tabular-nums text-muted">
+                          <span className="w-11 shrink-0 tabular-nums text-outline">
                             {item.startLabel}
                           </span>
-                          <span className="font-medium">{item.title}</span>
+                          <span className="min-w-0 text-muted-strong">
+                            {item.title}
+                          </span>
                         </span>
                         {item.note && (
-                          <span className="text-caption text-muted">
+                          <span className="ps-13 text-caption text-muted">
                             {item.note}
                           </span>
                         )}
                       </li>
                     ))}
                   </ul>
-                </div>
+                </article>
               );
             })}
           </section>
         )}
 
-        <footer className="mt-auto border-t border-border pt-4 text-caption text-muted">
-          נבנה ב-
-          <Link href="/" className="font-semibold underline">
-            MyTrip
-          </Link>
+        {/* True of what this page is given: redactBooking (domain/share.ts)
+            drops confirmation numbers, addresses and prices before the data
+            reaches it. */}
+        <footer className="mt-auto flex flex-col items-center gap-1 pt-2 text-center text-caption text-outline">
+          <span className="flex items-center gap-1.5">
+            <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+            בלי מספרי אישור, כתובות מדויקות ומחירים
+          </span>
+          <span>
+            נבנה ב-
+            <Link href="/" className="font-semibold text-primary hover:underline">
+              MyTrip
+            </Link>
+          </span>
         </footer>
       </PageEnter>
     </main>
   );
 }
+
+// The city tiles' dots, by position — the tone palette the app gives cities
+// everywhere else, so two neighbouring stops never share a colour.
+const TONES = [
+  "tone-peach",
+  "tone-mint",
+  "tone-sky",
+  "tone-rose",
+  "tone-amber",
+  "tone-lilac",
+];
 
 // Rendered on the server for a reader whose timezone we do not know, so the
 // trip's own zone is used rather than the machine's. A shared plan says when

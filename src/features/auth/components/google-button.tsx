@@ -7,8 +7,17 @@ export function GoogleButton({ next }: { next?: string }) {
       {/* Same hidden field as the credentials form, so signing in with Google
           from an invite link comes back to the invite rather than to "/". */}
       {next && <input type="hidden" name="next" value={next} />}
-      <button type="submit" className={buttonClasses("outline", "md", "w-full")}>
-        <svg aria-hidden="true" viewBox="0 0 18 18" className="h-4 w-4">
+      {/* The outlined white pill of the Pencil sign-in: secondary to the one
+          terracotta button, and never a second call to action beside it. */}
+      <button
+        type="submit"
+        className={buttonClasses(
+          "outline",
+          "lg",
+          "h-13 w-full rounded-full border border-border bg-surface text-foreground hover:bg-surface-2 hover:text-foreground",
+        )}
+      >
+        <svg aria-hidden="true" viewBox="0 0 18 18" className="h-[18px] w-[18px]">
           <path
             fill="#4285F4"
             d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"

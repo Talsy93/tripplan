@@ -29,11 +29,11 @@ export function WorkspaceMap({
   if (stops.length === 0) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-background bg-[radial-gradient(var(--border)_1px,transparent_1px)] bg-[size:20px_20px] p-6">
-        <div className="flex max-w-xs flex-col items-center gap-3 rounded-card border border-border bg-surface p-6 text-center shadow-lift">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-tint text-primary-ink">
+        <div className="flex max-w-xs flex-col items-center gap-3 rounded-[20px] bg-surface p-6 text-center shadow-lift">
+          <span className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-primary-tint text-primary">
             <MapIcon className="h-6 w-6" aria-hidden="true" />
           </span>
-          <p className="text-base font-semibold">המפה תתמלא כשתבחרו יעדים</p>
+          <p className="text-base font-bold">המפה תתמלא כשתבחרו יעדים</p>
           <p className="text-sm text-muted">
             כל עיר ומקום שתוסיפו בטאב ״יעדים״ יופיעו כאן כסיכה ממוספרת.
           </p>

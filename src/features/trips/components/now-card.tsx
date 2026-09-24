@@ -1,4 +1,4 @@
-import { Clock, FastForward, Footprints, Map as MapIcon, Navigation, Ticket } from "lucide-react";
+import { Clock, Footprints, Map as MapIcon, Navigation } from "lucide-react";
 import { instantToWallClock } from "@/lib/datetime";
 import { googleMapsSearchUrl } from "@/lib/maps";
 import { BOOKING_KINDS, bookingWhere } from "../domain/booking";
@@ -17,8 +17,8 @@ import type { DayItem } from "../domain/timeline";
 import { DomainIcon } from "./domain-icon";
 import { PlacePhoto } from "./place-photo";
 
-// "What now" and "what next" on the היום tab, drawn as the Stitch design's
-// featured card and its "התחנה הבאה" card under it (v6).
+// "What now" and "what next" on the היום tab, drawn as the Pencil design's
+// featured card and its "התחנה הבאה" card (v7).
 //
 // Both read the same day through the same functions, so they cannot disagree
 // about which item is running: the timeline, then its sequence, then dayNow.
@@ -108,14 +108,18 @@ type DayProps = {
   now: string;
 };
 
-// The featured card: a photo band carrying the live badge, the time left and
-// the title in white, and a body with the time range and the actions. With no
-// photo for the place, the band is the concierge gradient with the item's own
-// glyph set large and faint into it.
+// The featured card (Pencil, v7): the one gradient on the screen. A live dot
+// and "עכשיו", when it ends, the place in large type, how long is left and a
+// bar for how much of it has gone, then what comes after it beside a white
+// "ניווט" pill.
+//
+// A photo of the place, when there is one, sits under the teal as a texture —
+// the card reads the same with or without it. With no photo the item's own
+// glyph is set large and faint into the corner.
 //
 // Returns null when there is nothing to say — the day is over, or empty.
 export function NowCard({ day, bookings = [], date = null, now }: DayProps) {
-  const { current, next, minutesLeft } = readDay({ day, bookings, date, now });
+  const { current, next, minutesLeft, nowMinutes } = readDay({ day, bookings, date, now });
   const focus = current ?? next;
   if (!focus) return null;
 
@@ -138,111 +142,150 @@ export function NowCard({ day, bookings = [], date = null, now }: DayProps) {
         ? `נשארו ${durationLabel(Math.max(minutesLeft, 0))}`
         : `בעוד ${durationLabel(Math.max(minutesLeft, 0))}`;
 
+  // How much of the item has gone by, for the bar. Only while it is running
+  // and has an end — an open-ended item has no "how much".
+  const progress =
+    isNow && start !== null && end !== null && end > start
+      ? Math.min(Math.max((nowMinutes - start) / (end - start), 0), 1)
+      : null;
+
+  // What comes after the running item, at the card's foot. Between items the
+  // card is already about the next one, so there is nothing to add.
+  const after = isNow ? next : null;
+  const afterStart = after ? itemStart(after) : null;
+  const afterWalk =
+    after?.kind === "entry" && after.entry.entry.travelMinutes !== null
+      ? after.entry.entry.travelMinutes
+      : null;
+
   return (
     <section
       aria-label={isNow ? "מה עכשיו" : "הבא בתור"}
-      className="flex min-w-0 flex-col overflow-hidden rounded-card bg-surface shadow-lift"
+      className="relative isolate flex min-w-0 flex-col overflow-hidden rounded-[1.5rem] bg-[image:var(--hero-gradient)] p-5 text-white shadow-lift"
     >
-      <div className="relative isolate h-44 w-full overflow-hidden bg-[image:var(--hero-gradient)] text-white">
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-6 -end-4 -z-30 text-white/10">
-          {icon ? (
-            <DomainIcon name={icon} className="h-40 w-40" />
-          ) : (
-            <Clock className="h-40 w-40" />
-          )}
-        </span>
-        <PlacePhoto
-          query={itemTitle(focus)}
-          near={itemCity(focus)}
-          className="absolute inset-0 -z-20 bg-transparent"
-        />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-foreground/90 via-foreground/30 to-transparent" />
-
-        <span className="absolute end-auto start-4 top-4 flex items-center gap-1 rounded-full bg-cta-strong px-2 py-0.5 text-[0.625rem] leading-[0.875rem] font-semibold tracking-wide text-white shadow-sm">
-          {isNow && (
-            <span className="h-2 w-2 animate-pulse rounded-full bg-white" aria-hidden="true" />
-          )}
-          {isNow ? "עכשיו בלו״ז • בלייב" : "הבא בתור"}
-        </span>
-
-        {leftLabel && (
-          <span
-            suppressHydrationWarning
-            className={
-              soon
-                ? "absolute end-4 top-4 flex items-center gap-0.5 rounded-full bg-callout-tint px-2 py-0.5 text-[0.625rem] leading-[0.875rem] font-semibold text-callout-ink shadow-sm"
-                : "absolute end-4 top-4 flex items-center gap-0.5 rounded-full bg-surface/90 px-2 py-0.5 text-[0.625rem] leading-[0.875rem] font-semibold text-primary shadow-sm backdrop-blur-md"
-            }
-          >
-            <Clock className="h-[0.9375rem] w-[0.9375rem]" aria-hidden="true" />
-            {leftLabel}
-          </span>
+      <PlacePhoto
+        query={itemTitle(focus)}
+        near={itemCity(focus)}
+        className="absolute inset-0 -z-20 bg-transparent"
+      />
+      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[image:var(--hero-gradient)] opacity-[0.88]" />
+      <span aria-hidden="true" className="pointer-events-none absolute -bottom-8 -end-6 -z-10 text-white/[0.07]">
+        {icon ? (
+          <DomainIcon name={icon} className="h-40 w-40" />
+        ) : (
+          <Clock className="h-40 w-40" />
         )}
+      </span>
 
-        <div className="absolute inset-x-4 bottom-4">
-          {where && (
-            <span className="block truncate text-[0.625rem] leading-[0.875rem] font-medium text-surface-high">
-              {where}
-            </span>
-          )}
-          {/* wrap-anywhere, not truncate: this is the one string on the screen
-              the whole card exists to deliver. */}
-          <h3 className="mt-0.5 text-2xl leading-tight font-semibold text-white drop-shadow-sm wrap-anywhere">
-            {itemTitle(focus)}
-          </h3>
-        </div>
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <span className="flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold backdrop-blur-sm">
+          <span
+            aria-hidden="true"
+            className={isNow ? "h-2 w-2 animate-pulse rounded-full bg-success-bright" : "h-2 w-2 rounded-full bg-white/60"}
+          />
+          {isNow ? "עכשיו" : "הבא בתור"}
+        </span>
+        {isNow && end !== null ? (
+          <span className="text-sm font-semibold text-white/85 tabular-nums">
+            עד {formatMinutes(end)}
+          </span>
+        ) : !isNow && start !== null ? (
+          <span className="text-sm font-semibold text-white/85 tabular-nums">
+            ב-{formatMinutes(start)}
+          </span>
+        ) : null}
       </div>
 
-      <div className="flex min-w-0 flex-col gap-4 p-4">
-        {start !== null && (
-          <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-surface-2 p-2 text-xs font-medium text-muted">
-            <span className="flex items-center gap-1">
-              <Clock className="h-[1.125rem] w-[1.125rem] shrink-0 text-primary" aria-hidden="true" />
-              <span dir="ltr" className="font-semibold tabular-nums text-foreground">
+      {where && (
+        <span className="mt-4 block truncate text-xs text-white/70">{where}</span>
+      )}
+      {/* wrap-anywhere, not truncate: this is the one string on the screen
+          the whole card exists to deliver. */}
+      <h3 className={`${where ? "mt-0.5" : "mt-4"} text-[1.75rem] leading-9 font-bold wrap-anywhere`}>
+        {itemTitle(focus)}
+      </h3>
+      {leftLabel && (
+        <p suppressHydrationWarning className="mt-1 text-sm">
+          {soon ? (
+            <span className="rounded-full bg-cta-bright px-2 py-0.5 font-semibold text-white">
+              {leftLabel}
+            </span>
+          ) : (
+            <span className="text-white/80">{leftLabel}</span>
+          )}
+        </p>
+      )}
+
+      {progress !== null && (
+        <div
+          role="progressbar"
+          aria-label="כמה עבר"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress * 100)}
+          className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-white/25"
+        >
+          <div className="h-full rounded-full bg-white" style={{ width: `${progress * 100}%` }} />
+        </div>
+      )}
+
+      <div className="mt-5 flex min-w-0 items-center justify-between gap-3">
+        {after ? (
+          // To the rest of the day, further down this screen.
+          <a
+            href="#day-schedule"
+            className="flex min-w-0 flex-1 flex-col rounded-lg hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          >
+            <span className="truncate text-sm font-semibold">
+              הבא: {itemTitle(after)}
+            </span>
+            <span className="flex min-w-0 items-center gap-1 text-xs text-white/70 tabular-nums">
+              {afterStart !== null && formatMinutes(afterStart)}
+              {afterStart !== null && afterWalk !== null && " · "}
+              {afterWalk !== null && (
+                <>
+                  <Footprints className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  {afterWalk} דק׳ הליכה
+                </>
+              )}
+            </span>
+          </a>
+        ) : (
+          <span className="min-w-0 flex-1 truncate text-xs text-white/70">
+            {start !== null && (
+              <span dir="ltr" className="tabular-nums">
                 {end !== null && end > start
                   ? `${formatMinutes(start)} - ${formatMinutes(end)}`
                   : formatMinutes(start)}
               </span>
-            </span>
-            <span className="flex min-w-0 items-center gap-1">
-              <Ticket className="h-[1.125rem] w-[1.125rem] shrink-0 text-cta-strong" aria-hidden="true" />
-              <span className="min-w-0 truncate text-foreground">{itemKindLabel(focus)}</span>
-            </span>
-          </div>
+            )}
+            {start !== null && " · "}
+            {itemKindLabel(focus)}
+          </span>
         )}
-
-        <div className="flex min-w-0 gap-2">
-          {query && (
-            <a
-              href={googleMapsSearchUrl(query)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex min-h-12 min-w-0 flex-1 items-center justify-center gap-1 rounded-card bg-cta-bright px-4 text-sm font-bold text-cta-deep shadow-md transition-all hover:bg-cta-strong hover:text-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              <Navigation className="h-5 w-5 shrink-0" aria-hidden="true" />
-              ניווט למקום
-            </a>
-          )}
-          {/* To the rest of the day, further down this screen. */}
-          {isNow && next && (
-            <a
-              href="#day-schedule"
-              className="flex min-h-12 shrink-0 items-center justify-center gap-1 rounded-card bg-primary-tint px-4 text-sm font-semibold text-primary-ink shadow-sm transition-all hover:bg-brand-2 hover:text-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              <FastForward className="h-5 w-5 shrink-0" aria-hidden="true" />
-              הבא בתור
-            </a>
-          )}
-        </div>
+        {query && (
+          <a
+            href={googleMapsSearchUrl(query)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-surface px-5 text-sm font-bold text-primary shadow-card transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
+          >
+            <Navigation className="h-4 w-4 shrink-0" aria-hidden="true" />
+            ניווט
+          </a>
+        )}
       </div>
     </section>
   );
 }
 
-// "התחנה הבאה": the item after the one running, as Stitch's compact card — an
-// 80px photo, what it is, the name, how far, and a round map button. Nothing
-// when there is no running item (then NowCard is already showing the next one)
-// or nothing after it.
+// "התחנה הבאה": the item after the one running, as a compact white card — a
+// photo or the item's glyph on a teal tile, what it is, the name, how far, and
+// a round map button. Nothing when there is no running item (then NowCard is
+// already showing the next one) or nothing after it.
+//
+// The day screen folds this into NowCard's foot now, as the Pencil design
+// does; the card stays for layouts that want it on its own.
 export function NextStopCard({ day, bookings = [], date = null, now }: DayProps) {
   const { current, next, nowMinutes } = readDay({ day, bookings, date, now });
   if (!current || !next) return null;
@@ -258,24 +301,21 @@ export function NextStopCard({ day, bookings = [], date = null, now }: DayProps)
     next.kind === "booking" ? BOOKING_KINDS[next.booking.booking.kind].icon : "attraction";
 
   return (
-    <section aria-label="התחנה הבאה" className="flex min-w-0 flex-col gap-1">
+    <section aria-label="התחנה הבאה" className="flex min-w-0 flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="flex items-center gap-1 text-lg leading-6 font-semibold text-foreground">
-          <FastForward className="h-5 w-5 text-primary" aria-hidden="true" />
-          התחנה הבאה
-        </h3>
+        <h3 className="text-lg leading-6 font-bold text-foreground">התחנה הבאה</h3>
         {start !== null && (
-          <span className="text-[0.625rem] leading-[0.875rem] font-semibold text-cta-strong" suppressHydrationWarning>
+          <span className="text-xs font-semibold text-muted tabular-nums" suppressHydrationWarning>
             {formatMinutes(start)}
-            {start > nowMinutes && ` (עוד ${durationLabel(start - nowMinutes)})`}
+            {start > nowMinutes && ` · עוד ${durationLabel(start - nowMinutes)}`}
           </span>
         )}
       </div>
 
-      <div className="flex min-w-0 items-center gap-4 rounded-card bg-surface p-4 shadow-card">
-        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-card bg-surface-high text-primary">
+      <div className="flex min-w-0 items-center gap-3 rounded-[1.25rem] bg-surface p-3.5 shadow-card">
+        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-primary-tint text-primary">
           <span className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
-            <DomainIcon name={icon} className="h-8 w-8" />
+            <DomainIcon name={icon} className="h-7 w-7" />
           </span>
           <PlacePhoto
             query={itemTitle(next)}
@@ -284,20 +324,18 @@ export function NextStopCard({ day, bookings = [], date = null, now }: DayProps)
           />
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="text-[0.625rem] leading-[0.875rem] font-semibold text-primary">
-            {itemKindLabel(next)}
-          </span>
-          <h4 className="mt-0.5 truncate text-base leading-[1.375rem] font-semibold text-foreground">
+          <span className="text-xs text-muted">{itemKindLabel(next)}</span>
+          <h4 className="truncate text-base leading-6 font-bold text-foreground">
             {itemTitle(next)}
           </h4>
-          <div className="mt-0.5 flex min-w-0 items-center gap-2 text-xs text-muted">
+          <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted">
             {walk !== null && (
               <>
                 <span className="flex shrink-0 items-center gap-0.5">
-                  <Footprints className="h-[0.9375rem] w-[0.9375rem] text-success" aria-hidden="true" />
+                  <Footprints className="h-3.5 w-3.5" aria-hidden="true" />
                   {walk} דק׳
                 </span>
-                {where && <span>•</span>}
+                {where && <span aria-hidden="true">·</span>}
               </>
             )}
             {where && <span className="truncate">{where}</span>}
@@ -309,7 +347,7 @@ export function NextStopCard({ day, bookings = [], date = null, now }: DayProps)
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`${itemTitle(next)} במפה`}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-sunken text-primary transition-all hover:bg-primary hover:text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2 text-primary transition-colors hover:bg-primary-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <MapIcon className="h-5 w-5" aria-hidden="true" />
           </a>

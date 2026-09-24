@@ -1,18 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Clock, Copy, Crown, LogOut, Trash2 } from "lucide-react";
+import { Copy, LogOut, Mail, Trash2, Users } from "lucide-react";
 import {
   Badge,
   Button,
-  Card,
   Dialog,
   EmptyState,
   IconButton,
-  ListRow,
   Select,
   useToast,
 } from "@/components/ui";
+import { cn } from "@/lib/cn";
 import {
   TRIP_ROLES,
   TRIP_ROLE_ORDER,
@@ -28,7 +27,60 @@ import {
   changeMemberRole,
   revokeMember,
 } from "../application/membership-actions";
-import { Users } from "lucide-react";
+
+// Pencil's role colours, one per kind of access, used for the avatar and the
+// pill so the two agree: the owner in the brand teal, an editor in green, a
+// viewer in quiet grey. The pill words are short and ungendered — the long
+// labels in TRIP_ROLES stay as the row's subtitle, where there is room.
+const ROLE_LOOK = {
+  owner: {
+    pill: "bg-primary-tint text-primary-ink",
+    avatar: "bg-primary text-primary-foreground",
+    short: "בעלים",
+  },
+  editor: {
+    pill: "bg-success-tint text-success-ink",
+    avatar: "bg-success text-white",
+    short: "עריכה",
+  },
+  viewer: {
+    pill: "bg-surface-2 text-muted",
+    avatar: "bg-cat-hidden-ink text-white",
+    short: "צפייה",
+  },
+} as const;
+
+// The first letter of whatever the row is called — a name or an email.
+function initial(label: string): string {
+  return Array.from(label.trim())[0]?.toUpperCase() ?? "?";
+}
+
+function Avatar({ label, tone }: { label: string; tone: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-base font-semibold",
+        tone,
+      )}
+    >
+      {initial(label)}
+    </span>
+  );
+}
+
+function RolePill({ className, children }: { className: string; children: string }) {
+  return (
+    <span
+      className={cn(
+        "shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold",
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
+}
 
 // Who can reach this trip, and who has been asked but has not joined yet.
 //
@@ -37,6 +89,10 @@ import { Users } from "lucide-react";
 // list should see the facts without controls that would be refused. The database
 // enforces the same rule — this is presentation, and if the two disagree the
 // policy wins.
+//
+// Drawn to the Pencil export (members-mobile): one white card of rows with an
+// initial avatar and a role pill, then the pending invitations under their own
+// small heading with a red "cancel".
 export function MemberList({
   tripId,
   members,
@@ -118,95 +174,96 @@ export function MemberList({
     }
   }
 
+
   return (
-    <div className="flex flex-col gap-3">
-      <ul className="flex flex-col gap-2">
+    <div className="flex flex-col gap-4">
+      <ul className="flex flex-col rounded-[20px] bg-surface px-4 shadow-card">
         {owner && (
-          <li>
-            <ListRow
-              leading={
-                <span
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary-ink"
-                  aria-hidden="true"
-                >
-                  <Crown className="h-4 w-4" />
-                </span>
-              }
-              title={memberLabel(owner)}
-              subtitle="יצר את הטיול · גישה מלאה"
-              trailing={
-                owner.member_id === currentUserId ? (
-                  <Badge tone="neutral">אתם</Badge>
-                ) : undefined
-              }
-            />
+          <li className="flex min-w-0 items-center gap-3 border-b border-border py-3 last:border-b-0">
+            <Avatar label={memberLabel(owner)} tone={ROLE_LOOK.owner.avatar} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[0.9375rem] font-semibold text-foreground">
+                {memberLabel(owner)}
+              </span>
+              <span className="block truncate text-xs text-muted">
+                יצר את הטיול · גישה מלאה
+              </span>
+            </span>
+            {owner.member_id === currentUserId && (
+              <Badge tone="neutral">אתם</Badge>
+            )}
+            <RolePill className={ROLE_LOOK.owner.pill}>
+              {ROLE_LOOK.owner.short}
+            </RolePill>
           </li>
         )}
 
         {visibleOthers.map((member) => {
           const self = member.member_id === currentUserId;
+          const look = ROLE_LOOK[member.member_role];
           return (
-            <li key={member.member_id}>
-              <ListRow
-                title={memberLabel(member)}
-                subtitle={
-                  member.member_name && member.member_email
+            <li
+              key={member.member_id}
+              className="flex min-w-0 items-center gap-3 border-b border-border py-3 last:border-b-0"
+            >
+              <Avatar label={memberLabel(member)} tone={look.avatar} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[0.9375rem] font-semibold text-foreground wrap-anywhere">
+                  {memberLabel(member)}
+                </span>
+                <span className="block text-xs text-muted wrap-anywhere">
+                  {member.member_name && member.member_email
                     ? member.member_email
-                    : TRIP_ROLES[member.member_role].label
-                }
-                trailing={
-                  <>
-                    {self && <Badge tone="neutral">אתם</Badge>}
-                    {isOwner ? (
-                      <Select
-                        value={member.member_role}
-                        disabled={busy === member.member_id}
-                        onChange={(event) =>
-                          void setRole(
-                            member,
-                            event.currentTarget.value as TripRole,
-                          )
-                        }
-                        aria-label={`הרשאה של ${memberLabel(member)}`}
-                        className="w-36"
-                      >
-                        {TRIP_ROLE_ORDER.map((value) => (
-                          <option key={value} value={value}>
-                            {TRIP_ROLES[value].label}
-                          </option>
-                        ))}
-                      </Select>
-                    ) : (
-                      <Badge tone="neutral">
-                        {TRIP_ROLES[member.member_role].label}
-                      </Badge>
+                    : TRIP_ROLES[member.member_role].label}
+                </span>
+              </span>
+              <span className="flex shrink-0 items-center gap-1.5">
+                {self && <Badge tone="neutral">אתם</Badge>}
+                {isOwner ? (
+                  // The owner's pill is the role switch itself: the same
+                  // native select as before, dressed as the pill a member sees.
+                  <Select
+                    value={member.member_role}
+                    disabled={busy === member.member_id}
+                    onChange={(event) =>
+                      void setRole(member, event.currentTarget.value as TripRole)
+                    }
+                    aria-label={`הרשאה של ${memberLabel(member)}`}
+                    className={cn(
+                      "h-10 w-auto rounded-full ps-3 pe-8 text-xs font-semibold",
+                      look.pill,
                     )}
+                  >
+                    {TRIP_ROLE_ORDER.map((value) => (
+                      <option key={value} value={value}>
+                        {ROLE_LOOK[value].short}
+                      </option>
+                    ))}
+                  </Select>
+                ) : (
+                  <RolePill className={look.pill}>{look.short}</RolePill>
+                )}
 
-                    {/* The owner removes anybody; a member can remove only
-                        themselves. Both are the same delete, allowed by two
-                        different policies — being unable to leave a trip
-                        somebody added you to would be a trap, not a safeguard. */}
-                    {(isOwner || self) && (
-                      <IconButton
-                        label={
-                          self ? "יציאה מהטיול" : `הסרת ${memberLabel(member)}`
-                        }
-                        variant="danger"
-                        size="sm"
-                        onClick={() =>
-                          setConfirming({ kind: "member", member, self })
-                        }
-                      >
-                        {self ? (
-                          <LogOut className="h-4 w-4" aria-hidden="true" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" aria-hidden="true" />
-                        )}
-                      </IconButton>
+                {/* The owner removes anybody; a member can remove only
+                    themselves. Both are the same delete, allowed by two
+                    different policies — being unable to leave a trip
+                    somebody added you to would be a trap, not a safeguard. */}
+                {(isOwner || self) && (
+                  <IconButton
+                    label={self ? "יציאה מהטיול" : `הסרת ${memberLabel(member)}`}
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted hover:text-danger"
+                    onClick={() => setConfirming({ kind: "member", member, self })}
+                  >
+                    {self ? (
+                      <LogOut className="h-4 w-4" aria-hidden="true" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                     )}
-                  </>
-                }
-              />
+                  </IconButton>
+                )}
+              </span>
             </li>
           );
         })}
@@ -225,25 +282,33 @@ export function MemberList({
       )}
 
       {visibleInvites.length > 0 && (
-        <Card padding="none" className="flex flex-col">
-          <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
-            <Clock className="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-            <h4 className="text-sm font-bold">ממתינים להצטרפות</h4>
-            <Badge tone="neutral" className="ms-auto">
+        <section className="flex flex-col gap-2">
+          <h4 className="px-1 text-sm font-semibold text-muted">
+            ממתינים לאישור
+            <span className="ms-1.5 font-normal text-outline">
               {visibleInvites.length}
-            </Badge>
-          </div>
-          <ul className="flex flex-col">
+            </span>
+          </h4>
+          <ul className="flex flex-col rounded-[20px] bg-surface px-4 shadow-card">
             {visibleInvites.map((invite) => (
               <li
                 key={invite.token}
-                className="flex min-w-0 items-center gap-2 border-b border-border px-4 py-2 last:border-b-0"
+                className="flex min-w-0 items-center gap-3 border-b border-border py-3 last:border-b-0"
               >
+                <span
+                  aria-hidden="true"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2 text-muted"
+                >
+                  <Mail className="h-5 w-5" />
+                </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm wrap-anywhere" dir="ltr">
+                  <span
+                    className="block text-[0.9375rem] font-semibold wrap-anywhere"
+                    dir="ltr"
+                  >
                     {invite.email}
                   </span>
-                  <span className="block text-caption text-muted">
+                  <span className="block text-xs text-muted">
                     {TRIP_ROLES[invite.role].label}
                   </span>
                 </span>
@@ -256,19 +321,19 @@ export function MemberList({
                   <Copy className="h-4 w-4" aria-hidden="true" />
                 </IconButton>
                 {isOwner && (
-                  <IconButton
-                    label={`ביטול ההזמנה של ${invite.email}`}
-                    variant="danger"
-                    size="sm"
+                  <button
+                    type="button"
+                    aria-label={`ביטול ההזמנה של ${invite.email}`}
                     onClick={() => setConfirming({ kind: "invite", invite })}
+                    className="flex min-h-11 shrink-0 items-center rounded-full px-2 text-sm font-semibold text-danger transition-colors hover:bg-danger-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  </IconButton>
+                    ביטול
+                  </button>
                 )}
               </li>
             ))}
           </ul>
-        </Card>
+        </section>
       )}
 
       {/* One dialog for both actions, and the wording says what each one costs.

@@ -153,30 +153,28 @@ export function ChecklistCard({
   return (
     <section className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <div className="flex min-w-0 items-center gap-1">
-          <div
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-cta-tint text-cta-strong"
-            aria-hidden="true"
-          >
-            <Luggage className="h-5 w-5" />
-          </div>
+        {/* Pencil: a plain heading with a teal glyph. The terracotta disc it
+            had is the screen's call-to-action colour, and that is spent on
+            "הוספת כרטיס". */}
+        <div className="flex min-w-0 items-center gap-2">
+          <Luggage className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
           <h2 className="min-w-0 text-lg leading-6 font-semibold text-foreground">
             ציוד ורשימת הכנות
           </h2>
         </div>
         {total > 0 && (
-          <span className="shrink-0 rounded-full bg-primary-tint px-2 py-0.5 text-[10px] leading-[14px] font-semibold tracking-[0.02em] text-primary">
+          <span className="shrink-0 rounded-full bg-primary-tint px-2.5 py-1 text-xs leading-4 font-semibold text-primary">
             {done} מתוך {total} מוכנים
           </span>
         )}
       </div>
 
-      <div className="rounded-xl bg-surface p-4 shadow-card">
+      <div className="rounded-[18px] bg-surface p-4 shadow-card">
         <div className="mb-1 flex items-center justify-between">
           <span className="text-xs leading-4 font-semibold text-foreground">
             מוכנות לטיסה
           </span>
-          <span className="text-base leading-[22px] font-bold text-cta-strong tabular-nums">
+          <span className="text-base leading-[22px] font-bold text-success-ink tabular-nums">
             {percent}%
           </span>
         </div>
@@ -186,10 +184,12 @@ export function ChecklistCard({
           aria-valuenow={percent}
           aria-valuemin={0}
           aria-valuemax={100}
-          className="mb-4 h-3 w-full overflow-hidden rounded-full bg-surface-high"
+          className="mb-4 h-2 w-full overflow-hidden rounded-full bg-surface-sunken"
         >
           <div
-            className="h-full rounded-full bg-cta-strong transition-all duration-500"
+            // Green, as on the summary tile that opens this card: readiness
+            // is progress toward done, and done is the success colour.
+            className="h-full rounded-full bg-success transition-all duration-500"
             style={{ width: `${percent}%` }}
           />
         </div>

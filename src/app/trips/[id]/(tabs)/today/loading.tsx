@@ -1,19 +1,25 @@
 import { Skeleton } from "@/components/ui";
 
-// Heights mirror TripAuraBand, so the band does not resize under the reader
-// when it arrives. It used to mirror CountdownHero, which this tab no longer
-// renders — the countdown moved into the band in the (tabs) layout.
-//
-// The band is min-h-[11rem] and full-bleed, so the skeleton is too: a padded
-// 11rem block would jump sideways as well as vertically when the real one
-// arrived.
+// The shapes of the screen that is coming (Pencil, v7), so nothing jumps when
+// it arrives: the greeting line with its weather chip, the "now" card, the
+// tonight row and the three toolbox tiles.
 export default function Loading() {
   return (
-    <>
-      <Skeleton className="-mx-4 -mt-5 h-44 rounded-b-[1.75rem] md:-mx-6 lg:-mx-8" />
-      <Skeleton className="h-6 w-24" />
-      <Skeleton className="h-16 w-full" />
-      <Skeleton className="h-16 w-full" />
-    </>
+    <div className="mx-auto flex w-full min-w-0 max-w-main flex-col gap-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-4 w-36" />
+          <Skeleton className="h-8 w-48" />
+        </div>
+        <Skeleton className="h-14 w-24 rounded-2xl" />
+      </div>
+      <Skeleton className="h-52 rounded-[1.5rem]" />
+      <Skeleton className="h-20 rounded-[1.25rem]" />
+      <div className="grid grid-cols-3 gap-3">
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-[7.5rem] rounded-[1.25rem]" />
+        ))}
+      </div>
+    </div>
   );
 }

@@ -482,11 +482,12 @@
      -------------------------------------------------------------------- */
   /* v5 tightened these back down: a workspace with a map, a panel and pins is
      a tool, and 12px is where a card reads as organised rather than soft. */
-  /* v6 (Stitch): 12px everywhere (its rounded-xl), 24px for sheets. */
-  --radius-control: 0.75rem;
-  --radius-card: 0.75rem;
-  --radius-tile: 0.75rem;
-  --radius-modal: 1.5rem;
+  /* v6 (Stitch): 12px everywhere (its rounded-xl), 24px for sheets.
+     v7 (Pencil): 14px fields, 16px tiles, 18px cards, 28px sheets. */
+  --radius-control: 0.875rem;
+  --radius-card: 1.125rem;
+  --radius-tile: 1rem;
+  --radius-modal: 1.75rem;
 
   /* --- the spacing scale ------------------------------------------------
      No tokens here, because Tailwind's own `gap-N` already is the scale.
@@ -1043,12 +1044,16 @@ html {
 
    An element selector, so it loses to any deliberate utility class on the
    control itself — there are none today, and if one is ever added on purpose it
-   should win. */
-@media (pointer: coarse) {
-  input:not([type="checkbox"]):not([type="radio"]),
-  select,
-  textarea {
-    font-size: 1rem;
+   should win. In @layer base, or it did not: unlayered CSS beats every
+   Tailwind utility, so a deliberate text-[2rem] on the converter shrank to
+   16px on touch screens (found in phase PN). */
+@layer base {
+  @media (pointer: coarse) {
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+      font-size: 1rem;
+    }
   }
 }
 

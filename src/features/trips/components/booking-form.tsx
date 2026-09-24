@@ -1,13 +1,11 @@
 "use client";
 
-import { Fragment, useActionState, useEffect, useId, useRef, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import {
   Banner,
   Button,
-  Chip,
   ChipRadio,
   Dialog,
-  Disclosure,
   InfoTip,
   Input,
   Select,
@@ -15,7 +13,19 @@ import {
   useToast,
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
-import { Plus, X } from "lucide-react";
+import {
+  Armchair,
+  ArrowLeftRight,
+  CalendarClock,
+  ChevronDown,
+  CircleCheck,
+  Plus,
+  Star,
+  Ticket,
+  Wallet,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { addBooking, editBooking } from "../application/booking-actions";
 import {
   BOOKING_KINDS,
@@ -39,6 +49,20 @@ import type {
 import { DomainIcon } from "./domain-icon";
 
 const KINDS = Object.keys(BOOKING_KINDS) as BookingKind[];
+
+// The heading of the sheet's one open section, per kind.
+const SECTION_TITLE: Record<BookingKind, string> = {
+  flight: "פרטי הטיסה",
+  train: "פרטי הרכבת",
+  lodging: "פרטי הלינה",
+};
+
+// The folded row that holds what the ticket prints (0026), per kind.
+const DETAILS_TITLE: Record<BookingKind, string> = {
+  flight: "מושב, שער וכבודה",
+  train: "מושב וקרון",
+  lodging: "כוכבים וארוחת בוקר",
+};
 
 // "Custom" is not one of the presets — it is the escape hatch that reveals a
 // number input, so it needs a value the preset list cannot collide with.
@@ -228,29 +252,33 @@ export function BookingForm({
     stopRowsFrom(state.values?.stops, booking),
   );
 
-  // 0024. Whether the folded block below starts open: only when there is
-  // already something in it worth seeing, which on a new booking there never
-  // is. `useState` with no setter rather than a plain const, so this is worked
-  // out once on mount — a value that changed between renders would re-apply the
+  // 0024, re-cut for the Pencil sheet (2026-09-24). The long form now opens
+  // with one section — where and when — and everything else is a folded row.
+  // Each row starts open only when the booking being edited already has
+  // something in it, because a field you filled in last week must not vanish
+  // behind a chevron you did not press. A new booking never does.
+  //
+  // `useState` with no setter rather than a plain const, so this is worked out
+  // once on mount — a value that changed between renders would re-apply the
   // `open` attribute and undo a press on the summary.
-  const [extrasOpen] = useState(
+  const [statusOpen] = useState(
     () =>
       booking !== undefined &&
-      (booking.booked === false ||
-        booking.standby ||
-        booking.book_by !== null ||
-        booking.free_cancellation_until !== null),
+      (booking.booked === false || booking.standby || booking.book_by !== null),
   );
-
-  // The same trick for the optional block. A new booking never has any of it;
-  // an edit opens it when there is something in there to edit, because a field
-  // you filled in last week must not vanish behind a chevron you did not press.
-  const [optionalOpen] = useState(
+  const [cancelOpen] = useState(
+    () => booking !== undefined && booking.free_cancellation_until !== null,
+  );
+  const [costOpen] = useState(
+    () =>
+      booking !== undefined &&
+      (booking.cost_amount !== null || bookingDetails(booking).paid === true),
+  );
+  const [codeOpen] = useState(
     () =>
       booking !== undefined &&
       (Boolean(booking.city) ||
         Boolean(booking.confirmation) ||
-        booking.cost_amount !== null ||
         Boolean(booking.note)),
   );
 
@@ -341,6 +369,11 @@ export function BookingForm({
   // add form on the bookings screen and the edit dialog over it.
   const cityListId = useId();
 
+  // For the swap button between the two ends of a trip. The ends stay
+  // uncontrolled like every other field here, so the swap edits the DOM, and
+  // it finds them by name — the shared Input does not forward a ref.
+  const formRef = useRef<HTMLFormElement>(null);
+
   // 0024. Both ways in are a dialog now — adding through AddBookingButton
   // below, editing through the pencil on a card — so there is no surface to
   // supply. This used to be `isEdit ? Fragment : Card`, for an add form that
@@ -353,7 +386,7 @@ export function BookingForm({
           easy to miss, which read as "the button does nothing". One validation
           path now: Zod on the server, reported next to the field it belongs to.
           `required` stays for screen readers. */}
-      <form action={action} noValidate className="flex flex-col gap-3">
+      <form ref={formRef} action={action} noValidate className="flex flex-col gap-3">
         <input type="hidden" name="tripId" value={tripId} />
         <input type="hidden" name="kind" value={kind} />
         {isEdit && <input type="hidden" name="id" value={booking.id} />}
@@ -376,238 +409,398 @@ export function BookingForm({
           </Banner>
         )}
 
-        <div className="flex flex-wrap gap-2">
+        {/* The kind, as the sheet's segmented track. Plain buttons with
+            aria-pressed, the same contract the chips had: `kind` reaches the
+            action through the hidden field above, not through these. */}
+        <div
+          role="group"
+          aria-label="סוג ההזמנה"
+          className="flex rounded-full bg-surface-sunken p-1"
+        >
           {KINDS.map((key) => (
-            <Chip
+            <button
               key={key}
-              active={kind === key}
+              type="button"
+              aria-pressed={kind === key}
               onClick={() => setKind(key)}
+              className={cn(
+                "flex min-h-10 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-semibold transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                kind === key
+                  ? "bg-surface text-primary shadow-card"
+                  : "text-muted hover:text-foreground",
+              )}
             >
-              <DomainIcon name={BOOKING_KINDS[key].icon} />
+              <DomainIcon name={BOOKING_KINDS[key].icon} className="h-4 w-4" />
               {BOOKING_KINDS[key].label}
-            </Chip>
+            </button>
           ))}
         </div>
 
-        <label className="flex min-w-0 flex-col gap-1 text-sm">
-          <span className="text-muted">
-            {isTransport ? "מספר טיסה / רכבת" : "שם המלון"}
-          </span>
-          <Input
-            name="title"
-            required
-            maxLength={120}
-            defaultValue={was("title")}
-            aria-invalid={Boolean(errorFor("title"))}
-            className={fieldClass("title")}
-          />
-          <FieldError message={errorFor("title")} />
-          {/* 0024. Only once there is a connection, because until then there is
-              only one leg and saying "the first" about it is noise. */}
-          {isTransport && stops.length > 0 && (
-            <span className="text-caption text-muted">
-              של הקטע הראשון. המספר של כל קטע נוסף נכנס בעצירה שהוא יוצא ממנה.
-            </span>
-          )}
-        </label>
-
-        {/* Flights only. A train has an operator too, but the list in
-            domain/airlines.ts is airlines, and offering it on a train row would
-            be a picker that cannot contain the right answer. */}
-        {kind === "flight" && (
-          <label className="flex min-w-0 flex-col gap-1 text-sm sm:max-w-72">
-            <span className="text-muted">חברת תעופה (לא חובה)</span>
-            <Select
-              name="airline"
-              defaultValue={was("airline")}
-              aria-invalid={Boolean(errorFor("airline"))}
-              className={fieldClass("airline")}
-            >
-              {/* The blank stays first and stays selectable: the list is
-                  curated and therefore incomplete, so "not one of these" has to
-                  remain an answer rather than something you can only give by
-                  never touching the field. */}
-              <option value="">ללא</option>
-              {AIRLINES.map((airline) => (
-                <option key={airline.code} value={airline.code}>
-                  {airline.name} · {airline.code}
-                </option>
-              ))}
-            </Select>
-            <FieldError message={errorFor("airline")} />
-          </label>
-        )}
-
-        {isTransport ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="flex min-w-0 flex-col gap-1 text-sm">
-              <span className="text-muted">מ־</span>
-              <Input
-                name="origin"
-                maxLength={120}
-                defaultValue={was("origin")}
-              />
-            </label>
-            <label className="flex min-w-0 flex-col gap-1 text-sm">
-              <span className="text-muted">אל־</span>
-              <Input
-                name="destination"
-                maxLength={120}
-                defaultValue={was("destination")}
-              />
-              {/* 0024. The field that the connection makes ambiguous, said
-                  plainly rather than left to be worked out. With a stop in the
-                  middle "אל־" is still Tokyo, not Dubai — and reading it as
-                  Dubai is the mistake that makes the whole route come out
-                  wrong. */}
-              {stops.length > 0 && (
-                <span className="text-caption text-muted">
-                  היעד הסופי, לא סוף הקטע הראשון.
-                </span>
-              )}
-            </label>
+        {/* The one open section: where and when, and the number on the
+            ticket. Everything a booking cannot be saved without is in here, so
+            the folded rows below are all genuinely optional. */}
+        <section className="flex flex-col gap-3 rounded-[18px] border border-border bg-surface p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="text-base font-semibold text-foreground">
+              {SECTION_TITLE[kind]}
+            </h3>
+            {/* The connection starts here rather than as a paragraph and a
+                button under the times: most tickets are direct, so the form
+                offers the stop as one small link and grows only once asked. */}
+            {isTransport && (
+              <button
+                type="button"
+                onClick={() => setStops([...stops, { ...EMPTY_STOP }])}
+                className="flex min-h-9 items-center gap-1 rounded-full px-2 text-sm font-semibold text-primary hover:bg-primary-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                קונקשן
+              </button>
+            )}
           </div>
-        ) : (
-          <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="text-muted">כתובת</span>
-            <Input
-              name="address"
-              maxLength={300}
-              defaultValue={was("address")}
-            />
-          </label>
-        )}
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="text-muted">
-              {isTransport ? "יציאה" : "צ׳ק-אין"}
-            </span>
-            <Input
-              type="datetime-local"
-              name="startsAt"
-              required
-              dir="ltr"
-              defaultValue={was("startsAt")}
-              aria-invalid={Boolean(errorFor("startsAt"))}
-              className={fieldClass("startsAt")}
-            />
-            <FieldError message={errorFor("startsAt")} />
-          </label>
-          <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="text-muted">
-              {isTransport ? "הגעה (לא חובה)" : "צ׳ק-אאוט"}
-            </span>
-            <Input
-              type="datetime-local"
-              name="endsAt"
-              dir="ltr"
-              defaultValue={was("endsAt")}
-              aria-invalid={Boolean(errorFor("endsAt"))}
-              className={fieldClass("endsAt")}
-            />
-            <FieldError message={errorFor("endsAt")} />
-          </label>
-        </div>
+          {!isTransport && (
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
+              <span className="text-muted">שם המלון</span>
+              <Input
+                name="title"
+                required
+                maxLength={120}
+                defaultValue={was("title")}
+                aria-invalid={Boolean(errorFor("title"))}
+                className={fieldClass("title")}
+              />
+              <FieldError message={errorFor("title")} />
+            </label>
+          )}
 
-        {/* 0023. Transport only. The stops are what turn two bookings back
-            into one ticket — see the migration for why they are a column on the
-            booking rather than rows of their own. */}
-        {isTransport && (
-          <RouteEditor
-            stops={stops}
-            onChange={setStops}
-            withAirline={kind === "flight"}
-            error={errorFor("stops")}
-          />
-        )}
-
-        {/* Transport only, and asked for rather than computed.
-
-            The two fields above are read as wall-clock in one zone (see
-            src/lib/datetime.ts), which is right for showing them back — the
-            board at Narita says 16:30 and so does the app — and useless for
-            subtraction: on TLV→NRT their difference is 18h45m against a real
-            11h25m. Deriving it would need an airport-to-timezone table the app
-            has no way to build from a free-text "NRT", so the number is taken
-            from the ticket the user is already copying from. Blank shows no
-            duration at all; a wrong one is worse than none. */}
-        {isTransport && (
-          // Hours and minutes, not one box of minutes.
-          //
-          // It was a single "משך הנסיעה בדקות" field, so a flight went in as
-          // 685 — a figure no ticket prints and nobody divides by 60 in their
-          // head to check. The column still stores total minutes and every
-          // reader of it is unchanged; the two boxes are joined in the action
-          // by combineDuration and split back apart here.
-          //
-          // A fieldset rather than a label, because two inputs cannot share
-          // one: a <label> points at a single control, and wrapping both in it
-          // makes clicking the word focus whichever the browser guesses.
-          <fieldset className="flex min-w-0 flex-col gap-1 border-0 p-0 text-sm">
-            <legend className="flex items-center gap-1 text-muted">
-              משך הנסיעה (לא חובה)
-              {/* Two lines of arithmetic explanation that were under this
-                  field on every transport booking. It is a real answer to a
-                  real question — "why doesn't it work this out itself" — and
-                  it is asked once, not on every booking. */}
-              <InfoTip label="למה המשך לא מחושב לבד">
-                כמו שמופיע בכרטיס. לא מחושב משעות היציאה וההגעה, כי שתיהן
-                נשמרות בשעון אחד ולכן ההפרש ביניהן אינו משך הטיסה.
-              </InfoTip>
-            </legend>
-            <div className="flex min-w-0 items-start gap-2">
-              <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-28">
+          {isTransport ? (
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-1">
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
+                <span className="text-muted">מאיפה</span>
                 <Input
-                  type="number"
-                  name="durationHours"
-                  min={0}
-                  max={336}
-                  step={1}
-                  dir="ltr"
-                  placeholder="11"
-                  defaultValue={durationParts.hours}
-                  aria-invalid={Boolean(errorFor("durationMinutes"))}
-                  aria-label="שעות"
-                  className={fieldClass("durationMinutes")}
+                  name="origin"
+                  maxLength={120}
+                  dir="auto"
+                  defaultValue={was("origin")}
                 />
-                <span className="text-caption text-muted">שעות</span>
               </label>
-              <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-28">
-                {/* Capped at 59 rather than left open: over that is an hour,
-                    and splitDuration would hand it straight back normalised —
-                    a box that silently rewrites what was typed. The cap says
-                    so up front instead. */}
+              {/* Swaps the two boxes in place — they are uncontrolled, so the
+                  DOM holds the values and the swap happens there. The way back
+                  is the same trip reversed, and retyping both ends was the only
+                  way to enter it. */}
+              <button
+                type="button"
+                aria-label="החלפת מוצא ויעד"
+                onClick={() => {
+                  const fields = formRef.current?.elements;
+                  const from = fields?.namedItem("origin");
+                  const to = fields?.namedItem("destination");
+                  if (
+                    !(from instanceof HTMLInputElement) ||
+                    !(to instanceof HTMLInputElement)
+                  )
+                    return;
+                  [from.value, to.value] = [to.value, from.value];
+                }}
+                className="mt-6 flex h-11 w-9 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <ArrowLeftRight className="h-4 w-4" aria-hidden="true" />
+              </button>
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
+                <span className="text-muted">לאן</span>
                 <Input
-                  type="number"
-                  name="durationMinutes"
-                  min={0}
-                  max={59}
-                  step={5}
-                  dir="ltr"
-                  placeholder="25"
-                  defaultValue={durationParts.minutes}
-                  aria-invalid={Boolean(errorFor("durationMinutes"))}
-                  aria-label="דקות"
-                  className={fieldClass("durationMinutes")}
+                  name="destination"
+                  maxLength={120}
+                  dir="auto"
+                  defaultValue={was("destination")}
                 />
-                <span className="text-caption text-muted">דקות</span>
+                {/* 0024. The field that the connection makes ambiguous, said
+                    plainly rather than left to be worked out. With a stop in the
+                    middle "לאן" is still Tokyo, not Dubai — and reading it as
+                    Dubai is the mistake that makes the whole route come out
+                    wrong. */}
+                {stops.length > 0 && (
+                  <span className="text-caption text-muted">
+                    היעד הסופי, לא סוף הקטע הראשון.
+                  </span>
+                )}
               </label>
             </div>
-            <FieldError message={errorFor("durationMinutes")} />
-          </fieldset>
-        )}
+          ) : (
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
+              <span className="text-muted">כתובת</span>
+              <Input
+                name="address"
+                maxLength={300}
+                defaultValue={was("address")}
+              />
+            </label>
+          )}
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
+              <span className="text-muted">
+                {isTransport ? "יציאה" : "צ׳ק-אין"}
+              </span>
+              <Input
+                type="datetime-local"
+                name="startsAt"
+                required
+                dir="ltr"
+                defaultValue={was("startsAt")}
+                aria-invalid={Boolean(errorFor("startsAt"))}
+                className={fieldClass("startsAt")}
+              />
+              <FieldError message={errorFor("startsAt")} />
+            </label>
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
+              <span className="text-muted">
+                {isTransport ? "הגעה (לא חובה)" : "צ׳ק-אאוט"}
+              </span>
+              <Input
+                type="datetime-local"
+                name="endsAt"
+                dir="ltr"
+                defaultValue={was("endsAt")}
+                aria-invalid={Boolean(errorFor("endsAt"))}
+                className={fieldClass("endsAt")}
+              />
+              <FieldError message={errorFor("endsAt")} />
+            </label>
+          </div>
+
+          {isTransport && (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label className="flex min-w-0 flex-col gap-1 text-sm">
+                <span className="text-muted">
+                  {kind === "flight" ? "מספר טיסה" : "מספר רכבת"}
+                </span>
+                <Input
+                  name="title"
+                  required
+                  maxLength={120}
+                  dir="auto"
+                  defaultValue={was("title")}
+                  aria-invalid={Boolean(errorFor("title"))}
+                  className={fieldClass("title")}
+                />
+                <FieldError message={errorFor("title")} />
+                {/* 0024. Only once there is a connection, because until then
+                    there is only one leg and saying "the first" about it is
+                    noise. */}
+                {stops.length > 0 && (
+                  <span className="text-caption text-muted">
+                    של הקטע הראשון. המספר של כל קטע נוסף נכנס בעצירה שהוא יוצא
+                    ממנה.
+                  </span>
+                )}
+              </label>
+
+              {/* Flights only. A train has an operator too, but the list in
+                  domain/airlines.ts is airlines, and offering it on a train row
+                  would be a picker that cannot contain the right answer. */}
+              {kind === "flight" && (
+                <label className="flex min-w-0 flex-col gap-1 text-sm">
+                  <span className="text-muted">חברת תעופה (לא חובה)</span>
+                  <Select
+                    name="airline"
+                    defaultValue={was("airline")}
+                    aria-invalid={Boolean(errorFor("airline"))}
+                    className={fieldClass("airline")}
+                  >
+                    {/* The blank stays first and stays selectable: the list is
+                        curated and therefore incomplete, so "not one of these"
+                        has to remain an answer rather than something you can
+                        only give by never touching the field. */}
+                    <option value="">ללא</option>
+                    {AIRLINES.map((airline) => (
+                      <option key={airline.code} value={airline.code}>
+                        {airline.name} · {airline.code}
+                      </option>
+                    ))}
+                  </Select>
+                  <FieldError message={errorFor("airline")} />
+                </label>
+              )}
+            </div>
+          )}
+
+          {/* 0023. Transport only, and only once a stop exists — the "+
+              קונקשן" link above adds the first one. The stops are what turn two
+              bookings back into one ticket; see the migration for why they are
+              a column on the booking rather than rows of their own. Always
+              drawn when the server rejected the route, so its message shows. */}
+          {isTransport && (stops.length > 0 || Boolean(errorFor("stops"))) && (
+            <RouteEditor
+              stops={stops}
+              onChange={setStops}
+              withAirline={kind === "flight"}
+              error={errorFor("stops")}
+            />
+          )}
+
+          {/* Transport only, and asked for rather than computed.
+
+              The two fields above are read as wall-clock in one zone (see
+              src/lib/datetime.ts), which is right for showing them back — the
+              board at Narita says 16:30 and so does the app — and useless for
+              subtraction: on TLV→NRT their difference is 18h45m against a real
+              11h25m. Deriving it would need an airport-to-timezone table the
+              app has no way to build from a free-text "NRT", so the number is
+              taken from the ticket the user is already copying from. Blank
+              shows no duration at all; a wrong one is worse than none. */}
+          {isTransport && (
+            // Hours and minutes, not one box of minutes: the column stores
+            // total minutes, the two boxes are joined in the action by
+            // combineDuration and split back apart here. A fieldset rather
+            // than a label, because two inputs cannot share one.
+            <fieldset className="flex min-w-0 flex-col gap-1 border-0 p-0 text-sm">
+              <legend className="flex items-center gap-1 text-muted">
+                משך הנסיעה (לא חובה)
+                <InfoTip label="למה המשך לא מחושב לבד">
+                  כמו שמופיע בכרטיס. לא מחושב משעות היציאה וההגעה, כי שתיהן
+                  נשמרות בשעון אחד ולכן ההפרש ביניהן אינו משך הטיסה.
+                </InfoTip>
+              </legend>
+              <div className="flex min-w-0 items-start gap-2">
+                <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-28">
+                  <Input
+                    type="number"
+                    name="durationHours"
+                    min={0}
+                    max={336}
+                    step={1}
+                    dir="ltr"
+                    placeholder="11"
+                    defaultValue={durationParts.hours}
+                    aria-invalid={Boolean(errorFor("durationMinutes"))}
+                    aria-label="שעות"
+                    className={fieldClass("durationMinutes")}
+                  />
+                  <span className="text-caption text-muted">שעות</span>
+                </label>
+                <label className="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-28">
+                  {/* Capped at 59 rather than left open: over that is an hour,
+                      and splitDuration would hand it straight back normalised —
+                      a box that silently rewrites what was typed. */}
+                  <Input
+                    type="number"
+                    name="durationMinutes"
+                    min={0}
+                    max={59}
+                    step={5}
+                    dir="ltr"
+                    placeholder="25"
+                    defaultValue={durationParts.minutes}
+                    aria-invalid={Boolean(errorFor("durationMinutes"))}
+                    aria-label="דקות"
+                    className={fieldClass("durationMinutes")}
+                  />
+                  <span className="text-caption text-muted">דקות</span>
+                </label>
+              </div>
+              <FieldError message={errorFor("durationMinutes")} />
+            </fieldset>
+          )}
+        </section>
+
+        {/* ---- The folded rows ---------------------------------------------
+            Native <details> each, and not a state toggle, deliberately: the
+            controls stay in the DOM while a row is closed, so they still
+            submit. Unmounting them would send a form with no `booked` field at
+            all — which the action reads as an unchecked box, quietly turning
+            every booking into one that has not been made yet.
+
+            A row also opens itself when the server rejects a field inside it,
+            so the message is never behind a chevron. */}
+
+        {/* 0022. "כבר הזמנתי" and standby side by side, because the two are
+            the same kind of statement about the same booking — and
+            deliberately not folded into one. A standby booking *is* reserved;
+            only what it counts towards changes. The summary is live: it is the
+            one row whose state the rest of the app draws (the status badge). */}
+        <FoldRow
+          Icon={CircleCheck}
+          title="סטטוס"
+          summary={
+            !booked ? "עוד לא הוזמן" : standby ? "הוזמן · בסטנד-ביי" : "הוזמן"
+          }
+          open={statusOpen || Boolean(errorFor("bookBy"))}
+        >
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              // Remounted on each action result so the reset-restored default
+              // matches what was submitted. See the note above.
+              key={formGeneration}
+              type="checkbox"
+              name="booked"
+              defaultChecked={booked}
+              onChange={(event) => setBooked(event.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--primary)]"
+            />
+            <span>
+              כבר הזמנתי
+              <span className="block text-xs text-muted">
+                בטלו את הסימון אם זה משהו שעוד צריך להזמין — למשל רכבת שדורשת
+                הזמנה מראש.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              key={formGeneration}
+              type="checkbox"
+              name="standby"
+              defaultChecked={standby}
+              onChange={(event) => setStandby(event.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--primary)]"
+            />
+            <span>
+              בסטנד-ביי — עוד לא סופי
+              <span className="block text-xs text-muted">
+                לכפילויות שאחת מהן תבוטל. לא ייספר בעלות הכוללת ולא יוסיף ימים
+                לעיר. תגית ״לינה כפולה״ ותזכורות הביטול נשארות — כדי שלא תשכחו
+                לבטל.
+              </span>
+            </span>
+          </label>
+
+          {/* Only meaningful while unbooked; the service drops it otherwise,
+              and hiding it keeps the form from asking a question that has no
+              answer for a ticket already in hand. */}
+          {!booked && (
+            <label className="flex min-w-0 flex-col gap-1 text-sm sm:max-w-60">
+              <span className="text-muted">להזמין עד</span>
+              <Input
+                type="date"
+                name="bookBy"
+                dir="ltr"
+                defaultValue={was("bookBy")}
+                aria-invalid={Boolean(errorFor("bookBy"))}
+                className={fieldClass("bookBy")}
+              />
+              <FieldError message={errorFor("bookBy")} />
+            </label>
+          )}
+        </FoldRow>
 
         {/* 0026. What the ticket prints beyond where and when — the fields the
-            documents screen draws on its boarding pass and hotel card. Folded,
-            like the block below: a booking is complete without any of it.
-            Keyed on the kind so switching flight → hotel swaps the boxes rather
-            than carrying a seat number into a hotel. */}
-        <Disclosure
+            documents screen draws on its boarding pass and hotel row. Keyed on
+            the kind so switching flight → hotel swaps the boxes rather than
+            carrying a seat number into a hotel, and on the form generation so
+            a rejected submission's echo is re-applied. */}
+        <FoldRow
           key={`details-${kind}-${formGeneration}`}
-          defaultOpen={Object.keys(details).length > 0}
-          title={isTransport ? "מושב, שער וכבודה" : "כוכבים, ארוחת בוקר ותשלום"}
-          detail="מופיע על הכרטיס במסך המסמכים"
+          Icon={kind === "lodging" ? Star : Armchair}
+          title={DETAILS_TITLE[kind]}
+          summary="מופיע על הכרטיס במסך המסמכים"
+          open={
+            Object.keys(details).some((field) => field !== "paid") ||
+            Boolean(errorFor("details"))
+          }
         >
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {isTransport && (
@@ -648,253 +841,119 @@ export function BookingForm({
                   <option value="">—</option>
                   {[1, 2, 3, 4, 5].map((count) => (
                     <option key={count} value={count}>
-                      {"★".repeat(count)}
+                      {count === 1 ? "כוכב אחד" : `${count} כוכבים`}
                     </option>
                   ))}
                 </Select>
               </label>
             )}
           </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-2">
-            {kind === "lodging" && (
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  name="detailBreakfast"
-                  defaultChecked={details.breakfast === true}
-                  className="h-4 w-4 shrink-0 accent-[var(--primary)]"
-                />
-                ארוחת בוקר כלולה
-              </label>
-            )}
+          {kind === "lodging" && (
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
-                name="detailPaid"
-                defaultChecked={details.paid === true}
+                name="detailBreakfast"
+                defaultChecked={details.breakfast === true}
                 className="h-4 w-4 shrink-0 accent-[var(--primary)]"
               />
-              שולם במלואו
+              ארוחת בוקר כלולה
+            </label>
+          )}
+          <FieldError message={errorFor("details")} />
+        </FoldRow>
+
+        <FoldRow
+          Icon={Wallet}
+          title="עלות ותשלום"
+          summary="סכום, מטבע והאם שולם"
+          open={
+            costOpen ||
+            Boolean(errorFor("costAmount")) ||
+            Boolean(errorFor("costCurrency"))
+          }
+        >
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
+              <span className="text-muted">עלות (לא חובה)</span>
+              <Input
+                type="number"
+                name="costAmount"
+                min={0}
+                step="0.01"
+                dir="ltr"
+                placeholder="0.00"
+                defaultValue={was("costAmount")}
+                aria-invalid={Boolean(errorFor("costAmount"))}
+                className={fieldClass("costAmount")}
+              />
+              <FieldError message={errorFor("costAmount")} />
+            </label>
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
+              <span className="text-muted">מטבע</span>
+              {/* A picker, not a text field: a typed code is a typo waiting to
+                  split one currency into two totals that never sum. */}
+              <Select
+                name="costCurrency"
+                defaultValue={was("costCurrency") || DEFAULT_CURRENCY}
+                aria-invalid={Boolean(errorFor("costCurrency"))}
+                className={fieldClass("costCurrency")}
+              >
+                {CURRENCIES.map((currency) => (
+                  <option key={currency.code} value={currency.code}>
+                    {currency.symbol} {currency.label}
+                  </option>
+                ))}
+              </Select>
+              <FieldError message={errorFor("costCurrency")} />
             </label>
           </div>
-          <FieldError message={errorFor("details")} />
-        </Disclosure>
-
-        {/* Everything from here to the notes is optional, and on the form it
-            was five more controls between the times and the submit button. A
-            flight you are copying off a boarding pass needs the number, the two
-            ends and the two times; the city, the confirmation code, the price
-            and a note are things you may or may not have, and asking for them
-            in the open made the short case look like the long one.
-
-            Same <details> contract as the block below it: closed still submits,
-            because the inputs stay in the DOM. */}
-        <Disclosure
-          defaultOpen={optionalOpen}
-          title="עיר, אישור, עלות והערות"
-          detail="הכול לא חובה"
-        >
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="flex items-center gap-1 text-muted">
-              עיר או אזור (לא חובה)
-              <InfoTip label="מה קורה לעיר חדשה">
-                עיר שעוד לא בטיול תתווסף אליו, ואפשר יהיה לפתוח לה מדריך.
-              </InfoTip>
-            </span>
-            {/* An input with a datalist, not a select.
-
-                It was a picker limited to the trip's existing cities, which made
-                a booking unable to say anything the trip did not already know:
-                you could book a hotel in Kyoto only if Kyoto was somehow already
-                a destination. Reported as exactly that — adding a hotel or a
-                flight should put its city on the trip.
-
-                A datalist keeps the picker's whole benefit, which is that the
-                existing cities are one tap away and spelled the way the rest of
-                the trip spells them, and drops its only limitation. Typing a new
-                one now creates it — see ensureCityCard. */}
-            <Input
-              name="city"
-              list={cityListId}
-              maxLength={120}
-              autoComplete="off"
-              placeholder="למשל קיוטו"
-              defaultValue={was("city")}
+          {/* One of the 0026 details, but it answers "was it paid", so it
+              sits with the money. Same field name; the action reads it from
+              wherever it is in the form. Keyed on the generation for the same
+              reason as the details row. */}
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              key={`paid-${formGeneration}`}
+              type="checkbox"
+              name="detailPaid"
+              defaultChecked={details.paid === true}
+              className="h-4 w-4 shrink-0 accent-[var(--primary)]"
             />
-            <datalist id={cityListId}>
-              {cities.map((city) => (
-                <option key={city} value={city} />
-              ))}
-            </datalist>
-
+            שולם במלואו
           </label>
-          <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="text-muted">מספר אישור (לא חובה)</span>
-            <Input
-              name="confirmation"
-              maxLength={120}
-              dir="ltr"
-              defaultValue={was("confirmation")}
-            />
-          </label>
-        </div>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="text-muted">עלות (לא חובה)</span>
-            <Input
-              type="number"
-              name="costAmount"
-              min={0}
-              step="0.01"
-              dir="ltr"
-              placeholder="0.00"
-              defaultValue={was("costAmount")}
-              aria-invalid={Boolean(errorFor("costAmount"))}
-              className={fieldClass("costAmount")}
-            />
-            <FieldError message={errorFor("costAmount")} />
-          </label>
-          <label className="flex min-w-0 flex-col gap-1 text-sm">
-            <span className="text-muted">מטבע</span>
-            {/* A picker, not a text field: a typed code is a typo waiting to
-                split one currency into two totals that never sum. Defaults to
-                shekels, which is what most of this trip is priced in. */}
-            <Select
-              name="costCurrency"
-              defaultValue={was("costCurrency") || DEFAULT_CURRENCY}
-              aria-invalid={Boolean(errorFor("costCurrency"))}
-              className={fieldClass("costCurrency")}
-            >
-              {CURRENCIES.map((currency) => (
-                <option key={currency.code} value={currency.code}>
-                  {currency.symbol} {currency.label}
-                </option>
-              ))}
-            </Select>
-            <FieldError message={errorFor("costCurrency")} />
-          </label>
-        </div>
-
-        <label className="flex min-w-0 flex-col gap-1 text-sm">
-          <span className="text-muted">הערות (לא חובה)</span>
-          <Textarea
-            name="note"
-            rows={2}
-            maxLength={1000}
-            defaultValue={was("note")}
-          />
-        </label>
-        </Disclosure>
+        </FoldRow>
 
         {/* ---- Deadlines and reminders (0011) --------------------------------
-            Separated by a rule because everything above describes the booking
-            itself, and everything below is about what you have to *do* before
-            the trip. */}
-        {/* 0024. Folded away, because none of it is asked on a typical
-            booking: a ticket you already hold is `booked`, has no deadline to
-            book by, usually has no free-cancellation date worth recording, and
-            takes the default reminder. Five controls and three paragraphs of
-            explanation, open on every booking, for the minority that needs
-            them.
-
-            A <details> and not a state toggle, deliberately: the controls stay
-            in the DOM while it is closed, so they still submit. Unmounting them
-            would send a form with no `booked` field at all — which the action
-            reads as an unchecked box, quietly turning every booking into one
-            that has not been made yet.
-
-            Open from the start when the booking being edited has something in
-            here to see. Computed once and never changed, so a press on the
-            summary is not undone by the next render. */}
-        <Disclosure
-          defaultOpen={extrasOpen}
-          title="סטטוס ההזמנה, ביטול ותזכורת"
-          detail="נשאל רק אם צריך — ברוב ההזמנות אפשר לדלג"
+            None of it is asked on a typical booking: a ticket you already hold
+            usually has no free-cancellation date worth recording and takes the
+            default reminder. */}
+        <FoldRow
+          Icon={CalendarClock}
+          title="ביטול חינם ותזכורת"
+          summary="עד מתי אפשר לבטל בלי קנס, ומתי להזכיר"
+          open={
+            cancelOpen ||
+            Boolean(errorFor("freeCancellationUntil")) ||
+            Boolean(errorFor("reminderDaysBefore"))
+          }
         >
-          <label className="flex items-start gap-2 text-sm">
-            <input
-              // Remounted on each action result so the reset-restored default
-              // matches what was submitted. See the note above.
-              key={formGeneration}
-              type="checkbox"
-              name="booked"
-              defaultChecked={booked}
-              onChange={(event) => setBooked(event.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--primary)]"
-            />
-            <span>
-              כבר הזמנתי
-              <span className="block text-xs text-muted">
-                בטלו את הסימון אם זה משהו שעוד צריך להזמין — למשל רכבת שדורשת
-                הזמנה מראש.
-              </span>
+          <label className="flex min-w-0 flex-col gap-1 text-sm sm:max-w-60">
+            <span className="text-muted">
+              ביטול חינם עד{" "}
+              <span className="text-xs">(אם יש)</span>
             </span>
-          </label>
-
-          {/* 0022. Beside "כבר הזמנתי" rather than anywhere else, because the
-              two are the same kind of statement about the same booking — and
-              deliberately not folded into it. A standby booking *is* reserved:
-              it has a confirmation number and a cancellation deadline, and the
-              reminders that watch that deadline are the ones that matter most
-              on exactly these. Only what it counts towards changes. */}
-          <label className="flex items-start gap-2 text-sm">
-            <input
-              key={formGeneration}
-              type="checkbox"
-              name="standby"
-              defaultChecked={standby}
-              onChange={(event) => setStandby(event.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--primary)]"
+            {/* A date, not a datetime: the column is `date`, because no
+                time-of-day reads as the same calendar day everywhere. */}
+            <Input
+              type="date"
+              name="freeCancellationUntil"
+              dir="ltr"
+              defaultValue={was("freeCancellationUntil")}
+              aria-invalid={Boolean(errorFor("freeCancellationUntil"))}
+              className={fieldClass("freeCancellationUntil")}
             />
-            <span>
-              בסטנד-ביי — עוד לא סופי
-              <span className="block text-xs text-muted">
-                לכפילויות שאחת מהן תבוטל. לא ייספר בעלות הכוללת ולא יוסיף ימים
-                לעיר. תגית ״לינה כפולה״ ותזכורות הביטול נשארות — כדי שלא תשכחו
-                לבטל.
-              </span>
-            </span>
+            <FieldError message={errorFor("freeCancellationUntil")} />
           </label>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {/* Only meaningful while unbooked; the service drops it otherwise,
-                and hiding it keeps the form from asking a question that has no
-                answer for a ticket already in hand. */}
-            {!booked && (
-              <label className="flex min-w-0 flex-col gap-1 text-sm">
-                <span className="text-muted">להזמין עד</span>
-                <Input
-                  type="date"
-                  name="bookBy"
-                  dir="ltr"
-                  defaultValue={was("bookBy")}
-                  aria-invalid={Boolean(errorFor("bookBy"))}
-                  className={fieldClass("bookBy")}
-                />
-                <FieldError message={errorFor("bookBy")} />
-              </label>
-            )}
-
-            <label className="flex min-w-0 flex-col gap-1 text-sm">
-              <span className="text-muted">
-                ביטול חינם עד{" "}
-                <span className="text-xs">(אם יש)</span>
-              </span>
-              {/* A date, not a datetime: the column is `date`, because no
-                  time-of-day reads as the same calendar day everywhere. */}
-              <Input
-                type="date"
-                name="freeCancellationUntil"
-                dir="ltr"
-                defaultValue={was("freeCancellationUntil")}
-                aria-invalid={Boolean(errorFor("freeCancellationUntil"))}
-                className={fieldClass("freeCancellationUntil")}
-              />
-              <FieldError message={errorFor("freeCancellationUntil")} />
-            </label>
-          </div>
 
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-1 text-sm text-muted">
@@ -950,20 +1009,121 @@ export function BookingForm({
 
             <p className="text-xs text-muted">
               התראה אחת בלבד, ביום שבחרתם — לא בכל יום עד המועד. כדי לקבל אותה
-              כשהאפליקציה סגורה, הפעילו ״תזכורות למכשיר״ למטה.
+              כשהאפליקציה סגורה, הפעילו ״תזכורות למכשיר״ במסך המסמכים.
             </p>
           </fieldset>
-        </Disclosure>
+        </FoldRow>
 
-        <div>
-          <Button type="submit" loading={pending}>
-            {isEdit ? "שמירה" : "הוספה"}
-          </Button>
-        </div>
+        <FoldRow
+          Icon={Ticket}
+          title="קוד הזמנה, עיר והערות"
+          summary="מספר אישור, העיר של ההזמנה והערה חופשית"
+          open={codeOpen}
+        >
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
+              <span className="text-muted">מספר אישור (לא חובה)</span>
+              <Input
+                name="confirmation"
+                maxLength={120}
+                dir="ltr"
+                defaultValue={was("confirmation")}
+              />
+            </label>
+            <label className="flex min-w-0 flex-col gap-1 text-sm">
+              <span className="flex items-center gap-1 text-muted">
+                עיר או אזור (לא חובה)
+                <InfoTip label="מה קורה לעיר חדשה">
+                  עיר שעוד לא בטיול תתווסף אליו, ואפשר יהיה לפתוח לה מדריך.
+                </InfoTip>
+              </span>
+              {/* An input with a datalist, not a select: the existing cities
+                  are one tap away and spelled the way the rest of the trip
+                  spells them, and typing a new one creates it — see
+                  ensureCityCard. */}
+              <Input
+                name="city"
+                list={cityListId}
+                maxLength={120}
+                autoComplete="off"
+                placeholder="למשל קיוטו"
+                defaultValue={was("city")}
+              />
+              <datalist id={cityListId}>
+                {cities.map((city) => (
+                  <option key={city} value={city} />
+                ))}
+              </datalist>
+            </label>
+          </div>
+
+          <label className="flex min-w-0 flex-col gap-1 text-sm">
+            <span className="text-muted">הערות (לא חובה)</span>
+            <Textarea
+              name="note"
+              rows={2}
+              maxLength={1000}
+              defaultValue={was("note")}
+            />
+          </label>
+        </FoldRow>
 
         {state.error && <Banner tone="danger">{state.error}</Banner>}
+
+        {/* The sheet's one call to action, full width at the bottom. */}
+        <Button
+          type="submit"
+          size="lg"
+          loading={pending}
+          className="mt-2 w-full rounded-full"
+        >
+          {isEdit ? "שמירת השינויים" : "שמירת ההזמנה"}
+        </Button>
       </form>
     </>
+  );
+}
+
+// One folded row of the booking sheet: an icon, a title, a line saying what is
+// inside, and a chevron — on the sunken surface, as the Pencil sheet draws them.
+//
+// Native <details> for the reason the form gives above: closed, its inputs are
+// still in the DOM and still submit. `open` is applied as an attribute, so it
+// only moves when its value changes — the callers pass values that are fixed
+// on mount or that flip on a rejected submission, never on every render.
+function FoldRow({
+  Icon,
+  title,
+  summary,
+  open,
+  children,
+}: {
+  Icon: LucideIcon;
+  title: string;
+  summary: ReactNode;
+  open: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <details
+      open={open}
+      className="group/fold rounded-2xl bg-surface-2 transition-colors open:bg-surface open:ring-1 open:ring-border"
+    >
+      <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-2xl px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+        <Icon className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold text-foreground">
+            {title}
+          </span>
+          <span className="block truncate text-xs text-muted">{summary}</span>
+        </span>
+        <ChevronDown
+          className="h-4 w-4 shrink-0 text-muted transition-transform group-open/fold:rotate-180"
+          aria-hidden="true"
+        />
+      </summary>
+      <div className="flex flex-col gap-3 px-4 pt-1 pb-4">{children}</div>
+    </details>
   );
 }
 
@@ -984,9 +1144,9 @@ export function AddBookingButton({
 }: {
   tripId: string;
   cities: string[];
-  // The documents screen's header action, drawn as the Stitch export draws
-  // "הוספת קובץ": a primary-fixed pill. The button adds a booking, which is
-  // what that screen holds, so it says so.
+  // The documents screen's header action, drawn as the Pencil design draws
+  // "הוספת כרטיס": the screen's one terracotta pill. It adds a booking, which
+  // is what that screen holds, so it says so.
   pill?: boolean;
 }) {
   const [open, setOpen] = useState(false);
@@ -997,7 +1157,7 @@ export function AddBookingButton({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex shrink-0 items-center gap-1 rounded-full bg-primary-tint px-4 py-2 text-xs leading-4 font-medium text-primary-deep shadow-sm transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-cta px-4 text-sm font-semibold text-cta-foreground shadow-md shadow-cta/20 transition-[background-color,transform] hover:bg-cta-hover active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <Plus className="h-[18px] w-[18px]" aria-hidden="true" />
           הוספת כרטיס
@@ -1021,7 +1181,7 @@ export function AddBookingButton({
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
-        title="הוספת טיסה, רכבת או לינה"
+        title="הזמנה חדשה"
       >
         <BookingForm
           tripId={tripId}
@@ -1219,7 +1379,7 @@ function ConnectionHelp() {
       </span>
       <span className="flex flex-col gap-1">
         <span className="block">
-          <b>מ־ ואל־</b> הם הקצוות של כל הנסיעה — תל אביב וטוקיו. לא דובאי.
+          <b>מאיפה ולאן</b> הם הקצוות של כל הנסיעה — תל אביב וטוקיו. לא דובאי.
         </span>
         <span className="block">
           <b>מספר הטיסה</b> למעלה הוא של הטיסה הראשונה בלבד.

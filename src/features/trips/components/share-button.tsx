@@ -73,14 +73,14 @@ export function ShareButton({
 
           <div className="flex flex-col gap-2">
             <Row
-              href={`/trips/${tripId}/more/share`}
+              href={`/trips/${tripId}/more/members`}
               Icon={UserPlus}
               title="הזמנת אדם לטיול"
               hint="לפי אימייל, עם צפייה בלבד או עם עריכה. הקישור נשלח בוואטסאפ, ב-SMS או במייל."
               onNavigate={() => setOpen(false)}
             />
             <Row
-              href={`/trips/${tripId}/more/share`}
+              href={`/trips/${tripId}/more/members`}
               Icon={Users}
               title="מי יכול להיכנס"
               hint="הרשאות, הסרת גישה, והזמנות שממתינות."
@@ -110,10 +110,10 @@ function Row({
     <Link
       href={href}
       onClick={onNavigate}
-      className="flex min-w-0 items-center gap-3 rounded-card bg-surface shadow-card p-3 transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex min-h-14 min-w-0 items-center gap-3 rounded-2xl border border-border bg-surface p-3 transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary-ink"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-tint text-primary-ink"
         aria-hidden="true"
       >
         <Icon className="h-4.5 w-4.5" />

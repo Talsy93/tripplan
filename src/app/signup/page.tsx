@@ -1,10 +1,17 @@
 import Link from "next/link";
-import { CredentialsForm, GoogleButton, safeNext, signup } from "@/features/auth";
-import { Card } from "@/components/ui";
-import { PageEnter } from "@/components/layout";
+import {
+  AuthDivider,
+  AuthShell,
+  CredentialsForm,
+  GoogleButton,
+  safeNext,
+  signup,
+} from "@/features/auth";
 
 export const metadata = { title: "הרשמה · MyTrip" };
 
+// Sign-up, in the same frame as sign-in (design/pencil/exports/login-mobile):
+// only the tagline, the consent line and the footer link differ.
 export default async function SignupPage({
   searchParams,
 }: {
@@ -20,58 +27,54 @@ export default async function SignupPage({
   const carry = next === "/" ? null : next;
 
   return (
-    <main className="flex min-h-dvh items-center justify-center px-4 py-10">
-      <Card padding="none" className="w-full max-w-sm">
-        <PageEnter className="gap-4 p-6 sm:p-8">
-          <CredentialsForm
-            action={signup}
-            title="הרשמה"
-            submitLabel="הרשמה"
-            next={carry ?? undefined}
-            requirePrivacy
-          />
-
-          <div className="flex items-center gap-3 text-caption text-muted">
-            <span className="h-px flex-1 bg-border" />
-            או
-            <span className="h-px flex-1 bg-border" />
-          </div>
-
+    <AuthShell
+      tagline="חשבון חדש — ומתחילים לתכנן"
+      footer={
+        <>
+          כבר יש לכם חשבון?{" "}
+          <Link
+            href={carry ? `/login?next=${encodeURIComponent(carry)}` : "/login"}
+            className="rounded-full font-bold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            התחברות
+          </Link>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-2">
           <GoogleButton next={carry ?? undefined} />
-
-          {/* The Google path never sees the checkbox above — it leaves the site
+          {/* The Google path never sees the checkbox below — it leaves the site
               before any form is submitted, so there is nothing to validate. The
               consent is stated as a consequence of the action instead, which is
               the usual pattern for provider sign-in. Gating the button itself
               would mean lifting the checkbox out of the credentials form and
               sharing its state, and would also block returning users who are
               signing in rather than signing up. */}
-          <p className="text-caption text-muted">
+          <p className="text-center text-caption text-outline">
             בהמשך דרך Google אתם מאשרים את{" "}
             <Link
               href="/privacy"
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-primary-ink hover:underline"
+              className="font-semibold text-primary hover:underline"
             >
               מדיניות הפרטיות
             </Link>
             .
           </p>
-        </PageEnter>
+        </div>
 
-        <p className="border-t border-border bg-surface-2 p-4 text-center text-sm text-muted">
-          כבר יש חשבון?{" "}
-          <Link
-            href={
-              carry ? `/login?next=${encodeURIComponent(carry)}` : "/login"
-            }
-            className="font-semibold text-primary-ink hover:underline"
-          >
-            התחברות
-          </Link>
-        </p>
-      </Card>
-    </main>
+        <AuthDivider />
+
+        <CredentialsForm
+          action={signup}
+          title="הרשמה"
+          submitLabel="הרשמה"
+          next={carry ?? undefined}
+          requirePrivacy
+        />
+      </div>
+    </AuthShell>
   );
 }

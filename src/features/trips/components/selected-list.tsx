@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
-import { Card, EmptyState } from "@/components/ui";
+import { EmptyState } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { setSelected } from "../application/guide-actions";
-import { categoryIcon, categoryLabel } from "../domain/place";
+import { categoryLabel } from "../domain/place";
 import { PlacePhoto } from "./place-photo";
-import { DomainIcon } from "./domain-icon";
+import { CategoryTile } from "./category-tile";
 import type { SelectedItem } from "../domain/ai-suggestion";
 import { MapPin } from "lucide-react";
 
@@ -102,7 +102,9 @@ export function SelectedList({
   }
 
   return (
-    <Card padding="none" className="overflow-hidden">
+    // Pencil's list card: white, radius 20, hairlines between rows — the
+    // same card "מומלצים" above draws, so the two lists read as one system.
+    <div className="overflow-hidden rounded-[20px] bg-surface shadow-card">
       <ul>
         {items.map((item, index) => {
           const key = keyOf(item);
@@ -119,73 +121,40 @@ export function SelectedList({
             key={key}
             className="flex min-w-0 flex-col border-b border-border last:border-b-0"
           >
-           <div className="flex min-w-0 items-center gap-2.5 px-3 py-2.5">
+           <div className="flex min-w-0 items-center gap-3 px-4 py-3">
             {/* v6 (_4): the row's number, and it is the same number the map
                 draws on its pin. The export numbers this list 1..N for exactly
                 that reason — a list of six names beside a map of six pins is
                 two lists until something ties them together. */}
             <span
               aria-hidden="true"
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-tint text-caption font-bold tabular-nums text-primary-ink"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-foreground text-[0.6875rem] font-bold tabular-nums text-background"
             >
               {index + 1}
             </span>
-            {/* The export's 56px thumbnail. Nothing at all when Wikipedia has
-                no page for the place, which most hand-added places do not —
-                see PlacePhoto. */}
+            {/* A 44px thumbnail over the category tile — Pencil's list
+                language. The tile shows whenever Wikipedia has no page for the
+                place, which most hand-added places do not — see PlacePhoto. */}
             <PlacePhoto
               query={item.name}
               near={item.city}
-              className="h-14 w-14 shrink-0 rounded-control"
+              className="h-11 w-11 shrink-0 rounded-[14px]"
               // The same placeholder as the suggestions above. "Uniform" has
               // to mean the screen, not one list on it — two lists of cards
               // where only one keeps its shape is the same raggedness moved.
               fallback={
-                <DomainIcon
-                  name={categoryIcon(item.category)}
-                  className="h-5 w-5"
+                <CategoryTile
+                  category={item.category}
+                  className="h-full w-full rounded-none"
                 />
               }
             />
-            {/* group/pick, not group: the row also sits inside whatever the
-                caller wrapped it in, and an unnamed group would be captured by
-                the nearest one. */}
-            <button
-              type="button"
-              onClick={() => remove(item)}
-              title={`הסרה של ${item.name} מהטיול`}
-              aria-label={`הסרה של ${item.name} מהטיול`}
-              className={cn(
-                "group/pick flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors",
-                "bg-success-tint text-success-ink hover:bg-danger-tint hover:text-danger-ink",
-                // Touch has no hover, so the swap below never happens there and
-                // the control was a green check for its entire life — reported
-                // as "removing them is not clear". On a coarse pointer it shows
-                // what it does instead of what it is.
-                //
-                // Quiet rather than red: this is still a toggle of one boolean,
-                // not a deletion, and law 05 keeps destructive colour out of a
-                // row at rest. The tint arrives on press.
-                "pointer-coarse:bg-surface-2 pointer-coarse:text-muted",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              )}
-            >
-              <Check
-                className="h-4 w-4 animate-stamp group-hover/pick:hidden pointer-coarse:hidden"
-                aria-hidden="true"
-              />
-              <X
-                className="hidden h-4 w-4 group-hover/pick:block pointer-coarse:block"
-                aria-hidden="true"
-              />
-            </button>
-
             <span className="min-w-0 flex-1">
               {/* Wrapped to a second line, not truncated: a place name is
                   whatever the user or the AI typed, and `truncate` in RTL clips
                   the start of a Latin string with the ellipsis off screen. Two
                   lines is what the design allows destination names. */}
-              <span className="line-clamp-2 min-w-0 text-sm font-semibold wrap-anywhere">
+              <span className="line-clamp-2 min-w-0 text-[0.9375rem] font-bold leading-5 wrap-anywhere">
                 {item.name}
               </span>
               {/* One truncated line of context. For a hand-typed place this is
@@ -209,7 +178,7 @@ export function SelectedList({
                 onClick={() => toggle(key)}
                 aria-expanded={isOpen}
                 aria-label={isOpen ? `סגירת התיאור של ${item.name}` : `מה יש ב${item.name}`}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <ChevronDown
                   className={cn(
@@ -220,15 +189,49 @@ export function SelectedList({
                 />
               </button>
             )}
+            {/* group/pick, not group: the row also sits inside whatever the
+                caller wrapped it in, and an unnamed group would be captured by
+                the nearest one. */}
+            <button
+              type="button"
+              onClick={() => remove(item)}
+              title={`הסרה של ${item.name} מהטיול`}
+              aria-label={`הסרה של ${item.name} מהטיול`}
+              className={cn(
+                "group/pick flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors",
+                "bg-success text-white hover:bg-danger-tint hover:text-danger-ink",
+                // Touch has no hover, so the swap below never happens there and
+                // the control was a green check for its entire life — reported
+                // as "removing them is not clear". On a coarse pointer it shows
+                // what it does instead of what it is.
+                //
+                // Quiet rather than red: this is still a toggle of one boolean,
+                // not a deletion, and law 05 keeps destructive colour out of a
+                // row at rest. The tint arrives on press.
+                "pointer-coarse:bg-surface-2 pointer-coarse:text-muted",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              )}
+            >
+              <Check
+                className="h-5 w-5 animate-stamp group-hover/pick:hidden pointer-coarse:hidden"
+                aria-hidden="true"
+              />
+              <X
+                className="hidden h-5 w-5 group-hover/pick:block pointer-coarse:block"
+                aria-hidden="true"
+              />
+            </button>
            </div>
 
-            {/* Indented past the check so the text lines up with the name
-                above it rather than with the control: 0.75rem of row padding
-                plus the 1.75rem control and the 0.625rem gap. max-w-measure, because
+            {/* Indented so the text lines up with the name above it: 1rem of
+                row padding, the 1.5rem number, the 2.75rem thumbnail and two
+                0.75rem gaps. The check moved to the row's far end with the
+                Pencil restyle — the design's round control sits there on every
+                list — so it is no longer in this sum. max-w-measure, because
                 an AI description in a 372px pane is the one place in this
                 component where a real paragraph lands. */}
             {canExpand && isOpen && (
-              <p className="max-w-measure animate-rise pb-3 pe-3 ps-[3.125rem] text-caption leading-relaxed text-muted wrap-anywhere">
+              <p className="max-w-measure animate-rise pb-3 pe-4 ps-[6.75rem] text-caption leading-relaxed text-muted wrap-anywhere">
                 {detail}
               </p>
             )}
@@ -236,6 +239,6 @@ export function SelectedList({
           );
         })}
       </ul>
-    </Card>
+    </div>
   );
 }

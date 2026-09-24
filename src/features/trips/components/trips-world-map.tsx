@@ -100,14 +100,14 @@ export function TripsWorldMap({
           is broken rather than that the trips have not been placed yet — the
           same call the hero makes when it falls back to the light. */}
         {mapped.length > 0 && (
-          <div className="h-64 overflow-hidden rounded-card border border-border @2xl:h-auto @2xl:min-h-72">
+          <div className="h-64 overflow-hidden rounded-3xl bg-surface-2 shadow-card @2xl:h-auto @2xl:min-h-72">
             <TripsMapCanvas trips={mapped} />
           </div>
         )}
 
         <ul
           className={cn(
-            "stagger flex min-w-0 flex-col gap-1 rounded-card bg-surface shadow-card p-2",
+            "stagger flex min-w-0 flex-col gap-1 rounded-[20px] bg-surface p-2 shadow-card",
             mapped.length === 0 && "@2xl:col-span-2",
           )}
           style={
@@ -128,7 +128,7 @@ export function TripsWorldMap({
                 <Link
                   href={`/trips/${trip.id}`}
                   className={cn(
-                    "flex min-w-0 items-center gap-2.5 rounded-control px-2.5 py-2 transition-colors",
+                    "flex min-h-11 min-w-0 items-center gap-2.5 rounded-[14px] px-2.5 py-2 transition-colors",
                     "hover:bg-surface-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     active && "bg-surface-2",
                   )}

@@ -79,11 +79,11 @@ export default async function DaysPage({
 
   return (
     <Itinerary
-      // Stitch's itinerary puts the route map between the day selector and the
+      // The Pencil route screen puts the map between the day selector and the
       // day. Its own boundary: resolving the route can mean geocoding a city,
       // paced at a request a second, and the schedule must not wait for it.
       map={
-        <Suspense fallback={<Skeleton className="h-44 rounded-card" />}>
+        <Suspense fallback={<Skeleton className="h-32 rounded-[20px] sm:h-40" />}>
           <RouteMapPanel tripId={id} tripName={trip.name} variant="compact" />
         </Suspense>
       }

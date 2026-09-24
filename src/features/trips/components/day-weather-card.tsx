@@ -1,9 +1,27 @@
 import { Droplet } from "lucide-react";
-import { Card } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { describeWeather, weekdayLabel } from "../domain/weather";
 import type { DailyWeather } from "../domain/weather";
+import type { DomainIconName } from "../domain/icons";
 import { DomainIcon } from "./domain-icon";
+
+// The colour a weather glyph is drawn in (Pencil, v7): sun in amber, rain in
+// sky blue, everything grey in the outline ink. Through the .tone-* trios, so
+// it stays on the palette's own tokens rather than a hex written here.
+export function weatherToneClass(icon: DomainIconName): string {
+  switch (icon) {
+    case "clear":
+    case "partly-cloudy":
+      return "tone-amber text-tone-dot";
+    case "drizzle":
+    case "rain":
+    case "showers":
+    case "thunder":
+      return "tone-sky text-tone-dot";
+    default:
+      return "text-outline";
+  }
+}
 
 // Four days of weather for one city, in the context pane.
 //
@@ -11,6 +29,10 @@ import { DomainIcon } from "./domain-icon";
 // whole forecast window and scrolls sideways — the right thing on a page about
 // the trip, and far too much for a 372px pane on the day screen. Here the
 // question is narrow: what is it doing where I am, today and the next few days.
+//
+// One white card with the days as columns and no box around each (Pencil's
+// forecast row); today alone gets a teal tint, since it is the one you are
+// standing in.
 //
 // Presentational. The caller fetches, because the fetch needs the server and a
 // city's coordinates.
@@ -28,10 +50,10 @@ export function DayWeatherCard({
   if (days.length === 0) return null;
 
   return (
-    <Card className="flex flex-col gap-2.5">
-      <span className="text-sm font-bold">מזג האוויר ב{city}</span>
+    <div className="flex min-w-0 flex-col gap-3 rounded-[1.25rem] bg-surface p-4 shadow-card">
+      <span className="min-w-0 text-base leading-6 font-bold text-foreground wrap-anywhere">מזג האוויר ב{city}</span>
 
-      <ul className="flex gap-1.5">
+      <ul className="flex gap-1">
         {days.slice(0, 4).map((day) => {
           const described = describeWeather(day.code);
           const isToday = today != null && day.date === today;
@@ -40,31 +62,29 @@ export function DayWeatherCard({
             <li key={day.date} className="min-w-0 flex-1">
               <div
                 className={cn(
-                  "flex min-w-0 flex-col items-center gap-0.5 rounded-control px-1 py-2 text-center",
-                  // The action tint marks today, which is the one tile you are
-                  // actually standing in. Everything else is the quiet surface.
-                  isToday ? "bg-primary-tint" : "bg-surface-2",
+                  "flex min-w-0 flex-col items-center gap-1 rounded-2xl px-1 py-2 text-center",
+                  isToday && "bg-primary-tint",
                 )}
               >
                 <span
                   className={cn(
-                    "min-w-0 truncate text-caption font-bold",
-                    isToday ? "text-primary-ink" : "text-muted",
+                    "min-w-0 truncate text-xs",
+                    isToday ? "font-semibold text-primary" : "text-muted",
                   )}
                 >
                   {isToday ? "היום" : weekdayLabel(day.date).split(",")[0]}
                 </span>
                 <span
-                  className="text-tone-ink"
+                  className={weatherToneClass(described.icon)}
                   title={described.label}
                   aria-label={described.label}
                 >
-                  <DomainIcon name={described.icon} className="h-5 w-5" />
+                  <DomainIcon name={described.icon} className="h-6 w-6" />
                 </span>
-                <span className="text-sm font-black tabular-nums">
+                <span className="text-base font-bold tabular-nums text-foreground">
                   {Math.round(day.maxC)}°
                 </span>
-                <span className="text-caption tabular-nums text-muted">
+                <span className="text-xs tabular-nums text-muted">
                   {day.rainChance !== null && day.rainChance > 0 ? (
                     <>
                       <Droplet
@@ -82,6 +102,6 @@ export function DayWeatherCard({
           );
         })}
       </ul>
-    </Card>
+    </div>
   );
 }

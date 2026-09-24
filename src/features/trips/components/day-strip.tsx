@@ -1,27 +1,22 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
+import { Check } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { dateOfDay, dayPillLabel } from "../domain/trip-days";
+import { dayPillLabel } from "../domain/trip-days";
 
-// The month, in Hebrew, for the line under the day of the month ("אוקטובר").
-function monthOf(startDate: string | null, dayNumber: number): string | null {
-  const date = dateOfDay(startDate, dayNumber);
-  if (!date) return null;
-  return new Date(`${date}T00:00:00Z`).toLocaleDateString("he-IL", {
-    month: "long",
-    timeZone: "UTC",
-  });
-}
-
-// The day selector of the Stitch itinerary (v6), drawn to its measurements:
-// 80×96 cards, 12px corners, three lines — "יום N" on top, the date in the
-// middle, what the day is about at the foot.
+// The day selector, drawn to the Pencil route screen (phase PN): 60×78 pills
+// with 18px corners and three lines — the weekday small on top, the day number
+// big in the middle, the day's city small at the foot.
 //
-//   lived     lavender well, no shadow, a filled green check in the corner
-//   chosen    the maritime fill, 96px wide, "היום" + a pulsing terracotta dot
-//             when it is today, the day number and full date in the middle
-//   ahead     white, a small shadow
+//   lived     white, a green check where the weekday was — the day is done,
+//             and "which weekday was it" stopped mattering
+//   chosen    the ink fill with white text. Ink rather than teal because teal
+//             is the tab bar's selection, and two teal selections stacked on
+//             one screen read as one control
+//   ahead     white on the canvas, the card shadow
+//
+// Today keeps a small terracotta dot beside its weekday, so "where am I in
+// the trip" survives choosing some other day to look at.
 export function DayStrip({
   dayNumbers,
   startDate,
@@ -43,18 +38,17 @@ export function DayStrip({
   return (
     <div
       className={cn(
-        "-mx-4 overflow-x-auto px-4 pb-0.5 pt-1 [scrollbar-width:none] md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden",
+        "-mx-4 overflow-x-auto px-4 py-1 [scrollbar-width:none] md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 [&::-webkit-scrollbar]:hidden",
         className,
       )}
     >
-      <div className="flex min-w-max items-center gap-2">
+      <div className="flex min-w-max items-stretch gap-2">
         {dayNumbers.map((dayNumber) => {
           const isActive = dayNumber === activeDay;
           const isToday = dayNumber === currentDay;
           const isPast = currentDay != null && dayNumber < currentDay;
           const pill = dayPillLabel(startDate, dayNumber);
-          const month = monthOf(startDate, dayNumber);
-          const label = labels?.[dayNumber] ?? pill?.weekday ?? "";
+          const label = labels?.[dayNumber] ?? "";
 
           return (
             <button
@@ -62,69 +56,54 @@ export function DayStrip({
               type="button"
               onClick={() => onSelect(dayNumber)}
               aria-current={isActive ? "true" : undefined}
+              aria-label={[
+                `יום ${dayNumber}`,
+                pill?.weekday,
+                label,
+                isToday ? "היום" : null,
+                isPast ? "עבר" : null,
+              ]
+                .filter(Boolean)
+                .join(", ")}
               className={cn(
-                "flex h-24 shrink-0 flex-col items-center justify-between rounded-tile p-2 transition-all duration-press ease-snap",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "flex h-[78px] w-[60px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-[18px] px-1",
+                "transition-[background-color,box-shadow,transform] duration-press ease-snap active:scale-[0.97]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 isActive
-                  ? "w-24 scale-[1.02] bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                  : isPast
-                    ? "w-20 bg-surface-2 text-muted hover:bg-surface-sunken"
-                    : "w-20 bg-surface text-foreground shadow-sm hover:bg-surface-2",
+                  ? "bg-foreground text-surface shadow-lift"
+                  : "bg-surface text-foreground shadow-card hover:shadow-lift",
               )}
             >
-              <span className="flex w-full items-center justify-between">
-                <span
-                  className={cn(
-                    "text-[0.625rem] leading-[0.875rem] font-semibold",
-                    isActive ? "font-bold text-primary-tint" : "text-outline",
-                  )}
-                >
-                  {isActive && isToday ? "היום" : `יום ${dayNumber}`}
-                </span>
-                {isActive && isToday && (
-                  <span
-                    className="h-2 w-2 animate-pulse rounded-full bg-cta-bright"
-                    aria-hidden="true"
-                  />
-                )}
-                {!isActive && isPast && (
-                  <CheckCircle2
-                    className="h-4 w-4 fill-success text-surface-2"
-                    aria-label="יום שעבר"
-                  />
-                )}
-              </span>
-
-              <span className="my-auto flex flex-col items-center">
-                <span
-                  className={cn(
-                    "text-base leading-[1.375rem] font-bold",
-                    isActive ? "text-primary-foreground" : "text-foreground",
-                  )}
-                >
-                  {isActive ? `יום ${dayNumber}` : (pill?.dayOfMonth ?? dayNumber)}
-                </span>
-                {(month || isActive) && (
-                  <span
-                    className={cn(
-                      "text-[0.625rem] leading-[0.875rem] font-semibold",
-                      isActive ? "text-primary-tint" : "text-outline",
-                    )}
-                  >
-                    {isActive
-                      ? [pill?.dayOfMonth, month].filter(Boolean).join(" ")
-                      : month}
-                  </span>
-                )}
-              </span>
-
               <span
                 className={cn(
-                  "w-full truncate text-center text-[0.625rem] leading-[0.875rem] font-semibold",
-                  isActive ? "font-medium text-primary-soft" : "text-outline",
+                  "flex h-3.5 items-center gap-1 text-[0.6875rem] leading-none font-medium",
+                  isActive ? "text-surface/70" : "text-muted",
                 )}
+                aria-hidden="true"
               >
-                {label || " "}
+                {isPast && !isActive ? (
+                  <Check className="h-3.5 w-3.5 text-success" strokeWidth={2.5} />
+                ) : (
+                  (pill?.weekday ?? "")
+                )}
+                {isToday && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-cta" />
+                )}
+              </span>
+              <span
+                className="text-[1.375rem] leading-7 font-bold tabular-nums"
+                aria-hidden="true"
+              >
+                {dayNumber}
+              </span>
+              <span
+                className={cn(
+                  "w-full truncate text-center text-[0.625rem] leading-3 font-medium",
+                  isActive ? "text-surface/80" : "text-muted",
+                )}
+                aria-hidden="true"
+              >
+                {label || pill?.dayOfMonth || " "}
               </span>
             </button>
           );

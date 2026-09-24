@@ -18,13 +18,12 @@ import type { PlaceCategory } from "./place";
 // star rating and no review count anywhere open, so that slot says how many
 // Wikipedias have an article on the place — a real measure of how known it is.
 
-// The export's chips, in its order, with its emoji. Emoji here for the reason
-// PLACE_CATEGORIES gives: a chip carousel where the emoji is the only mark.
+// The deck's chips, in order. Their glyphs are lucide, in discover-deck.tsx.
 export const DISCOVER_CATEGORIES = {
-  all: { label: "הכל", emoji: "✨", filters: [] as string[] },
+  all: { label: "הכל", filters: [] as string[] },
   mustsee: {
     label: "אתרי חובה",
-    emoji: "🏛️",
+   
     filters: [
       "tourism=attraction",
       "tourism=museum",
@@ -36,12 +35,12 @@ export const DISCOVER_CATEGORIES = {
   },
   food: {
     label: "קולינריה",
-    emoji: "🍝",
+   
     filters: ["amenity=restaurant", "amenity=cafe", "amenity=marketplace"],
   },
   nature: {
     label: "טבע ונוף",
-    emoji: "🌿",
+   
     filters: [
       "leisure=park",
       "leisure=garden",
@@ -52,7 +51,7 @@ export const DISCOVER_CATEGORIES = {
   },
   shopping: {
     label: "קניות ושווקים",
-    emoji: "🛍️",
+   
     filters: [
       "amenity=marketplace",
       "shop=mall",
@@ -62,7 +61,7 @@ export const DISCOVER_CATEGORIES = {
   },
   hidden: {
     label: "פינות נסתרות",
-    emoji: "💎",
+   
     filters: [
       "historic=memorial",
       "historic=ruins",

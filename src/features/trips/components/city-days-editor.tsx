@@ -1,17 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { BedDouble, Check, Pencil } from "lucide-react";
-import {
-  Badge,
-  Banner,
-  Button,
-  IconButton,
-  Input,
-  SectionHeading,
-  Surface,
-  ToneDot,
-} from "@/components/ui";
+import { useOptimistic, useState, useTransition } from "react";
+import { Minus, Plus } from "lucide-react";
+import { Banner, ToneDot } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { setCityDays } from "../application/itinerary-actions";
 import { cityDayTotals } from "../domain/city-days";
@@ -24,9 +15,18 @@ import type { CityDayPlan } from "../domain/city-days";
 // is not recomputed here) and this screen does two things: show where each
 // number came from, and let it be overridden.
 //
-// Showing the source is the point. "4 ימים · מהלינה" tells the user the app read
-// their hotel booking, which is the difference between a number they trust and a
-// number that appeared for no reason.
+// Showing the source is the point. "לפי הלינה" under a city tells the user the
+// app read their hotel booking, which is the difference between a number they
+// trust and a number that appeared for no reason.
+//
+// Pencil (phase PN) draws the override as a −/+ stepper on each row rather
+// than a pencil that opens a field. A stay is changed a day at a time — "one
+// more night in Rome" — and a stepper says that in one press where the field
+// took four. Each press is its own write, shown optimistically so the number
+// moves under the finger rather than after the round trip.
+//
+// No heading of its own: both callers already say what this is — the empty
+// state's "בואו נבנה את הלו״ז", and the pane's "המסלול כולו".
 export function CityDaysEditor({
   tripId,
   plan,
@@ -37,130 +37,102 @@ export function CityDaysEditor({
   // Days the trip's own dates allow, or null when it has no dates yet.
   tripDayCount: number | null;
 }) {
-  const [editing, setEditing] = useState<string | null>(null);
-  const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [shown, setShown] = useOptimistic(
+    plan,
+    (current, change: { city: string; days: number | null }) =>
+      current.map((entry) =>
+        entry.city === change.city
+          ? {
+              ...entry,
+              days: change.days,
+              // A cleared override falls back to whatever the server decides;
+              // "unset" is the honest thing to show until it answers.
+              source: change.days === null ? ("unset" as const) : ("override" as const),
+            }
+          : entry,
+      ),
+  );
 
   const tones = cityToneMap(plan.map((entry) => entry.city));
-  const totals = cityDayTotals(plan, tripDayCount);
+  const totals = cityDayTotals(shown, tripDayCount);
 
   if (plan.length === 0) return null;
 
-  function save(city: string) {
+  function save(city: string, days: number | null) {
     setError(null);
-    const trimmed = draft.trim();
-    // An empty field clears the override and hands the city back to its booking.
-    const days = trimmed === "" ? null : Number(trimmed);
-
-    if (days !== null && !Number.isFinite(days)) {
-      setError("צריך מספר");
-      return;
-    }
-
     startTransition(async () => {
+      setShown({ city, days });
       const result = await setCityDays(tripId, { city, days });
-      if (!result.ok) {
-        setError(result.error ?? "השמירה נכשלה");
-        return;
-      }
-      setEditing(null);
+      if (!result.ok) setError(result.error ?? "השמירה נכשלה");
     });
   }
 
   return (
-    <Surface tone="quiet" className="flex flex-col gap-3">
-      <SectionHeading
-        level="sub"
-        description="הבסיס לבניית הלוח. ברירת המחדל היא הלינה שהזמנתם."
-      >
-        ימים בכל עיר
-      </SectionHeading>
-
-      <ul className="flex flex-col gap-1.5">
-        {plan.map((entry) => {
-          const isEditing = editing === entry.city;
-
+    <div className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-2">
+        {shown.map((entry) => {
+          const days = entry.days;
           return (
             <li
               key={entry.city}
               className={cn(
-                "flex items-center gap-2 rounded-control bg-surface px-3 py-2",
+                "flex min-h-14 items-center gap-3 rounded-[16px] bg-surface px-4 py-2 shadow-card",
                 cityToneClass(tones, entry.city),
               )}
             >
               <ToneDot />
-              <span className="min-w-0 flex-1 truncate text-sm font-semibold">
-                {entry.city}
-              </span>
-
-              {isEditing ? (
-                <>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={60}
-                    inputMode="numeric"
-                    value={draft}
-                    onChange={(event) => setDraft(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") {
-                        event.preventDefault();
-                        save(entry.city);
-                      }
-                      if (event.key === "Escape") setEditing(null);
-                    }}
-                    placeholder="ריק = לפי הלינה"
-                    autoFocus
-                    dir="ltr"
-                    className="h-8 w-32 text-center"
-                  />
-                  <Button
-                    size="sm"
-                    onClick={() => save(entry.city)}
-                    loading={pending}
-                  >
-                    שמירה
-                  </Button>
-                </>
-              ) : (
-                <>
-                  {entry.days === null ? (
-                    <Badge tone="neutral">ה-AI יחליט</Badge>
-                  ) : (
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-[0.9375rem] font-semibold">
+                  {entry.city}
+                </span>
+                <span className="flex items-center gap-1.5 text-[0.6875rem] text-muted">
+                  {entry.source === "lodging"
+                    ? "לפי הלינה"
+                    : entry.source === "override"
+                      ? "נקבע ידנית"
+                      : "ה-AI יחליט"}
+                  {/* The way back to the booking's number. Only on a manual
+                      value — the other two already are the default. */}
+                  {entry.source === "override" && (
                     <>
-                      <span className="text-sm tabular-nums">
-                        {entry.days === 1 ? "יום אחד" : `${entry.days} ימים`}
-                      </span>
-                      {entry.source === "lodging" ? (
-                        <Badge tone="action">
-                          <BedDouble
-                            className="h-3.5 w-3.5"
-                            aria-hidden="true"
-                          />
-                          מהלינה
-                        </Badge>
-                      ) : (
-                        <Badge tone="success">
-                          <Check className="h-3.5 w-3.5" aria-hidden="true" />
-                          נקבע ידנית
-                        </Badge>
-                      )}
+                      <span aria-hidden="true">·</span>
+                      <button
+                        type="button"
+                        onClick={() => save(entry.city, null)}
+                        disabled={pending}
+                        className="rounded font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                      >
+                        איפוס
+                      </button>
                     </>
                   )}
-                  <IconButton
-                    label={`עריכת מספר הימים ב${entry.city}`}
-                    size="sm"
-                    onClick={() => {
-                      setEditing(entry.city);
-                      setDraft(entry.days === null ? "" : String(entry.days));
-                      setError(null);
-                    }}
-                  >
-                    <Pencil className="h-4 w-4" aria-hidden="true" />
-                  </IconButton>
-                </>
-              )}
+                </span>
+              </span>
+
+              <span className="flex shrink-0 items-center gap-2">
+                <StepButton
+                  label={`יום נוסף ב${entry.city}`}
+                  disabled={pending || (days ?? 0) >= 60}
+                  onClick={() => save(entry.city, (days ?? 0) + 1)}
+                >
+                  <Plus className="h-4 w-4" aria-hidden="true" />
+                </StepButton>
+                <span
+                  className="min-w-[3.25rem] text-center text-sm font-semibold tabular-nums"
+                  aria-live="polite"
+                >
+                  {days === null ? "—" : days === 1 ? "יום אחד" : `${days} ימים`}
+                </span>
+                <StepButton
+                  label={`יום אחד פחות ב${entry.city}`}
+                  disabled={pending || days === null || days <= 1}
+                  onClick={() => days !== null && save(entry.city, days - 1)}
+                >
+                  <Minus className="h-4 w-4" aria-hidden="true" />
+                </StepButton>
+              </span>
             </li>
           );
         })}
@@ -180,13 +152,42 @@ export function CityDaysEditor({
       )}
 
       {totals.plannedDays !== null && totals.overBy === 0 && (
-        <p className="text-caption text-muted">
-          סך הכול {totals.plannedDays} ימים מתוכננים
-          {totals.undecidedCities > 0 &&
-            ` · ${totals.undecidedCities} ערים ללא מספר`}
-          .
+        <p className="flex items-baseline justify-between gap-2 px-1 pt-1 text-caption">
+          <span className="text-muted">סה״כ</span>
+          <span className="font-semibold text-success tabular-nums">
+            {totals.plannedDays} ימים
+            {tripDayCount !== null && ` מתוך ${tripDayCount}`}
+            {totals.undecidedCities > 0 &&
+              ` · ${totals.undecidedCities} ערים ללא מספר`}
+          </span>
         </p>
       )}
-    </Surface>
+    </div>
+  );
+}
+
+// The round −/+ of the stepper. Outlined, because it is a secondary control
+// beside a number rather than an action of its own.
+function StepButton({
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  disabled: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface text-foreground transition-[background-color,transform] duration-press ease-snap hover:bg-surface-2 active:scale-[0.94] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-40"
+    >
+      {children}
+    </button>
   );
 }

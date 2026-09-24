@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { TwoPane } from "@/components/layout";
-import { SectionHeading } from "@/components/ui";
 import { costTotalsByCurrency } from "../domain/expenses";
 import type { Booking } from "../domain/booking";
 import type { OpenItem } from "../domain/open-items";
@@ -56,15 +55,11 @@ export function TodayBefore({
       aside={
         hasAside ? (
           <>
-            {forecast && (
-              <section className="flex flex-col gap-3">
-                <SectionHeading level="section">מזג האוויר</SectionHeading>
-                {forecast}
-              </section>
-            )}
+            {/* Self-titled — WeatherForecast heads each city "תחזית ב…". */}
+            {forecast}
             {hasSpend && (
               <section className="flex flex-col gap-3">
-                <SectionHeading level="section">הוצאות עד כה</SectionHeading>
+                <h2 className="text-base leading-6 font-bold text-foreground">הוצאות עד כה</h2>
                 <TripSpend tripId={tripId} bookings={bookings} />
               </section>
             )}
@@ -77,7 +72,7 @@ export function TodayBefore({
       {/* First, because it is the only thing on this screen with a clock on it.
           Everything below is a task; this is an appointment. */}
       <section className="flex flex-col gap-3">
-        <SectionHeading level="section" tone="now">מה קרוב</SectionHeading>
+        <h2 className="text-base leading-6 font-bold text-foreground">מה קרוב</h2>
         <UpNext bookings={bookings} now={now} cities={cities} />
       </section>
 
