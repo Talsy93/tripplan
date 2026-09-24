@@ -124,7 +124,6 @@ import {
 } from "@/components/layout";
 import {
   Bell,
-  Bot,
   CalendarDays,
   Compass,
   Luggage,
@@ -391,14 +390,6 @@ function homeFrame(
       standing: s,
     };
   });
-  const tripId = (featured ?? trips[0]?.entry)?.trip.id;
-  const icon = "h-[22px] w-[22px]";
-  const tab = (segment: string, label: string, node: ReactNode, waiting?: string) => ({
-    href: tripId ? `/trips/${tripId}/${segment}` : `#${segment}`,
-    label,
-    icon: node,
-    waiting: tripId ? waiting : "נפתח אחרי שיוצרים טיול",
-  });
   return (
     <div className="flex min-h-dvh flex-col">
       <BrandHeader
@@ -433,16 +424,6 @@ function homeFrame(
             { name: "המוזיאון של האקרופוליס", city: "אתונה", category: "attractions", latitude: 37.9685, longitude: 23.7285 },
           ],
         }}
-      />
-      <BottomNav
-        accent="cta"
-        items={[
-          { href: "/preview/home-stitch", label: "הטיולים שלי", icon: <Luggage className={icon} />, active: true },
-          tab("today", "היום", <Sun className={icon} />),
-          tab("days", "מסלול", <CalendarDays className={icon} />),
-          tab("discover", "גילוי", <Compass className={icon} />),
-          tab("ai", "עוזר AI", <Bot className={icon} />),
-        ]}
       />
     </div>
   );

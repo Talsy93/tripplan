@@ -117,7 +117,7 @@ export function HomeScreen({
   return (
     <main
       className={cn(
-        "mx-auto flex w-full flex-1 flex-col gap-6 px-4 pb-32 pt-4 md:px-6 md:pb-12 lg:px-8 lg:pt-8",
+        "mx-auto flex w-full flex-1 flex-col gap-6 px-4 pb-10 pt-4 md:px-6 md:pb-12 lg:px-8 lg:pt-8",
         // No trips: one centred column, like the empty export — a grid would
         // leave the whole left half of a desktop blank.
         empty

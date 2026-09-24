@@ -1,11 +1,5 @@
-import type { ReactNode } from "react";
-import { Bell, Bot, CalendarDays, Compass, Luggage, Sun } from "lucide-react";
-import {
-  BottomNav,
-  BrandHeader,
-  HeaderDialogButton,
-} from "@/components/layout";
-import type { NavItem } from "@/components/layout";
+import { Bell } from "lucide-react";
+import { BrandHeader, HeaderDialogButton } from "@/components/layout";
 import { getCurrentUser, LogoutButton } from "@/features/auth";
 import {
   APP_TIME_ZONE,
@@ -28,7 +22,6 @@ import {
   PushToggle,
   todayIn,
   tripDayCount,
-  tripTabHref,
 } from "@/features/trips";
 import type {
   FeaturedDetails,
@@ -134,37 +127,6 @@ export default async function ProfilePage() {
   const avatar = meta.avatar_url ?? meta.picture ?? null;
   const initial = (firstName ?? user?.email ?? "?")[0]?.toUpperCase();
 
-  // The footer's four trip tabs open the featured trip, or the nearest one.
-  const target = featured ?? ordered[0] ?? null;
-  const live = target?.phase.kind === "during";
-  const tab = (
-    segment: "today" | "days" | "discover" | "ai",
-    label: string,
-    icon: ReactNode,
-  ): NavItem => ({
-    href: target ? tripTabHref(target.trip.id, segment) : `/profile#${segment}`,
-    label,
-    icon,
-    waiting: !target
-      ? "נפתח אחרי שיוצרים טיול"
-      : segment === "today" && !live
-        ? "נפתח כשהטיול מתחיל"
-        : undefined,
-  });
-  const icon = "h-[22px] w-[22px]";
-  const nav: NavItem[] = [
-    {
-      href: "/profile",
-      label: "הטיולים שלי",
-      icon: <Luggage className={icon} />,
-      active: true,
-    },
-    tab("today", "היום", <Sun className={icon} />),
-    tab("days", "מסלול", <CalendarDays className={icon} />),
-    tab("discover", "גילוי", <Compass className={icon} />),
-    tab("ai", "עוזר AI", <Bot className={icon} />),
-  ];
-
   // Round 44px discs, as the export draws them: a white bell with a hairline,
   // and the avatar in teal.
   const bell = (
@@ -235,7 +197,6 @@ export default async function ProfilePage() {
         account={account}
       />
 
-      <BottomNav items={nav} accent="cta" />
     </div>
   );
 }
