@@ -107,41 +107,18 @@ function GuideCard({
   onToggle: () => void;
 }) {
   return (
-    <article className="flex h-full min-w-0 flex-col gap-3 rounded-[20px] bg-surface p-4 shadow-card">
+    <article className="@container/card flex h-full min-w-0 flex-col gap-3 rounded-[20px] bg-surface p-4 shadow-card">
       <div className="flex min-w-0 items-center gap-3">
         <CategoryTile category={category} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <h3 className="min-w-0 text-base font-bold leading-6 wrap-anywhere">
+          <h3 className="min-w-0 text-base font-bold leading-6 break-words text-pretty">
             {item.name}
           </h3>
           <p className="min-w-0 truncate text-caption text-muted">{kind}</p>
         </div>
-        {/* Pencil's pill: "הוספה +" outlined at rest, "נוסף ✓" filled green
-            once it is in. Pressing it again takes the item out. */}
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-pressed={item.selected}
-          aria-label={
-            item.selected
-              ? `הסרה של ${item.name} מהטיול`
-              : `הוספת ${item.name} לטיול`
-          }
-          className={cn(
-            "flex h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition-colors active:scale-95",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            item.selected
-              ? "bg-success text-white hover:bg-success-strong"
-              : "border border-border-strong bg-surface text-foreground hover:bg-surface-sunken",
-          )}
-        >
-          {item.selected ? (
-            <Check className="h-4 w-4 animate-stamp" aria-hidden="true" />
-          ) : (
-            <Plus className="h-4 w-4" aria-hidden="true" />
-          )}
-          {item.selected ? "נוסף" : "הוספה"}
-        </button>
+        {/* Beside the name only when the card has the width for both — see
+            AddPill. */}
+        <AddPill item={item} onToggle={onToggle} className="hidden @[21rem]/card:flex" />
       </div>
 
       {item.description && (
@@ -162,6 +139,8 @@ function GuideCard({
         ) : (
           <span />
         )}
+        <span className="flex shrink-0 items-center gap-1">
+        <AddPill item={item} onToggle={onToggle} className="flex @[21rem]/card:hidden" />
         <a
           href={googleMapsSearchUrl(`${item.name} ${city}`)}
           target="_blank"
@@ -172,8 +151,53 @@ function GuideCard({
         >
           <MapIcon className="h-4 w-4" aria-hidden="true" />
         </a>
+        </span>
       </div>
     </article>
+  );
+}
+
+// "הוספה +" outlined at rest, "נוסף ✓" filled green once the place is in;
+// pressing it again takes it out. Beside the name in a wide card; in a narrow
+// one (three across on a tablet) it moves to the card's foot, because beside
+// the name it left the name ~90px and broke it word by word — reported as the
+// guide being "completely broken on the iPad". Only one of the two is ever
+// displayed.
+function AddPill({
+  item,
+  onToggle,
+  className,
+}: {
+  item: GuideItem;
+  onToggle: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={item.selected}
+      aria-label={
+        item.selected
+          ? `הסרה של ${item.name} מהטיול`
+          : `הוספת ${item.name} לטיול`
+      }
+      className={cn(
+        className,
+        "h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition-colors active:scale-95",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        item.selected
+          ? "bg-success text-white hover:bg-success-strong"
+          : "border border-border-strong bg-surface text-foreground hover:bg-surface-sunken",
+      )}
+    >
+      {item.selected ? (
+        <Check className="h-4 w-4 animate-stamp" aria-hidden="true" />
+      ) : (
+        <Plus className="h-4 w-4" aria-hidden="true" />
+      )}
+      {item.selected ? "נוסף" : "הוספה"}
+    </button>
   );
 }
 
@@ -379,7 +403,12 @@ export function CityGuide({ tripId, city, initialGuide, aside }: CityGuideProps)
         })}
       </div>
 
-      <div className="flex flex-col gap-4 @4xl:grid @4xl:grid-cols-[minmax(0,1fr)_21rem] @4xl:items-start @4xl:gap-8">
+      <div
+        className={cn(
+          "flex flex-col gap-4",
+          aside && "@4xl:grid @4xl:grid-cols-[minmax(0,1fr)_21rem] @4xl:items-start @4xl:gap-8",
+        )}
+      >
       <div className="flex min-w-0 flex-col gap-4">
       {error && <Banner tone="danger">{error}</Banner>}
 
@@ -459,7 +488,7 @@ export function CityGuide({ tripId, city, initialGuide, aside }: CityGuideProps)
                 </div>
                 {/* A guide card is a paragraph and a button, so three across is
                     comfortable on a desktop. It was one column at every width. */}
-                <div className="grid gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
+                <div className="grid gap-3 @md:grid-cols-2 @5xl:grid-cols-3">
                   {items.map((item, index) => (
                     <GuideCard
                       key={`${item.name}-${index}`}
