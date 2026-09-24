@@ -9,11 +9,11 @@
 //
 // ## The source
 //
-// `assets/logo-source.svg` — the owner's Stitch logo (design/stitch/…/applogo,
-// 2026-09-23): a 512×512 squircle with the maritime gradient, a compass star,
-// the route arc and the "MyTrip" wordmark. It replaced a raster PNG, and being
-// vector is what lets each size below be rendered from the artwork itself
-// rather than downscaled from one bitmap.
+// `assets/logo-source.svg` — the Pencil logo (phase PN, 2026-09-24): a 512×512
+// squircle in the app's deep teal, lucide's compass in white with the
+// needle's north half in the one terracotta, and the "MyTrip" wordmark. The
+// same mark as the in-app logo tile (brand-header.tsx), so the home screen and
+// the app agree. Vector, so each size is rendered from the artwork itself.
 //
 // The wordmark names Rubik, which librsvg (inside sharp) does not have; it
 // falls back to the system sans in heavy weight, which is close enough at icon
@@ -82,7 +82,7 @@ async function main() {
   const svg = await readFile(SOURCE, "utf8");
 
   await render(variant(svg, { square: true }), 180)
-    .flatten({ background: "#0369a1" })
+    .flatten({ background: "#12555c" })
     .png(PNG)
     .toFile(path.join(PUBLIC, "apple-touch-icon.png"));
   console.log("  apple-touch-icon.png (180x180, square, opaque)");
@@ -95,13 +95,13 @@ async function main() {
   }
 
   await render(variant(svg, { square: true, inset: 0.8 }), 512)
-    .flatten({ background: "#0369a1" })
+    .flatten({ background: "#12555c" })
     .png(PNG)
     .toFile(path.join(PUBLIC, "icon-maskable-512.png"));
   console.log("  icon-maskable-512.png (512x512, marks at 80%)");
 
   await render(variant(svg, { square: true, wordmark: false }), 32)
-    .flatten({ background: "#0369a1" })
+    .flatten({ background: "#12555c" })
     .png(PNG)
     .toFile(path.join(PUBLIC, "favicon-32.png"));
   console.log("  favicon-32.png (32x32, square, no wordmark)");

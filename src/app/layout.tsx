@@ -18,7 +18,7 @@ export const viewport: Viewport = {
   // Painted behind the status bar once the app is installed, so it has to be
   // the header's colour and not the canvas's. Kept in step with
   // manifest.json's theme_color — the two disagreed until phase D.
-  themeColor: "#faf8ff",
+  themeColor: "#f6f5f1",
 };
 
 export const metadata: Metadata = {
@@ -40,14 +40,14 @@ export const metadata: Metadata = {
   // a raster image, so there is nothing honest to put in an SVG.
   icons: {
     icon: [
-      { url: "/favicon-32.png?v=2", sizes: "32x32", type: "image/png" },
-      { url: "/icon-192.png?v=2", sizes: "192x192", type: "image/png" },
-      { url: "/icon-512.png?v=2", sizes: "512x512", type: "image/png" },
+      { url: "/favicon-32.png?v=3", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png?v=3", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png?v=3", sizes: "512x512", type: "image/png" },
     ],
     // Must be PNG, and must be fully opaque. iOS ignores an SVG apple-touch-icon
     // entirely, and it composites a transparent one onto black — which is
     // exactly the black tile that was reported on the home screen.
-    apple: { url: "/apple-touch-icon.png?v=2", sizes: "180x180" },
+    apple: { url: "/apple-touch-icon.png?v=3", sizes: "180x180" },
   },
 };
 
