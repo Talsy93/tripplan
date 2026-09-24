@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
+import { TwoPane } from "@/components/layout";
 import { Skeleton } from "@/components/ui";
 import { getCurrentUser } from "@/features/auth";
 import { instantToWallClock } from "@/lib/datetime";
@@ -165,8 +166,28 @@ export default async function TodayPage({
   // v7 (Pencil): the screen in the design's order — greeting, the "now" card,
   // the location nudge, tonight's bed, the toolbox, the people. The day's full
   // schedule follows at the foot, which is where the card's "הבא" points.
+  // PN20 (Pencil): the day's schedule is the pane on a desktop — "המשך היום"
+  // beside the now card — and stays at the foot below @4xl, where it always was.
+  const schedule = showDay ? (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-lg leading-6 font-bold text-foreground">הלו״ז של היום</h2>
+      <DayPanel
+        tripId={trip.id}
+        days={itinerary}
+        dayNumber={focusDay}
+        startDate={trip.start_date}
+        currentDay={currentDay}
+        bookingsByDay={byDay}
+        lodgingByDay={lodging}
+        reminders={reminders}
+        dayNotes={dayNotes}
+        nowIso={phase.kind === "during" ? nowIso : undefined}
+      />
+    </section>
+  ) : undefined;
+
   return (
-    <div className="enter-children mx-auto flex w-full min-w-0 max-w-main flex-col gap-5">
+    <TwoPane aside={schedule}>
       <h1 className="sr-only">{trip.name}</h1>
 
       {live && (
@@ -193,6 +214,9 @@ export default async function TodayPage({
         />
       )}
 
+      {/* A tablet has the width for the nudge and tonight's bed side by side;
+          auto-fit collapses the empty track when only one of them is there. */}
+      <div className="grid gap-5 @2xl:grid-cols-[repeat(auto-fit,minmax(18rem,1fr))] @2xl:items-start">
       {live && <ArrivalWatcher tripId={trip.id} day={live.day} />}
 
       {urgent.length > 0 && (
@@ -206,6 +230,7 @@ export default async function TodayPage({
       {live && currentDay !== null && (
         <TonightCard tripId={trip.id} stay={lodging[currentDay] ?? null} />
       )}
+      </div>
 
       {live && currentDay !== null && (
         <Suspense fallback={<Skeleton className="h-40 rounded-[1.25rem]" />}>
@@ -219,24 +244,6 @@ export default async function TodayPage({
         </Suspense>
       )}
 
-
-      {showDay ? (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-lg leading-6 font-bold text-foreground">הלו״ז של היום</h2>
-          <DayPanel
-            tripId={trip.id}
-            days={itinerary}
-            dayNumber={focusDay}
-            startDate={trip.start_date}
-            currentDay={currentDay}
-            bookingsByDay={byDay}
-            lodgingByDay={lodging}
-            reminders={reminders}
-            dayNotes={dayNotes}
-            nowIso={phase.kind === "during" ? nowIso : undefined}
-          />
-        </section>
-      ) : null}
-    </div>
+    </TwoPane>
   );
 }

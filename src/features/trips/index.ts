@@ -363,6 +363,7 @@ export type {
 export { savePlanFromChat } from "./infrastructure/trip-plan-service";
 export { resetChat, applyPlan } from "./application/chat-actions";
 export { TripChat } from "./components/trip-chat";
+export { AssistantContext } from "./components/assistant-context";
 export { PlanPreview } from "./components/plan-preview";
 export { CreateTripForm, NewTripButton } from "./components/create-trip-form";
 export { CityDaysEditor } from "./components/city-days-editor";

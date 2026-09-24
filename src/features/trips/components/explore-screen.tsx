@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { TwoPane } from "@/components/layout";
+import { cn } from "@/lib/cn";
 import Link from "next/link";
 import { Map as MapIcon, RefreshCw } from "lucide-react";
 import type {
@@ -85,8 +85,26 @@ export function ExploreScreen({
 
   const waiting = plan.pending.length;
 
+  // PN20 (Pencil desktop): from @4xl of the panel the trip as it stands — the
+  // route and the empty days — moves into a sticky pane beside the search, and
+  // the search keeps the wide column. A phone keeps the old single column, in
+  // the old order, without rendering anything twice: both columns are
+  // `display: contents` below @4xl, so their children are items of the outer
+  // flex column and `order` interleaves them (search 1, route 2, picked 3,
+  // the scheduling bar 4). From @4xl the columns are real boxes and `order`
+  // only acts inside each.
+  const routePane = cityDays.length > 0 || plan.days.some((day) => day.items.length === 0);
+
   return (
-    <TwoPane>
+    <div
+      className={cn(
+        "enter-skip mx-auto flex w-full min-w-0 max-w-main flex-col gap-6",
+        routePane &&
+          "@4xl:grid @4xl:max-w-none @4xl:grid-cols-[minmax(0,1fr)_23.25rem] @4xl:items-start",
+      )}
+    >
+      <div className="enter-children contents @4xl:flex @4xl:min-w-0 @4xl:max-w-main @4xl:flex-col @4xl:gap-6">
+      <div className="contents [&>*]:order-1">
       {/* The tab's two views. */}
       <PlanSwitch tripId={tripId} active="explore" />
 
@@ -140,33 +158,11 @@ export function ExploreScreen({
         />
       )}
 
-      {/* "המסלול כולו", moved here from מסלול's pane: the cities and how long
-          in each, with the steppers. The full rebuild stays on מסלול, where the
-          schedule it replaces is on screen — here it is a quiet link there,
-          and nothing on this page calls the model to rebuild. */}
-      {cityDays.length > 0 && (
-        <section className="flex min-w-0 flex-col gap-3" aria-labelledby="route-heading">
-          <div className="flex min-w-0 items-center justify-between gap-2">
-            <h2 id="route-heading" className="text-lg font-bold leading-6">
-              המסלול כולו
-            </h2>
-            <Link
-              href={`/trips/${tripId}/days`}
-              className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 text-caption font-semibold text-primary-ink transition-colors hover:bg-primary-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
-              בנייה מחדש במסלול
-            </Link>
-          </div>
-          <CityDaysEditor tripId={tripId} plan={cityDays} tripDayCount={tripDayCount} />
-        </section>
-      )}
-
-      <EmptyDaysSection tripId={tripId} days={plan.days} />
+      </div>
 
       {/* What was picked, under the map it is the pins of — every saved
           destination, with a count per city above the rows. */}
-      <section className="flex min-w-0 flex-col gap-3">
+      <section className="order-3 flex min-w-0 flex-col gap-3">
         <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-2">
           <h2 className="min-w-0 text-lg font-bold leading-6">
             נבחרו לטיול
@@ -206,7 +202,7 @@ export function ExploreScreen({
           the column and never covers the last card, lifted clear of the phone
           tab bar. Only once something is chosen. */}
       {selected.length > 0 && (
-        <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 md:bottom-4">
+        <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 order-4 lg:bottom-4">
           <div className="flex min-w-0 items-center justify-between gap-3 rounded-[20px] bg-surface py-3 pe-3 ps-4 shadow-lift">
             <div className="flex min-w-0 flex-col">
               <span className="min-w-0 text-base font-bold wrap-anywhere">
@@ -228,7 +224,34 @@ export function ExploreScreen({
           </div>
         </div>
       )}
-    </TwoPane>
+      </div>
+
+      <div className="enter-children contents @4xl:sticky @4xl:top-16 @4xl:flex @4xl:min-w-0 @4xl:flex-col @4xl:gap-6 [&>*]:order-2">
+      {/* "המסלול כולו", moved here from מסלול's pane: the cities and how long
+          in each, with the steppers. The full rebuild stays on מסלול, where the
+          schedule it replaces is on screen — here it is a quiet link there,
+          and nothing on this page calls the model to rebuild. */}
+      {cityDays.length > 0 && (
+        <section className="flex min-w-0 flex-col gap-3" aria-labelledby="route-heading">
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <h2 id="route-heading" className="text-lg font-bold leading-6">
+              המסלול כולו
+            </h2>
+            <Link
+              href={`/trips/${tripId}/days`}
+              className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-2 text-caption font-semibold text-primary-ink transition-colors hover:bg-primary-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+              בנייה מחדש במסלול
+            </Link>
+          </div>
+          <CityDaysEditor tripId={tripId} plan={cityDays} tripDayCount={tripDayCount} />
+        </section>
+      )}
+
+      <EmptyDaysSection tripId={tripId} days={plan.days} />
+      </div>
+    </div>
   );
 }
 

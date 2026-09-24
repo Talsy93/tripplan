@@ -308,7 +308,7 @@ export function TripChat({
   const canBuild = turns.length > 0 && !plan;
 
   return (
-    <div className="flex min-h-[calc(100dvh-10rem)] flex-col gap-4">
+    <div className="mx-auto flex min-h-[calc(100dvh-10rem)] w-full max-w-[42.5rem] flex-col gap-4">
       {/* Pencil's head row: a solid teal badge, who this is, and a quiet
           round button to start over. The gradient banner it replaces was a
           second lit surface on a screen whose job is the conversation. */}

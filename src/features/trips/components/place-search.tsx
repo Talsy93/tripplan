@@ -486,7 +486,7 @@ export function PlaceSearch({
             onto what a row stores, so any count on it would be a guess.
             stagger + animate-rise stay — inert under prefers-reduced-motion,
             see globals.css. */}
-        <div className="stagger grid grid-cols-4 gap-x-2 gap-y-3 @3xl:grid-cols-8">
+        <div className="stagger grid grid-cols-4 gap-x-2 gap-y-3 @2xl:grid-cols-8">
           {SEARCH_PRESET_KEYS.map((key) => {
             const meta = SEARCH_PRESETS[key];
             return (

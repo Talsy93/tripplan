@@ -145,7 +145,7 @@ export function TripHub({
   const totals = costTotalsByCurrency(bookings);
 
   return (
-    <div ref={top} className="flex w-full min-w-0 scroll-mt-20 flex-col gap-4 pb-8">
+    <div ref={top} className="mx-auto flex w-full min-w-0 max-w-[60rem] scroll-mt-20 flex-col gap-4 pb-8">
       {/* No top padding of its own: the layout's <main> already gives the
           space under the header. */}
       <div className="flex items-center justify-between gap-3">
@@ -178,7 +178,13 @@ export function TripHub({
       </div>
 
       {shows("bookings") && (
-        <section aria-label="כרטיסי נסיעה ואישורים" className="flex flex-col gap-3">
+        // PN20 (Pencil tablet and desktop): two tickets side by side once the panel
+        // has the width — a boarding pass is drawn for 335px and loses nothing at
+        // half of a tablet.
+        <section
+          aria-label="כרטיסי נסיעה ואישורים"
+          className="grid gap-3 @2xl:grid-cols-2 @2xl:items-start"
+        >
           <HubBookings
             tripId={tripId}
             bookings={bookings}

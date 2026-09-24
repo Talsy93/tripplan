@@ -999,6 +999,8 @@ export const SCENES: Scene[] = [
             addedPlaces={[]}
             savedCities={f.CITY_SUGGESTIONS}
             cityGuide={f.CITY_GUIDE}
+            cityDays={f.CITY_DAYS}
+            tripDayCount={10}
             map={
               <RouteMapCard
                 tripId={f.TRIP_ID}

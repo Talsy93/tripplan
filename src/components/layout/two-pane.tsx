@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/cn";
 
 // A main column with an optional context pane beside it.
 //
@@ -10,12 +11,19 @@ import type { ReactNode } from "react";
 // the narrowest width at which both columns still hold what they draw — the
 // 660px card grid and the 372px pane. Whoever renders this puts `@container`
 // on the scrolling column (AppShell's main, TripWorkspace's panel).
+//
+// PN20 (Pencil tablet): `split="early"` also splits a tablet. From `@2xl`
+// (672px of container — a 768 portrait iPad after its 40px gutters) the pane is
+// a 15.5rem column, and from `@5xl` it widens to the desktop's 23.25rem. For a
+// pane that holds something glanceable (the day's map), not a second form.
 export function TwoPane({
   children,
   aside,
+  split = "wide",
 }: {
   children: ReactNode;
   aside?: ReactNode;
+  split?: "wide" | "early";
 }) {
   if (!aside) {
     return (
@@ -25,12 +33,33 @@ export function TwoPane({
     );
   }
 
+  const early = split === "early";
+
   return (
-    <div className="enter-skip grid min-w-0 gap-6 @4xl:grid-cols-[minmax(0,1fr)_23.25rem]">
-      <div className="enter-children flex min-w-0 flex-col gap-6 @4xl:max-w-main">
+    <div
+      className={cn(
+        "enter-skip grid min-w-0 gap-6",
+        early
+          ? "@2xl:grid-cols-[minmax(0,1fr)_15.5rem] @2xl:gap-5 @5xl:grid-cols-[minmax(0,1fr)_23.25rem] @5xl:gap-6"
+          : "@4xl:grid-cols-[minmax(0,1fr)_23.25rem]",
+      )}
+    >
+      <div
+        className={cn(
+          "enter-children flex min-w-0 flex-col gap-6",
+          early ? "@5xl:max-w-main" : "@4xl:max-w-main",
+        )}
+      >
         {children}
       </div>
-      <aside className="enter-children flex min-w-0 flex-col gap-4 @4xl:sticky @4xl:top-0 @4xl:self-start">
+      <aside
+        className={cn(
+          "enter-children flex min-w-0 flex-col gap-4",
+          early
+            ? "@2xl:sticky @2xl:top-16 @2xl:self-start"
+            : "@4xl:sticky @4xl:top-0 @4xl:self-start",
+        )}
+      >
         {aside}
       </aside>
     </div>

@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Map as MapIcon, MapPinOff } from "lucide-react";
+import { cn } from "@/lib/cn";
 import { buildDayTimeline } from "../domain/timeline";
 import type { ItineraryDay } from "../domain/ai-suggestion";
 import type { RoutePlace, RouteStop } from "../domain/route";
@@ -159,9 +160,13 @@ export function dayMapPins(day: ItineraryDay): {
 export function DayRouteMapCard({
   tripId,
   day,
+  tall = false,
 }: {
   tripId: string;
   day: ItineraryDay;
+  // Beside the day (the tablet and desktop pane) the map is a column of its
+  // own and gets the height to be read; under it, on a phone, it stays a strip.
+  tall?: boolean;
 }) {
   const { pins, unlocated } = dayMapPins(day);
   if (pins.length === 0) {
@@ -182,7 +187,13 @@ export function DayRouteMapCard({
 
   return (
     <div className="relative overflow-hidden rounded-[20px] bg-surface-2 shadow-card">
-      <div dir="ltr" className="h-32 w-full sm:h-40 [&_.leaflet-control-zoom]:hidden">
+      <div
+        dir="ltr"
+        className={cn(
+          "h-32 w-full sm:h-40 [&_.leaflet-control-zoom]:hidden",
+          tall && "@2xl:h-80 @5xl:h-96",
+        )}
+      >
         <RouteMapCanvas stops={[]} pins={pins} />
       </div>
 

@@ -70,7 +70,7 @@ export function HubBookings({
 
   if (bookings.length === 0) {
     return (
-      <div className="rounded-[18px] bg-surface p-4 text-sm leading-5 text-muted shadow-card">
+      <div className="rounded-[18px] bg-surface p-4 text-sm leading-5 text-muted shadow-card @2xl:col-span-2">
         עדיין אין כרטיסים. טיסות, רכבות ומלונות שתוסיפו בכפתור ״הוספת כרטיס״
         יופיעו כאן — ובמסך ״היום״ ביום שלהם.
       </div>

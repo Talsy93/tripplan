@@ -105,7 +105,7 @@ export function TripTabs({
   tripId: string;
   live?: boolean;
 }) {
-  return <BottomNav items={useTripNavItems(tripId, live)} className="lg:hidden md:block" />;
+  return <BottomNav items={useTripNavItems(tripId, live)} className="lg:hidden md:block md:inset-x-0 md:mx-auto md:w-[32.5rem]" />;
 }
 
 // The desktop rail: the wordmark (the way home), the four tabs, the initial.

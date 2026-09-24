@@ -1172,8 +1172,9 @@ input[type="time"]::-webkit-date-and-time-value {
    maps in the context pane and the day card are 15rem and 11.5rem tall, and
    6rem of it is a third of the frame.
 
-   Below md only — from there the bar is gone and the map is a card again. */
-@media (max-width: 767px) {
+   Below lg only — the bar floats over a tablet too (centred since PN20), and
+   from lg it is gone and the map is a card again. */
+@media (max-width: 1023px) {
   .map-fullbleed .leaflet-bottom {
     margin-bottom: calc(6rem + env(safe-area-inset-bottom));
   }

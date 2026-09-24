@@ -322,6 +322,7 @@ export function Itinerary({
 
   return (
     <TwoPane
+      split="early"
       aside={
         <>
           {/* Only from xl. Below it the strip is already the day control and
@@ -338,6 +339,13 @@ export function Itinerary({
               onSelect={setChosenDay}
             />
           </div>
+
+          {/* The day on the map: every located place, numbered in timeline
+              order, redrawn when the strip changes day. In the pane, so a
+              tablet and a desktop see it beside the day (Pencil PN18); on a
+              phone the pane stacks under the column, which is where the map
+              always was — the schedule keeps the first screen. */}
+          <DayRouteMapCard tripId={tripId} day={active} tall />
 
           {/* "המסלול כולו" (nights per city, rebuild) and the empty-days card
               lived here. Both moved to the add-places page, where the days get
@@ -526,11 +534,6 @@ export function Itinerary({
         dayNumber={active.day}
         dayCount={dayCount}
       />
-
-      {/* The day on the map, under the day it draws: every located place,
-          numbered in timeline order, redrawn when the strip changes day. Below
-          the schedule so the schedule gets the first screen. */}
-      <DayRouteMapCard tripId={tripId} day={active} />
 
       {/* Pencil's foot: who plans this with you, and the screen's one
           terracotta action. Sticky, so it rides above the tab bar while the

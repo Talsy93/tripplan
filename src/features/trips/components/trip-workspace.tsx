@@ -39,7 +39,7 @@ export function TripWorkspace({
         {header}
 
         <main
-          className="@container mx-auto w-full max-w-[66rem] flex-1 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 md:px-6 lg:px-8 lg:pb-12"
+          className="@container mx-auto w-full max-w-[66rem] flex-1 px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-4 md:px-6 lg:px-8 lg:pb-12 xl:max-w-[74rem]"
           style={hueStyle}
         >
           <PageEnter>{children}</PageEnter>
