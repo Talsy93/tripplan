@@ -13,7 +13,7 @@
 // Tiles come from OpenStreetMap, free and keyless, the same as everywhere else
 // in this app. Attribution is required by their usage policy.
 
-import { Fragment, useEffect, useMemo, useRef } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import {
   MapContainer,
@@ -23,7 +23,9 @@ import {
   useMapEvent,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import { categoryToneClasses } from "./category-tile";
 import { BaseTiles, MapAutosize } from "./map-base";
+import type { TripMapPlace } from "../domain/trip-map";
 
 export type MappedTrip = {
   id: string;
@@ -52,6 +54,15 @@ export type MappedTrip = {
 };
 
 export type PinStanding = "live" | "next" | "draft" | "past";
+
+// One trip "opened" on the map — the home's second tap on a trip. Its saved
+// places, and its cities: a city marker stands for every city, so a trip whose
+// places were never located still shows where it goes.
+export type OpenedTrip = {
+  tripId: string;
+  places: TripMapPlace[];
+  cities: { city: string; latitude: number; longitude: number }[];
+};
 
 // The home pins of the Pencil design (design/pencil/exports/home-desktop): a
 // white pill per trip with a dot and the trip name. The dot says the standing
@@ -197,18 +208,19 @@ function fitOptions(
   map: L.Map | null,
   insetLeft: number,
   insetBottomShare: number,
+  maxZoom: number = MAX_FIT_ZOOM,
 ): L.FitBoundsOptions {
   // No map yet — the view MapContainer is built with. The insets are left out
   // rather than guessed at, because there is no size here to clamp them
   // against; MapAutosize refits with the real ones on the first measurement.
-  if (!map) return { maxZoom: MAX_FIT_ZOOM, padding: [EDGE, EDGE] };
+  if (!map) return { maxZoom, padding: [EDGE, EDGE] };
 
   const size = map.getSize();
   const left = Math.min(insetLeft, size.x * MAX_INSET_SHARE);
   const bottom = size.y * Math.min(insetBottomShare, MAX_INSET_SHARE);
 
   return {
-    maxZoom: MAX_FIT_ZOOM,
+    maxZoom,
     paddingTopLeft: [EDGE + Math.round(left), EDGE],
     paddingBottomRight: [EDGE, EDGE + Math.round(bottom)],
   };
@@ -220,14 +232,20 @@ function fitOptions(
 // Skips the first run. The map's opening view already came from these bounds
 // (MapContainer's `bounds` prop), so flying to them on mount would be a swoop
 // from the view to itself.
+//
+// The fly waits a frame and re-measures first: opening a trip also makes the
+// home's map taller, and a fit computed against the old height would land the
+// destinations under the preview card.
 function MapFocus({
   bounds,
   insetLeft,
   insetBottomShare,
+  maxZoom,
 }: {
   bounds: L.LatLngBounds;
   insetLeft: number;
   insetBottomShare: number;
+  maxZoom: number;
 }) {
   const map = useMap();
   const mounted = useRef(false);
@@ -237,13 +255,173 @@ function MapFocus({
       mounted.current = true;
       return;
     }
-    map.flyToBounds(bounds, {
-      duration: 0.6,
-      ...fitOptions(map, insetLeft, insetBottomShare),
+    const frame = window.requestAnimationFrame(() => {
+      map.invalidateSize({ animate: false });
+      map.flyToBounds(bounds, {
+        duration: 0.8,
+        ...fitOptions(map, insetLeft, insetBottomShare, maxZoom),
+      });
     });
-  }, [map, bounds, insetLeft, insetBottomShare]);
+    return () => window.cancelAnimationFrame(frame);
+  }, [map, bounds, insetLeft, insetBottomShare, maxZoom]);
 
   return null;
+}
+
+// Pan and zoom, switched after the map exists. MapContainer reads its handler
+// props once, at creation, so a map that starts still and becomes explorable —
+// the home map, once a trip is opened on it — has to flip them by hand.
+//
+// The wheel stays off even then: the map sits in a page that scrolls, and the
+// zoom buttons and a pinch are the ways in.
+function MapInteractivity({ enabled }: { enabled: boolean }) {
+  const map = useMap();
+  useEffect(() => {
+    const handlers = [
+      map.dragging,
+      map.touchZoom,
+      map.doubleClickZoom,
+      map.boxZoom,
+      map.keyboard,
+    ];
+    if (!enabled) return;
+    for (const handler of handlers) handler?.enable();
+    const zoom = L.control.zoom({
+      position: "topleft",
+      zoomInTitle: "התקרבות",
+      zoomOutTitle: "התרחקות",
+    });
+    zoom.addTo(map);
+    return () => {
+      zoom.remove();
+      for (const handler of handlers) handler?.disable();
+    };
+  }, [map, enabled]);
+  return null;
+}
+
+// ---- an opened trip: its destinations ------------------------------------
+
+// Names appear only once there is room for them. A place label at country
+// scale is a pile of overlapping pills; a city name is useful much earlier.
+const PLACE_LABEL_ZOOM = 13;
+const CITY_LABEL_ZOOM = 5;
+// Deep enough to tell two places on one street apart when a trip is a single
+// neighbourhood; the world view keeps its own, much lower, cap.
+const OPENED_MAX_ZOOM = 15;
+
+// The category's ink, from the mapping the category tiles use (category-tile)
+// rather than a copy of it: the tone class is already in the stylesheet
+// because those tiles use it, and the dot paints with `currentColor`. A
+// category neither vocabulary knows — or none, a destination chosen in
+// planning mode — gets the brand teal rather than the neutral grey.
+const UNKNOWN_TONE = categoryToneClasses("");
+function toneClass(category: string | null): string | null {
+  const classes = categoryToneClasses(category ?? "");
+  return classes === UNKNOWN_TONE ? null : classes;
+}
+
+// A white pill above the dot. Zero-size icons with absolutely placed content,
+// like tripPill: the label is as wide as the name, which Leaflet cannot know.
+function labelPill(text: string, bold: boolean): string {
+  return `<span dir="auto" style="position:absolute;left:50%;bottom:10px;transform:translateX(-50%);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:3px 8px;border-radius:9999px;background:var(--surface);box-shadow:var(--elevation-card);font:${bold ? 700 : 600} ${bold ? 12 : 11}px/1.25 var(--font-sans),system-ui;color:var(--foreground)">${escapeHtml(text)}</span>`;
+}
+
+function placeMarker(place: TripMapPlace, showLabel: boolean): L.DivIcon {
+  const tone = toneClass(place.category);
+  const fill = tone ? "currentColor" : "var(--primary)";
+  return L.divIcon({
+    className: "",
+    // The tone class also sets a tint background; the wrapper has no size, so
+    // only its colour (the ink) reaches the dot.
+    html: `<span class="${tone ?? ""}" style="position:absolute;left:0;top:0;width:0;height:0">
+      <span style="position:absolute;left:-6px;top:-6px;width:12px;height:12px;border-radius:9999px;background:${fill};box-shadow:0 0 0 2px #fff,0 1px 3px rgba(12,20,36,.35)"></span>
+      ${showLabel ? labelPill(place.name, false) : ""}
+    </span>`,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+}
+
+function cityMarker(city: string, showLabel: boolean): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `<span style="position:absolute;left:0;top:0;width:0;height:0">
+      <span style="position:absolute;left:-8px;top:-8px;width:16px;height:16px;border-radius:9999px;background:var(--primary);box-shadow:0 0 0 3px #fff,0 1px 4px rgba(12,20,36,.4)"></span>
+      ${showLabel ? labelPill(city, true) : ""}
+    </span>`,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+}
+
+function boundsOfOpened(opened: OpenedTrip): L.LatLngBounds | null {
+  const all: [number, number][] = [
+    ...opened.places.map((p): [number, number] => [p.latitude, p.longitude]),
+    ...opened.cities.map((c): [number, number] => [c.latitude, c.longitude]),
+  ];
+  if (all.length === 0) return null;
+  return L.latLngBounds(all).pad(0.15);
+}
+
+function OpenedTripLayer({ opened }: { opened: OpenedTrip }) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(() => map.getZoom());
+  useMapEvent("zoomend", () => setZoom(map.getZoom()));
+
+  const placeLabels = zoom >= PLACE_LABEL_ZOOM;
+  // A city's name gives way to its places' names once those are showing — the
+  // city dot sits among them and its pill would cover theirs.
+  const citiesWithPlaces = useMemo(
+    () => new Set(opened.places.map((place) => place.city)),
+    [opened.places],
+  );
+
+  return (
+    <>
+      {opened.cities.length > 1 && (
+        <Polyline
+          positions={opened.cities.map((c): [number, number] => [
+            c.latitude,
+            c.longitude,
+          ])}
+          pathOptions={{
+            color: "var(--primary)",
+            weight: 2,
+            opacity: 0.5,
+            dashArray: "4 6",
+          }}
+        />
+      )}
+      {opened.cities.map((city) => (
+        <Marker
+          key={`city|${city.city}`}
+          position={[city.latitude, city.longitude]}
+          icon={cityMarker(
+            city.city,
+            zoom >= CITY_LABEL_ZOOM &&
+              !(placeLabels && citiesWithPlaces.has(city.city)),
+          )}
+          interactive={false}
+          keyboard={false}
+          alt=""
+        />
+      ))}
+      {opened.places.map((place, index) => (
+        <Marker
+          key={`place|${index}|${place.name}`}
+          position={[place.latitude, place.longitude]}
+          icon={placeMarker(place, placeLabels)}
+          // Above the city dots, so a place on the city's centre stays visible.
+          zIndexOffset={500}
+          // A hover name at any zoom for the desktop; the label is the phone's.
+          title={place.name}
+          keyboard={false}
+          alt=""
+        />
+      ))}
+    </>
+  );
 }
 
 // A tap on the map itself, away from any flag, clears the selection. Leaflet
@@ -275,6 +453,10 @@ export default function TripsMapCanvas({
   // for a map with nothing on top of it.
   insetLeft = 0,
   insetBottomShare = 0,
+  // A trip opened on the map (the home's second tap): its destinations replace
+  // every trip pin, the view fits them at street depth, names appear as the map
+  // zooms in, and a still map becomes one you can pan and zoom.
+  opened = null,
 }: {
   trips: MappedTrip[];
   interactive?: boolean;
@@ -283,16 +465,29 @@ export default function TripsMapCanvas({
   onSelect?: (id: string | null) => void;
   insetLeft?: number;
   insetBottomShare?: number;
+  opened?: OpenedTrip | null;
 }) {
-  const bounds = useMemo(() => boundsOf(trips), [trips]);
+  const openedBounds = useMemo(
+    () => (opened ? boundsOfOpened(opened) : null),
+    [opened],
+  );
+  // A trip whose cities were never located can still open, when its places
+  // carry their own coordinates — so the opened trip alone is enough to draw.
+  const bounds = useMemo(
+    () => boundsOf(trips) ?? openedBounds,
+    [trips, openedBounds],
+  );
 
   // What the view should be showing. A selected trip with no located city is
   // not a focus — there is nothing to fly to — so the map holds still on
   // everything and the panel is what says why.
   const focus = useMemo(() => {
+    if (openedBounds) return openedBounds;
     const target = trips.find((trip) => trip.id === (selectedId ?? focusId));
     return (target ? boundsOf([target]) : bounds) ?? bounds;
-  }, [trips, selectedId, focusId, bounds]);
+  }, [trips, selectedId, focusId, bounds, openedBounds]);
+  const maxZoom = openedBounds ? OPENED_MAX_ZOOM : MAX_FIT_ZOOM;
+  const showTrips = !opened;
 
   if (!bounds || !focus) return null;
 
@@ -330,17 +525,27 @@ export default function TripsMapCanvas({
           late cannot throw away a selection already made. */}
       <MapAutosize
         refit={(map) =>
-          map.fitBounds(focus, fitOptions(map, insetLeft, insetBottomShare))
+          map.fitBounds(
+            focus,
+            fitOptions(map, insetLeft, insetBottomShare, maxZoom),
+          )
         }
       />
       <MapFocus
         bounds={focus}
         insetLeft={insetLeft}
         insetBottomShare={insetBottomShare}
+        maxZoom={maxZoom}
       />
-      {onSelect && <MapClickAway onClear={() => onSelect(null)} />}
+      {/* Only a map that started still needs switching; one built interactive
+          already has its handlers and its zoom buttons. */}
+      <MapInteractivity enabled={!interactive && Boolean(opened)} />
+      {/* No click-away while a trip is open: that map is being explored, and a
+          tap between two places is not a request to leave it. */}
+      {onSelect && !opened && <MapClickAway onClear={() => onSelect(null)} />}
+      {opened && <OpenedTripLayer opened={opened} />}
 
-      {trips.map((trip) => {
+      {showTrips && trips.map((trip) => {
         const selected = trip.id === selectedId;
         const dimmed = selectedId !== null && !selected;
         const hue = selected ? trip.activeHue : trip.hue;

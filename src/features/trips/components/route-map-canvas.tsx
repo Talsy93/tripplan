@@ -104,12 +104,115 @@ function MapFocus({ target }: { target: [number, number] | null }) {
   return null;
 }
 
+// A day's places as numbered pins, fitted to their own bounds.
+//
+// The route's city discs frame a country; a day is a few streets, and
+// routeBounds' city-level zoom stacked four museums a kilometre apart on one
+// spot. So the day map fits the pins themselves, and refits when the day
+// changes — MapContainer's `center` is read once at mount, the trap MapFocus
+// describes. Room is left at the top for the card's floating pills.
+export type DayPin = {
+  id: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+};
+
+const PIN_PADDING_TOP_LEFT: [number, number] = [28, 56];
+const PIN_PADDING_BOTTOM_RIGHT: [number, number] = [28, 20];
+
+function fitPins(map: L.Map, points: [number, number][]) {
+  const [first] = points;
+  if (!first) return;
+  if (points.length === 1) {
+    map.setView(first, 15, { animate: false });
+    return;
+  }
+  map.fitBounds(L.latLngBounds(points), {
+    paddingTopLeft: PIN_PADDING_TOP_LEFT,
+    paddingBottomRight: PIN_PADDING_BOTTOM_RIGHT,
+    maxZoom: 16,
+    animate: false,
+  });
+}
+
+function pinPoints(pins: DayPin[]): [number, number][] {
+  return pins.map((pin) => [pin.latitude, pin.longitude]);
+}
+
+// Keyed on a string of the positions rather than on the array, which the
+// screen above rebuilds on every render — and read back from it, so the effect
+// depends on exactly what it uses.
+function FitPins({ signature }: { signature: string }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const points = signature
+      .split("|")
+      .filter(Boolean)
+      .map((pair) => pair.split(",").map(Number) as [number, number]);
+    fitPins(map, points);
+  }, [map, signature]);
+
+  return null;
+}
+
+function DayPinsMap({ pins }: { pins: DayPin[] }) {
+  const line = pinPoints(pins);
+  const [first] = line;
+  if (!first) return null;
+
+  return (
+    <MapContainer
+      center={first}
+      zoom={14}
+      scrollWheelZoom={false}
+      // `isolate` for the reason RouteMapCanvas gives below at length.
+      className="isolate h-full w-full"
+    >
+      <BaseTiles />
+      {/* A map that mounted in a box of no width fitted to nothing; the first
+          real size re-runs the fit. */}
+      <MapAutosize refit={(map) => fitPins(map, line)} />
+      <FitPins signature={line.map((point) => point.join(",")).join("|")} />
+
+      {line.length > 1 && (
+        <Polyline
+          positions={line}
+          pathOptions={{
+            color: "var(--primary)",
+            weight: 4,
+            opacity: 0.9,
+            lineCap: "round",
+            lineJoin: "round",
+          }}
+        />
+      )}
+
+      {pins.map((pin, index) => (
+        <Marker
+          key={pin.id}
+          position={[pin.latitude, pin.longitude]}
+          icon={numberedIcon(index + 1)}
+        >
+          <Popup>
+            <div dir="rtl" className="text-center">
+              <strong>{pin.label}</strong>
+            </div>
+          </Popup>
+        </Marker>
+      ))}
+    </MapContainer>
+  );
+}
+
 export default function RouteMapCanvas({
   stops,
   places = [],
   focus = null,
   liveCity = null,
   interactive = false,
+  pins,
 }: {
   stops: RouteStop[];
   places?: RoutePlace[];
@@ -120,7 +223,12 @@ export default function RouteMapCanvas({
   // Scroll-wheel zoom. Off inside a scrolling page, where the wheel is for
   // the page; on in the workspace, where the map is the screen.
   interactive?: boolean;
+  // One day's places, numbered in timeline order. When given, the map draws
+  // these instead of the route's cities — see DayPinsMap.
+  pins?: DayPin[];
 }) {
+  if (pins) return <DayPinsMap pins={pins} />;
+
   // Bounds are computed from the cities alone. The places sit inside them by
   // definition, and including them would let one mis-tagged point zoom the
   // whole map out to fit it.

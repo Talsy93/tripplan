@@ -351,6 +351,16 @@ const LONG_DAYS: [number, string, string[]][] = [
   [14, "נארה", ["קסוגה טאישה", "טיסה חזרה"]],
 ];
 
+// Where some of the Tokyo stops are, so the day map on מסלול has pins to draw.
+// The izakaya is left without one on purpose — the "בלי מיקום" pill.
+const LONG_POINTS: Record<string, [number, number]> = {
+  "שוק צוקיג׳י החיצוני": [35.6655, 139.7707],
+  "מקדש סנסו־ג׳י": [35.7148, 139.7967],
+  "שוק אמייוקו": [35.7101, 139.7745],
+  "מגדל טוקיו סקייטרי": [35.7101, 139.8107],
+  "שיבויה": [35.6595, 139.7005],
+};
+
 export const ITINERARY_LONG: ItineraryDay[] = LONG_DAYS.map(
   ([day, city, titles]) => ({
     day,
@@ -361,8 +371,8 @@ export const ITINERARY_LONG: ItineraryDay[] = LONG_DAYS.map(
       endLabel: `${String(11 + index * 4).padStart(2, "0")}:00`,
       note: "",
       city,
-      latitude: null,
-      longitude: null,
+      latitude: LONG_POINTS[title]?.[0] ?? null,
+      longitude: LONG_POINTS[title]?.[1] ?? null,
       travelNote: null,
       travelMinutes: index === 0 ? null : 20,
     })),

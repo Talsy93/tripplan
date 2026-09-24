@@ -32,6 +32,12 @@ export type DomainIconName =
   | "shopping"
   | "temple"
   | "attraction"
+  // search presets (the add-places grid) that no stored category draws
+  | "mustsee"
+  | "nature"
+  | "museum"
+  | "hidden"
+  | "night"
   // day notes (migration 0025)
   | "holiday"
   | "rest"

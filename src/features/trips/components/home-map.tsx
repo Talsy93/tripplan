@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { MappedTrip } from "./trips-map-canvas";
+import type { MappedTrip, OpenedTrip } from "./trips-map-canvas";
 
 // The world map card of the home screen: every trip that has coordinates, on
 // one map. Client-side for the same reason WorkspaceMap is — Leaflet cannot
@@ -21,14 +21,19 @@ export function HomeMap({
   // How much of the card's height the floating preview card covers, so a trip
   // the map flies to lands above it rather than behind it.
   insetBottomShare = 0,
+  // The trip opened on the map (a second tap on it), with its destinations.
+  opened = null,
 }: {
   trips: MappedTrip[];
   selectedId?: string | null;
   focusId?: string | null;
   onSelect?: (id: string | null) => void;
   insetBottomShare?: number;
+  opened?: OpenedTrip | null;
 }) {
-  if (trips.length === 0) {
+  const openedHasPoints =
+    !!opened && opened.places.length + opened.cities.length > 0;
+  if (trips.length === 0 && !openedHasPoints) {
     // No trip has a located city yet. A dotted canvas rather than an empty
     // map: an empty map of the world says "you have been nowhere", which is
     // not what a new account should read.
@@ -44,14 +49,16 @@ export function HomeMap({
     <div dir="ltr" className="h-full w-full">
       <TripsMapCanvas
         trips={trips}
-        // Still: the card sits in a page that scrolls, and a draggable map
-        // would take the swipes meant for it. The pins still answer a press,
-        // and the view still flies to whatever is selected.
+        // Still while it shows every trip: the card sits in a page that
+        // scrolls, and a draggable map would take the swipes meant for it. The
+        // pins still answer a press, and the view still flies to whatever is
+        // selected. An opened trip switches pan and zoom on (see the canvas).
         interactive={false}
         selectedId={selectedId}
         focusId={focusId}
         onSelect={onSelect}
         insetBottomShare={insetBottomShare}
+        opened={openedHasPoints ? opened : null}
       />
     </div>
   );

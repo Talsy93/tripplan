@@ -74,11 +74,17 @@ export type OverpassOutcome =
 export async function searchPlaces({
   center,
   category,
+  filters,
   query,
   radiusM = RADIUS_M,
 }: {
   center: { latitude: number; longitude: number };
+  // With `filters`, only the category results are tagged with; without, it
+  // also picks the tag filters (PLACE_CATEGORIES).
   category?: PlaceCategory;
+  // Explicit OSM "key=value" filters — a search preset's. Win over the
+  // category's own when both are given.
+  filters?: string[];
   query?: string;
   // Overridden when the centre is a neighbourhood rather than a whole city.
   // A district is walkable, so a city-wide 5km ring around it would return
@@ -86,7 +92,7 @@ export async function searchPlaces({
   // relevance problem the RADIUS_M note above describes, one scale down.
   radiusM?: number;
 }): Promise<OverpassOutcome> {
-  const data = buildQuery({ center, category, radiusM });
+  const data = buildQuery({ center, category, filters, radiusM });
 
   const first = await runQuery(data, category, query, center);
   if (first.ok || first.reason !== "timeout") return first;
@@ -154,10 +160,12 @@ type OverpassElement = {
 function buildQuery({
   center,
   category,
+  filters: explicit,
   radiusM,
 }: {
   center: { latitude: number; longitude: number };
   category?: PlaceCategory;
+  filters?: string[];
   radiusM: number;
 }) {
   const around = `around:${radiusM},${center.latitude},${center.longitude}`;
@@ -169,7 +177,12 @@ function buildQuery({
   // search grid, but an empty filter list here would build a query with no
   // clauses in it, and that is worth one line to make impossible rather than
   // unlikely.
-  const chosen = category ? PLACE_CATEGORIES[category].filters : [];
+  const chosen =
+    explicit && explicit.length > 0
+      ? explicit
+      : category
+        ? PLACE_CATEGORIES[category].filters
+        : [];
   const filters =
     chosen.length > 0
       ? chosen

@@ -32,14 +32,14 @@ type PlanningPanelProps = {
 // and the list readable.
 const MORE_COUNT = 5;
 
-// The openers. Written as whole briefs rather than one-word tags because that
-// is what the field wants: pressing one has to leave something you could send
-// as it stands. No emoji — Pencil draws these as plain text chips, and the
-// app's marks are lucide glyphs only (CLAUDE.md, 2026-08-31).
+// The openers, word for word the Pencil export's four chips. Pressing one
+// writes it into the field (it is short, but still something you could send as
+// it stands). No emoji — the app's marks are lucide glyphs only (CLAUDE.md,
+// 2026-08-31).
 const VIBES = [
   "קולינרי ואיטי",
-  "אתרי חובה בקצב מהיר",
-  "פינות נסתרות",
+  "קצב מהיר",
+  "נסתרות",
   "טיול צילום",
 ] as const;
 
@@ -164,7 +164,9 @@ export function PlanningPanel({
           בחרו סגנון והעוזר יציע מקומות שמתאימים לכם
         </p>
 
-        <div className="flex flex-wrap gap-2">
+        {/* One row, as the export draws it; the fourth chip scrolls in on a
+            narrow phone rather than wrapping to a line of its own. */}
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none]">
           {VIBES.map((vibe) => (
             <button
               key={vibe}
@@ -172,7 +174,7 @@ export function PlanningPanel({
               onClick={() => setPrompt(vibe)}
               aria-pressed={prompt === vibe}
               className={cn(
-                "h-9 rounded-full px-3.5 text-caption font-semibold transition-colors",
+                "h-9 shrink-0 whitespace-nowrap rounded-full px-3.5 text-caption font-bold transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 prompt === vibe
                   ? "bg-primary text-primary-foreground"
@@ -184,28 +186,36 @@ export function PlanningPanel({
           ))}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+        {/* Secondary to the chips, as the export has it (it draws no field at
+            all): one quiet row — a translucent field for writing your own, and
+            the send button only once there is something to send, which a chip
+            press provides. Teal, not the terracotta call: that colour belongs to
+            the sticky bar's "שיבוץ לימים". */}
+        <form onSubmit={handleSubmit} className="flex min-w-0 items-center gap-2">
           <input
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="או כתבו בעצמכם: סמטאות ציוריות עם גלידה טובה…"
+            placeholder="או כתבו בעצמכם…"
             aria-label="מה בא לכם לעשות בטיול?"
-            className="h-11 w-full rounded-full bg-surface px-4 text-sm text-foreground outline-none placeholder:font-normal placeholder:text-placeholder focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-11 min-w-0 flex-1 rounded-full bg-surface/60 px-4 text-caption text-foreground outline-none placeholder:font-normal placeholder:text-placeholder focus-visible:bg-surface focus-visible:ring-2 focus-visible:ring-ring"
           />
-          {/* Teal, not the terracotta call: that colour belongs to the one
-              action the screen is for, which is the sticky bar's "שיבוץ לימים". */}
-          <Button
-            type="submit"
-            variant="brand"
-            loading={loading}
-            disabled={prompt.trim().length < 3}
-            className="w-full rounded-full"
-          >
-            <Sparkles className="h-4 w-4" aria-hidden="true" />
-            {cities.length > 0
-              ? "הצעות חדשות"
-              : `הציעו לי מקומות${city ? ` ב${city}` : ""}`}
-          </Button>
+          {prompt.trim().length >= 3 && (
+            <Button
+              type="submit"
+              variant="brand"
+              size="sm"
+              loading={loading}
+              className="h-11 shrink-0 rounded-full px-4"
+              aria-label={
+                cities.length > 0
+                  ? "הצעות חדשות"
+                  : `הציעו לי מקומות${city ? ` ב${city}` : ""}`
+              }
+            >
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              {cities.length > 0 ? "הצעות חדשות" : "הציעו"}
+            </Button>
+          )}
         </form>
 
             {error && <Banner tone="danger">{error}</Banner>}

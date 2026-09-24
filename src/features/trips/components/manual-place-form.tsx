@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { MapPinPlus, PencilLine } from "lucide-react";
+import { Plus } from "lucide-react";
 import {
   Banner,
   Button,
@@ -85,63 +85,32 @@ export function ManualPlaceForm({
   // you had already chosen down past the fold. The thing you were adding to
   // scrolled away the moment you started adding.
   //
-  // The confirmation stays on the page rather than following the form into the
-  // dialog, because it outlives it: the dialog closes and "X was added to
-  // Tokyo" is still the answer to what just happened.
+  // The trigger is a small outlined pill (44px tall, the touch minimum) that
+  // sits in the screen's title row: the owner asked for manual add to be
+  // compact and near the top, quick to reach rather than a card at the foot.
+  // The confirmation lives in the dialog, which stays open after a save.
   return (
     <>
-      {/* The _4 export's manual-add block — its heading, its sentence, its
-          full-width call — with the form itself still in a dialog.
-          The export draws the three fields open on the page. That is the one
-          thing here not copied, and deliberately: "do not leave the add option
-          unfolded, only when the user wants to add" is a rule this app was
-          given directly, and this form is the case that proved it — it used to
-          replace itself with a card four fields tall in the middle of the
-          screen, pushing the list you were adding to below the fold. So the
-          card is the export's and the press still opens a dialog. */}
-      {/* Pencil card language: white, radius 20, a tinted icon tile beside
-          the heading. The pencil is teal, not terracotta — orange is the
-          sticky bar's, the screen's one call to action — and the emoji that
-          ended the heading is gone with the rest of them. */}
-      <div className="flex flex-col gap-3 rounded-[20px] bg-surface p-4 shadow-card">
-        <div className="flex min-w-0 items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-primary-tint text-primary"
-          >
-            <PencilLine className="h-5 w-5" />
-          </span>
-          <h2 className="min-w-0 text-base font-bold leading-6 wrap-anywhere">
-            לא מצאתם בחיפוש? הוסיפו מקום ידנית
-          </h2>
-        </div>
-        <p className="min-w-0 max-w-measure text-caption text-muted">
-          הכניסו כתובת, שם של חנות קטנה, המלצה של חבר או נקודת מפגש אישית.
-        </p>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className={cn(
-            "flex h-11 w-full items-center justify-center gap-2 rounded-full border border-border-strong bg-surface",
-            "text-sm font-semibold text-foreground transition-all active:scale-[0.98]",
-            "hover:bg-surface-sunken",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          )}
-        >
-          <MapPinPlus className="h-4 w-4" aria-hidden="true" />
-          שמור והוסף מקום לרשימה
-        </button>
-        {feedback && feedback.kind !== "error" && (
-          <Banner tone="success">{feedback.text}</Banner>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn(
+          "flex h-11 shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-3.5 shadow-card",
+          "text-caption font-semibold text-foreground transition-all active:scale-[0.97]",
+          "hover:bg-surface-sunken",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         )}
-      </div>
+      >
+        <Plus className="h-4 w-4 text-primary" aria-hidden="true" />
+        הוספה ידנית
+      </button>
 
       <Dialog
         open={open}
         onClose={() => {
           if (!saving) setOpen(false);
         }}
-        title="הוספת מקום"
+        title="הוספת מקום ידנית"
       >
         <p className="text-caption text-muted">
           למקום שהחיפוש לא מכיר — המלצה מחבר, משהו שראיתם ברשת.

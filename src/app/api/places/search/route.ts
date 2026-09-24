@@ -5,6 +5,7 @@ import {
   getTrip,
   placeSearchRequestSchema,
   resolveAreaInCity,
+  SEARCH_PRESETS,
 } from "@/features/trips";
 import { AREA_RADIUS_M, searchPlaces } from "@/lib/overpass";
 import { checkRateLimit } from "@/lib/rate-limit";
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { tripId, city, category, query, near, area } = parsed.data;
+  const { tripId, city, category, preset, query, near, area } = parsed.data;
 
   // Reading the trip is also the authorisation check: RLS returns nothing for
   // a trip the caller doesn't own, so a stranger's tripId can't be searched.
@@ -97,7 +98,17 @@ export async function POST(request: Request) {
   // of the city".
   if (near) radiusM = AREA_RADIUS_M;
 
-  const result = await searchPlaces({ center, category, query, radiusM });
+  // A grid tile brings its own tag filters and the stored category its
+  // results are filed under; a bare category (or nothing, for free text)
+  // keeps the old behaviour.
+  const presetMeta = preset ? SEARCH_PRESETS[preset] : null;
+  const result = await searchPlaces({
+    center,
+    category: presetMeta?.category ?? category,
+    filters: presetMeta?.filters,
+    query,
+    radiusM,
+  });
   if (!result.ok) {
     // 503 rather than 502: the service is fine, it's just busy — the client
     // tells the user to retry instead of reporting a failure.

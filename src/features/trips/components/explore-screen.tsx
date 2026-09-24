@@ -1,9 +1,7 @@
 import type { ReactNode } from "react";
 import { TwoPane } from "@/components/layout";
 import Link from "next/link";
-import { CalendarDays, ChevronRight, Map as MapIcon } from "lucide-react";
-import { buttonClasses } from "@/components/ui";
-import { savedCountsByCategory } from "../domain/place";
+import { ChevronRight, Map as MapIcon } from "lucide-react";
 import type {
   AiCitySuggestion,
   CityGuideData,
@@ -15,6 +13,7 @@ import { PlaceSearch } from "./place-search";
 import { RecommendedPlaces } from "./recommended-places";
 import { PlanningPanel } from "./planning-panel";
 import { SelectedList } from "./selected-list";
+import { ScheduleButton } from "./schedule-button";
 
 // "הוספת מקומות", in the Pencil design's order.
 //
@@ -23,9 +22,9 @@ import { SelectedList } from "./selected-list";
 // composition left there is one no scene can check.
 //
 // The design's order: the search pill, the category grid, the AI box, then
-// "מומלצים ב<עיר>", with a sticky bar at the foot. What the frame does not draw
-// — the picked list under its map, and the manual form — follows the
-// recommendations, because both are features the screen still owes.
+// "מומלצים ב<עיר>", with a sticky bar at the foot. The picked list under its
+// map, which the frame does not draw, follows the recommendations; the manual
+// form is a compact pill in the title row.
 export function ExploreScreen({
   tripId,
   // Destinations the search can look around: the cities things were already
@@ -70,16 +69,21 @@ export function ExploreScreen({
           {/* RTL: "back" points the way the text runs. */}
           <ChevronRight className="h-6 w-6" aria-hidden="true" />
         </Link>
-        <h1 className="min-w-0 text-[1.625rem] font-bold leading-8 wrap-anywhere">
+        <h1 className="min-w-0 flex-1 text-[1.625rem] font-bold leading-8 wrap-anywhere">
           הוספת מקומות
         </h1>
+        {/* The escape hatch, moved up from the foot of the screen: a small
+            pill at the far end of the title row, one press from arrival, that
+            opens the same form in a sheet. It used to be a whole card below
+            the picked list, where the one person who needed it had to scroll
+            past everything else first. */}
+        <ManualPlaceForm tripId={tripId} cities={knownCities} />
       </header>
 
       <PlaceSearch
         tripId={tripId}
         cities={searchCities}
         addedPlaces={addedPlaces}
-        savedCounts={savedCountsByCategory(selected)}
       />
 
       {/* The AI box sits straight under the grid, as the export draws it. It
@@ -131,14 +135,10 @@ export function ExploreScreen({
         <SelectedList tripId={tripId} items={selected} />
       </section>
 
-      {/* The escape hatch, and an escape hatch belongs at the bottom. */}
-      <ManualPlaceForm tripId={tripId} cities={knownCities} />
-
       {/* The design's sticky bottom bar: how many are waiting, and the one
-          orange call on the screen. The build itself lives on מסלול — the screen
-          that owns the schedule and the only one that can show the result — so
-          this is the way there rather than a second button doing the same thing
-          from here.
+          orange call on the screen. It places what is new into the days that
+          already exist (ScheduleButton → scheduleNewPlaces, no model call) and
+          then shows the result on מסלול.
 
           Sticky rather than fixed, so it rides at the end of the column and
           never covers the last card, and lifted clear of the floating phone tab
@@ -158,17 +158,7 @@ export function ExploreScreen({
                 ממתינים לשיבוץ ביום
               </span>
             </div>
-            <Link
-              href={`/trips/${tripId}/days`}
-              className={buttonClasses(
-                "primary",
-                "md",
-                "shrink-0 rounded-full px-5",
-              )}
-            >
-              <CalendarDays className="h-4 w-4" aria-hidden="true" />
-              שיבוץ לימים
-            </Link>
+            <ScheduleButton tripId={tripId} />
           </div>
         </div>
       )}

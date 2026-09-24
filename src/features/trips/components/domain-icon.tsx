@@ -16,6 +16,7 @@ import {
   FileText,
   Hotel,
   Landmark,
+  Moon,
   PartyPopper,
   Pill,
   Plane,
@@ -23,10 +24,13 @@ import {
   Shirt,
   ShoppingBag,
   Snowflake,
+  Sparkles,
+  Star,
   StickyNote,
   Sun,
   Thermometer,
   TrainFront,
+  Trees,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
@@ -61,6 +65,14 @@ const ICONS: Record<DomainIconName, LucideIcon> = {
   shopping: ShoppingBag,
   temple: Landmark,
   attraction: Camera,
+
+  // The add-places grid's own tiles (SEARCH_PRESETS in domain/place.ts).
+  // Museums take Landmark, the columned building the design draws.
+  mustsee: Star,
+  nature: Trees,
+  museum: Landmark,
+  hidden: Sparkles,
+  night: Moon,
 
   holiday: PartyPopper,
   rest: Armchair,

@@ -85,6 +85,115 @@ export const SEARCHABLE_PLACE_CATEGORIES = (
   Object.keys(PLACE_CATEGORIES) as PlaceCategory[]
 ).filter((key) => PLACE_CATEGORIES[key].filters.length > 0);
 
+// ---- Search presets: the add-places grid ---------------------------------
+//
+// The Pencil grid draws eight tiles — אתרי חובה, אוכל, טבע, מוזיאונים, קפה,
+// קניות, נסתרות, לילה — and PlaceCategory has seven values that are persisted
+// in the database. Adding eight enum values would be a migration for what is
+// really a question of *how to search*, so a preset is a search, not a
+// category: its own OSM tag filters, plus the stored category a result it finds
+// is filed under. Museums and nature are "attractions" in the data; a bar is
+// "other" — the manual form's catch-all — because nothing else holds it.
+//
+// Temples are not a tile any more (the design has none). The category stays —
+// rows already carry it, and the manual form and free-text search still use it.
+export const searchPresetSchema = z.enum([
+  "mustsee",
+  "food",
+  "nature",
+  "museums",
+  "cafe",
+  "shopping",
+  "hidden",
+  "nightlife",
+]);
+export type SearchPreset = z.infer<typeof searchPresetSchema>;
+
+export const SEARCH_PRESETS: Record<
+  SearchPreset,
+  {
+    label: string;
+    icon: DomainIconName;
+    category: PlaceCategory;
+    filters: string[];
+  }
+> = {
+  mustsee: {
+    label: "אתרי חובה",
+    icon: "mustsee",
+    category: "attractions",
+    // Places of worship are left out: Overpass cannot tell a cathedral from a
+    // neighbourhood chapel by tag, and the second kind would fill the cap.
+    filters: [
+      "tourism=attraction",
+      "historic=monument",
+      "historic=castle",
+      "historic=archaeological_site",
+    ],
+  },
+  food: {
+    label: "אוכל",
+    icon: "restaurant",
+    category: "restaurants",
+    filters: ["amenity=restaurant", "amenity=fast_food"],
+  },
+  nature: {
+    label: "טבע",
+    icon: "nature",
+    category: "attractions",
+    filters: [
+      "leisure=park",
+      "leisure=garden",
+      "tourism=viewpoint",
+      "natural=beach",
+      "natural=peak",
+    ],
+  },
+  museums: {
+    label: "מוזיאונים",
+    icon: "museum",
+    category: "attractions",
+    filters: ["tourism=museum", "tourism=gallery"],
+  },
+  cafe: {
+    label: "קפה",
+    icon: "cafe",
+    category: "cafes",
+    filters: ["amenity=cafe", "shop=bakery", "shop=pastry"],
+  },
+  shopping: {
+    label: "קניות",
+    icon: "shopping",
+    category: "shopping",
+    filters: [
+      "shop=mall",
+      "shop=department_store",
+      "shop=clothes",
+      "amenity=marketplace",
+    ],
+  },
+  hidden: {
+    label: "נסתרות",
+    icon: "hidden",
+    category: "attractions",
+    filters: [
+      "tourism=artwork",
+      "historic=memorial",
+      "amenity=fountain",
+      "historic=ruins",
+    ],
+  },
+  nightlife: {
+    label: "לילה",
+    icon: "night",
+    category: "other",
+    filters: ["amenity=bar", "amenity=pub", "amenity=nightclub"],
+  },
+};
+
+// The grid's order, which is the design's: right to left, top row first.
+export const SEARCH_PRESET_KEYS = searchPresetSchema.options;
+
 // How many things the trip already holds in each search category.
 //
 // The column carries two vocabularies — the AI guide's (areas, experiences…)
@@ -210,6 +319,9 @@ export const placeSearchRequestSchema = z.object({
   tripId: z.uuid(),
   city: z.string().trim().min(1, { error: "יש לבחור יעד." }),
   category: placeCategorySchema.optional(),
+  // One of the grid's eight tiles. Wins over `category` when both are sent:
+  // it carries its own tag filters, and results are filed under its category.
+  preset: searchPresetSchema.optional(),
   // Free-text search, matched against the place's name.
   query: z.string().trim().max(80).optional(),
   // Overrides the city's own centre with a specific point — "search near

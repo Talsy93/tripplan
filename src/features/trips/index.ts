@@ -46,11 +46,15 @@ export {
   isWorthShowing,
   comparePlaces,
   savedCountsByCategory,
+  SEARCH_PRESETS,
+  SEARCH_PRESET_KEYS,
+  searchPresetSchema,
 } from "./domain/place";
 export type {
   Place,
   PlaceCategory,
   PlaceSearchRequest,
+  SearchPreset,
   SelectableCategory,
   ManualPlaceInput,
 } from "./domain/place";
@@ -438,6 +442,10 @@ export type { FeaturedDetails, HomeTrip } from "./components/home-screen";
 export type { PinStanding } from "./components/trips-map-canvas";
 export { getSelectedPlaceCountByTrip } from "./infrastructure/guide-service";
 export type { MappedTrip } from "./components/trips-map-canvas";
+export { getTripMapPlaces } from "./infrastructure/trip-map-service";
+export { loadTripMapPlaces } from "./application/trip-map-actions";
+export { tripMapPlaceSchema } from "./domain/trip-map";
+export type { TripMapPlace } from "./domain/trip-map";
 export type { CityGuideEntry } from "./components/city-guide-list";
 export type { RouteCity } from "./components/route-cities";
 export { tripOpenItems } from "./domain/open-items";

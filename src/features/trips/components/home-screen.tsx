@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode, RefObject } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -11,19 +11,23 @@ import {
   Dices,
   EllipsisVertical,
   Globe,
+  LoaderCircle,
   Map as MapIcon,
   MapPin,
   PencilLine,
   Plus,
   Sparkles,
+  ZoomIn,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { loadTripMapPlaces } from "../application/trip-map-actions";
 import { AppIntro } from "./app-intro";
 import { NewTripButton } from "./create-trip-form";
 import { DomainIcon } from "./domain-icon";
 import { HomeMap } from "./home-map";
 import { PlacePhoto } from "./place-photo";
-import type { MappedTrip } from "./trips-map-canvas";
+import type { MappedTrip, OpenedTrip } from "./trips-map-canvas";
+import type { TripMapPlace } from "../domain/trip-map";
 import {
   agoLabel,
   dateRangeLabel,
@@ -44,8 +48,19 @@ import { tripTabHref } from "../domain/trip-tabs";
 // and the rows, so the filter visibly drives both. From lg it is the left
 // column, as the desktop export draws it.
 //
-// Client for one reason: the map, its preview card and the rows share a
-// selection and a filter. Everything else is fetched on the server.
+// Client for one reason: the map, its preview card, the featured card and the
+// rows share a selection and a filter. Everything else is fetched on the
+// server, except one trip's destinations, read when that trip is opened on the
+// map.
+//
+// A trip is pressed in two steps (the owner's ask, 2026-09-24). The first
+// press — on a row, on the featured card, on the preview card or on the trip's
+// pin — selects it and flies the map there; it never navigates. A second press
+// on the same trip opens it on the map: its saved places and cities replace
+// the trip pins, the map fits them and becomes pannable and zoomable, and the
+// names appear as it zooms in. Entering a trip is its own control: "כניסה
+// לטיול" on the featured card, the arrow on the preview card, the chevron on a
+// row. The globe goes back to every trip.
 
 // One trip, as the cards and the map need it.
 export type HomeTrip = {
@@ -85,6 +100,7 @@ export function HomeScreen({
   now,
   bell,
   account,
+  initialDestinations,
 }: {
   firstName: string | null;
   // Every trip, nearest first.
@@ -101,12 +117,19 @@ export function HomeScreen({
   // from md up; without them (the preview harness) the row is text only.
   bell?: ReactNode;
   account?: ReactNode;
+  // Destinations already known, by trip id — opening one of these trips on
+  // the map reads nothing. The page passes none (each trip is read when it is
+  // opened); the preview harness, which has no database behind it, passes its
+  // fixtures here so the opened view can be seen.
+  initialDestinations?: Record<string, TripMapPlace[]>;
 }) {
   const featured = trips.find((trip) => trip.entry.trip.id === featuredId) ?? null;
   const others = trips.filter((trip) => trip.entry.trip.id !== featuredId);
   // The trip the idea card opens: the featured one, or else the nearest.
   const target = featured ?? trips[0] ?? null;
   const empty = trips.length === 0;
+  const mapRef = useRef<HTMLDivElement>(null);
+  const selection = useTripMapSelection(trips, mapped, initialDestinations, mapRef);
 
   return (
     <main
@@ -128,7 +151,15 @@ export function HomeScreen({
           bell={bell}
           account={account}
         />
-        {featured && details && <FeaturedCard trip={featured} details={details} />}
+        {featured && details && (
+          <FeaturedCard
+            trip={featured}
+            details={details}
+            selected={selection.selectedId === featured.entry.trip.id}
+            opened={selection.openId === featured.entry.trip.id}
+            onPick={() => selection.pick(featured.entry.trip.id, { scroll: true })}
+          />
+        )}
         {empty ? (
           <AppIntro />
         ) : (
@@ -147,6 +178,8 @@ export function HomeScreen({
             mapped={mapped}
             featuredId={featuredId}
             now={now}
+            selection={selection}
+            mapRef={mapRef}
           />
         </div>
       )}
@@ -201,9 +234,18 @@ function Greeting({
 function FeaturedCard({
   trip: home,
   details,
+  selected,
+  opened,
+  onPick,
 }: {
   trip: HomeTrip;
   details: FeaturedDetails;
+  // Whether the map is pointing at this trip, and whether it is open there.
+  selected: boolean;
+  opened: boolean;
+  // A press on the card: select the trip on the map, or open it if it already
+  // is. Entering the trip is the white pill.
+  onPick: () => void;
 }) {
   const { trip, phase } = home.entry;
   const during = phase.kind === "during";
@@ -230,7 +272,10 @@ function FeaturedCard({
   return (
     <section
       aria-label={during ? "הטיול הפעיל" : "הטיול הקרוב"}
-      className="relative isolate flex flex-col gap-5 overflow-hidden rounded-3xl bg-primary p-5 text-white shadow-lift"
+      className={cn(
+        "relative isolate flex flex-col gap-5 overflow-hidden rounded-3xl bg-primary p-5 text-white shadow-lift transition-shadow",
+        selected && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+      )}
     >
       {/* The photo stays — it was on this card before the redesign — but under
           the teal, so the card reads as the design's gradient first and the
@@ -269,12 +314,21 @@ function FeaturedCard({
 
       <div className="flex min-w-0 flex-col gap-1">
         <h2 className="text-[26px] font-bold leading-tight wrap-anywhere">
-          <Link
-            href={href}
-            className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          {/* The card's press target, stretched over the whole card: it
+              points the map at the trip rather than entering it. The controls
+              below sit above it (relative z-10) and keep their own targets. */}
+          <button
+            type="button"
+            onClick={onPick}
+            aria-pressed={selected}
+            className="text-start after:absolute after:inset-0 after:rounded-3xl focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-white"
           >
             {trip.name}
-          </Link>
+            <span className="sr-only">
+              {" — "}
+              {pickHint(selected, opened)}
+            </span>
+          </button>
         </h2>
         {meta.length > 0 && (
           <p className="text-sm text-white/80">{meta.join(" • ")}</p>
@@ -327,7 +381,7 @@ function FeaturedCard({
           )}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="relative z-10 flex items-center gap-1.5">
           {/* The two shortcuts the card had before the redesign, kept as quiet
               glass discs beside the one white pill. */}
           <Link
@@ -383,12 +437,145 @@ const FILTERS: { key: Filter; label: string }[] = [
 // Past four rows the list folds.
 const FOLD = 4;
 
+// A trip's destinations as last read: the places, or "error" when the read
+// failed. Absent while it has not been read (or is being read).
+type DestinationCache = Record<string, TripMapPlace[] | "error">;
+
+// What a screen reader hears after a trip's name, and the status line over the
+// map says in its own words: what the next press on this trip will do.
+function pickHint(selected: boolean, opened: boolean): string {
+  if (opened) return "היעדים מוצגים במפה";
+  if (selected) return "לחיצה נוספת תציג את היעדים במפה";
+  return "הצגה במפה";
+}
+
+// The selection the map, its preview card, the featured card and the rows
+// share, and the one trip opened on the map.
+function useTripMapSelection(
+  trips: HomeTrip[],
+  mapped: MappedTrip[],
+  initialDestinations: Record<string, TripMapPlace[]> | undefined,
+  // The map card, scrolled to when a press far from it moves the map — the
+  // featured card sits above the filter, and the rows can run below the fold.
+  mapRef: RefObject<HTMLDivElement | null>,
+) {
+  const [filter, setFilter] = useState<Filter>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // The trip whose destinations are on the map — always the selected one.
+  const [openId, setOpenId] = useState<string | null>(null);
+  // "Whole world": every trip in view, until a pin or a filter asks otherwise.
+  const [world, setWorld] = useState(false);
+  const [destinations, setDestinations] = useState<DestinationCache>(
+    () => ({ ...initialDestinations }),
+  );
+  // Reads in flight, so a third press while the second is still loading does
+  // not read the trip twice.
+  const loading = useRef(new Set<string>());
+
+  const read = useCallback((id: string) => {
+    if (loading.current.has(id)) return;
+    loading.current.add(id);
+    loadTripMapPlaces(id)
+      .then((places) => places ?? ("error" as const))
+      .catch(() => "error" as const)
+      .then((result) => {
+        loading.current.delete(id);
+        setDestinations((cache) => ({ ...cache, [id]: result }));
+      });
+  }, []);
+
+  const clear = useCallback(() => {
+    setSelectedId(null);
+    setOpenId(null);
+  }, []);
+
+  const pick = useCallback(
+    (id: string, { scroll = false }: { scroll?: boolean } = {}) => {
+      setWorld(false);
+      if (id === selectedId) {
+        // The second press: open it on the map. A trip already open stays so.
+        setOpenId(id);
+        if (!(id in destinations)) read(id);
+      } else {
+        setSelectedId(id);
+        setOpenId(null);
+        // A trip the filter hides (the featured card while "עבר" is on) is
+        // still a trip to show: the filter steps back rather than the press
+        // doing nothing.
+        const trip = trips.find((t) => t.entry.trip.id === id);
+        if (trip && !inFilter(trip.entry, filter)) setFilter("all");
+      }
+      if (scroll) {
+        mapRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+    },
+    [selectedId, destinations, read, trips, filter, mapRef],
+  );
+
+  // The opened trip as the map draws it. Its cities come from the pins the
+  // page already has (a city centre per located city); its places from the
+  // read. A failed read still shows the cities.
+  const cached = openId ? destinations[openId] : undefined;
+  const opened = useMemo<OpenedTrip | null>(() => {
+    if (!openId || cached === undefined) return null;
+    const cities = mapped.find((trip) => trip.id === openId)?.points ?? [];
+    return {
+      tripId: openId,
+      places: cached === "error" ? [] : cached,
+      cities: cities.map(({ city, latitude, longitude }) => ({
+        city,
+        latitude,
+        longitude,
+      })),
+    };
+  }, [openId, cached, mapped]);
+
+  const status: OpenStatus = !openId
+    ? "none"
+    : cached === undefined
+      ? "loading"
+      : cached === "error"
+        ? "error"
+        : opened && opened.places.length + opened.cities.length === 0
+          ? "empty"
+          : "ready";
+
+  return {
+    filter,
+    setFilter: (next: Filter) => {
+      setFilter(next);
+      clear();
+      setWorld(false);
+    },
+    selectedId,
+    openId,
+    world,
+    opened,
+    status,
+    pick,
+    // Back to every trip — the globe.
+    showWorld: () => {
+      clear();
+      setWorld(true);
+    },
+    // Escape: an opened trip closes to its selection first, then that clears.
+    back: () => (openId ? setOpenId(null) : clear()),
+    // A tap on empty map, from the canvas (never while a trip is open).
+    clear,
+  };
+}
+
+type OpenStatus = "none" | "loading" | "ready" | "empty" | "error";
+type TripMapSelection = ReturnType<typeof useTripMapSelection>;
+
 function TripsSection({
   trips,
   others,
   mapped,
   featuredId,
   now,
+  selection,
+  mapRef,
 }: {
   trips: HomeTrip[];
   // Every trip but the featured one — the rows. The featured trip has its own
@@ -397,16 +584,11 @@ function TripsSection({
   mapped: MappedTrip[];
   featuredId: string | null;
   now: string;
+  selection: TripMapSelection;
+  mapRef: RefObject<HTMLDivElement | null>;
 }) {
-  const [filter, setFilter] = useState<Filter>("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  // "Whole world": every trip in view, until a pin or a filter asks otherwise.
-  const [world, setWorld] = useState(false);
+  const { filter, selectedId, openId, world, opened, status, back } = selection;
   const [unfolded, setUnfolded] = useState(false);
-  const select = (id: string | null) => {
-    setSelectedId(id);
-    setWorld(false);
-  };
 
   const shown = useMemo(
     () => trips.filter((trip) => inFilter(trip.entry, filter)),
@@ -430,6 +612,7 @@ function TripsSection({
     shown.find((trip) => trip.entry.trip.id === featuredId) ??
     shown[0] ??
     null;
+  const isOpen = openId !== null && openId === selected;
 
   // A pressed pin whose trip is folded away unfolds the list, so the row the
   // map is pointing at is always on screen to be highlighted.
@@ -439,15 +622,15 @@ function TripsSection({
   const open = unfolded || selectedIndex >= FOLD;
   const visible = open ? rows : rows.slice(0, FOLD);
 
-  // Escape is the desktop way back to the whole world.
+  // Escape is the desktop way back: out of an opened trip, then to the world.
   useEffect(() => {
     if (!selected) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelectedId(null);
+      if (event.key === "Escape") back();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selected]);
+  }, [selected, back]);
 
   return (
     <section aria-labelledby="home-trips-heading" className="flex min-w-0 flex-col gap-4">
@@ -468,10 +651,7 @@ function TripsSection({
               key={chip.key}
               type="button"
               aria-pressed={filter === chip.key}
-              onClick={() => {
-                setFilter(chip.key);
-                select(null);
-              }}
+              onClick={() => selection.setFilter(chip.key)}
               className={cn(
                 "h-8 rounded-full px-3.5 text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 filter === chip.key
@@ -485,23 +665,33 @@ function TripsSection({
         </div>
       </div>
 
-      <div className="relative h-56 w-full overflow-hidden rounded-3xl bg-surface-2 shadow-card lg:h-80 [&_.leaflet-bottom]:bottom-auto [&_.leaflet-bottom]:top-0">
+      <div
+        ref={mapRef}
+        className={cn(
+          // scroll-mb clears the phone's floating tab bar, so a press on the
+          // featured card scrolls the map fully into view, not behind it.
+          "relative w-full scroll-mt-4 scroll-mb-28 overflow-hidden rounded-3xl bg-surface-2 shadow-card md:scroll-mb-4",
+          // An opened trip is a map to explore, so it gets the room for it.
+          isOpen ? "h-[22rem] lg:h-[30rem]" : "h-56 lg:h-80",
+          // Leaflet's bottom controls (the attribution) move to the top, clear
+          // of the preview card; the zoom buttons of an opened trip sit under
+          // the globe rather than behind it.
+          "[&_.leaflet-bottom]:bottom-auto [&_.leaflet-bottom]:top-0 [&_.leaflet-top.leaflet-left]:top-14",
+        )}
+      >
         <HomeMap
           trips={pins}
           selectedId={selected}
           focusId={world ? null : (focus?.entry.trip.id ?? null)}
-          onSelect={select}
-          insetBottomShare={focus ? 0.36 : 0}
+          onSelect={(id) => (id ? selection.pick(id) : selection.clear())}
+          insetBottomShare={focus ? (isOpen ? 0.28 : 0.36) : 0}
+          opened={isOpen ? opened : null}
         />
 
-        {/* Back to the whole world — the map is still, so there is no zooming
-            out by hand. */}
+        {/* Back to the whole world — every trip, nothing selected or open. */}
         <button
           type="button"
-          onClick={() => {
-            setSelectedId(null);
-            setWorld(true);
-          }}
+          onClick={selection.showWorld}
           aria-label="כל הטיולים על המפה"
           className="absolute end-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-surface text-primary shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
@@ -509,26 +699,47 @@ function TripsSection({
         </button>
 
         {focus && (
-          <div className="absolute inset-x-3 bottom-3 z-10 flex items-center gap-3 rounded-[18px] bg-surface p-3 shadow-lift">
-            <TripTile trip={focus} />
-            <div className="flex min-w-0 flex-1 flex-col">
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-base font-bold text-foreground">
-                  {focus.entry.trip.name}
+          <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex flex-col items-center gap-2">
+            <MapStatus
+              selected={selected !== null}
+              status={isOpen ? status : "none"}
+              count={opened ? opened.places.length || opened.cities.length : 0}
+            />
+            <div className="pointer-events-auto relative flex w-full items-center gap-3 rounded-[18px] bg-surface p-3 shadow-lift">
+              <TripTile trip={focus} />
+              <div className="flex min-w-0 flex-1 flex-col">
+                <div className="flex min-w-0 items-center gap-2">
+                  {/* The card is the same two-step press as the row it
+                      names; the arrow is what enters. */}
+                  <button
+                    type="button"
+                    onClick={() => selection.pick(focus.entry.trip.id)}
+                    aria-pressed={focus.entry.trip.id === selected}
+                    className="min-w-0 truncate text-start text-base font-bold text-foreground after:absolute after:inset-0 after:rounded-[18px] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
+                  >
+                    {focus.entry.trip.name}
+                    <span className="sr-only">
+                      {" — "}
+                      {pickHint(
+                        focus.entry.trip.id === selected,
+                        isOpen && focus.entry.trip.id === openId,
+                      )}
+                    </span>
+                  </button>
+                  <PreviewBadge trip={focus} />
+                </div>
+                <span className="truncate text-[13px] text-muted">
+                  {previewMeta(focus)}
                 </span>
-                <PreviewBadge trip={focus} />
               </div>
-              <span className="truncate text-[13px] text-muted">
-                {previewMeta(focus)}
-              </span>
+              <Link
+                href={`/trips/${focus.entry.trip.id}`}
+                aria-label={`כניסה לטיול ${focus.entry.trip.name}`}
+                className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+              </Link>
             </div>
-            <Link
-              href={`/trips/${focus.entry.trip.id}`}
-              aria-label={`פתיחת ${focus.entry.trip.name}`}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-            </Link>
           </div>
         )}
       </div>
@@ -546,15 +757,20 @@ function TripsSection({
       ) : (
         <div className="@container">
           <ul className="grid gap-3 @lg:grid-cols-2">
-            {visible.map((trip) => (
-              <li key={trip.entry.trip.id} className="min-w-0">
-                <TripRow
-                  trip={trip}
-                  now={now}
-                  selected={trip.entry.trip.id === selected}
-                />
-              </li>
-            ))}
+            {visible.map((trip) => {
+              const id = trip.entry.trip.id;
+              return (
+                <li key={id} className="min-w-0">
+                  <TripRow
+                    trip={trip}
+                    now={now}
+                    selected={id === selected}
+                    opened={isOpen && id === openId}
+                    onPick={() => selection.pick(id, { scroll: true })}
+                  />
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
@@ -570,6 +786,55 @@ function TripsSection({
         </button>
       )}
     </section>
+  );
+}
+
+// The one line over the map that says what is happening and what a press will
+// do next. Polite live region, so the read finishing is announced.
+function MapStatus({
+  selected,
+  status,
+  count,
+}: {
+  selected: boolean;
+  status: OpenStatus;
+  count: number;
+}) {
+  let icon: ReactNode = null;
+  let text: string | null = null;
+  switch (status) {
+    case "loading":
+      icon = <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />;
+      text = "טוענים את היעדים…";
+      break;
+    case "ready":
+      icon = <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />;
+      text = `${count === 1 ? "יעד אחד" : `${count} יעדים`} · התקרבו לראות שמות`;
+      break;
+    case "empty":
+      icon = <MapPin className="h-3.5 w-3.5" aria-hidden="true" />;
+      text = "עוד אין בטיול הזה יעדים עם מיקום";
+      break;
+    case "error":
+      icon = <MapPin className="h-3.5 w-3.5" aria-hidden="true" />;
+      text = "לא הצלחנו לטעון את המקומות — מוצגות הערים";
+      break;
+    case "none":
+      if (selected) {
+        icon = <MapPin className="h-3.5 w-3.5" aria-hidden="true" />;
+        text = "לחיצה נוספת על הטיול תציג את היעדים";
+      }
+      break;
+  }
+  return (
+    <p role="status" aria-live="polite" className="flex max-w-full justify-center">
+      {text && (
+        <span className="flex min-w-0 items-center gap-1.5 rounded-full bg-surface/95 px-3 py-1.5 text-[12px] font-semibold text-primary-ink shadow-card">
+          {icon}
+          <span className="truncate">{text}</span>
+        </span>
+      )}
+    </p>
   );
 }
 
@@ -687,44 +952,70 @@ function TripRow({
   trip: home,
   now,
   selected,
+  opened,
+  onPick,
 }: {
   trip: HomeTrip;
   now: string;
   // The trip the map's pin is pointing at — ringed, so a press on the map
   // finds its row.
   selected: boolean;
+  // Its destinations are the ones on the map.
+  opened: boolean;
+  // The row's press: select on the map, or open there if already selected.
+  // Entering the trip is the chevron at the row's end, a target of its own.
+  onPick: () => void;
 }) {
   const { trip, phase } = home.entry;
   return (
     <article
       aria-current={selected ? "true" : undefined}
       className={cn(
-        "relative flex min-w-0 items-center gap-3 rounded-[18px] bg-surface p-3.5 shadow-card transition-shadow",
+        "relative flex min-w-0 items-center gap-2 rounded-[18px] bg-surface py-3 ps-3.5 pe-2 shadow-card transition-shadow",
         selected && "ring-2 ring-primary",
       )}
     >
       <TripTile trip={home} />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <Link
-          href={`/trips/${trip.id}`}
-          className="truncate text-base font-bold text-foreground after:absolute after:inset-0 after:rounded-[18px] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
+      <div className="ms-1 flex min-w-0 flex-1 flex-col gap-0.5">
+        <button
+          type="button"
+          onClick={onPick}
+          aria-pressed={selected}
+          className="min-w-0 truncate text-start text-base font-bold text-foreground after:absolute after:inset-0 after:rounded-[18px] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring"
         >
           {trip.name}
-        </Link>
-        <span className="truncate text-[13px] text-muted">{rowMeta(home, now)}</span>
+          <span className="sr-only">
+            {" — "}
+            {pickHint(selected, opened)}
+          </span>
+        </button>
+        <span className="truncate text-[13px] text-muted">
+          {opened ? (
+            <span className="font-semibold text-primary-ink">היעדים מוצגים במפה</span>
+          ) : (
+            rowMeta(home, now)
+          )}
+        </span>
       </div>
       {/* A draft's settings shortcut, from before the redesign. Above the
-          stretched link, so it is its own target. */}
+          stretched button, so it is its own target. */}
       {phase.kind === "undated" && (
         <Link
           href={`/trips/${trip.id}/more/trip`}
           aria-label={`הגדרות הטיול ${trip.name}`}
-          className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-outline hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="relative z-10 flex h-11 w-9 shrink-0 items-center justify-center rounded-full text-outline hover:bg-surface-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <EllipsisVertical className="h-5 w-5" aria-hidden="true" />
         </Link>
       )}
-      <ChevronLeft className="h-5 w-5 shrink-0 text-outline" aria-hidden="true" />
+      {/* Into the trip — the one control on the row that navigates. */}
+      <Link
+        href={`/trips/${trip.id}`}
+        aria-label={`כניסה לטיול ${trip.name}`}
+        className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-2 text-primary transition-[background-color,transform] hover:bg-primary-tint active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+      </Link>
     </article>
   );
 }

@@ -422,6 +422,17 @@ function homeFrame(
         mapped={mapped}
         destinationCount={trips.length}
         now={f.NOW}
+        // Athens' saved places, so a second tap on that trip opens it to street
+        // level with every name showing — the real screen fetches these.
+        initialDestinations={{
+          "00000000-0000-0000-0000-000000000103": [
+            { name: "האקרופוליס", city: "אתונה", category: "attractions", latitude: 37.9715, longitude: 23.7257 },
+            { name: "שכונת פלאקה", city: "אתונה", category: "attractions", latitude: 37.9725, longitude: 23.7303 },
+            { name: "שוק מונסטירקי", city: "אתונה", category: "shopping", latitude: 37.9761, longitude: 23.7253 },
+            { name: "טברנה פסאראס", city: "אתונה", category: "restaurants", latitude: 37.9733, longitude: 23.7281 },
+            { name: "המוזיאון של האקרופוליס", city: "אתונה", category: "attractions", latitude: 37.9685, longitude: 23.7285 },
+          ],
+        }}
       />
       <BottomNav
         accent="cta"

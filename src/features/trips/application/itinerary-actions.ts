@@ -6,10 +6,13 @@ import {
   addItineraryEntry as addEntry,
   applyTimeChanges,
   deleteItineraryEntry as deleteEntry,
+  getItinerary,
   setEntriesFixed,
   updateItineraryEntry as updateEntry,
 } from "../infrastructure/itinerary-service";
 import { setCityDays as writeCityDays } from "../infrastructure/city-days-service";
+import { getSelectedDestinations } from "../infrastructure/guide-service";
+import { planPlacements } from "../domain/schedule-new";
 import { setCityDaysSchema } from "../domain/city-days";
 import {
   updateItineraryEntrySchema,
@@ -174,4 +177,42 @@ export async function addAirportTransfer(
 
   revalidatePath("/trips/[id]", "layout");
   return { ok: true };
+}
+
+// "שיבוץ לימים" — the places chosen since the schedule was built, into the
+// days that already exist (see domain/schedule-new.ts for the rule). No model
+// call: with no schedule yet, the answer is needsBuild and the button sends
+// the traveller to מסלול, where the build is.
+export async function scheduleNewPlaces(tripId: string): Promise<{
+  ok: boolean;
+  placed: number;
+  unplaced: number;
+  needsBuild?: boolean;
+}> {
+  if (!z.uuid().safeParse(tripId).success) return { ok: false, placed: 0, unplaced: 0 };
+
+  const [days, selected] = await Promise.all([
+    getItinerary(tripId),
+    getSelectedDestinations(tripId),
+  ]);
+  if (days.length === 0) return { ok: true, placed: 0, unplaced: 0, needsBuild: true };
+
+  const { placements, unplaced } = planPlacements(selected, days);
+  let placed = 0;
+  for (const placement of placements) {
+    const { error } = await addEntry(tripId, {
+      dayNumber: placement.dayNumber,
+      title: placement.name,
+      startLabel: "",
+      endLabel: "",
+      note: null,
+      city: placement.city,
+      travelNote: null,
+      travelMinutes: null,
+    });
+    if (!error) placed++;
+  }
+
+  if (placed > 0) revalidatePath("/trips/[id]", "layout");
+  return { ok: placed === placements.length, placed, unplaced: unplaced.length };
 }

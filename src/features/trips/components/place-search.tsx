@@ -26,21 +26,63 @@ import { cn } from "@/lib/cn";
 import { addPlace } from "../application/place-actions";
 import { saveMore, setSelected } from "../application/guide-actions";
 import { aiErrorFromResponse } from "../domain/ai-errors";
-import { PLACE_CATEGORIES, SEARCHABLE_PLACE_CATEGORIES } from "../domain/place";
+import { SEARCH_PRESETS, SEARCH_PRESET_KEYS } from "../domain/place";
 import type { AiRecommendation } from "../domain/ai-suggestion";
 import {
   cityToneClass,
   cityToneMap,
 } from "../domain/tone";
-import type { PlaceCategory } from "../domain/place";
+import type { SearchPreset } from "../domain/place";
 import type { Place } from "../domain/place";
 import type { AddedPlace } from "../infrastructure/place-service";
 import { PlaceDetails } from "./place-details";
-import { CategoryTile } from "./category-tile";
+import { DomainIcon } from "./domain-icon";
 
-// The six the search can offer. "אחר" exists as a category but has no tag
-// filters, so a tile for it would open a search that can only come back empty.
-const CATEGORY_KEYS = SEARCHABLE_PLACE_CATEGORIES;
+// The Pencil grid's eight tiles. Presets, not stored categories — see
+// SEARCH_PRESETS in domain/place.ts for why the two are different lists.
+//
+// The tints are the export's: three tiles share the warm must-see tint
+// (אתרי חובה, מוזיאונים, קפה), and לילה is a bluer lilac than נסתרות beside
+// it. There is no token for that one, so it is mixed from two that exist
+// rather than hard-coded, and follows them if the palette moves.
+const PRESET_TONES: Record<SearchPreset, string> = {
+  mustsee: "bg-cat-mustsee-tint text-cat-mustsee-ink",
+  food: "bg-cat-food-tint text-cat-food-ink",
+  nature: "bg-cat-nature-tint text-cat-nature-ink",
+  museums: "bg-cat-mustsee-tint text-cat-mustsee-ink",
+  cafe: "bg-cat-mustsee-tint text-cat-mustsee-ink",
+  shopping: "bg-cat-shopping-tint text-cat-shopping-ink",
+  hidden: "bg-cat-hidden-tint text-cat-hidden-ink",
+  nightlife:
+    "bg-[color-mix(in_oklab,var(--cat-hidden-tint),var(--primary-tint)_40%)] text-[color-mix(in_oklab,var(--cat-hidden-ink),var(--primary-ink)_25%)]",
+};
+
+function PresetTile({
+  preset,
+  size = "lg",
+  className,
+}: {
+  preset: SearchPreset;
+  size?: "lg" | "md";
+  className?: string;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "flex shrink-0 items-center justify-center",
+        size === "lg" ? "h-14 w-14 rounded-[18px]" : "h-11 w-11 rounded-[14px]",
+        PRESET_TONES[preset],
+        className,
+      )}
+    >
+      <DomainIcon
+        name={SEARCH_PRESETS[preset].icon}
+        className={size === "lg" ? "h-6 w-6" : "h-5 w-5"}
+      />
+    </span>
+  );
+}
 
 // A place is in the trip whether or not the itinerary has been built since —
 // so "in the trip" is the fallback, and a day is the better news when we have
@@ -77,7 +119,6 @@ export function PlaceSearch({
   tripId,
   cities,
   addedPlaces,
-  savedCounts,
 }: {
   tripId: string;
   // The trip's destinations, in route order — the filter's options.
@@ -85,12 +126,10 @@ export function PlaceSearch({
   // Places already in the trip, with the itinerary days they're scheduled on,
   // so results can say so instead of offering to add them twice.
   addedPlaces: AddedPlace[];
-  // How many things the trip already holds per category, for the tiles.
-  savedCounts: Record<PlaceCategory, number>;
 }) {
   const [city, setCity] = useState(cities[0] ?? "");
   // Null means the category grid — the screen this tab opens on.
-  const [category, setCategory] = useState<PlaceCategory | null>(null);
+  const [category, setCategory] = useState<SearchPreset | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -128,7 +167,7 @@ export function PlaceSearch({
   }
 
   async function search(
-    nextCategory: PlaceCategory | null,
+    nextPreset: SearchPreset | null,
     nextCity: string = city,
     nextNear: NearPoint | null = near,
     nextArea: string = area,
@@ -143,7 +182,7 @@ export function PlaceSearch({
         body: JSON.stringify({
           tripId,
           city: nextCity,
-          category: nextCategory ?? undefined,
+          preset: nextPreset ?? undefined,
           query: query.trim() || undefined,
           near: nextNear
             ? { latitude: nextNear.latitude, longitude: nextNear.longitude }
@@ -198,7 +237,7 @@ export function PlaceSearch({
     }
   }
 
-  function openCategory(key: PlaceCategory) {
+  function openCategory(key: SearchPreset) {
     setCategory(key);
     setNear(null);
     void search(key, city, null, area);
@@ -475,21 +514,16 @@ export function PlaceSearch({
             ))}
           </div>
         )}
-        {/* Pencil: a grid of tinted icon tiles with the label under each — back
-            from the v6 chip carousel, and without its emoji. The emoji were the
-            one place the 2026-08-31 "lucide only" rule had been reversed, and
-            the tiles are exactly the case that rule was about: a glyph that
-            takes its category's ink, beside other glyphs of the same weight.
-
-            Three across on a phone (six categories make two even rows; the
-            export's eight make its four), all six in one row once the column is
-            wide enough. The count of what the trip already holds rides on the
-            tile's corner. stagger + animate-rise stay — inert under
-            prefers-reduced-motion, see globals.css. */}
-        <div className="stagger grid grid-cols-3 gap-x-2 gap-y-4 @xl:grid-cols-6">
-          {CATEGORY_KEYS.map((key) => {
-            const meta = PLACE_CATEGORIES[key];
-            const count = savedCounts[key] ?? 0;
+        {/* Pencil: the export's eight tinted icon tiles, 4×2 on a phone, with
+            the label under each; one row of eight once the column is wide
+            enough. The per-tile "already in the trip" count went with the
+            six stored categories — a preset like טבע or לילה does not map 1:1
+            onto what a row stores, so any count on it would be a guess.
+            stagger + animate-rise stay — inert under prefers-reduced-motion,
+            see globals.css. */}
+        <div className="stagger grid grid-cols-4 gap-x-2 gap-y-3 @3xl:grid-cols-8">
+          {SEARCH_PRESET_KEYS.map((key) => {
+            const meta = SEARCH_PRESETS[key];
             return (
               <button
                 key={key}
@@ -500,19 +534,11 @@ export function PlaceSearch({
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 )}
               >
-                <span className="relative">
-                  <CategoryTile
-                    category={key}
-                    size="lg"
-                    className="transition-transform duration-press ease-snap group-hover/cat:scale-105 group-active/cat:scale-95"
-                  />
-                  {count > 0 && (
-                    <span className="absolute -end-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-surface px-1 text-[0.6875rem] font-bold tabular-nums text-foreground shadow-card">
-                      {count}
-                    </span>
-                  )}
-                </span>
-                <span className="max-w-full truncate text-caption font-medium text-foreground">
+                <PresetTile
+                  preset={key}
+                  className="transition-transform duration-press ease-snap group-hover/cat:scale-105 group-active/cat:scale-95"
+                />
+                <span className="max-w-full truncate text-caption font-semibold text-foreground">
                   {meta.label}
                 </span>
               </button>
@@ -539,7 +565,7 @@ export function PlaceSearch({
   }
 
   // ---- One category --------------------------------------------------------
-  const meta = PLACE_CATEGORIES[category];
+  const meta = SEARCH_PRESETS[category];
 
   return (
     <div className="flex flex-col gap-4">
@@ -553,7 +579,7 @@ export function PlaceSearch({
       </button>
 
       <div className="flex min-w-0 items-center gap-3">
-        <CategoryTile category={category} />
+        <PresetTile preset={category} size="md" />
         <h2 className="min-w-0 text-xl font-bold leading-7 wrap-anywhere">
           {meta.label}
         </h2>

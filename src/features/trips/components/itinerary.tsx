@@ -7,15 +7,14 @@ import {
   BedDouble,
   CalendarPlus,
   CalendarX2,
+  ChevronDown,
   ChevronLeft,
-  Compass,
   Plus,
-  Route,
   Sparkles,
   WandSparkles,
 } from "lucide-react";
 import { TwoPane } from "@/components/layout";
-import { Badge, Banner, Button, Disclosure } from "@/components/ui";
+import { Banner, Button } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { BookingDetails } from "./booking-details";
 import { deleteItineraryEntry } from "../application/itinerary-actions";
@@ -40,7 +39,8 @@ import { AddDayNoteButton, DayNotes } from "./day-note";
 import type { DayReminder } from "../domain/day-reminders";
 import type { DayNote } from "../domain/day-notes";
 import { EditEntryDialog } from "./edit-entry-dialog";
-import { EmptyDays, RouteCities } from "./route-cities";
+import { EmptyDays } from "./route-cities";
+import { DayRouteMapCard } from "./route-map-card";
 import { TripCalendar } from "./trip-calendar";
 import { withEmptyDays } from "../domain/itinerary-plan";
 import { cityToneClass, cityToneMap } from "../domain/tone";
@@ -54,7 +54,6 @@ import type { Booking } from "../domain/booking";
 import type { CityDayPlan } from "../domain/city-days";
 import type { NightLodging } from "../domain/trip-days";
 import type { ItineraryDay } from "../domain/ai-suggestion";
-import type { RouteCity } from "./route-cities";
 
 type ItineraryProps = {
   tripId: string;
@@ -197,27 +196,6 @@ export function Itinerary({
   const firstSuggestableDay =
     emptyDayNumbers.find((dayNumber) => cityOfDay.has(dayNumber)) ?? null;
 
-  // The route, grouped from cityOfDay. Consecutive days in the same city are one
-  // stop; a city revisited later in the trip gets a second one, which is the
-  // truth about the route rather than a tidier summary of it.
-  //
-  // Nights come from first-to-last rather than from how many days were recorded:
-  // a night is a transition between two days, so a stop from day 6 to day 9 is
-  // three nights whether or not day 8 had anything on it. Counting the days
-  // instead is what made a five-day stay with one blank day report four.
-  const stops: RouteCity[] = [];
-  for (const day of days) {
-    const city = cityOfDay.get(day.day);
-    if (!city) continue;
-    const last = stops[stops.length - 1];
-    if (last && last.city === city) {
-      last.days.push(day.day);
-      last.nights = day.day - (last.days[0] ?? day.day);
-    } else {
-      stops.push({ city, days: [day.day], nights: 0 });
-    }
-  }
-
   // Resolved from the id rather than held as an object, so the dialog always
   // edits the current row: a rebuild replaces every entry, and a stashed copy
   // would go on showing the old times.
@@ -358,7 +336,6 @@ export function Itinerary({
   const activeCity = cityOfDay.get(active.day) ?? null;
   const activeDate = dateOfDay(startDate, active.day);
   const stay = lodgingByDay[active.day] ?? null;
-  const isEmpty = active.items.length === 0;
 
   // The arrival this day begins with, if it begins with one.
   //
@@ -424,58 +401,24 @@ export function Itinerary({
               tripDayCount={tripDayCount}
             />
 
-            {stops.length > 0 && (
-              <Disclosure
-                leading={<Route className="h-4 w-4" />}
-                title="התחנות לפי תאריך"
-                meta={<Badge tone="neutral">{stops.length}</Badge>}
-              >
-                <RouteCities
-                  stops={stops}
-                  startDate={startDate}
-                  tones={tones}
-                  activeDay={active.day}
-                  currentDay={currentDay}
-                  onSelect={setChosenDay}
-                />
-              </Disclosure>
-            )}
           </section>
 
-          {/* The empty days, as a card you act on — Pencil's "2 ימים עדיין
-              ריקים". The dates jump to their day; the suggestion button opens
-              the same AI dialog the day itself offers, on the first empty day
-              that has a city to suggest for. */}
+          {/* The empty days, as one compact card — Pencil's "2 ימים עדיין
+              ריקים". Folded to the count; opening it lists the days. */}
           {emptyDayNumbers.length > 0 && (
-            <div className="flex flex-col gap-3 rounded-[20px] bg-surface p-4 shadow-card">
-              <p className="flex items-center gap-2 text-sm font-bold">
-                <CalendarX2 className="h-5 w-5 shrink-0 text-cta" aria-hidden="true" />
-                {emptyDayNumbers.length === 1
-                  ? "יום אחד עדיין ריק"
-                  : `${emptyDayNumbers.length} ימים עדיין ריקים`}
-              </p>
-              <EmptyDays
-                dayNumbers={emptyDayNumbers}
-                startDate={startDate}
-                onSelect={setChosenDay}
-                bare
-              />
-              {firstSuggestableDay !== null && (
-                <Button
-                  type="button"
-                  variant="soft"
-                  size="sm"
-                  className="self-start rounded-full"
-                  onClick={() => {
-                    setChosenDay(firstSuggestableDay);
-                    setSuggestingDay(firstSuggestableDay);
-                  }}
-                >
-                  <Sparkles className="h-4 w-4" aria-hidden="true" />
-                  רעיונות ליום ריק
-                </Button>
-              )}
-            </div>
+            <EmptyDaysBox
+              dayNumbers={emptyDayNumbers}
+              startDate={startDate}
+              onSelect={setChosenDay}
+              onSuggest={
+                firstSuggestableDay !== null
+                  ? () => {
+                      setChosenDay(firstSuggestableDay);
+                      setSuggestingDay(firstSuggestableDay);
+                    }
+                  : null
+              }
+            />
           )}
         </>
       }
@@ -530,7 +473,9 @@ export function Itinerary({
         )}
       />
 
-      {map}
+      {/* The day on the map: every located place of the day, numbered in
+          timeline order. A day with nothing to pin shows the whole route. */}
+      <DayRouteMapCard tripId={tripId} day={active} fallback={map} />
 
       {/* The day itself: its name, then everything that happens in it. One
           section so the heading, the day's controls and the schedule sit a
@@ -608,51 +553,6 @@ export function Itinerary({
             <AnchorsButton tripId={tripId} day={active} />
           </div>
         </div>
-
-        {/* An entirely free day gets the offer to fill it, right here — the
-            point of showing empty days at all. Asking the AI is one press, and
-            it opens beside the day rather than sending the user off to another
-            tab and back. Needs a city: with nowhere to be there is nothing to
-            suggest, so that day falls through to the link below. */}
-        {isEmpty && activeCity && (
-          <DayHint
-            title="היום הזה פנוי"
-            action={
-              <Button
-                type="button"
-                variant="soft"
-                size="sm"
-                className="rounded-full"
-                onClick={() => setSuggestingDay(active.day)}
-              >
-                <Sparkles className="h-4 w-4" aria-hidden="true" />
-                מה אפשר לעשות ב{activeCity}?
-              </Button>
-            }
-          />
-        )}
-
-        {/* Marked, and pointed somewhere — not filled in automatically. A day
-            the AI could only put one thing on usually means the city has more
-            days than it has chosen places, and the fix is to go and choose
-            more. */}
-        {active.items.length < 2 && !(isEmpty && activeCity) && (
-          <DayHint
-            title={isEmpty ? "היום הזה פנוי" : "היום הזה כמעט ריק"}
-            action={
-              <Link
-                href={`/trips/${tripId}/explore`}
-                className={cn(
-                  "inline-flex h-9 items-center gap-2 rounded-full bg-primary-tint px-3 text-sm font-semibold text-primary-ink transition-colors hover:bg-primary-tint/70",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                )}
-              >
-                <Compass className="h-4 w-4" aria-hidden="true" />
-                הוספת פעילויות{activeCity ? ` ב${activeCity}` : ""}
-              </Link>
-            }
-          />
-        )}
 
         {/* The wide presentation: a time column and a card per item. The
             compact one belongs to the היום tab — one screen, one presentation.
@@ -770,22 +670,70 @@ function longDayLabel(date: string | null): string | null {
   });
 }
 
-// A day with little or nothing on it, and the one thing to do about it. A
-// white card with a quiet icon rather than an info banner: it is an offer, not
-// a warning, and the banner's tint made a free day look like a problem.
-function DayHint({ title, action }: { title: string; action: ReactNode }) {
+
+// The days with nothing on them, as one white card that carries just the
+// count. Folded by default: the design draws it as a line in the pane, and a
+// fortnight with six free days unfolded was a wall of date chips above the
+// route. Opening it lists the days — each jumps to its day — and the design's
+// "רעיונות ליום ריק", which opens the suggestions dialog only when pressed.
+function EmptyDaysBox({
+  dayNumbers,
+  startDate,
+  onSelect,
+  onSuggest,
+}: {
+  dayNumbers: number[];
+  startDate: string | null;
+  onSelect: (dayNumber: number) => void;
+  onSuggest: (() => void) | null;
+}) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] bg-surface p-3.5 shadow-card">
-      <span className="flex items-center gap-2.5 text-sm font-semibold">
-        <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-2 text-muted"
-          aria-hidden="true"
-        >
-          <CalendarX2 className="h-4 w-4" />
+    <div className="flex flex-col rounded-[20px] bg-surface shadow-card">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls="empty-days-list"
+        onClick={() => setOpen((value) => !value)}
+        className="flex w-full items-center gap-2 rounded-[20px] p-4 text-start text-sm font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <CalendarX2 className="h-5 w-5 shrink-0 text-cta" aria-hidden="true" />
+        <span className="min-w-0 flex-1">
+          {dayNumbers.length === 1
+            ? "יום אחד עדיין ריק"
+            : `${dayNumbers.length} ימים עדיין ריקים`}
         </span>
-        {title}
-      </span>
-      {action}
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-muted transition-transform duration-press",
+            open && "rotate-180",
+          )}
+          aria-hidden="true"
+        />
+      </button>
+      {open && (
+        <div id="empty-days-list" className="flex flex-col gap-3 px-4 pb-4">
+          <EmptyDays
+            dayNumbers={dayNumbers}
+            startDate={startDate}
+            onSelect={onSelect}
+            bare
+          />
+          {onSuggest && (
+            <Button
+              type="button"
+              variant="soft"
+              size="sm"
+              className="self-start rounded-full"
+              onClick={onSuggest}
+            >
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              רעיונות ליום ריק
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
