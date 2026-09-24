@@ -28,6 +28,7 @@ import {
   TodayGreeting,
   TodayToolbox,
   TonightCard,
+  TomorrowCard,
   todayIn,
   tripOpenItems,
   tripPhase,
@@ -149,6 +150,17 @@ export default async function TodayPage({
   const liveCity = live
     ? (live.day.items.find((item) => item.city)?.city ?? null)
     : null;
+  // Tomorrow, for the card at the foot: its day, and the first ticket it
+  // starts with (a transport booking — the bed is TonightCard's).
+  const tomorrow =
+    live && currentDay !== null ? (itinerary[currentDay] ?? null) : null;
+  const tomorrowFirst =
+    currentDay !== null
+      ? (byDay[currentDay + 1] ?? []).find((booking) => booking.kind !== "lodging")
+      : undefined;
+  const tomorrowTicket = tomorrowFirst
+    ? { title: tomorrowFirst.title, startsAt: tomorrowFirst.starts_at }
+    : null;
   const urgent = live ? open.filter((item) => item.urgency === "now") : [];
 
   // The first name to greet, from the account: Google gives a full name, an
@@ -242,6 +254,17 @@ export default async function TodayPage({
             expenses={expenses}
           />
         </Suspense>
+      )}
+
+      {tomorrow && currentDay !== null && (
+        <TomorrowCard
+          tripId={trip.id}
+          dayNumber={currentDay + 1}
+          itemCount={tomorrow.items.length}
+          fromCity={liveCity}
+          toCity={tomorrow.items.find((item) => item.city)?.city ?? null}
+          firstTicket={tomorrowTicket}
+        />
       )}
 
     </TwoPane>

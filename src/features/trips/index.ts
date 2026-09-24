@@ -503,6 +503,7 @@ export { UpcomingTrips } from "./components/upcoming-trips";
 export { PlanningPanel } from "./components/planning-panel";
 export { CityGuide } from "./components/city-guide";
 export { SelectedList } from "./components/selected-list";
+export { CityGlance } from "./components/city-glance";
 export { Itinerary } from "./components/itinerary";
 export { MapSheet } from "./components/map-sheet";
 export { RouteMap } from "./components/route-map";
@@ -659,6 +660,7 @@ export {
   TodayGreeting,
   TodayToolbox,
   TonightCard,
+  TomorrowCard,
 } from "./components/today-sections";
 export { CurrencyCard } from "./components/currency-converter";
 export { DailyExpensesCard } from "./components/daily-expenses";

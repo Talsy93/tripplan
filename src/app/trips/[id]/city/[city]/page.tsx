@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/layout";
 import { getCurrentUser } from "@/features/auth";
 import {
   assignTripAuras,
   CityBand,
+  CityGlance,
   CityGuide,
   getItinerary,
   itineraryStops,
@@ -107,7 +109,21 @@ export default async function CityPage({
           same thing the (tabs) layout does for its own children. Without it a
           lit panel down here would fall back to the neutral base. */}
       <div className="contents" style={tripHueStyle(hues)}>
-        <CityGuide tripId={id} city={cityName} initialGuide={initialGuide} />
+        <CityGuide
+          tripId={id}
+          city={cityName}
+          initialGuide={initialGuide}
+          aside={
+            <Suspense fallback={null}>
+              <CityGlance
+                tripId={trip.id}
+                tripName={trip.name}
+                city={cityName}
+                nights={stop ? stop.nights : null}
+              />
+            </Suspense>
+          }
+        />
       </div>
     </AppShell>
   );

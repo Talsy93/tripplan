@@ -14,9 +14,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { PrepItem, PrepSuggestion } from "../domain/prep";
-import type { Booking } from "../domain/booking";
+import { BOOKING_KINDS } from "../domain/booking";
+import type { Booking, BookingKind } from "../domain/booking";
 import type { EmergencyContact } from "../domain/emergency";
 import { costTotalsByCurrency, formatMoney } from "../domain/expenses";
+import type { CurrencyTotal } from "../domain/expenses";
 import type { GearItem } from "../domain/gear";
 import { AddBookingButton } from "./booking-form";
 import { ChecklistCard } from "./checklist-card";
@@ -145,10 +147,20 @@ export function TripHub({
   const totals = costTotalsByCurrency(bookings);
 
   return (
-    <div ref={top} className="mx-auto flex w-full min-w-0 max-w-[60rem] scroll-mt-20 flex-col gap-4 pb-8">
+    <div
+      ref={top}
+      className="mx-auto flex w-full min-w-0 max-w-[60rem] scroll-mt-20 flex-col gap-4 pb-8 @4xl:grid @4xl:max-w-[72rem] @4xl:grid-cols-[minmax(0,1fr)_21rem] @4xl:items-start @4xl:gap-x-8"
+    >
+      {/* PN21 (Pencil documents-desktop): from @4xl the tickets keep the wide
+          column and the summary, the money by kind and the links move to a
+          pane beside them. Both columns are `display: contents` below @4xl,
+          so a phone keeps its one column in its old order — tickets (1), the
+          two tiles (2), the open section (3), the links (4) — and nothing is
+          rendered twice. */}
+      <div className="contents @4xl:flex @4xl:min-w-0 @4xl:flex-col @4xl:gap-4">
       {/* No top padding of its own: the layout's <main> already gives the
           space under the header. */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="order-1 flex items-center justify-between gap-3">
         <h1 className="text-[26px] leading-8 font-bold text-foreground">
           מסמכים
         </h1>
@@ -156,7 +168,7 @@ export function TripHub({
       </div>
 
       {/* The chips scroll rather than wrap. */}
-      <div className="-mx-4 w-auto overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="order-1 -mx-4 w-auto overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex min-w-max items-center gap-2" role="group" aria-label="סינון">
           {FILTERS.map(({ key, label }) => (
             <button
@@ -183,7 +195,7 @@ export function TripHub({
         // half of a tablet.
         <section
           aria-label="כרטיסי נסיעה ואישורים"
-          className="grid gap-3 @2xl:grid-cols-2 @2xl:items-start"
+          className="order-1 grid gap-3 @2xl:grid-cols-2 @2xl:items-start"
         >
           <HubBookings
             tripId={tripId}
@@ -194,8 +206,39 @@ export function TripHub({
         </section>
       )}
 
+      {/* The money, beside the tickets it is summed from, under "טיסות
+          ומלונות" — and on its own when the tile is pressed. `id` so
+          "הוצאות עד כה" on the prep page can land on it. */}
+      {(view === "expenses" || (view === "bookings" && bookings.length > 0)) && (
+        <section id="expenses" className="order-3 flex scroll-mt-20 flex-col gap-3">
+          <SectionHead title="הוצאות הטיול" />
+          <ExpenseSummary bookings={bookings} />
+        </section>
+      )}
+
+      {view === "checklist" && (
+        <div className="order-3">
+        <ChecklistCard
+          tripId={tripId}
+          gear={gear}
+          prepItems={prepItems}
+          suggestions={prepSuggestions}
+          today={today}
+        />
+        </div>
+      )}
+
+      {view === "emergency" && (
+        <section id="emergency" className="order-3 scroll-mt-20">
+          <EmergencyCard tripId={tripId} contacts={emergencyContacts} />
+        </section>
+      )}
+
+      </div>
+
+      <div className="contents @4xl:sticky @4xl:top-16 @4xl:flex @4xl:min-w-0 @4xl:flex-col @4xl:gap-4">
       {view === "all" && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="order-2 grid grid-cols-2 gap-3">
           <SummaryTile
             Icon={Luggage}
             value={
@@ -227,37 +270,16 @@ export function TripHub({
         </div>
       )}
 
-      {/* The money, beside the tickets it is summed from, under "טיסות
-          ומלונות" — and on its own when the tile is pressed. `id` so
-          "הוצאות עד כה" on the prep page can land on it. */}
-      {(view === "expenses" || (view === "bookings" && bookings.length > 0)) && (
-        <section id="expenses" className="flex scroll-mt-20 flex-col gap-3">
-          <SectionHead title="הוצאות הטיול" />
-          <ExpenseSummary bookings={bookings} />
-        </section>
-      )}
 
-      {view === "checklist" && (
-        <ChecklistCard
-          tripId={tripId}
-          gear={gear}
-          prepItems={prepItems}
-          suggestions={prepSuggestions}
-          today={today}
-        />
-      )}
-
-      {view === "emergency" && (
-        <section id="emergency" className="scroll-mt-20">
-          <EmergencyCard tripId={tripId} contacts={emergencyContacts} />
-        </section>
+      {view === "all" && totals.length > 0 && (
+        <MoneyByKind total={totals[0]} />
       )}
 
       {view === "all" && (
         <>
           <nav
             aria-label="עוד בטיול"
-            className="overflow-hidden rounded-[18px] bg-surface shadow-card"
+            className="order-4 overflow-hidden rounded-[18px] bg-surface shadow-card"
           >
             <ul className="flex flex-col px-4">
               {ELSEWHERE.map(({ key, label, Icon, to }) => {
@@ -305,18 +327,19 @@ export function TripHub({
           {/* Per device, not per trip — a push subscription belongs to the
               browser that made it — but this is where a traveller looks for
               "remind me", next to the tickets the reminders are about. */}
-          <section id="device-reminders" className="scroll-mt-20">
+          <section id="device-reminders" className="order-4 scroll-mt-20">
             <PushToggle />
           </section>
 
           {/* Apart from everything above it, which is law 05: a destructive
               action does not sit at rest among the things you press every
               day. */}
-          <div className="overflow-hidden rounded-[18px] bg-surface shadow-card">
+          <div className="order-4 overflow-hidden rounded-[18px] bg-surface shadow-card">
             <DeleteTripButton tripId={tripId} tripName={tripName} variant="row" />
           </div>
         </>
       )}
+      </div>
     </div>
   );
 }
@@ -394,3 +417,51 @@ function SectionHead({
 }
 
 
+
+// "לאן הלך הכסף" — the pane's bar per kind of booking, in the trip's main
+// currency (PN21, Pencil documents-desktop). Desktop only: on a phone the same
+// breakdown is one tap away in the money tile, and a second copy of it under
+// the tickets would be the list read twice.
+const KIND_BAR: Partial<Record<BookingKind, string>> = {
+  lodging: "bg-primary",
+  flight: "bg-cat-food-ink",
+  train: "bg-cat-shopping-ink",
+};
+
+function MoneyByKind({ total }: { total: CurrencyTotal }) {
+  const kinds = (Object.keys(total.byKind) as BookingKind[])
+    .map((kind) => ({ kind, amount: total.byKind[kind] ?? 0 }))
+    .filter((entry) => entry.amount > 0)
+    .sort((a, b) => b.amount - a.amount);
+  if (kinds.length === 0) return null;
+  const top = kinds[0].amount;
+
+  return (
+    <section
+      aria-labelledby="money-by-kind"
+      className="hidden flex-col gap-3 rounded-[18px] bg-surface p-4 shadow-card @4xl:flex"
+    >
+      <h2 id="money-by-kind" className="text-base font-bold leading-6">
+        לאן הלך הכסף
+      </h2>
+      <ul className="flex flex-col gap-3">
+        {kinds.map(({ kind, amount }) => (
+          <li key={kind} className="flex flex-col gap-1.5">
+            <span className="flex items-center justify-between gap-2 text-sm">
+              <span className="text-muted">{BOOKING_KINDS[kind].label}</span>
+              <span dir="ltr" className="font-semibold tabular-nums">
+                {formatMoney(amount, total.currency)}
+              </span>
+            </span>
+            <span className="h-2 overflow-hidden rounded-full bg-surface-2">
+              <span
+                className={cn("block h-full rounded-full", KIND_BAR[kind] ?? "bg-cat-nature-ink")}
+                style={{ width: `${Math.max(4, (amount / top) * 100)}%` }}
+              />
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}

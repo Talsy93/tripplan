@@ -128,11 +128,16 @@ export function TodayPrep({
         {progress.total > 0 && <ReadinessRing percent={progress.percent} />}
       </section>
 
-      <OpenItems tripId={tripId} items={open} />
+      {/* PN21 (Pencil before-you-go-tablet): what is still open and the
+          forecast side by side once there is the width for two cards; auto-fit
+          lets either one take the row when the other is not there. */}
+      <div className="grid gap-6 @2xl:grid-cols-[repeat(auto-fit,minmax(18rem,1fr))] @2xl:items-start">
+        <OpenItems tripId={tripId} items={open} />
 
-      {/* Self-titled: WeatherForecast heads each city "תחזית ב…", and a
-          heading over it here said "weather" twice. */}
-      {forecast}
+        {/* Self-titled: WeatherForecast heads each city "תחזית ב…", and a
+            heading over it here said "weather" twice. */}
+        {forecast}
+      </div>
 
       {children}
     </TwoPane>

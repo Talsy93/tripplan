@@ -1,6 +1,6 @@
 import { cache } from "react";
 import Link from "next/link";
-import { BedDouble, ChevronLeft, MapPin, Share2 } from "lucide-react";
+import { BedDouble, CalendarDays, ChevronLeft, MapPin, Share2, TrainFront } from "lucide-react";
 import { getExchangeRates } from "@/lib/currency";
 import { instantToWallClock } from "@/lib/datetime";
 import { googleMapsSearchUrl } from "@/lib/maps";
@@ -316,5 +316,61 @@ export function PartnersCard({
         </Link>
       </div>
     </section>
+  );
+}
+
+// ---- "מחר" ------------------------------------------------------------------
+//
+// PN21 (Pencil today-desktop / today-tablet): one line at the foot of the day
+// about the next one — which day, where, and the first ticket it starts with if
+// it starts with one ("רכבת 09:10"). It answers "what do I need to know tonight"
+// without opening the schedule; the row goes there. Null on the last day.
+export function TomorrowCard({
+  tripId,
+  dayNumber,
+  itemCount,
+  fromCity,
+  toCity,
+  firstTicket,
+}: {
+  tripId: string;
+  // Tomorrow's number, 1-based.
+  dayNumber: number;
+  itemCount: number;
+  fromCity: string | null;
+  toCity: string | null;
+  firstTicket: { title: string; startsAt: string } | null;
+}) {
+  const moving = fromCity && toCity && fromCity !== toCity;
+  const where = moving ? `${fromCity} ← ${toCity}` : toCity;
+  const first = firstTicket
+    ? `${firstTicket.title} ${instantToWallClock(firstTicket.startsAt, APP_TIME_ZONE).slice(11, 16)}`
+    : null;
+  const count =
+    itemCount === 0 ? "עוד ריק" : itemCount === 1 ? "מקום אחד בלו״ז" : `${itemCount} מקומות בלו״ז`;
+  const Icon = firstTicket ? TrainFront : CalendarDays;
+
+  return (
+    <Link
+      href={`/trips/${tripId}/days`}
+      className="flex min-w-0 items-center gap-3 rounded-[1.125rem] bg-surface p-4 shadow-card transition-shadow hover:shadow-lift focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <span
+        aria-hidden="true"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] bg-primary-tint text-primary"
+      >
+        <Icon className="h-5 w-5" />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-[15px] font-semibold leading-6 text-foreground">
+          מחר · יום {dayNumber}
+          {where ? ` · ${where}` : ""}
+        </span>
+        <span className="truncate text-caption text-muted">
+          {[first, count].filter(Boolean).join(" · ")}
+        </span>
+      </span>
+      <ChevronLeft className="h-5 w-5 shrink-0 text-muted" aria-hidden="true" />
+    </Link>
   );
 }

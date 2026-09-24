@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Check, Compass, Lightbulb, Map as MapIcon, Plus } from "lucide-react";
 import { Banner, Button, ReadMore, Skeleton } from "@/components/ui";
 import { cn } from "@/lib/cn";
@@ -180,9 +181,13 @@ type CityGuideProps = {
   tripId: string;
   city: string;
   initialGuide: CityGuideData | null;
+  // PN21: "<עיר> בקצרה", beside the sections from @4xl. Under the pill row
+  // rather than beside the whole guide, so the terracotta strip keeps the full
+  // width of the band it continues.
+  aside?: ReactNode;
 };
 
-export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
+export function CityGuide({ tripId, city, initialGuide, aside }: CityGuideProps) {
   const [guide, setGuide] = useState<CityGuideData | null>(initialGuide);
   const [loading, setLoading] = useState(!initialGuide);
   const [refreshing, setRefreshing] = useState(false);
@@ -374,6 +379,8 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
         })}
       </div>
 
+      <div className="flex flex-col gap-4 @4xl:grid @4xl:grid-cols-[minmax(0,1fr)_21rem] @4xl:items-start @4xl:gap-8">
+      <div className="flex min-w-0 flex-col gap-4">
       {error && <Banner tone="danger">{error}</Banner>}
 
       {keptNotice !== null && keptNotice > 0 && (
@@ -478,6 +485,9 @@ export function CityGuide({ tripId, city, initialGuide }: CityGuideProps) {
             );
           },
         )}
+      </div>
+      {aside && <aside className="min-w-0 @4xl:sticky @4xl:top-6">{aside}</aside>}
+      </div>
     </div>
   );
 }

@@ -9,7 +9,10 @@ import {
   getTrip,
   getTripRoute,
   PlanSwitch,
+  SelectedList,
 } from "@/features/trips";
+import Link from "next/link";
+import { CalendarDays } from "lucide-react";
 import { flagEmoji } from "@/features/trips/domain/discover";
 import type { DiscoverDestination } from "@/features/trips/components/discover-deck";
 
@@ -108,7 +111,14 @@ export default async function DiscoverPage({
   // city: it holds every chip's cards (PER_CHIP in lib/discover.ts).
   after(() => warmDiscover(points, ["all"]));
 
+  // PN21 (Pencil discover-desktop): from @4xl the places saved so far sit in a
+  // pane beside the deck — what the swiping has added up to, and the way on to
+  // scheduling it. Below that the deck is the whole screen, as it was; the
+  // counter under the deck already says how many were saved.
+  const saved = selected.filter((item) => item.city);
+
   return (
+    <div className="@4xl:grid @4xl:grid-cols-[minmax(0,1fr)_23.25rem] @4xl:items-start @4xl:gap-8">
     <div className="mx-auto flex w-full max-w-md flex-col gap-3">
       <PlanSwitch tripId={trip.id} active="discover" />
       <DiscoverDeck
@@ -123,6 +133,33 @@ export default async function DiscoverPage({
         ]}
         initialCards={initialCards}
       />
+    </div>
+
+      <aside
+        aria-labelledby="saved-heading"
+        className="hidden flex-col gap-4 @4xl:sticky @4xl:top-16 @4xl:flex"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <h2 id="saved-heading" className="text-lg font-bold leading-6">
+            נשמרו לטיול
+          </h2>
+          <span className="rounded-full bg-success-tint px-2.5 py-0.5 text-sm font-semibold tabular-nums text-success-ink">
+            {saved.length}
+          </span>
+        </div>
+        <div className="max-h-[calc(100dvh-16rem)] overflow-y-auto">
+          <SelectedList tripId={trip.id} items={saved} />
+        </div>
+        {saved.length > 0 && (
+          <Link
+            href={`/trips/${trip.id}/explore`}
+            className="inline-flex h-[3.25rem] items-center justify-center gap-2 rounded-full bg-cta px-6 text-base font-semibold text-cta-foreground shadow-lift transition-colors hover:bg-cta-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <CalendarDays className="h-5 w-5" aria-hidden="true" />
+            שיבוץ המקומות לימים
+          </Link>
+        )}
+      </aside>
     </div>
   );
 }
