@@ -22,6 +22,8 @@
 // and paces them. Results are cached in the database by the caller, so a city
 // is normally geocoded only once.
 
+import { distanceKm } from "./geo";
+
 const NOMINATIM_ENDPOINT = "https://nominatim.openstreetmap.org/search";
 // Wikimedia and Nominatim both require a User-Agent that identifies the client
 // and offers a way to reach its author. A bare product name gets throttled.
@@ -407,4 +409,130 @@ export async function reverseCountries(
     if (country) found.set(key, country);
   }
   return found;
+}
+
+// ---- A place inside a city: a landmark, a restaurant, an address -----------
+//
+// Everything above resolves *destinations* — cities, towns, districts — and
+// refuses anything else, which is right for them. A schedule entry is the
+// opposite case: "הקולוסיאום", "Trattoria Da Enzo", "Via dei Vascellari 29". Its
+// answer is a building, and the check that makes it safe is not the address
+// type but the distance: the city is already known, so a candidate outside it
+// is the wrong one, whatever it is called.
+//
+// Asked for as: "find the location with a search for that specific place, and
+// when that fails let me type an address for it."
+
+// Beyond this a pin is in another city, not across town. Wider than
+// DISTRICT_MERGE_RADIUS_KM because a day trip out of the city (an airport, a
+// villa, a beach) is still that city's day.
+const PLACE_RADIUS_KM = 60;
+// Nominatim's viewbox, in degrees around the city — about ±45km. `bounded=1`
+// makes it a filter rather than a hint, so "Colosseo" asked from Rome cannot
+// come back as a pizzeria called Colosseo in New Jersey.
+const VIEWBOX_DEGREES = 0.4;
+
+async function nominatimNear(
+  query: string,
+  near: Coordinates,
+): Promise<Coordinates | null> {
+  const box = [
+    near.longitude - VIEWBOX_DEGREES,
+    near.latitude + VIEWBOX_DEGREES,
+    near.longitude + VIEWBOX_DEGREES,
+    near.latitude - VIEWBOX_DEGREES,
+  ].join(",");
+  const params = new URLSearchParams({
+    q: query,
+    format: "jsonv2",
+    limit: "5",
+    viewbox: box,
+    bounded: "1",
+    "accept-language": "he,en",
+  });
+  try {
+    const res = await fetch(`${NOMINATIM_ENDPOINT}?${params}`, {
+      headers: { "User-Agent": USER_AGENT },
+      next: { revalidate: 604_800 },
+    });
+    if (!res.ok) return null;
+    const json: unknown = await res.json();
+    if (!Array.isArray(json)) return null;
+    for (const candidate of json as { lat?: string; lon?: string }[]) {
+      const point = { latitude: Number(candidate.lat), longitude: Number(candidate.lon) };
+      if (!Number.isFinite(point.latitude) || !Number.isFinite(point.longitude)) continue;
+      if (distanceKm(point, near) <= PLACE_RADIUS_KM) return point;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// A named place in a known city. Wikipedia first (its article titles are what
+// the AI's Hebrew names are usually copied from — "הפנתיאון" is the article),
+// then OpenStreetMap inside the city's box, on the name alone and then with the
+// city appended. Null when nothing inside the city answers.
+export async function geocodePlaceInCity(
+  name: string,
+  city: string,
+  near: Coordinates | null,
+): Promise<Coordinates | null> {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+
+  for (const lang of WIKI_LANGS) {
+    const found = await fetchWikiCoordinates(lang, trimmed);
+    // Without a city centre the title match is the only check there is; with
+    // one, a same-named article elsewhere is rejected like any other miss.
+    if (found && (!near || distanceKm(found, near) <= PLACE_RADIUS_KM)) return found;
+    await sleep(WIKI_INTERVAL_MS);
+  }
+
+  if (!near) return null;
+  const bare = await nominatimNear(trimmed, near);
+  if (bare) return bare;
+  await sleep(MIN_INTERVAL_MS);
+  return nominatimNear(`${trimmed}, ${city}`, near);
+}
+
+// An address the traveller typed. Searched inside the city's box when the city
+// is placed, with the city appended as a second try ("Via Roma 12" exists in
+// every Italian town); without a centre it is taken as written, because the
+// traveller is the source here and there is nothing better to check it against.
+export async function geocodeAddress(
+  address: string,
+  city: string,
+  near: Coordinates | null,
+): Promise<Coordinates | null> {
+  const trimmed = address.trim();
+  if (!trimmed) return null;
+
+  if (near) {
+    const inside = await nominatimNear(trimmed, near);
+    if (inside) return inside;
+    await sleep(MIN_INTERVAL_MS);
+    return nominatimNear(`${trimmed}, ${city}`, near);
+  }
+
+  const params = new URLSearchParams({
+    q: `${trimmed}, ${city}`,
+    format: "jsonv2",
+    limit: "1",
+    "accept-language": "he,en",
+  });
+  try {
+    const res = await fetch(`${NOMINATIM_ENDPOINT}?${params}`, {
+      headers: { "User-Agent": USER_AGENT },
+      next: { revalidate: 604_800 },
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { lat?: string; lon?: string }[];
+    const first = Array.isArray(json) ? json[0] : undefined;
+    if (!first) return null;
+    const point = { latitude: Number(first.lat), longitude: Number(first.lon) };
+    return Number.isFinite(point.latitude) && Number.isFinite(point.longitude) ? point : null;
+  } catch {
+    return null;
+  }
 }

@@ -146,7 +146,15 @@ with checks(migration, checks_for, present) as (
                     and column_name = 'fixed')),
 
     ('0025_day_notes', 'table trip_day_notes',
-      to_regclass('public.trip_day_notes') is not null)
+      to_regclass('public.trip_day_notes') is not null),
+
+    ('0026_documents_hub', 'table trip_emergency_contacts',
+      to_regclass('public.trip_emergency_contacts') is not null),
+
+    ('0027_itinerary_item_location', 'itinerary_items.latitude + longitude',
+      exists (select 1 from information_schema.columns
+              where table_schema = 'public' and table_name = 'itinerary_items'
+                and column_name = 'latitude'))
 )
 select
   migration,

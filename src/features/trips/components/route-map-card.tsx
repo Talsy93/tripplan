@@ -127,6 +127,8 @@ function isUsable(latitude: number | null, longitude: number | null) {
 export function dayMapPins(day: ItineraryDay): {
   pins: DayPin[];
   unlocated: number;
+  // The entries themselves, for the list that offers to place them.
+  unlocatedEntries: { id: string; title: string; city: string | null }[];
 } {
   const timeline = buildDayTimeline(day);
   const ordered = [
@@ -134,8 +136,12 @@ export function dayMapPins(day: ItineraryDay): {
     ...timeline.unscheduled,
   ];
   const pins: DayPin[] = [];
+  const unlocatedEntries: { id: string; title: string; city: string | null }[] = [];
   for (const entry of ordered) {
-    if (!isUsable(entry.latitude, entry.longitude)) continue;
+    if (!isUsable(entry.latitude, entry.longitude)) {
+      unlocatedEntries.push({ id: entry.id, title: entry.title, city: entry.city ?? null });
+      continue;
+    }
     pins.push({
       id: entry.id,
       label: entry.title,
@@ -143,7 +149,7 @@ export function dayMapPins(day: ItineraryDay): {
       longitude: entry.longitude as number,
     });
   }
-  return { pins, unlocated: ordered.length - pins.length };
+  return { pins, unlocated: ordered.length - pins.length, unlocatedEntries };
 }
 
 // The route tab's map: the day on screen, not the trip.

@@ -35,7 +35,8 @@ import { AddDayNoteButton, DayNotes } from "./day-note";
 import type { DayReminder } from "../domain/day-reminders";
 import type { DayNote } from "../domain/day-notes";
 import { EditEntryDialog } from "./edit-entry-dialog";
-import { DayRouteMapCard } from "./route-map-card";
+import { DayRouteMapCard, dayMapPins } from "./route-map-card";
+import { UnlocatedPlaces } from "./unlocated-places";
 import { TripCalendar } from "./trip-calendar";
 import { withEmptyDays } from "../domain/itinerary-plan";
 import { cityToneClass, cityToneMap } from "../domain/tone";
@@ -346,6 +347,17 @@ export function Itinerary({
               phone the pane stacks under the column, which is where the map
               always was — the schedule keeps the first screen. */}
           <DayRouteMapCard tripId={tripId} day={active} tall />
+
+          {/* The places the map above could not pin, each with a search for
+              it and, when that misses, an address field. */}
+          <UnlocatedPlaces
+            tripId={tripId}
+            places={dayMapPins(active).unlocatedEntries.map((entry) => ({
+              itemId: entry.id,
+              name: entry.title,
+              city: entry.city ?? activeCity,
+            }))}
+          />
 
           {/* "המסלול כולו" (nights per city, rebuild) and the empty-days card
               lived here. Both moved to the add-places page, where the days get

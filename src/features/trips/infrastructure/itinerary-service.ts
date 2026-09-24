@@ -48,6 +48,9 @@ const TRAVEL_COLUMNS = ", travel_note, travel_minutes";
 // Migration 0024. Read in a third tier so a database without it degrades to
 // "nothing is fixed" instead of an empty itinerary.
 const FIXED_COLUMNS = ", fixed";
+// Migration 0027: a position set on the entry itself (a place located by hand
+// that no saved place stands behind). The first tier to drop when missing.
+const LOCATION_COLUMNS = ", latitude, longitude";
 
 export async function getItinerary(tripId: string): Promise<ItineraryDay[]> {
   const supabase = await createClient();
@@ -61,11 +64,18 @@ export async function getItinerary(tripId: string): Promise<ItineraryDay[]> {
       .order("position", { ascending: true });
 
   const [first, coordinates] = await Promise.all([
-    read(ITINERARY_COLUMNS + TRAVEL_COLUMNS + FIXED_COLUMNS),
+    read(ITINERARY_COLUMNS + TRAVEL_COLUMNS + FIXED_COLUMNS + LOCATION_COLUMNS),
     getEntryCoordinates(tripId),
   ]);
 
   let { data, error } = first;
+
+  if (error && isSchemaOutOfDate(error.message)) {
+    console.error(
+      "getItinerary: location columns missing, migration 0027 not applied yet",
+    );
+    ({ data, error } = await read(ITINERARY_COLUMNS + TRAVEL_COLUMNS + FIXED_COLUMNS));
+  }
 
   if (error && isSchemaOutOfDate(error.message)) {
     console.error(
@@ -106,7 +116,14 @@ export async function getItinerary(tripId: string): Promise<ItineraryDay[]> {
     }
     const city = (row.city as string | null) ?? null;
     const title = (row.title as string | null) ?? "";
-    const point = coordinates.get(coordinateKey(city, title));
+    // The entry's own position wins: it was set for this entry by hand. Else
+    // the saved place it was built from.
+    const ownLat = row.latitude as number | null | undefined;
+    const ownLng = row.longitude as number | null | undefined;
+    const point =
+      typeof ownLat === "number" && typeof ownLng === "number"
+        ? { latitude: ownLat, longitude: ownLng }
+        : coordinates.get(coordinateKey(city, title));
     day.items.push({
       id: row.id as string,
       title,
