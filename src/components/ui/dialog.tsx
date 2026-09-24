@@ -56,22 +56,28 @@ export function Dialog({
         if (event.target === ref.current) onClose();
       }}
       className={cn(
-        "m-auto w-[min(32rem,calc(100vw-2rem))] rounded-modal bg-surface p-0 text-foreground shadow-modal",
+        "m-auto max-h-[92dvh] w-[min(32rem,calc(100vw-2rem))] overflow-y-auto rounded-modal bg-surface p-0 text-foreground shadow-modal",
+        // Phones: a sheet from the bottom edge (Pencil, v7) — the thumb is
+        // already there, and the page behind stays in view above it.
+        "max-sm:mb-0 max-sm:w-full max-sm:max-w-full max-sm:rounded-b-none max-sm:rounded-t-[28px]",
         "backdrop:bg-scrim backdrop:backdrop-blur-sm",
         className,
       )}
     >
-      <div className="flex items-start gap-3 border-b border-border p-4">
-        <h2 className="min-w-0 flex-1 text-title font-bold">{title}</h2>
+      <div aria-hidden="true" className="flex justify-center pt-2.5 sm:hidden">
+        <span className="h-[5px] w-10 rounded-full bg-border" />
+      </div>
+      <div className="flex items-center gap-3 px-5 pt-3 pb-1 sm:pt-5">
+        <h2 className="min-w-0 flex-1 text-[22px] leading-tight font-bold">{title}</h2>
         <IconButton label="סגירה" onClick={onClose}>
           <X className="h-5 w-5" aria-hidden="true" />
         </IconButton>
       </div>
 
-      <div className="flex flex-col gap-4 p-4">{children}</div>
+      <div className="flex flex-col gap-4 px-5 pt-3 pb-6">{children}</div>
 
       {footer && (
-        <div className="flex items-center justify-end gap-2 border-t border-border p-4">
+        <div className="flex items-center justify-end gap-2 px-5 pb-6">
           {footer}
         </div>
       )}

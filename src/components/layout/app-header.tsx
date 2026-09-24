@@ -40,13 +40,13 @@ export function AppHeader({
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 bg-background/85 pt-[env(safe-area-inset-top)] shadow-[0_1px_8px_rgba(0,0,0,0.04)] backdrop-blur-xl",
+        "sticky top-0 z-30 bg-background/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl",
         className,
       )}
     >
       <div
         className={cn(
-          "mx-auto flex h-16 w-full items-center gap-3 px-4",
+          "mx-auto flex min-h-16 w-full items-center gap-3 px-4 py-2",
           wide ? "lg:px-6" : "max-w-content md:px-6 lg:px-8",
         )}
       >
@@ -72,27 +72,30 @@ export function AppHeader({
         {back}
 
         {title && (
-          <span className="flex min-w-0 flex-col leading-tight">
-            <span className="text-[0.625rem] font-semibold uppercase tracking-latin text-primary">
-              {eyebrow ?? "MyTrip"}
-            </span>
-            <span className="min-w-0 truncate text-lg font-semibold text-foreground">
+          // v7 (Pencil): the trip's name, and under it where you are — the
+          // pill sits in the title block on every width, not centred apart.
+          <span className="flex min-w-0 flex-col items-start gap-1 leading-tight">
+            {eyebrow && (
+              <span className="text-[0.625rem] font-semibold uppercase tracking-latin text-primary">
+                {eyebrow}
+              </span>
+            )}
+            <span className="min-w-0 max-w-full truncate text-xl font-bold text-foreground">
               {title}
             </span>
+            {pill && <span className="flex min-w-0 max-w-full">{pill}</span>}
           </span>
         )}
 
         {badge}
 
-        {pill && (
-          <div className="mx-auto hidden min-w-0 sm:flex">{pill}</div>
-        )}
+        {pill && !title && <div className="mx-auto flex min-w-0">{pill}</div>}
 
         {trailing && (
           <div
             className={cn(
               "flex shrink-0 items-center gap-1",
-              pill ? "ms-auto sm:ms-0" : "ms-auto",
+              "ms-auto",
             )}
           >
             {trailing}
@@ -116,12 +119,12 @@ export function HeaderPill({
   return (
     <span
       className={cn(
-        "inline-flex min-w-0 items-center gap-1 rounded-full bg-surface-sunken px-3 py-1 text-caption font-medium text-muted shadow-soft",
+        "inline-flex h-[26px] min-w-0 items-center gap-1.5 rounded-full bg-primary-tint px-2.5 text-xs font-medium text-primary",
         className,
       )}
     >
       {icon && (
-        <span className="shrink-0 text-primary [&>svg]:h-4 [&>svg]:w-4" aria-hidden="true">
+        <span className="shrink-0 text-primary [&>svg]:h-[13px] [&>svg]:w-[13px]" aria-hidden="true">
           {icon}
         </span>
       )}

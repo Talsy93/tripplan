@@ -3,7 +3,7 @@
 import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bot, Compass, Flame, Folder, Route, Sun } from "lucide-react";
+import { FolderOpen, Layers, MessageCircle, Route, Sun } from "lucide-react";
 import {
   BottomNav,
   IconRail,
@@ -17,14 +17,13 @@ import {
   type TripTabSegment,
 } from "../domain/trip-tabs";
 
-// The discover_page export's five icons: explore, route,
-// local_fire_department, smart_toy, folder.
+// The Pencil design's five icons (v7).
 const ICONS: Record<TripTabSegment, typeof Sun> = {
-  today: Compass,
+  today: Sun,
   days: Route,
-  discover: Flame,
-  ai: Bot,
-  more: Folder,
+  discover: Layers,
+  ai: MessageCircle,
+  more: FolderOpen,
 };
 
 // The terracotta dot the export puts on "גילוי": new here, until it has been
@@ -78,7 +77,7 @@ function useTripNavItems(tripId: string, live: boolean): NavItem[] {
         tab.segment === "discover" && !seen && !onDiscover ? (
           <span className="relative">
             <Icon className="h-[1.375rem] w-[1.375rem]" />
-            <span className="absolute -top-0.5 -left-0.5 h-2 w-2 rounded-full bg-cta-strong ring-2 ring-surface" />
+            <span className="absolute -top-0.5 -left-0.5 h-2 w-2 rounded-full bg-cta ring-2 ring-surface" />
           </span>
         ) : (
           <Icon className="h-[1.375rem] w-[1.375rem]" />
