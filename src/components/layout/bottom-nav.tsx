@@ -23,8 +23,12 @@ export type NavItem = {
 export function BottomNav({
   items,
   className,
+  accent = "brand",
 }: {
   items: NavItem[];
+  // "cta" is the home export's footer: the tab you are on in terracotta, with
+  // no capsule behind its icon.
+  accent?: "brand" | "cta";
   className?: string;
 }) {
   return (
@@ -44,7 +48,9 @@ export function BottomNav({
                 className={cn(
                   "flex h-8 w-14 items-center justify-center rounded-full",
                   "transition-[background-color,color] duration-settle ease-snap",
-                  item.active && "bg-primary-tint text-brand-2 shadow-soft",
+                  item.active &&
+                    accent === "brand" &&
+                    "bg-primary-tint text-brand-2 shadow-soft",
                 )}
               >
                 {item.icon}
@@ -78,7 +84,9 @@ export function BottomNav({
                     "rounded-control transition-[color,transform] duration-press ease-snap active:scale-[0.94]",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     item.active
-                      ? "font-semibold text-brand-2"
+                      ? accent === "cta"
+                        ? "font-semibold text-cta-strong"
+                        : "font-semibold text-brand-2"
                       : "font-medium text-muted hover:text-foreground",
                   )}
                 >

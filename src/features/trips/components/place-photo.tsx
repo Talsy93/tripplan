@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 
 // A place's photo from Wikipedia (see /api/places/photo).
@@ -43,6 +43,17 @@ export function PlacePhoto({
 }) {
   const [failed, setFailed] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const img = useRef<HTMLImageElement>(null);
+
+  // A photo above the fold can finish before React hydrates, and then onLoad
+  // has already fired with no one listening — the image stayed at opacity 0
+  // over its placeholder (the home hero, 2026-09-24).
+  useEffect(() => {
+    const el = img.current;
+    if (!el?.complete) return;
+    if (el.naturalWidth > 0) setLoaded(true);
+    else setFailed(true);
+  }, [query]);
 
   const nothingToShow = failed || !query.trim();
   if (nothingToShow && !fallback) return null;
@@ -78,6 +89,7 @@ export function PlacePhoto({
           decoding="async"
           onError={() => setFailed(true)}
           onLoad={() => setLoaded(true)}
+          ref={img}
           className={cn(
             "relative h-full w-full object-cover transition-opacity duration-settle",
             loaded ? "opacity-100" : "opacity-0",

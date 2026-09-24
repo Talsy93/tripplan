@@ -104,7 +104,7 @@ import {
 } from "@/features/trips";
 import type { DiscoverCard } from "@/features/trips";
 import discoverCards from "./discover-cards.json";
-import type { DayNote, MappedTrip, PrepItem, TripPhase } from "@/features/trips";
+import type { DayNote, FeaturedDetails, HomeTrip, MappedTrip, PrepItem, Trip, TripPhase } from "@/features/trips";
 import {
   AuraField,
   Badge,
@@ -116,13 +116,15 @@ import {
 } from "@/components/ui";
 import {
   AppHeader,
+  BrandHeader,
   AppShell,
   BottomNav,
-  IconRail,
   SideNav,
   TwoPane,
 } from "@/components/layout";
 import {
+  Bell,
+  Bot,
   CalendarDays,
   Compass,
   Luggage,
@@ -284,6 +286,157 @@ const HOME_AURAS = assignTripAuras(
   })),
 );
 
+// ---- the Stitch home ------------------------------------------------------
+
+const homeTrip = (
+  n: string,
+  name: string,
+  start: string | null,
+  end: string | null,
+  created: string,
+): Trip => ({
+  id: `00000000-0000-0000-0000-0000000001${n}`,
+  user_id: f.USER_ID,
+  name,
+  start_date: start,
+  end_date: end,
+  status: "planning",
+  created_at: created,
+});
+
+const HOME_STITCH_EXTRA: Record<
+  string,
+  {
+    code: string;
+    city: string;
+    days: number;
+    places: number;
+    points: { city: string; latitude: number; longitude: number }[];
+  }
+> = {
+  "רומא ופירנצה, איטליה": {
+    code: "IT", city: "רומא", days: 7, places: 14,
+    points: [
+      { city: "רומא", latitude: 41.9, longitude: 12.5 },
+      { city: "פירנצה", latitude: 43.77, longitude: 11.25 },
+    ],
+  },
+  "טוקיו וקיוטו, יפן": {
+    code: "JP", city: "טוקיו", days: 14, places: 8,
+    points: [
+      { city: "טוקיו", latitude: 35.68, longitude: 139.77 },
+      { city: "קיוטו", latitude: 35.01, longitude: 135.77 },
+    ],
+  },
+  "סוף שבוע באתונה": {
+    code: "GR", city: "אתונה", days: 4, places: 3,
+    points: [{ city: "אתונה", latitude: 37.98, longitude: 23.73 }],
+  },
+  "ברצלונה וקוסטה בראווה": {
+    code: "ES", city: "ברצלונה", days: 6, places: 18,
+    points: [{ city: "ברצלונה", latitude: 41.39, longitude: 2.17 }],
+  },
+};
+
+const HOME_STITCH_TRIPS: HomeTrip[] = orderTripsByProximity(
+  [
+    homeTrip("01", "רומא ופירנצה, איטליה", "2026-09-09", "2026-09-15", "2026-06-01T00:00:00Z"),
+    homeTrip("02", "טוקיו וקיוטו, יפן", "2026-10-26", "2026-11-09", "2026-07-01T00:00:00Z"),
+    homeTrip("03", "סוף שבוע באתונה", null, null, "2026-09-09T08:00:00Z"),
+    homeTrip("04", "ברצלונה וקוסטה בראווה", "2023-05-10", "2023-05-17", "2023-01-01T00:00:00Z"),
+  ],
+  f.TODAY,
+).map((entry) => {
+  const extra = HOME_STITCH_EXTRA[entry.trip.name];
+  return {
+    entry,
+    countryCode: extra.code,
+    city: extra.city,
+    dayCount: extra.days,
+    placeCount: extra.places,
+  };
+});
+
+const HOME_STITCH_DETAILS: FeaturedDetails = {
+  scheduledCount: 14,
+  members: ["ע", "ד", "מ"],
+  progress: { percent: 43, label: "הושלם" },
+  weather: { city: "רומא", tempC: 24, icon: "clear" },
+};
+
+// The page's frame around HomeScreen, the way profile/page.tsx builds it.
+function homeFrame(
+  trips: HomeTrip[],
+  details: FeaturedDetails | null,
+  firstName: string | null,
+) {
+  const featured = pickFeaturedTrip(trips.map((trip) => trip.entry));
+  const standing = {
+    during: "live",
+    before: "next",
+    undated: "draft",
+    after: "past",
+  } as const;
+  const mapped: MappedTrip[] = trips.map((home, index) => {
+    const s = standing[home.entry.phase.kind];
+    const hue = s === "live" ? "var(--cta-bright)" : s === "next" ? "var(--primary)" : "var(--border-strong)";
+    return {
+      id: home.entry.trip.id,
+      name: home.entry.trip.name,
+      hue,
+      activeHue: s === "live" ? hue : "var(--primary)",
+      position: index + 1,
+      points: HOME_STITCH_EXTRA[home.entry.trip.name]?.points ?? [],
+      countryCode: home.countryCode,
+      standing: s,
+    };
+  });
+  const tripId = (featured ?? trips[0]?.entry)?.trip.id;
+  const icon = "h-[22px] w-[22px]";
+  const tab = (segment: string, label: string, node: ReactNode, waiting?: string) => ({
+    href: tripId ? `/trips/${tripId}/${segment}` : `#${segment}`,
+    label,
+    icon: node,
+    waiting: tripId ? waiting : "נפתח אחרי שיוצרים טיול",
+  });
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <BrandHeader
+        subtitle="My Trips"
+        trailing={
+          <>
+            <span className="flex h-11 w-11 items-center justify-center text-muted-strong">
+              <Bell className="h-6 w-6" aria-hidden="true" />
+            </span>
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-bright text-sm font-bold text-white ring-2 ring-primary-tint">
+              ע
+            </span>
+          </>
+        }
+      />
+      <HomeScreen
+        firstName={firstName}
+        trips={trips}
+        featuredId={featured?.trip.id ?? null}
+        details={details}
+        mapped={mapped}
+        destinationCount={trips.length}
+        now={f.NOW}
+      />
+      <BottomNav
+        accent="cta"
+        items={[
+          { href: "/preview/home-stitch", label: "הטיולים שלי", icon: <Luggage className={icon} />, active: true },
+          tab("today", "היום", <Sun className={icon} />),
+          tab("days", "מסלול", <CalendarDays className={icon} />),
+          tab("discover", "גילוי", <Compass className={icon} />),
+          tab("ai", "עוזר AI", <Bot className={icon} />),
+        ]}
+      />
+    </div>
+  );
+}
+
 export const SCENES: Scene[] = [
   // ---- the tools of the "היום" tab (migration 0024) ------------------------
   //
@@ -444,65 +597,24 @@ export const SCENES: Scene[] = [
       </TripWorkspace>
     ),
   },
+  // The Stitch home (design/stitch/…/home, 2026-09-24), with the export's own
+  // four trips so it can be laid next to screen.png: Rome on day 3 of 7, Tokyo
+  // in 45 days, an Athens idea with no dates, Barcelona already taken.
   {
-    slug: "home-v5",
-    title: "v5 · הבית · מפת כל הטיולים ופאנל צף",
-    note: "כל טיול עם קואורדינטות הוא נקודה על המפה; הפאנל צף מעליה מ-lg וגליל תחתון מתחת. הטיול הקרוב כרטיס, השאר שורות ממוספרות. לחיצה על טיול מסמנת אותו על המפה (מספר, צבע, המפה טסה אליו), לחיצה נוספת נכנסת אליו",
+    slug: "home-stitch",
+    title: "הטיולים שלי · לפי הייצוא של Stitch",
+    note: "ברכה, באנר טיול חדש, כרטיס הטיול הפעיל עם תמונה ומזג אוויר, מפת כל הטיולים עם סינון וכרטיס לסיכה, כרטיסי טיול לפי סוג, כרטיס ה-Concierge, פוטר של חמישה טאבים",
     bleed: true,
-    render: () => {
-      const ordered = orderTripsByProximity(f.TRIPS, f.TODAY);
-      const featured = pickFeaturedTrip(ordered);
-      const mapped: MappedTrip[] = ordered.flatMap(({ trip, phase }, index) => {
-        const points = f.TRIP_POINTS.get(trip.id) ?? [];
-        if (!points.length) return [];
-        const during = phase.kind === "during";
-        return [{
-          id: trip.id,
-          name: trip.name,
-          hue: during ? "var(--callout)" : trip.id === featured?.trip.id ? "var(--primary)" : "var(--border-strong)",
-          activeHue: during ? "var(--callout)" : "var(--primary)",
-          position: index + 1,
-          points,
-        }];
-      });
-      return (
-        <div className="flex min-h-dvh">
-          <div className="sticky top-0 hidden h-dvh w-rail shrink-0 lg:block">
-            <IconRail items={[]} initial="ט" />
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col">
-            <AppHeader wide brand className="lg:hidden" />
-            <HomeScreen
-              mapped={mapped}
-              entries={ordered}
-              featured={featured}
-              featuredCities={["טוקיו", "קיוטו", "אוסקה", "נארה"]}
-              featuredDayCount={14}
-              featuredOpen={[{ id: "b", text: "עוד אין טיסות בטיול", detail: null, urgency: "now", path: "more/trip" }]}
-            />
-          </div>
-        </div>
-      );
-    },
+    render: () => homeFrame(HOME_STITCH_TRIPS, HOME_STITCH_DETAILS, "עומר"),
   },
   // No trips: the explanation that used to be the landing page, in place of
-  // the empty list. With trips it is not drawn at all (home-v5).
+  // the empty list. With trips it is not drawn at all.
   {
     slug: "home-empty",
     title: "הטיולים שלי · בלי טיולים",
     note: "אין דף נחיתה: / מפנה לכאן. בלי טיולים מופיע ההסבר על האפליקציה עם כפתור טיול חדש",
     bleed: true,
-    render: () => (
-      <div className="flex min-h-dvh">
-        <div className="sticky top-0 hidden h-dvh w-rail shrink-0 lg:block">
-          <IconRail items={[]} initial="ט" />
-        </div>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <AppHeader wide brand className="lg:hidden" />
-          <HomeScreen mapped={[]} entries={[]} featured={null} />
-        </div>
-      </div>
-    ),
+    render: () => homeFrame([], null, null),
   },
   // ---- the frame itself ----------------------------------------------------
   //

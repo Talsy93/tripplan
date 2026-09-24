@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useActionState } from "react";
+import type { ReactNode } from "react";
 import { Clock, Plus, Sparkles } from "lucide-react";
 import { Banner, Button, Dialog, Field, Input } from "@/components/ui";
 import { createTrip } from "../application/actions";
@@ -114,24 +115,38 @@ export function CreateTripForm({ onSuccess }: { onSuccess?: () => void }) {
 export function NewTripButton({
   variant = "primary",
   className,
+  children,
 }: {
   // "onLight" for the home rail, which sits on the upcoming trip's light — see
   // Button for why that variant is white rather than the action blue.
   variant?: "primary" | "outline" | "onLight";
   className?: string;
+  // A trigger drawn by the caller — the home screen's terracotta banner. The
+  // button is then a bare <button> carrying only `className`.
+  children?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <Button
-        variant={variant}
-        onClick={() => setOpen(true)}
-        className={className}
-      >
-        <Plus className="h-4 w-4" aria-hidden="true" />
-        טיול חדש
-      </Button>
+      {children ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={className}
+        >
+          {children}
+        </button>
+      ) : (
+        <Button
+          variant={variant}
+          onClick={() => setOpen(true)}
+          className={className}
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          טיול חדש
+        </Button>
+      )}
 
       <Dialog open={open} onClose={() => setOpen(false)} title="טיול חדש">
         <CreateTripForm onSuccess={() => setOpen(false)} />

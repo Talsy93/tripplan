@@ -1,4 +1,6 @@
 export { AppHeader, HeaderPill } from "./app-header";
+export { BrandHeader } from "./brand-header";
+export { HeaderDialogButton } from "./header-dialog-button";
 export { BottomSheet } from "./bottom-sheet";
 export { IconRail } from "./icon-rail";
 export { SidePane } from "./side-pane";

@@ -24,6 +24,7 @@ import {
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { BaseTiles, MapAutosize } from "./map-base";
+import { flagImageUrl, isFlagCode } from "./country-flag";
 
 export type MappedTrip = {
   id: string;
@@ -42,7 +43,69 @@ export type MappedTrip = {
   // to avoid — two trips both starting at "1".
   position: number;
   points: { city: string; latitude: number; longitude: number }[];
+  // The Stitch home (2026-09-24) plants one round disc per trip with the
+  // country's flag in it instead of a flag per city. `standing` turns it on;
+  // the disc's fill says the standing, so `hue` then only colours the line.
+  standing?: PinStanding;
+  countryCode?: string | null;
 };
+
+export type PinStanding = "live" | "next" | "draft" | "past";
+
+// The four discs of the home export, by size, fill and ring: the trip being
+// lived is the big terracotta one with a green live dot, the next one out is
+// maritime blue, an idea is lavender, and a trip already taken is grey.
+const DISC: Record<
+  PinStanding,
+  { size: number; fill: string; ring: number; shadow: string; font: number }
+> = {
+  live: { size: 40, fill: "#fd651e", ring: 4, shadow: "0 10px 15px -3px rgb(0 0 0/.2)", font: 14 },
+  next: { size: 36, fill: "var(--primary)", ring: 2, shadow: "0 4px 6px -1px rgb(0 0 0/.2)", font: 12 },
+  draft: { size: 32, fill: "var(--surface-variant)", ring: 2, shadow: "0 4px 6px -1px rgb(0 0 0/.2)", font: 12 },
+  past: { size: 32, fill: "var(--border-strong)", ring: 2, shadow: "0 4px 6px -1px rgb(0 0 0/.2)", font: 12 },
+};
+
+function tripDisc(
+  countryCode: string | null | undefined,
+  standing: PinStanding,
+  { selected, dimmed }: { selected: boolean; dimmed: boolean },
+): L.DivIcon {
+  const disc = DISC[standing];
+  const scale = selected ? 1.15 : 1;
+  const size = Math.round(disc.size * scale);
+  const outer = size + disc.ring * 2 + (selected ? 6 : 0);
+  const halo = selected
+    ? `box-shadow:0 0 0 3px var(--primary),${disc.shadow};`
+    : `box-shadow:${disc.shadow};`;
+  const liveDot =
+    standing === "live"
+      ? `<span style="position:absolute;top:${selected ? 2 : -1}px;right:${selected ? 2 : -1}px;width:14px;height:14px;border-radius:9999px;background:#68dba9;box-shadow:0 0 0 2px #fff"></span>`
+      : "";
+  return L.divIcon({
+    className: "",
+    html: `<div style="position:relative;width:${outer}px;height:${outer}px;display:flex;align-items:center;justify-content:center;transition:transform .15s;${dimmed ? "opacity:.4;" : standing === "past" ? "opacity:.9;" : ""}">
+      <span style="width:${size}px;height:${size}px;border-radius:9999px;background:${disc.fill};border:${disc.ring}px solid #fff;${halo}display:flex;align-items:center;justify-content:center;box-sizing:content-box">${
+        isFlagCode(countryCode ?? null)
+          ? `<img src="${flagImageUrl(countryCode as string)}" alt="" style="width:${Math.round(disc.font * 1.5 * scale)}px;height:auto;border-radius:2px;display:block">`
+          : `<span style="width:8px;height:8px;border-radius:9999px;background:#fff"></span>`
+      }</span>
+      ${liveDot}
+    </div>`,
+    iconSize: [outer, outer],
+    iconAnchor: [outer / 2, outer / 2],
+  });
+}
+
+// The other cities of a disc trip: a small dot in the line's colour, so the
+// trip keeps its shape without a second flag competing with the first.
+function cityDot(hue: string, dimmed: boolean): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `<span style="display:block;width:10px;height:10px;border-radius:9999px;background:${hue};box-shadow:0 0 0 2px #fff;${dimmed ? "opacity:.4" : ""}"></span>`,
+    iconSize: [10, 10],
+    iconAnchor: [5, 5],
+  });
+}
 
 // A flag planted at each city — the pole's foot is the coordinate. A dot said
 // "something is here"; a flag says "we were / will be here", which is what a
@@ -201,6 +264,9 @@ export default function TripsMapCanvas({
   // The trip the panel beside the map is pointing at, or null. Drives the
   // colour of every flag on the map, and the view itself.
   selectedId = null,
+  // Where the view goes when nothing is selected — the home map opens on the
+  // trip its preview card names, as the export does, without dimming the rest.
+  focusId = null,
   // Present when the map is allowed to answer back: flags become clickable and
   // empty map clears the selection. Absent — the compact world map inside a
   // scrolling page — and the map stays the still picture it has always been.
@@ -215,6 +281,7 @@ export default function TripsMapCanvas({
   trips: MappedTrip[];
   interactive?: boolean;
   selectedId?: string | null;
+  focusId?: string | null;
   onSelect?: (id: string | null) => void;
   insetLeft?: number;
   insetBottomShare?: number;
@@ -225,9 +292,9 @@ export default function TripsMapCanvas({
   // not a focus — there is nothing to fly to — so the map holds still on
   // everything and the panel is what says why.
   const focus = useMemo(() => {
-    const target = trips.find((trip) => trip.id === selectedId);
+    const target = trips.find((trip) => trip.id === (selectedId ?? focusId));
     return (target ? boundsOf([target]) : bounds) ?? bounds;
-  }, [trips, selectedId, bounds]);
+  }, [trips, selectedId, focusId, bounds]);
 
   if (!bounds || !focus) return null;
 
@@ -304,15 +371,21 @@ export default function TripsMapCanvas({
                 }}
               />
             )}
-            {trip.points.map((point) => (
+            {trip.points.map((point, index) => (
               <Marker
                 key={`${trip.id}|${point.city}`}
                 position={[point.latitude, point.longitude]}
-                icon={tripFlag(hue, {
-                  selected,
-                  dimmed,
-                  position: trip.position,
-                })}
+                icon={
+                  trip.standing
+                    ? index === 0
+                      ? tripDisc(trip.countryCode, trip.standing, { selected, dimmed })
+                      : cityDot(hue, dimmed)
+                    : tripFlag(hue, {
+                        selected,
+                        dimmed,
+                        position: trip.position,
+                      })
+                }
                 interactive={Boolean(onSelect)}
                 eventHandlers={
                   onSelect ? { click: () => onSelect(trip.id) } : undefined

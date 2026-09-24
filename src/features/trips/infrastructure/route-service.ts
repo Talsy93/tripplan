@@ -181,38 +181,64 @@ export async function getCachedRouteStops(
 // six restaurants in it — both land on the same pixel. What matters is that a
 // trip with any located city gets a pin, so it does not silently vanish from a
 // screen that is supposed to show everything.
+// The country code rides along from the overview row (migration 0015's
+// "code|name"), for the flag the home screen plants on each trip. Null when the
+// city was only ever derived from its places, which carry no country.
+export type CachedTripPoint = {
+  city: string;
+  latitude: number;
+  longitude: number;
+  countryCode: string | null;
+};
+
 export async function getCachedStopsByTrip(): Promise<
-  Map<string, { city: string; latitude: number; longitude: number }[]>
+  Map<string, CachedTripPoint[]>
 > {
   const supabase = await createClient();
   // RLS keeps this to the caller's own trips, the same as every other
   // cross-trip read on this screen.
-  const { data, error } = await supabase
-    .from("suggested_destinations")
-    .select("trip_id, city, category, latitude, longitude")
-    .not("latitude", "is", null)
-    .not("longitude", "is", null)
-    .not("city", "is", null);
+  const read = (columns: string) =>
+    supabase
+      .from("suggested_destinations")
+      .select(columns)
+      .not("latitude", "is", null)
+      .not("longitude", "is", null)
+      .not("city", "is", null);
 
-  const byTrip = new Map<
-    string,
-    { city: string; latitude: number; longitude: number }[]
-  >();
+  // Without 0015 the map still draws, only without flags — the same fallback
+  // getCachedLocations makes.
+  let { data, error } = await read(
+    "trip_id, city, category, latitude, longitude, country",
+  );
+  if (error && isSchemaOutOfDate(error.message)) {
+    ({ data, error } = await read("trip_id, city, category, latitude, longitude"));
+  }
+
+  const byTrip = new Map<string, CachedTripPoint[]>();
   if (error || !data) {
     if (error) console.error("getCachedStopsByTrip failed:", error.message);
     return byTrip;
   }
+  const rows = data as unknown as {
+    trip_id: string | null;
+    city: string | null;
+    category: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    country?: string | null;
+  }[];
 
   // Two passes over one result set. An overview row is the city's own cached
   // centre and wins outright; anything else contributes to an average that is
   // only used when no overview row exists for that city.
   const centres = new Map<string, { latitude: number; longitude: number }>();
+  const countries = new Map<string, string>();
   const sums = new Map<
     string,
     { latitude: number; longitude: number; count: number }
   >();
 
-  for (const row of data) {
+  for (const row of rows) {
     if (
       !row.trip_id ||
       !row.city ||
@@ -224,6 +250,8 @@ export async function getCachedStopsByTrip(): Promise<
     const key = `${row.trip_id}|${row.city}`;
     if (row.category === OVERVIEW_CATEGORY) {
       centres.set(key, { latitude: row.latitude, longitude: row.longitude });
+      const code = row.country?.split("|")[0];
+      if (code) countries.set(key, code);
       continue;
     }
     const running = sums.get(key);
@@ -252,7 +280,10 @@ export async function getCachedStopsByTrip(): Promise<
     const separator = key.indexOf("|");
     const tripId = key.slice(0, separator);
     const city = key.slice(separator + 1);
-    byTrip.set(tripId, [...(byTrip.get(tripId) ?? []), { city, ...point }]);
+    byTrip.set(tripId, [
+      ...(byTrip.get(tripId) ?? []),
+      { city, ...point, countryCode: countries.get(key) ?? null },
+    ]);
   }
   return byTrip;
 }

@@ -166,6 +166,26 @@ export async function getSelectedCitiesByTrip(): Promise<Map<string, string[]>> 
   return byTrip;
 }
 
+// How many places each trip has saved — the "8 מקומות ברשימה" line on a trip
+// card of the home screen. The city's own overview row is not a place.
+export async function getSelectedPlaceCountByTrip(): Promise<Map<string, number>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("suggested_destinations")
+    .select("trip_id")
+    .eq("selected", true)
+    .not("category", "is", null)
+    .neq("category", OVERVIEW_CATEGORY);
+
+  const counts = new Map<string, number>();
+  if (error || !data) return counts;
+  for (const row of data) {
+    if (!row.trip_id) continue;
+    counts.set(row.trip_id, (counts.get(row.trip_id) ?? 0) + 1);
+  }
+  return counts;
+}
+
 // A single city that best represents the trip, for illustrating it with a
 // photo. Prefers a city the user actually added; falls back to any suggested
 // city; null when planning hasn't produced any city yet.
