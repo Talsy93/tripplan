@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import * as z from "zod";
 import { discoverRequestSchema, getCityCenter, getTrip } from "@/features/trips";
-import { discoverAround } from "@/lib/discover";
+import { discoverAround, quickAround } from "@/lib/discover";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import type { DiscoverCard } from "@/features/trips";
@@ -13,7 +13,9 @@ import type { DiscoverCard } from "@/features/trips";
 // seconds or more at busy hours, plus Wikidata and Wikipedia after it.
 export const maxDuration = 60;
 
-const RATE_LIMIT = 8;
+// A deck being filled in asks again every few seconds (see `partial`), so
+// the ceiling allows a first deal and its follow-ups with room to spare.
+const RATE_LIMIT = 24;
 const RATE_WINDOW_MS = 60_000;
 
 export async function POST(request: Request) {
@@ -57,26 +59,53 @@ export async function POST(request: Request) {
   // queries per client, and four at once is how a deck gets refused.
   const cards: DiscoverCard[] = [];
   let failed = 0;
+  // True when some city's full deck is still being dealt. The deck then asks
+  // again in a few seconds and appends what has arrived.
+  let partial = false;
+  const pending: Promise<unknown>[] = [];
   const started = Date.now();
   for (const city of cities) {
-    // A country is several cities, and each one's first deal can take most of
-    // a minute when Overpass is busy. Past half the budget, deal what is in
-    // hand rather than have the whole request cut off with nothing.
-    if (cards.length > 0 && Date.now() - started > 30_000) break;
+    // A country is several cities. Past a few seconds, answer with what is in
+    // hand and let the rest arrive on the deck's next ask.
+    if (cards.length > 0 && Date.now() - started > 8_000) {
+      partial = true;
+      break;
+    }
     const center = await getCityCenter(tripId, city, trip.name);
     if (!center) {
       failed++;
       continue;
     }
-    const result = await discoverAround({ city, center, category });
-    if (!result.ok) {
+
+    // The full deck, given eight seconds. From the cache it is instant; a
+    // city's first deal is 10–20 seconds of Overpass, and nobody is made to
+    // watch a spinner for that.
+    const full = discoverAround({ city, center, category });
+    const settled = await Promise.race([
+      full,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 8_000)),
+    ]);
+    if (settled?.ok) {
+      cards.push(...settled.cards);
+      continue;
+    }
+    if (settled && !settled.ok) {
       failed++;
       continue;
     }
-    cards.push(...result.cards);
-  }
 
-  if (cards.length === 0 && failed > 0) {
+    // Not yet. It keeps dealing into the cache — `after` keeps the function
+    // alive for it once this response has gone — and "הכל" gets the quick
+    // deck meanwhile. The other chips have no quick form (it knows no
+    // categories), so they answer empty-and-partial and fill in on the ask
+    // after.
+    partial = true;
+    pending.push(full);
+    if (category === "all") cards.push(...(await quickAround({ city, center })));
+  }
+  if (pending.length > 0) after(() => Promise.allSettled(pending));
+
+  if (cards.length === 0 && failed > 0 && !partial) {
     console.warn(`[discover] no deck for ${cities.join(", ")} — ${failed} failed`);
     return NextResponse.json({ error: "unavailable" }, { status: 503 });
   }
@@ -94,5 +123,5 @@ export async function POST(request: Request) {
         : b.languages - a.languages;
     });
 
-  return NextResponse.json({ cards: merged });
+  return NextResponse.json({ cards: merged, partial });
 }

@@ -19,6 +19,7 @@
 
 import { unstable_cache } from "next/cache";
 import {
+  discoverFilters,
   kindOf,
   matchesCategory,
   type DiscoverCard,
@@ -118,6 +119,194 @@ const persistedDeck = unstable_cache(
   ["discover-deck-v1"],
   { revalidate: 7 * 86_400 },
 );
+
+// ---- the quick deck -------------------------------------------------------------
+
+// A deck in about three seconds, for the one wait the caches cannot remove: the
+// very first deal in a city nobody has opened. Reported on Tokyo — a long
+// spinner and then "the server is busy" — where Overpass alone takes 13–20
+// seconds and the full deal ran past the route's sixty.
+//
+// Wikipedia's geosearch answers in about one second from Wikimedia's own
+// servers, but it returns the 500 *nearest* geotagged articles — within 3.6 km
+// of Tokyo Station, 1 km of central Rome — and knows nothing of categories.
+// So this is a first deck, not the deck: the landmark-typed articles near the
+// centre, ranked by fame like the full one, dealt only under "הכל". The full
+// deal keeps running and its cards are appended as they arrive (the route
+// answers `partial`, and the deck asks again).
+//
+// The articles' own coordinate type does most of the filtering ("landmark",
+// not "railwaystation" or "city"); what is left that is not a sight — a
+// ministry, a hotel, an office tower — goes by its Wikidata type.
+const NOT_A_SIGHT = new Set([
+  "Q5", // human
+  "Q27686", // hotel
+  "Q192350", // ministry
+  "Q327333", // government agency
+  "Q16831714", // government building
+  "Q1021645", // office building
+  "Q11755880", // residential building
+  "Q13402009", // apartment building
+  "Q4830453", // business
+  "Q783794", // company
+  "Q3914", // school
+  "Q3918", // university
+  "Q16917", // hospital
+  "Q55488", // railway station
+  "Q928830", // metro station
+  "Q12819564", // station
+  "Q3917681", // embassy
+  "Q79007", // street
+  "Q1248784", // airport
+  "Q123705", // neighbourhood
+]);
+
+// The same, by the entry's English description. The type list alone let
+// through, around Tokyo Station, the National Diet Library, the parliament,
+// the Meteorological Agency, a ministry, a holding company and the Supreme
+// Court — each typed as some narrow subclass no list could name in advance,
+// and each described in plain words that say what it is.
+const NOT_A_SIGHT_WORDS =
+  /\b(ministry|agency|authority|company|corporation|holdings?|conglomerate|court|legislature|parliament|diet of|government|embassy|consulate|bank|school|university|college|hospital|station|hotel|office|headquarters|association|federation|library|ward of|district of|neighbou?rhood|street|road|expressway|newspaper|broadcaster|police|prison|coast guard|organi[sz]ation)\b/i;
+
+// A label for the chip on a quick card, from the few Wikidata types that are
+// most of what a city centre's landmarks are. Anything else is "ציון דרך".
+const QUICK_KINDS: Record<string, { label: string; visit: [number, number] }> = {
+  Q33506: { label: "מוזיאון", visit: [90, 120] },
+  Q207694: { label: "מוזיאון", visit: [90, 120] },
+  Q845945: { label: "מקדש שינטו", visit: [30, 45] },
+  Q5393308: { label: "מקדש בודהיסטי", visit: [30, 45] },
+  Q44539: { label: "מקדש", visit: [30, 45] },
+  Q16970: { label: "כנסייה", visit: [30, 45] },
+  Q2977: { label: "קתדרלה", visit: [30, 45] },
+  Q163687: { label: "בזיליקה", visit: [30, 45] },
+  Q23413: { label: "טירה ומבצר", visit: [60, 90] },
+  Q16560: { label: "ארמון", visit: [60, 90] },
+  Q22698: { label: "פארק", visit: [45, 90] },
+  Q1107656: { label: "גן", visit: [30, 60] },
+  Q12518: { label: "מגדל", visit: [45, 60] },
+  Q839954: { label: "אתר ארכאולוגי", visit: [60, 90] },
+  Q4989906: { label: "ציון דרך ומורשת", visit: [30, 45] },
+  Q174782: { label: "כיכר", visit: [20, 30] },
+  Q12280: { label: "גשר", visit: [15, 20] },
+  Q483453: { label: "מזרקה", visit: [15, 30] },
+};
+
+const QUICK_TYPES = new Set(["landmark", "monument", "mountain", "isle"]);
+
+export async function quickAround({
+  city,
+  center,
+}: {
+  city: string;
+  center: { latitude: number; longitude: number };
+}): Promise<DiscoverCard[]> {
+  const coord = `${center.latitude}|${center.longitude}`;
+  const common = { action: "query", format: "json" };
+  const endpoint = "https://en.wikipedia.org/w/api.php";
+  try {
+    // The type needs `list=geosearch`, the Wikidata id needs the generator
+    // form — two calls, side by side, joined on the page id.
+    const [listed, generated] = await Promise.all([
+      fetch(
+        `${endpoint}?${new URLSearchParams({ ...common, list: "geosearch", gscoord: coord, gsradius: "10000", gslimit: "500", gsprop: "type" })}`,
+        { headers: HEADERS, ...DAY, signal: AbortSignal.timeout(8_000) },
+      ).then((res) => res.json() as Promise<{ query?: { geosearch?: { pageid: number; type?: string; lat: number; lon: number }[] } }>),
+      fetch(
+        `${endpoint}?${new URLSearchParams({ ...common, generator: "geosearch", ggscoord: coord, ggsradius: "10000", ggslimit: "500", prop: "pageprops", ppprop: "wikibase_item" })}`,
+        { headers: HEADERS, ...DAY, signal: AbortSignal.timeout(8_000) },
+      ).then((res) => res.json() as Promise<{ query?: { pages?: Record<string, { pageprops?: { wikibase_item?: string } }> } }>),
+    ]);
+
+    const pages = generated.query?.pages ?? {};
+    const points = new Map<string, { latitude: number; longitude: number }>();
+    for (const hit of listed.query?.geosearch ?? []) {
+      if (!QUICK_TYPES.has(hit.type ?? "")) continue;
+      const qid = pages[String(hit.pageid)]?.pageprops?.wikibase_item;
+      if (qid && !points.has(qid)) {
+        points.set(qid, { latitude: hit.lat, longitude: hit.lon });
+      }
+    }
+    if (points.size === 0) return [];
+
+    const ranked = await wikidata([...points.keys()], "sitelinks");
+    const shortlist = [...points.keys()]
+      .filter((qid) => ranked.has(qid))
+      .sort((a, b) => (ranked.get(b)?.languages ?? 0) - (ranked.get(a)?.languages ?? 0))
+      .slice(0, 45);
+    const detailed = await wikidata(shortlist, "labels|claims");
+
+    const drafts = shortlist.flatMap((qid) => {
+      const light = ranked.get(qid);
+      const full = detailed.get(qid);
+      const point = points.get(qid);
+      if (!light || !full || !point || full.person || full.concept) return [];
+      if (full.instances.some((type) => NOT_A_SIGHT.has(type))) return [];
+      if (full.enDescription && NOT_A_SIGHT_WORDS.test(full.enDescription)) return [];
+      const entity = { ...full, ...pick(light) };
+      const name = entity.heLabel ?? entity.heTitle ?? entity.enLabel ?? entity.enTitle;
+      if (!name) return [];
+      const kind = entity.instances.map((type) => QUICK_KINDS[type]).find(Boolean);
+      const localName = entity.enLabel && entity.enLabel !== name ? entity.enLabel : null;
+      return [
+        {
+          entity,
+          card: {
+            id: `wikidata/${qid}`,
+            wikidata: qid,
+            city,
+            name,
+            localName,
+            kindLabel: kind?.label ?? "ציון דרך",
+            category: "mustsee",
+            placeCategory: "attractions",
+            latitude: point.latitude,
+            longitude: point.longitude,
+            image: entity.image,
+            summary: null,
+            wikiUrl: null,
+            languages: entity.languages,
+            fee: null,
+            openingHours: null,
+            website: null,
+            visit: kind?.visit ?? [30, 60],
+          } satisfies DiscoverCard,
+        },
+      ];
+    });
+    drafts.sort(
+      (a, b) =>
+        Number(Boolean(b.card.image)) - Number(Boolean(a.card.image)) ||
+        b.card.languages - a.card.languages,
+    );
+    const chosen = drafts.slice(0, 30);
+    const summaries = await extracts(
+      chosen.flatMap(({ entity }): { lang: "he" | "en"; title: string }[] =>
+        entity.heTitle
+          ? [{ lang: "he", title: entity.heTitle }]
+          : entity.enTitle
+            ? [{ lang: "en", title: entity.enTitle }]
+            : [],
+      ),
+    );
+    return chosen.map(({ entity, card }) => {
+      const source = entity.heTitle
+        ? { lang: "he", title: entity.heTitle }
+        : entity.enTitle
+          ? { lang: "en", title: entity.enTitle }
+          : null;
+      return {
+        ...card,
+        summary: source ? (summaries.get(`${source.lang}:${source.title}`) ?? null) : null,
+        wikiUrl: source
+          ? `https://${source.lang}.wikipedia.org/wiki/${encodeURIComponent(source.title.replaceAll(" ", "_"))}`
+          : null,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
 
 // Deals every chip for each of these cities, one after another, so that by
 // the time the traveller opens a city or presses a chip it is already there.
@@ -322,7 +511,23 @@ async function overpass(center: {
   longitude: number;
 }): Promise<Element[] | null> {
   const around = `around:${RADIUS_M},${center.latitude},${center.longitude}`;
-  const data = `[out:json][timeout:25];\nnwr["wikidata"](${around});\nout tags center 6000;`;
+  // Only the keys a card can come from, not every place with a Wikidata tag.
+  // Measured on Tokyo, where "everything" was 5,989 places and 3.7MB — stations,
+  // companies, schools, office towers — and the Wikidata pass after it took
+  // the whole request past its sixty seconds: this is 1,542 and 0.8MB. The
+  // values under each key are exactly the ones KINDS knows.
+  const byKey = new Map<string, Set<string>>();
+  for (const filter of discoverFilters("all")) {
+    const [key, value] = filter.split("=");
+    byKey.set(key, (byKey.get(key) ?? new Set()).add(value));
+  }
+  const clauses = [...byKey]
+    .map(
+      ([key, values]) =>
+        `nwr["${key}"~"^(${[...values].join("|")})$"]["wikidata"](${around});`,
+    )
+    .join("\n  ");
+  const data = `[out:json][timeout:25];\n(\n  ${clauses}\n);\nout tags center;`;
 
   // overpass-api.de is two servers behind one name, `z` and `lz4`, and at a
   // busy hour one of them can be refusing every query ("Dispatcher_Client …
@@ -383,10 +588,16 @@ type Entity = {
   // Has "subclass of" (P279): the entry is a kind of thing — "khachkar",
   // "drinking fountain" — that a mapper attached to one example of it.
   concept: boolean;
+  // "instance of" (P31), for labelling and filtering the quick deck.
+  instances: string[];
+  // The one-line English description ("government ministry of Japan"), for
+  // filtering the quick deck.
+  enDescription: string | null;
 };
 
 type RawEntity = {
   labels?: Record<string, { value?: string }>;
+  descriptions?: Record<string, { value?: string }>;
   sitelinks?: Record<string, { title?: string }>;
   claims?: Record<
     string,
@@ -428,6 +639,8 @@ async function wikidata(
   ids: string[],
   props: "sitelinks" | "labels|claims",
 ): Promise<Map<string, Entity>> {
+  // Descriptions ride along with the labels: same call, a few bytes each.
+  const asked = props === "sitelinks" ? props : "labels|descriptions|claims";
   const found = new Map<string, Entity>();
   const missing: string[] = [];
   for (const qid of ids) {
@@ -444,7 +657,7 @@ async function wikidata(
     const params = new URLSearchParams({
       action: "wbgetentities",
       ids: batch.join("|"),
-      props,
+      props: asked,
       format: "json",
     });
     if (props !== "sitelinks") params.set("languages", "he|en");
@@ -469,6 +682,8 @@ async function wikidata(
               ? `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(file)}?width=800`
               : null,
           person: instances.includes("Q5"),
+          instances: instances.filter((id): id is string => typeof id === "string"),
+          enDescription: raw.descriptions?.en?.value ?? null,
           concept: (raw.claims?.P279 ?? []).length > 0,
           languages: Object.keys(sites).filter(
             (site) => WIKIPEDIA_SITE.test(site) && !NOT_WIKIPEDIA.has(site),

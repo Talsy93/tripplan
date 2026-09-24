@@ -110,38 +110,83 @@ export function DiscoverDeck({
 
   // ---- dealing -------------------------------------------------------------
 
+  // Which deal is current. A chip pressed while a deck is still filling in
+  // must stop the old deck's follow-ups from landing on the new one.
+  const generation = useRef(0);
+  // True while the server is still dealing the full deck behind a quick one.
+  const [filling, setFilling] = useState(false);
+
   const load = useCallback(async () => {
     if (!destination) return;
+    const mine = ++generation.current;
     setState("loading");
+    setFilling(false);
+
+    const ask = async () =>
+      fetch("/api/discover", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          tripId,
+          cities: destination.cities.slice(0, 4),
+          category,
+        }),
+      });
+
     // Once more on its own before saying anything: a 503 here is the map
     // server being busy, and the next try a moment later usually lands on the
     // one that is not (see OVERPASS_ENDPOINTS). A person pressing "נסו שוב"
     // for what the code could have retried is a failure shown for nothing.
-    for (let attempt = 0; attempt < 2; attempt++) {
+    let first: { cards?: DiscoverCard[]; partial?: boolean } | null = null;
+    for (let attempt = 0; attempt < 2 && !first; attempt++) {
       try {
-        const res = await fetch("/api/discover", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            tripId,
-            cities: destination.cities.slice(0, 4),
-            category,
-          }),
-        });
+        const res = await ask();
         if (res.status === 503 && attempt === 0) {
           await new Promise((resolve) => setTimeout(resolve, 1_500));
           continue;
         }
-        if (!res.ok) throw new Error(String(res.status));
-        const json = (await res.json()) as { cards?: DiscoverCard[] };
-        setCards(json.cards ?? []);
-        setState("idle");
-        return;
+        if (!res.ok) break;
+        first = await res.json();
       } catch {
         break;
       }
     }
-    setState("error");
+    if (mine !== generation.current) return;
+    if (!first) {
+      setState("error");
+      return;
+    }
+    setCards(first.cards ?? []);
+    setState("idle");
+
+    // A city's first deal: the server answered with what it had in eight
+    // seconds (the quick deck under "הכל", nothing under the other chips) and
+    // is still dealing the rest. Ask again every few seconds and put what has
+    // arrived at the back of the pile, so the card in hand never changes under
+    // the thumb. Stops when the answer is whole, or after about a minute.
+    let partial = first.partial === true;
+    setFilling(partial);
+    for (let round = 0; partial && round < 10; round++) {
+      await new Promise((resolve) => setTimeout(resolve, 6_000));
+      if (mine !== generation.current) return;
+      try {
+        const res = await ask();
+        if (!res.ok) continue;
+        const more = (await res.json()) as { cards?: DiscoverCard[]; partial?: boolean };
+        if (mine !== generation.current) return;
+        partial = more.partial === true;
+        setCards((current) => {
+          const known = new Set((current ?? []).map((card) => card.wikidata));
+          return [
+            ...(current ?? []),
+            ...(more.cards ?? []).filter((card) => !known.has(card.wikidata)),
+          ];
+        });
+      } catch {
+        // The next round asks again.
+      }
+    }
+    if (mine === generation.current) setFilling(false);
   }, [destination, category, tripId]);
 
   // Dealt on arrival and whenever the destination or the chip changes — keyed
@@ -361,12 +406,12 @@ export function DiscoverDeck({
           </>
         )}
 
-        {state === "loading" ? (
+        {state === "loading" || (!top && filling) ? (
           <DeckMessage>
             <span className="h-8 w-8 animate-spin rounded-full border-4 border-primary-tint border-t-primary" />
             <span>מחלקים את הקלפים…</span>
             <span className="text-xs text-muted">
-              בפעם הראשונה בכל עיר זה לוקח עד חצי דקה
+              רק כמה שניות
             </span>
           </DeckMessage>
         ) : state === "error" ? (
