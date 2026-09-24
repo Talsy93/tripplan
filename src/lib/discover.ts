@@ -258,33 +258,45 @@ async function overpass(center: {
   const around = `around:${RADIUS_M},${center.latitude},${center.longitude}`;
   const data = `[out:json][timeout:25];\nnwr["wikidata"](${around});\nout tags center 6000;`;
 
-  // The main public server answers "too busy" (504) or "slow down" (429) often
-  // at busy hours — measured while building this: the first try on Rome
-  // failed three times in a row, and the next request a minute later came
-  // back in thirteen seconds. So: the main server twice with a pause, then the
-  // two public mirrors the Overpass wiki lists, each with its own timeout so a
-  // hanging one cannot hold the deck.
-  const attempts = [OVERPASS, OVERPASS, ...OVERPASS_MIRRORS];
-  for (const [index, endpoint] of attempts.entries()) {
+  // overpass-api.de is two servers behind one name, `z` and `lz4`, and at a
+  // busy hour one of them can be refusing every query ("Dispatcher_Client …
+  // timeout", 504) while the other answers in eight seconds — measured on
+  // 2026-09-24 while a real deck was failing: lz4 504 three times, z 200 each
+  // time, and the shared name 504 because it handed the request to lz4. So the
+  // two are asked by their own names, in turn, and the shared name and the
+  // public mirrors come after. Each attempt has its own timeout so one hanging
+  // server cannot hold the deck.
+  // Forty seconds in all, whatever is left of it per attempt: the route has
+  // sixty, and Wikidata and Wikipedia still come after this.
+  const deadline = Date.now() + 40_000;
+  for (const [index, endpoint] of OVERPASS_ENDPOINTS.entries()) {
+    const left = deadline - Date.now();
+    if (left < 3_000) break;
     try {
       const res = await fetch(`${endpoint}?${new URLSearchParams({ data })}`, {
         headers: HEADERS,
         cache: "no-store",
-        signal: AbortSignal.timeout(30_000),
+        signal: AbortSignal.timeout(Math.min(25_000, left)),
       });
       if (res.ok && res.headers.get("content-type")?.includes("json")) {
         const json = (await res.json()) as { elements?: Element[] };
         return json.elements ?? [];
       }
-      if (index === 0) await new Promise((resolve) => setTimeout(resolve, 2_500));
+      console.warn(`[discover] ${endpoint} answered ${res.status}`);
+      // A breath before going round to the first server again.
+      if (index === 1) await new Promise((resolve) => setTimeout(resolve, 2_000));
     } catch {
-      // Timed out or unreachable — the next endpoint.
+      console.warn(`[discover] ${endpoint} timed out or was unreachable`);
     }
   }
   return null;
 }
 
-const OVERPASS_MIRRORS = [
+const OVERPASS_ENDPOINTS = [
+  "https://z.overpass-api.de/api/interpreter",
+  "https://lz4.overpass-api.de/api/interpreter",
+  "https://z.overpass-api.de/api/interpreter",
+  OVERPASS,
   "https://overpass.kumi.systems/api/interpreter",
   "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
 ];

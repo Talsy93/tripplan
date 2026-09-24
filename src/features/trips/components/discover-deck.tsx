@@ -113,23 +113,35 @@ export function DiscoverDeck({
   const load = useCallback(async () => {
     if (!destination) return;
     setState("loading");
-    try {
-      const res = await fetch("/api/discover", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          tripId,
-          cities: destination.cities.slice(0, 4),
-          category,
-        }),
-      });
-      if (!res.ok) throw new Error(String(res.status));
-      const json = (await res.json()) as { cards?: DiscoverCard[] };
-      setCards(json.cards ?? []);
-      setState("idle");
-    } catch {
-      setState("error");
+    // Once more on its own before saying anything: a 503 here is the map
+    // server being busy, and the next try a moment later usually lands on the
+    // one that is not (see OVERPASS_ENDPOINTS). A person pressing "נסו שוב"
+    // for what the code could have retried is a failure shown for nothing.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch("/api/discover", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            tripId,
+            cities: destination.cities.slice(0, 4),
+            category,
+          }),
+        });
+        if (res.status === 503 && attempt === 0) {
+          await new Promise((resolve) => setTimeout(resolve, 1_500));
+          continue;
+        }
+        if (!res.ok) throw new Error(String(res.status));
+        const json = (await res.json()) as { cards?: DiscoverCard[] };
+        setCards(json.cards ?? []);
+        setState("idle");
+        return;
+      } catch {
+        break;
+      }
     }
+    setState("error");
   }, [destination, category, tripId]);
 
   // Dealt on arrival and whenever the destination or the chip changes — keyed
@@ -359,7 +371,8 @@ export function DiscoverDeck({
           </DeckMessage>
         ) : state === "error" ? (
           <DeckMessage>
-            <span>השרת של OpenStreetMap עמוס כרגע.</span>
+            <span className="font-semibold text-foreground">שרת המפות עמוס כרגע</span>
+            <span>הנתונים מגיעים מ-OpenStreetMap, ששרת הציבור שלו עמוס בשעות מסוימות. בדרך כלל מספיק לנסות שוב בעוד רגע.</span>
             <Button variant="brand" size="sm" onClick={() => void load()}>
               נסו שוב
             </Button>

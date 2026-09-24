@@ -57,7 +57,12 @@ export async function POST(request: Request) {
   // queries per client, and four at once is how a deck gets refused.
   const cards: DiscoverCard[] = [];
   let failed = 0;
+  const started = Date.now();
   for (const city of cities) {
+    // A country is several cities, and each one's first deal can take most of
+    // a minute when Overpass is busy. Past half the budget, deal what is in
+    // hand rather than have the whole request cut off with nothing.
+    if (cards.length > 0 && Date.now() - started > 30_000) break;
     const center = await getCityCenter(tripId, city, trip.name);
     if (!center) {
       failed++;
@@ -72,6 +77,7 @@ export async function POST(request: Request) {
   }
 
   if (cards.length === 0 && failed > 0) {
+    console.warn(`[discover] no deck for ${cities.join(", ")} — ${failed} failed`);
     return NextResponse.json({ error: "unavailable" }, { status: 503 });
   }
 
