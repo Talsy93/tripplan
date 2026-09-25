@@ -3,6 +3,11 @@ import type { NextConfig } from "next";
 // The images.remotePatterns entry for upload.wikimedia.org went with the
 // destination photos — see trip-aura-band.tsx.
 const nextConfig: NextConfig = {
+  // The owner checks changes on an iPad over the home Wi-Fi, at this PC's LAN
+  // address. Next blocks dev assets (HMR, the client bundles' dev endpoints)
+  // from any origin but localhost, so without this the page loads and then
+  // never hydrates there. Dev only — ignored by `next build`.
+  allowedDevOrigins: ["192.168.1.148"],
   experimental: {
     // How long the browser may reuse a route it has already rendered, before
     // it goes back to the server for it (the Client Cache).
